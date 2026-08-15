@@ -2,7 +2,9 @@ mod db;
 mod elm;
 
 use db::Db;
-use elm::supervisor::{ConnStatus, DtcResult, EcuInfo, Request, SensorReading, Supervisor};
+use elm::obd::{DtcResult, EcuInfo, SensorReading};
+use elm::supervisor::{ConnStatus, Request, Supervisor};
+use elm::uds::ClearOutcome;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -30,7 +32,7 @@ fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     match m.lock() {
         Ok(g) => g,
         Err(poisoned) => {
-            eprintln!("[scainner] WARNING: recovering from a poisoned mutex (a previous command panicked while holding it)");
+            log::warn!("recovering from a poisoned mutex (a previous command panicked while holding it)");
             poisoned.into_inner()
         }
     }
@@ -48,7 +50,7 @@ fn ask<T: Send + 'static>(
     match rx.recv_timeout(ASK_TIMEOUT) {
         Ok(r) => r,
         Err(_) => {
-            eprintln!("[scainner][ask] ERROR: request timed out after {ASK_TIMEOUT:?} waiting for supervisor reply");
+            log::warn!("request timed out after {ASK_TIMEOUT:?} waiting for supervisor reply");
             Err("timed out waiting for dongle".to_string())
         }
     }
@@ -80,7 +82,7 @@ fn disconnect(state: tauri::State<AppState>) -> Result<(), String> {
 /// timeout (≤600ms), not instantly — the scan loop only checks between DIDs.
 #[tauri::command]
 fn uds_cancel_scan(state: tauri::State<AppState>) {
-    eprintln!("[scainner][uds-scan] cancel requested from UI");
+    log::debug!("scan cancel requested from UI");
     if let Some(sup) = lock_or_recover(&state.supervisor).as_ref() {
         sup.cancel_scan.store(true, std::sync::atomic::Ordering::Relaxed);
     }
@@ -158,7 +160,7 @@ fn uds_scan(state: tauri::State<AppState>, module: String, from: u16, to: u16) -
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
 #[tauri::command]
-fn uds_clear(state: tauri::State<AppState>, module: String) -> Result<elm::supervisor::ClearOutcome, String> {
+fn uds_clear(state: tauri::State<AppState>, module: String) -> Result<ClearOutcome, String> {
     ask(&state, |tx| Request::UdsClear { module, tx })
 }
 
@@ -242,8 +244,13 @@ fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, since_hours:
     let sessions = state.db.session_count();
     let days = since_hours / 24.0;
 
-    let mut md = String::from("# Car diagnostic briefing (Scainner export)\n\n");
-    md.push_str("Car: Citroën C4 III 1.2 PureTech 130 (EB2ADTS petrol turbo, wet timing belt).\n");
+    let mut md = String::from("# Car diagnostic briefing (Scainner export)\n\n## Vehicle\n\n");
+    // Deliberately no hardcoded car description here — Scainner works on any
+    // car (see README "Bring your own car"), so the briefing only claims what
+    // was actually read from the connected ECU.
+    if info.is_empty() {
+        md.push_str("(ECU not read yet — connect and use \"Read from ECU\" in the Vehicle tab.)\n");
+    }
     for (k, v) in &info {
         md.push_str(&format!("- {k}: `{v}`\n"));
     }
@@ -295,6 +302,11 @@ fn data_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Quiet by default — set RUST_LOG=debug (or =trace for per-DID scan
+    // detail) to see the connection/scan internals. `Info` is the default
+    // level so warnings and above always surface.
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())

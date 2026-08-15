@@ -26,8 +26,12 @@
 
 use super::driver::{ElmDriver, ElmError};
 use super::parser;
+use crate::db::Db;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+use tauri::Emitter;
 
 #[derive(Serialize, Clone)]
 pub struct UdsModule {
@@ -200,6 +204,178 @@ pub fn extract(data: &[u8], offset: usize, len: usize, scale: f64, bias: f64) ->
         v = (v << 8) | b as u32;
     }
     Some(v as f64 * scale + bias)
+}
+
+// ---------------------------------------------------------------------------
+// Orchestration: the higher-level operations built on the primitives above.
+// Everything below talks to the DB (for user-added modules and probes) and,
+// for scans, emits progress events to the UI.
+// ---------------------------------------------------------------------------
+
+/// Everything the UI needs to explain a module-clear honestly: what was
+/// there before, whether the module accepted the clear, and what's left.
+#[derive(Serialize, Clone)]
+pub struct ClearOutcome {
+    pub before: Vec<String>,
+    pub accepted: bool,
+    pub after: Vec<String>,
+}
+
+/// Custom modules from the DB, converted to `UdsModule`. A tiny adapter so
+/// `db.rs` doesn't need to know about this module's types.
+fn custom_modules(db: &Db) -> Vec<UdsModule> {
+    db.list_uds_modules()
+        .into_iter()
+        .map(|(key, label, req, resp)| UdsModule { key, label, req, resp, builtin: false })
+        .collect()
+}
+
+/// Read → clear → read again, so the UI can show a verified before/after
+/// instead of a blind "done".
+pub fn clear_module(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<ClearOutcome, String> {
+    let custom = custom_modules(db);
+    let m = resolve(module, &custom).ok_or("unknown module")?;
+    setup(drv, &m).map_err(|e| e.to_string())?;
+    let before = read_dtcs(drv).unwrap_or_default();
+    let accepted = match clear_dtcs(drv) {
+        Ok(ok) => ok,
+        Err(e) => {
+            teardown(drv);
+            return Err(e.to_string());
+        }
+    };
+    let after = read_dtcs(drv).unwrap_or_default();
+    teardown(drv);
+    Ok(ClearOutcome { before, accepted, after })
+}
+
+pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<String>, String> {
+    let custom = custom_modules(db);
+    let m = resolve(module, &custom).ok_or("unknown module")?;
+    setup(drv, &m).map_err(|e| e.to_string())?;
+    let res = read_dtcs(drv).map_err(|e| e.to_string());
+    teardown(drv);
+    res
+}
+
+pub fn read_one(drv: &mut ElmDriver, db: &Db, module: &str, did: u16) -> Result<Option<UdsHit>, String> {
+    let custom = custom_modules(db);
+    let m = resolve(module, &custom).ok_or("unknown module")?;
+    setup(drv, &m).map_err(|e| e.to_string())?;
+    let res = read_did(drv, did).map_err(|e| e.to_string());
+    teardown(drv);
+    res.map(|opt| opt.map(|d| to_hit(did, &d)))
+}
+
+/// Scan a DID range on one module. Capped at 256 DIDs per call to bound wall-
+/// clock time to well under the ask() timeout (see lib.rs); the UI chunks
+/// bigger ranges into repeated calls, updating its results after each one.
+///
+/// Bug fixed 2026-08-14: this used to cap at 512 DIDs with a 1500ms per-DID
+/// timeout (worst case ~13 min for one call) against a hardcoded 60s ask()
+/// timeout — a scan running long enough would blow past that ceiling, the
+/// frontend would show a "timed out" error while this function kept running
+/// to completion (or the ELM's response landed after the caller had already
+/// dropped the reply channel), and the WHOLE supervisor thread — including
+/// live gauge polling and Disconnect — was unresponsive for the entire scan,
+/// which reads as "the app crashed". Fixed by: a much shorter per-DID
+/// timeout for scans, a smaller chunk cap, a matching longer ask() ceiling
+/// (a safety net now, not the everyday UX timer), and real cancellation via
+/// `cancel_scan` so a stuck scan releases within one DID's timeout instead of
+/// running to completion regardless.
+pub fn scan_range(
+    drv: &mut ElmDriver,
+    db: &Db,
+    module: &str,
+    from: u16,
+    to: u16,
+    cancel_scan: &AtomicBool,
+    app: &tauri::AppHandle,
+) -> Result<Vec<UdsHit>, String> {
+    log::debug!("scan request: module={module} from={from:04X} to={to:04X}");
+    let custom = custom_modules(db);
+    let m = match resolve(module, &custom) {
+        Some(m) => m,
+        None => {
+            log::warn!("scan aborted: unknown module {module:?}");
+            return Err("unknown module".into());
+        }
+    };
+    let to = to.min(from.saturating_add(255));
+    log::debug!("scan clamped to {from:04X}-{to:04X} ({} DIDs)", to - from + 1);
+    if let Err(e) = setup(drv, &m) {
+        log::warn!("scan setup failed: {e}");
+        return Err(e.to_string());
+    }
+    let total = (to - from + 1) as u32;
+    let mut hits = Vec::new();
+    let mut errors = 0u32;
+    for (i, did) in (from..=to).enumerate() {
+        if i % 8 == 0 {
+            log::trace!("scan progress: DID {did:04X} ({i}/{total}), {} hits, {errors} errors", hits.len());
+            let _ = app.emit("uds-scan-progress", serde_json::json!({
+                "current": i as u32,
+                "total": total,
+                "did": format!("{did:04X}"),
+                "hits": hits.len(),
+            }));
+        }
+        if cancel_scan.swap(false, Ordering::Relaxed) {
+            log::debug!("scan cancelled at DID {did:04X}, {} hits kept", hits.len());
+            teardown(drv);
+            return Err(format!("cancelled at DID {did:04X}; {} hits kept", hits.len()));
+        }
+        if i % 40 == 39 {
+            tester_present(drv);
+        }
+        match read_did_timeout(drv, did, Duration::from_millis(600)) {
+            Ok(Some(d)) => hits.push(to_hit(did, &d)),
+            Ok(None) => {}
+            Err(ref e) => {
+                log::debug!("scan read error at DID {did:04X}: {e}");
+                errors += 1;
+                if errors > 10 {
+                    log::warn!("scan aborted: too many link errors ({errors}) at DID {did:04X}");
+                    teardown(drv);
+                    return Err(format!("link degraded mid-scan at DID {did:04X}; {} hits so far kept", hits.len()));
+                }
+            }
+        }
+    }
+    log::debug!("scan completed: {} hits, {errors} errors", hits.len());
+    teardown(drv);
+    Ok(hits)
+}
+
+/// Poll all enabled user-defined UDS probes once; record + return values.
+pub fn poll_probes(drv: &mut ElmDriver, db: &Db, session_id: i64) -> HashMap<String, f64> {
+    let mut out = HashMap::new();
+    let probes: Vec<_> = db.list_probes().into_iter().filter(|p| p.enabled).collect();
+    if probes.is_empty() {
+        return out;
+    }
+    let mut by_module: HashMap<String, Vec<&crate::db::UdsProbe>> = HashMap::new();
+    for p in &probes {
+        by_module.entry(p.module.clone()).or_default().push(p);
+    }
+    let custom = custom_modules(db);
+    for (mkey, group) in by_module {
+        let Some(m) = resolve(&mkey, &custom) else { continue };
+        if setup(drv, &m).is_err() {
+            continue;
+        }
+        for p in group {
+            if let Ok(Some(data)) = read_did(drv, p.did) {
+                if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
+                    let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
+                    db.insert_reading(session_id, &key, v);
+                    out.insert(key, v);
+                }
+            }
+        }
+    }
+    teardown(drv);
+    out
 }
 
 #[cfg(test)]

@@ -194,17 +194,14 @@ fn blueutil() -> Command {
 /// the /dev/cu.V-LINK node. Safe to call when already disconnected.
 pub fn bluetooth_cycle(addr: &str) -> Result<(), String> {
     let disc = blueutil().args(["--disconnect", addr]).output();
-    eprintln!(
-        "[scainner] blueutil --disconnect: {:?}",
-        disc.as_ref().map(|o| o.status.code())
-    );
+    log::trace!("blueutil --disconnect: {:?}", disc.as_ref().map(|o| o.status.code()));
     std::thread::sleep(Duration::from_secs(1));
     let out = blueutil()
         .args(["--connect", addr])
         .output()
         .map_err(|e| format!("blueutil not runnable: {e}"))?;
-    eprintln!(
-        "[scainner] blueutil --connect: code={:?} stderr={}",
+    log::trace!(
+        "blueutil --connect: code={:?} stderr={}",
         out.status.code(),
         String::from_utf8_lossy(&out.stderr).trim()
     );
@@ -229,14 +226,14 @@ pub fn bluetooth_cycle(addr: &str) -> Result<(), String> {
 /// PIN pairing wakes it. unpair → pair PIN 1234 → connect → wait for port.
 pub fn bluetooth_repair(addr: &str, pin: &str) -> Result<(), String> {
     let un = blueutil().args(["--unpair", addr]).output();
-    eprintln!("[scainner] blueutil --unpair: {:?}", un.map(|o| o.status.code()));
+    log::debug!("blueutil --unpair: {:?}", un.map(|o| o.status.code()));
     std::thread::sleep(Duration::from_secs(2));
     let pair = blueutil()
         .args(["--pair", addr, pin])
         .output()
         .map_err(|e| format!("blueutil not runnable: {e}"))?;
-    eprintln!(
-        "[scainner] blueutil --pair: code={:?} stderr={}",
+    log::debug!(
+        "blueutil --pair: code={:?} stderr={}",
         pair.status.code(),
         String::from_utf8_lossy(&pair.stderr).trim()
     );
@@ -245,7 +242,7 @@ pub fn bluetooth_repair(addr: &str, pin: &str) -> Result<(), String> {
     }
     std::thread::sleep(Duration::from_secs(1));
     let conn = blueutil().args(["--connect", addr]).output();
-    eprintln!("[scainner] blueutil --connect (post-pair): {:?}", conn.map(|o| o.status.code()));
+    log::debug!("blueutil --connect (post-pair): {:?}", conn.map(|o| o.status.code()));
     for _ in 0..15 {
         if std::path::Path::new(&port()).exists() {
             return Ok(());
@@ -254,14 +251,4 @@ pub fn bluetooth_repair(addr: &str, pin: &str) -> Result<(), String> {
     }
     // Port node sometimes needs one extra cycle after a re-pair.
     bluetooth_cycle(addr)
-}
-
-/// Is the dongle currently connected at the Bluetooth level?
-#[allow(dead_code)]
-pub fn bluetooth_connected(addr: &str) -> bool {
-    blueutil()
-        .args(["--is-connected", addr])
-        .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "1")
-        .unwrap_or(false)
 }

@@ -117,6 +117,17 @@ pub struct HistoryPoint {
 }
 
 impl Db {
+    /// Opens (creating if needed) the SQLite database and brings its schema
+    /// up to date.
+    ///
+    /// Migrations here are deliberately the simplest thing that works for a
+    /// single-file personal database: idempotent `CREATE TABLE IF NOT
+    /// EXISTS` for new tables, and `ALTER TABLE ... ADD COLUMN` (with the
+    /// error discarded via `let _ =`, since "column already exists" is the
+    /// expected outcome on every run after the first) for new columns on
+    /// existing tables. No migration framework, no down-migrations — there's
+    /// one deployment target (the user's own machine) and schema changes are
+    /// additive by design (see `readings`/`dtc_scans`/`sessions` below).
     pub fn open(path: &Path) -> rusqlite::Result<Self> {
         let conn = Connection::open(path)?;
         conn.execute_batch(

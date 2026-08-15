@@ -54,6 +54,49 @@ supervisor) + React/TypeScript frontend (Tailwind, shadcn-style components,
 lucide-react icons, recharts). No cloud, no telemetry, no account — the
 database lives on your machine.
 
+## Architecture
+
+The backend is split by what each layer knows, so "how do I talk to the car"
+(transport), "what does any car support" (standard OBD2), and "what does
+*this* car's manufacturer support" (UDS) never bleed into each other:
+
+```
+src-tauri/src/
+├── lib.rs              Tauri command surface — thin wrappers that either
+│                        read the DB directly or `ask()` the supervisor
+├── db.rs                SQLite layer: schema, migrations, every query.
+│                        This IS the product — see the intro above.
+└── elm/
+    ├── driver.rs         Raw serial transport (termios) + macOS Bluetooth
+    │                     lifecycle (pairing, the dongle's "sulk mode" cure)
+    ├── parser.rs          Pure decode functions: ELM response → bytes →
+    │                      typed values. No I/O, fully unit-testable.
+    ├── obd.rs              Standard OBD2 (SAE J1979): DTC scans, freeze
+    │                       frames, ECU identity, readiness monitors.
+    │                       Works on any car.
+    ├── uds.rs               Manufacturer-specific (ISO 14229): module
+    │                        read/scan/clear, the probe system. PSA
+    │                        defaults built in, brand-agnostic by design.
+    └── supervisor.rs         Connection lifecycle + live polling loop on a
+                               background thread; dispatches UI requests to
+                               obd:: or uds:: — the seam between them.
+```
+
+`supervisor.rs` used to be a 700-line file mixing all of the above; it's the
+one file worth reading first if you want to see how the pieces fit, since
+`handle_request` there is the literal map from "UI asked for X" to "which
+module answers X."
+
+The frontend mirrors the same instinct — one file per screen under
+`src/views/`, with `views/lab/` holding the UDS Lab's five cards (module
+manager, DID reader, range scanner, probe manager, module-fault clearer) as
+separate components rather than one 500-line file. Shared types and sensor
+metadata live in `src/lib/meta.ts`.
+
+Frontend and backend never share code directly — they talk exclusively
+through Tauri's `invoke()`/event-emit bridge, so `lib.rs`'s
+`tauri::generate_handler![...]` list is the complete API surface between them.
+
 ## Hardware
 
 Built and tested against a **vGate iCar Pro** (classic-Bluetooth variant) on
@@ -106,6 +149,29 @@ pnpm tauri dev
 Requires Rust + the [Tauri prerequisites](https://tauri.app/start/prerequisites/)
 for your platform, and an ELM327-compatible OBD2 adapter.
 
+### Debugging
+
+Console output is quiet by default (`info` level and above only). For the
+connection/scan internals — every Bluetooth command, every DID probed during
+a range scan — set `RUST_LOG`:
+
+```bash
+RUST_LOG=debug pnpm tauri dev   # connection lifecycle, scan start/end
+RUST_LOG=trace pnpm tauri dev   # + per-DID scan progress
+```
+
+### Tests
+
+```bash
+cd src-tauri && cargo test   # parser + UDS decode logic — no hardware needed
+pnpm exec tsc --noEmit       # frontend type-check
+```
+
+The Rust tests are the useful ones to read if you're adding a new sensor
+decode or UDS extraction — several use real captured bytes from the author's
+car as fixtures (`elm/parser.rs`, `elm/uds.rs`), which is a nice pattern to
+copy for your own captures.
+
 ## Safety
 
 Every diagnostic command this app sends is a **read** (`22`/`10`/`3E` in UDS
@@ -113,7 +179,8 @@ terms) except one, explicitly gated: clearing fault codes. That's the same
 operation every commercial diagnostic tool performs and it only erases
 stored records — it cannot change how your car drives. There is no code path
 that writes configuration, flashes firmware, or runs actuator/routine
-commands. Read `src-tauri/src/elm/uds.rs` yourself; it's short.
+commands. Read `src-tauri/src/elm/uds.rs` yourself and check — it's a single
+focused file, not spread across the codebase where something could hide.
 
 ## License
 
