@@ -41,6 +41,12 @@ exposed through Tailwind v4 `@theme inline` tokens. Use tokens only — never ra
     overheats." Numbers included but explained.
   - **Lab surfaces** (UDS, raw sensors): terse, technical, hex-friendly.
 - Empty states teach the next action; errors state what happened and how to recover.
+- **Docs (README, code comments) are documentation, not marketing.** State what
+  something does and why it exists — no comparisons to other tools, no
+  "why choose us," no rhetorical setup-then-reveal framing. Corrected 2026-08-15
+  after the README first draft read like a pitch (owner feedback: "that read me
+  sounds like you're selling something... people wouldn't care that this is open
+  source... just talk about what this does").
 
 ## Layout system
 
