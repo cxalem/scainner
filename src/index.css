@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.985 0.002 90);
+  --foreground: oklch(0.2 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.01 260);
+  --muted: oklch(0.955 0.004 90);
+  --muted-foreground: oklch(0.5 0.015 260);
+  --border: oklch(0.91 0.006 90);
+  --primary: oklch(0.55 0.18 155);
+  --primary-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.55 0.2 27);
+  --warn: oklch(0.72 0.15 75);
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: oklch(0.17 0.01 260);
+  --foreground: oklch(0.93 0.005 90);
+  --card: oklch(0.21 0.012 260);
+  --card-foreground: oklch(0.93 0.005 90);
+  --muted: oklch(0.25 0.012 260);
+  --muted-foreground: oklch(0.65 0.015 260);
+  --border: oklch(0.29 0.012 260);
+  --primary: oklch(0.7 0.16 155);
+  --primary-foreground: oklch(0.15 0.01 260);
+  --destructive: oklch(0.65 0.19 27);
+  --warn: oklch(0.78 0.14 75);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-warn: var(--warn);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+}
