@@ -1,7 +1,12 @@
 //! Serial driver for the vGate iCar Pro (classic-BT variant) on macOS.
 //!
 //! Empirically established 2026-08-14 with the real dongle:
-//! - Device pairs as "V-LINK" (10:21:3E:4F:E8:C1) with PIN 1234.
+//! - Device pairs as "V-LINK" (10:21:3E:4F:E8:C1) with PIN 1234. The PIN is
+//!   **not standardized** across ELM327 clones — it's whatever the
+//!   manufacturer's Bluetooth module firmware happens to expect, and `1234`
+//!   is only the most common one (~90% of clones), not universal. Override
+//!   with `SCAINNER_OBD_PIN` if pairing fails; see the README's "Hardware"
+//!   section for the short list of common alternatives worth trying.
 //! - Port appears at /dev/cu.V-LINK.
 //! - The RFCOMM link drops when the port closes; a
 //!   `blueutil --disconnect && blueutil --connect` cycle revives it, and

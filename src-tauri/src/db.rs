@@ -584,6 +584,17 @@ impl Db {
         .ok();
     }
 
+    /// Single-key lookup into the same table `car_info`/`set_car_info` use.
+    /// Also doubles as small persistent local-setup state (e.g. the
+    /// connection ladder's learned starting point) — not just car facts —
+    /// since it's the only generic key/value store in the schema and
+    /// there's no value in a second one for a single flag.
+    pub fn car_info_get(&self, key: &str) -> Option<String> {
+        let conn = self.0.lock().unwrap();
+        conn.query_row("SELECT value FROM car_info WHERE key = ?1", params![key], |r| r.get(0))
+            .ok()
+    }
+
     pub fn car_info(&self) -> Vec<(String, String)> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn

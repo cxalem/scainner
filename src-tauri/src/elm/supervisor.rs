@@ -88,7 +88,7 @@ fn run_loop(
     'outer: loop {
         // ---- (re)connect phase ----
         set_status(&app, &status, ConnStatus { state: "connecting".into(), ..Default::default() });
-        let mut drv = match connect_with_retries() {
+        let mut drv = match connect_with_retries(&db) {
             Ok(d) => d,
             Err(e) => {
                 set_status(&app, &status, ConnStatus {
@@ -243,11 +243,35 @@ fn run_loop(
 ///     pay the escalation cost when it actually happens.)
 ///   attempt 1 — plain BT disconnect/connect cycle.
 ///   attempt 2 — full PIN re-pair (the dongle's sulk-state cure).
-fn connect_with_retries() -> Result<ElmDriver, String> {
+///
+/// This is a general-purpose ladder because dongles vary: most reconnect
+/// fine at attempt 0 or 1, and always jumping straight to a full unpair/
+/// re-pair would be needlessly disruptive for them (heavier on the OS
+/// Bluetooth stack, and it uses `SCAINNER_OBD_PIN`, which may not even be
+/// the right PIN for someone else's hardware).
+///
+/// But *this specific dongle* (see driver.rs's "sulk mode") empirically
+/// needs the full repair essentially every time — so starting from scratch
+/// at attempt 0 on every single connection just burns ~10-15s on steps that
+/// are known not to work before reaching the one that does. Rather than
+/// hardcode that assumption (which would be wrong for better-behaved
+/// hardware), we learn it: the level that last succeeded is persisted
+/// (`car_info` key `bt_connect_level`) and the ladder starts there next
+/// time. A dongle that only ever needs attempt 0 stays fast forever; one
+/// that needs attempt 2 skips straight to it after the first connection.
+fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
     let port = driver::port();
     let bt_addr = driver::bt_addr();
     let pin = std::env::var("SCAINNER_OBD_PIN").unwrap_or_else(|_| "1234".to_string());
-    for attempt in 0..3 {
+    let start = db
+        .car_info_get("bt_connect_level")
+        .and_then(|v| v.parse::<u8>().ok())
+        .filter(|&level| level <= 2)
+        .unwrap_or(0);
+    if start > 0 {
+        log::debug!("connect: skipping to attempt {start} (learned from last successful connect)");
+    }
+    for attempt in start..3 {
         if attempt == 0 {
             if std::path::Path::new(&port).exists() {
                 log::debug!("connect attempt 0: fast path — port exists, probing directly");
@@ -288,6 +312,7 @@ fn connect_with_retries() -> Result<ElmDriver, String> {
                     std::thread::sleep(Duration::from_secs(1));
                 }
                 if alive {
+                    db.set_car_info("bt_connect_level", &attempt.to_string());
                     return Ok(d);
                 }
                 if attempt == 2 {

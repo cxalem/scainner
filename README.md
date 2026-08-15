@@ -110,10 +110,35 @@ If your dongle enumerates differently, override it without touching code:
 SCAINNER_OBD_PORT=/dev/cu.YourDongle SCAINNER_OBD_MAC=aa-bb-cc-dd-ee-ff SCAINNER_OBD_PIN=0000 pnpm tauri dev
 ```
 
+**The PIN is not standardized across ELM327 clones** — it's whatever the
+manufacturer programmed into the Bluetooth module's firmware, and there's no
+spec forcing agreement. The app's default (`1234`) covers roughly 90% of
+clones on the market; the two next most common are `0000` and `1111`,
+occasionally `6789`. If pairing fails, `SCAINNER_OBD_PIN` is the first thing
+to try changing — cycle through those four before assuming something else is
+wrong. Your dongle's manual or listing page usually states it outright if
+it's non-default.
+
 Should work with any ELM327-compatible adapter with adjustments to the
 connection layer. Windows/Linux support is unimplemented (the Bluetooth
 reconnect logic shells out to macOS's `blueutil`) — see
 [`BACKLOG.md`](./BACKLOG.md).
+
+### The connection ladder tunes itself per dongle
+
+Reconnecting escalates through three strategies, cheapest first: open the
+existing port directly, a plain Bluetooth disconnect/reconnect cycle, then —
+only if those fail — a full unpair-and-re-pair with `SCAINNER_OBD_PIN`. The
+last one is deliberately not the default starting point: it's heavier on the
+OS Bluetooth stack, and jumping straight to it would be wrong for any dongle
+healthier than the author's (most reconnect fine at step one or two).
+
+What actually happens is adaptive: the app remembers which step last worked
+and starts there on the next connection, so a dongle that needs the full
+re-pair every time (like the one this was built against) stops paying for
+the two failed cheap attempts first, while a better-behaved dongle just
+stays fast. Nothing to configure — it learns from your specific hardware
+automatically after the first successful connection.
 
 ## Bring your own car
 
