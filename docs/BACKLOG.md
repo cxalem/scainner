@@ -153,6 +153,51 @@ concurrently.
 - [ ] Demo scenario switcher (clean car / faulty car / new car) instead of
       one hardcoded story.
 
+### I. Architecture: Effect migration (structural, touches every view)
+- [x] Full migration to Effect (effect.website) across the TypeScript
+      frontend: DeviceService/AiService behind Context.Tag Layers, Effect
+      Schema replacing plain types at every invoke() boundary, feature-based
+      folder restructure (src/core, src/features/<name>), component-size
+      cleanup (Diagnose.tsx/Overview.tsx split into one-file-per-component).
+      Rust untouched — Effect is TS-only, Rust already has Result<T,E>.
+      2026-08-20/21, ws/effect-architecture. See
+      docs/workflows/effect-architecture/{research,plan}.md. In review.
+
+### J. Monorepo + mobile app start (gated on I landing and clearing review)
+- [ ] Turborepo + pnpm workspace scaffold: apps/desktop (today's Tauri app,
+      moved with zero behavior change), apps/mobile (new Expo app),
+      packages/core (Effect DeviceService/AiService/Schema layer, lifted
+      from src/core once I lands), packages/data (see K below).
+- [ ] MX+ transport spike, the real first task, before any app code: the
+      OBDLink MX+ (hardware already ordered) is MFi-certified Bluetooth
+      Classic SPP on iOS, not BLE — it routes through Apple's
+      ExternalAccessory framework. Standard React Native BLE libraries
+      (react-native-ble-plx, react-native-ble-manager) cannot see or
+      connect to it at all on iOS. The current dev dongle (vGate iCar Pro)
+      is dual-mode and will mask this gap in early testing. Confirm
+      whether Expo's managed workflow can reach ExternalAccessory (it
+      cannot natively — needs a config plugin or bare workflow with real
+      Swift) and the Android-side classic-SPP library choice, before
+      scoping any mobile feature work. Not gated on I — can start now if
+      wanted, independent of everything else in this section.
+      See docs/workflows/monorepo/plan.md.
+
+### K. Centralized car reference data (gated on I landing and clearing review)
+- [ ] Move src/lib/brand.ts's inline WMI table into data/wmi.json, keeping
+      the confidence/source metadata the 2026-08-20 audit
+      (docs/workflows/3d-logos/wmi-audit.md) already produced per entry,
+      not just key/name. brandFromVin becomes a thin lookup over the JSON,
+      not a rewrite.
+- [ ] Fold in the audit's strongest "worth considering" additions, each on
+      its own merit: SJK/SHS (Nissan/Honda UK), LVY (Volvo China), 7G2/7SA
+      (Tesla Austin), WA1 (Audi SUV line).
+      This is reference data (static, identical across every install), not
+      operational data (a specific car's readings/DTC history, which stays
+      in SQLite) — deliberately not the same question as Supabase. No live
+      database for this in this pass; revisit once apps/mobile (J above)
+      is real and needs to consume the same dataset without a rebuild.
+      See docs/workflows/car-data/plan.md.
+
 ## Done log
 
 - 2026-08-20: theme locked to light everywhere (page + native + Tauri
