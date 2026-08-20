@@ -35,6 +35,14 @@ export const EXTRUDE_SETTINGS = {
   bevelSegments: 3,
 } as const;
 
+// Same recipe, plus curveSegments for shapes with arcs (rings): the default
+// (12) makes a circle look visibly faceted at card size, so brands built
+// from THREE.Shape.absarc use this instead.
+const EXTRUDE_SETTINGS_CURVED = {
+  ...EXTRUDE_SETTINGS,
+  curveSegments: 24,
+} as const;
+
 // One chevron of the Citroën mark: a "^" band of constant vertical
 // thickness. Outline walks the top edge up to the apex and back down, then
 // the bottom edge in reverse.
@@ -102,6 +110,54 @@ function RenaultEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
+// Mercedes-Benz: three-pointed star inside a ring. Ring is an annulus
+// (outer absarc + inner-circle hole); star is three elongated rhombus
+// spokes from near the center to the ring's inner edge, at 90/210/330
+// degrees (pointing up, and down-left/down-right).
+function MercedesEmblem() {
+  const geo = useMemo(() => {
+    const outerR = 0.55, band = 0.07;
+    const innerR = outerR - band;
+
+    const ring = new THREE.Shape();
+    ring.absarc(0, 0, outerR, 0, Math.PI * 2, false);
+    const ringHole = new THREE.Path();
+    ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
+    ring.holes.push(ringHole);
+
+    // Each spoke: a thin quadrilateral from near dead center out to the
+    // ring's inner edge, at the given angle. A small offset from center
+    // keeps the three spokes from all meeting at one exact point (which
+    // can produce degenerate triangles).
+    const spokeWidth = 0.13;
+    const spokeLen = innerR + 0.02; // slight overlap into the ring so there is no visible seam
+    function spokeShape(angleDeg: number): THREE.Shape {
+      const a = (angleDeg * Math.PI) / 180;
+      const dir = new THREE.Vector2(Math.cos(a), Math.sin(a));
+      const perp = new THREE.Vector2(-dir.y, dir.x);
+      const halfW = spokeWidth / 2;
+      const base = dir.clone().multiplyScalar(0.02);
+      const tip = dir.clone().multiplyScalar(spokeLen);
+      const p1 = base.clone().add(perp.clone().multiplyScalar(halfW));
+      const p2 = base.clone().add(perp.clone().multiplyScalar(-halfW));
+      const s = new THREE.Shape();
+      s.moveTo(p1.x, p1.y);
+      s.lineTo(tip.x, tip.y);
+      s.lineTo(p2.x, p2.y);
+      s.closePath();
+      return s;
+    }
+
+    const shapes = [ring, spokeShape(90), spokeShape(210), spokeShape(330)];
+    const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
+    g.center();
+    return g;
+  }, []);
+  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
+  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
+}
+
 // Fallback for any brand without modeled emblem geometry: a chrome
 // nameplate slab with the brand name on its face (drawn to a canvas — no
 // font asset needed). The back stays blank chrome, like a real badge.
@@ -153,4 +209,5 @@ export function NameplateEmblem({ name }: { name: string }) {
 export const EMBLEMS: Record<string, React.ComponentType> = {
   citroen: CitroenEmblem,
   renault: RenaultEmblem,
+  mercedes: MercedesEmblem,
 };
