@@ -105,6 +105,14 @@ concurrently.
       HARD RULE: every write action gets an explicit confirmation, a
       logged before/after state, and a documented reversal path. No write
       ships without all three.
+- [x] Increment 1 (2026-08-20, ws/write-caps): the safety rail itself,
+      wired to the two existing real writes. writes_log audit table +
+      Write history card, shared ConfirmWrite modal (reversal text
+      required), confirmed flag enforced at the command boundary,
+      backend-verified engine clear. No new-to-the-car writes yet.
+- [ ] Increment 2: routine-ID hunt session with the real car (engine/ABS),
+      then the first actuator test behind the same rail (hard timeout +
+      auto-revert). See docs/workflows/write-caps/plan.md.
 
 ### E. Fleet realism (mock + real hardware)
 - [ ] Second-car test: any non-Citroën VIN exercises the nameplate emblem

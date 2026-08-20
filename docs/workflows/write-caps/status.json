@@ -1,12 +1,13 @@
 {
   "stream": "write-caps",
-  "stage": "plan",
-  "state": "plan written, builder starting in same worktree (no plan gate for this stream)",
-  "updated": "2026-08-20T21:30:00Z",
+  "stage": "build",
+  "state": "increment 1 built and verified in the browser demo, awaiting PR + manual test on the real car",
+  "updated": "2026-08-20T22:40:00Z",
   "branch": "ws/write-caps",
   "notes": [
-    "Increment 1 = safety rail on the two existing real writes (writes_log table, ConfirmWrite modal, confirmed flag at the command boundary, backend-verified engine clear).",
-    "No new-to-the-car writes this increment: actuator test needs a routine-ID hunt session with the real car first (see decisions-plan.md).",
-    "Hard rule restated in acceptance criteria: confirmation + persisted before/after + documented reversal path, all three, every write."
+    "Shipped: writes_log audit table + Write history card, shared ConfirmWrite modal, confirmed flag at the command boundary, backend-verified engine clear, mock parity (incl. a pre-existing uds_clear mock shape bug).",
+    "cargo test 18 pass, tsc clean, Playwright walkthrough of both clear flows with screenshots, zero console errors.",
+    "Not verified on the real car: reviewer's manual test should clear a code on the C4 and check the writes_log row.",
+    "Increment 2 (actuator test) is gated on a routine-ID hunt session with the car."
   ]
 }
