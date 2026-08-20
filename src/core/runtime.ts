@@ -4,8 +4,9 @@
 // an Effect and get back a plain Promise (TanStack Query's own contract).
 import { Layer, ManagedRuntime } from "effect";
 import { DeviceServiceLive } from "@/core/services/device-service";
+import { AiServiceLive } from "@/core/services/ai-service";
 
-const AppLayer = Layer.mergeAll(DeviceServiceLive);
+const AppLayer = Layer.mergeAll(DeviceServiceLive, AiServiceLive);
 
 export const runtime = ManagedRuntime.make(AppLayer);
 
