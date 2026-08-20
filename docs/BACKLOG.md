@@ -18,6 +18,36 @@ concurrently.
 - ⚠️ The working tree currently carries the entire redesign uncommitted.
   Before branching streams, commit a checkpoint on main.
 
+## Priority order (2026-08-21)
+
+Architectural streams first, deliberately — anything that touches most of
+`src/` goes before feature work, because doing them in the other order
+means every feature stream built in between becomes a merge conflict once
+the architectural change lands. This ordering is the actual answer to
+"what do we work on next," re-check it here before starting anything new
+rather than picking from the section list below by feel.
+
+1. **Effect migration (I)** — in review, Codex cross-exam running. Bundle
+   size tradeoff (+58KB gzip) explicitly accepted. Next: merge once Codex
+   clears.
+2. **Monorepo + Turborepo scaffold (J)** — next after I merges. Moves
+   every file into `apps/desktop`; nothing else should be mid-flight in
+   `src/` when this happens.
+3. **Car reference data (K)** and **design tokens (L)** — both small,
+   mechanical, fast once I and J are in. Can run in either order or in
+   parallel with each other (they don't share files).
+4. **Animation system (M)** — after L, since it's easiest to define the
+   shared motion vocabulary once the token/theme structure it might
+   reference (transition durations, etc.) is settled, and because it
+   touches nearly every view (same conflict-avoidance logic as I/J).
+5. **Diagnose/codes UX redesign (A, expanded)** and the **AI agent**
+   stream — real feature work, start once the architectural queue above
+   is clear. These can run in parallel with each other if genuinely
+   needed (different views), but not with 1-4.
+6. Everything else in the section list below (write-caps increment 2,
+   fleet realism, product/platform packaging, AI layer polish) — pick up
+   opportunistically, none of it blocks or is blocked by 1-5.
+
 ## Workstreams
 
 ## Design principles
@@ -34,6 +64,18 @@ concurrently.
   hiding reads as a bug. First case: the C4 fuel gauge, 2026-08-20.
 
 ### A. Diagnostics UX (src/views/Diagnose.tsx, src/lib/meta.ts)
+- [ ] Real code-scanner redesign, gated on the priority queue above.
+      Trigger: Alejandro's own car threw 86 codes from one battery
+      issue — today's flat wrapped-badge list is unusable at that scale.
+      Research complete: docs/workflows/diagnose-ux/research.md. Top
+      finding: no car diagnostic tool, consumer or shop-grade, does
+      root-cause clustering, despite GM holding patents on exactly this
+      problem — real prior art exists instead in alert-monitoring tools
+      (PagerDuty/Datadog/Sentry). Recommended direction: system-grouped
+      flat list (free from dtc.ts's decodeDtc() taxonomy) collapsing
+      past a size threshold, severity-colored, one honest low-voltage
+      clustering hint. DtcDetailModal stays as-is. Needs a planning pass
+      before build.
 - [x] Clear-codes confirmation: replace the inline banner (pushes the whole
       page down — layout shift) with a modal in the style of the DTC detail
       modal (centered card, dimmed backdrop, optional blur). User sketch:
@@ -106,11 +148,12 @@ concurrently.
 - [ ] Incremental loading: render the shell immediately, stream data in
       per card; heavy pieces (three.js scene) arrive last without blocking
       the rest.
-- [ ] Proper state management: today every view hand-rolls invoke +
-      useEffect + useState with no cache, so data refetches on every tab
-      switch and error states are inconsistent. Research server-state
-      libraries (TanStack Query is the obvious candidate) wrapped around
-      Tauri invoke, plus what if anything is needed for client state.
+- [x] Proper state management (2026-08-20, ws/app-perf, PR #3 merged):
+      every view migrated to TanStack Query. Tab switches render
+      instantly from cache instead of refetching from blank; consistent
+      pending/error/skeleton states via shared hooks. Superseded by the
+      Effect migration's Layer-wrapped queries (ws/effect-architecture,
+      in review) but the caching behavior itself is unchanged.
 - [ ] Performance budget: no SSR exists (Vite + Tauri, not Next) and none
       is needed; the wins are fast first paint, cached data on
       navigation, code splitting, and asset weight. Audit bundle and
@@ -197,6 +240,43 @@ concurrently.
       database for this in this pass; revisit once apps/mobile (J above)
       is real and needs to consume the same dataset without a rebuild.
       See docs/workflows/car-data/plan.md.
+
+### L. Shared design tokens (gated on I and J landing)
+- [ ] The DOM/CSS layer is already correctly done — checked directly,
+      not assumed: src/index.css is the single source of truth (CSS
+      custom properties + Tailwind v4 @theme inline), every component
+      consumes via bg-primary/text-primary classes, zero hardcoded hex
+      anywhere in a component's className. Changing the brand green
+      today is already a one-line edit. The real gap: 25 hardcoded hex
+      values exist, all in the 3D/Canvas layer (VehicleScene.tsx,
+      emblems.tsx, EmblemStarfield.tsx) — chrome material and studio
+      lighting constants Three.js needs as raw values, not CSS
+      variables. Plan: a src/theme/ module as the documented single
+      source, migrating the 3D files to import from it (pixel-identical
+      result, verified by screenshot) while keeping "brand identity"
+      (the primary color, a placeholder pending a real rebrand) and
+      "rendering constants" (chrome physics, lighting) as separate,
+      undocumented-together categories — conflating them would be a
+      real mistake, not a simplification. See
+      docs/workflows/design-system/plan.md.
+
+### M. Continuity animation system (gated on I, J, L landing)
+- [ ] Checked directly: transition-/animate- usage exists in exactly 14
+      files today, all of it app-perf's press-state work or skeleton
+      pulses. Zero enter/appear animation anywhere — new content (a
+      DiscoveryFlow field resolving, a health verdict card, a freshly
+      scanned DTC list) still renders with a hard cut. Matches
+      Alejandro's own complaint exactly. Plan: map every appear/change/
+      disappear moment in the app (connect flow field-by-field
+      resolution, tab switches, mutation results, list population,
+      modals) with current behavior, no-layout-shift compliance, and a
+      recommended treatment per entry; then one shared motion vocabulary
+      (a small set of named transitions reused everywhere, not
+      per-component inline decisions), respecting motion-reduce
+      throughout like the existing press-state pattern already does.
+      Framer-motion vs. plain CSS transition-delay for sequenced/
+      staggered reveals is a real open tradeoff, not decided yet. See
+      docs/workflows/animation-system/plan.md.
 
 ## Done log
 
