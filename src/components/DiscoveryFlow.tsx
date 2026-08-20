@@ -68,8 +68,13 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
   const dtcCount = scan ? scan.stored.length + scan.pending.length : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background p-6">
-      <div className="flex w-full max-w-lg flex-col gap-5 py-8">
+    // m-auto on the child, not items-center on the parent: flex centering of
+    // content taller than a scroll container pushes the overflow above the
+    // top edge where it cannot be scrolled to (the 3D card showed up
+    // beheaded on laptop-height windows). Auto margins center when there is
+    // room and degrade to normal scrolling when there is not.
+    <div className="fixed inset-0 z-50 flex overflow-y-auto bg-background p-6">
+      <div className="m-auto flex w-full max-w-lg flex-col gap-5 py-8">
         <VehicleScene status={sceneStatus} vin={vin} />
 
         <div className="text-center">
