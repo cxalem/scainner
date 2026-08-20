@@ -1,13 +1,12 @@
 {
   "stream": "3d-logos",
-  "stage": "build-fix",
-  "state": "reviewer verdict fix-then-ship, builder applying fixes",
-  "updated": "2026-08-20T17:10:00Z",
+  "stage": "codex-review",
+  "state": "PR 1 open, awaiting user review and manual test",
+  "updated": "2026-08-20T19:50:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "Review passed Renault, Mercedes, Volvo, the extraction, the registry and the dev override.",
-    "One defect: Opel Blitz reads as an S-wave at card size; builder sharpening the zigzag constants.",
-    "Two log-hygiene fixes: a fabricated plan quote in the build log, and a wrong thickness comment on Renault.",
-    "Next: Codex cross-exam, then PR."
+    "Codex verdict: OBJECTIONS-NONBLOCKING. Production build verified the dev override is stripped from packaged output.",
+    "PR: https://github.com/cxalem/scainner/pull/1",
+    "On merge: app-perf builder starts automatically."
   ]
 }
