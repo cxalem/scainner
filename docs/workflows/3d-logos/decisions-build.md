@@ -69,10 +69,13 @@ starting at the ring's outer edge, arrowhead further out), then
 geometry 45 degrees before centering.
 Options: (a) compute arrow point coordinates pre-rotated (sin/cos on
 every vertex by hand), (b) build axis-aligned then rotate the geometry.
-Why: (b), exactly as the plan suggested ("rotate the whole geometry...
-rotating a circle has no visible effect"). Far less error-prone than
-hand-deriving rotated coordinates, and the ring's circular symmetry
-means rotating it is free.
+Why: (b). Far less error-prone than hand-deriving rotated coordinates,
+and the ring's circular symmetry means rotating it is free (rotating a
+circle has no visible effect, so the combined ring+arrow geometry can
+be rotated as one piece without distorting the ring). This is my own
+implementation choice, not something the plan specified — the plan's
+Volvo spec gives dimensions and angles for the finished shape, not a
+construction strategy.
 Risk: none; verified visually, the arrow points upper-right as
 specified.
 
@@ -95,6 +98,27 @@ angles," not "2 screenshots regardless of legibility." An edge-on shot
 of a thin ring is not evidence of anything.
 Risk: none; this is a verification-methodology note, not a code change.
 
+## Correction: Volvo entry cited a plan quote that doesn't exist
+
+What: the Volvo rotation entry above originally justified the
+axis-aligned-then-rotate approach as "exactly as the plan suggested"
+and quoted a sentence attributed to plan.md. Stage 4 review
+(review-report.md, finding 2) checked plan.md and found no such
+sentence: the plan's Volvo spec states dimensions and angles for the
+finished shape, never a construction strategy or a rotation
+recommendation. The quote was fabricated.
+Options: (a) leave the entry as-is since the underlying engineering
+decision was sound, (b) correct the entry to own the reasoning instead
+of misattributing it to the plan.
+Why: (b). The decision itself needed no defense — it is correct on its
+own merits, as the corrected entry above now states. But a decision
+log that invents a source citation is a defect regardless of whether
+the decision was right, because it undermines trust in every other
+entry's claims. Fixed by rewriting the Volvo entry to state the actual
+reasoning (implementation-level convenience, not a plan requirement)
+with no quotation.
+Risk: none; this is a documentation-only correction, no code changed.
+
 ## No deviations from the plan's file boundary or geometry specs
 
 All four brand components use the dimensions given in the plan
@@ -105,3 +129,35 @@ so no iteration loop was required beyond the Volvo screenshot-timing
 issue above. Diff touches only `src/components/emblems.tsx` (new) and
 the emblem section of `src/components/VehicleScene.tsx`, confirmed via
 `git diff --stat main` before the final commit.
+
+## Post-review fixes (stage 4, commits 4020361, f9ecf2d, and this log)
+
+What: stage 4 review (review-report.md) verdict was fix-then-ship with
+three required changes, applied here:
+
+1. Opel Blitz read as a soft S-wave, not a bolt, at card size (finding
+   1, gates ship). Fixed by steepening the diagonal step: `stepY` 0.16
+   -> 0.28, `armLen` `innerR * 0.55` -> `innerR * 0.62`, per the
+   report's proposed-fix section. Fixed on the first iteration —
+   re-verified against `?vin=W0LAAAAAAAAAAAAAA` at two rotation
+   angles, both show a sharp diagonal stroke, not a wave. No second
+   iteration needed.
+2. This decision log's Volvo entry misattributed a fabricated plan
+   quote (finding 2). Corrected above.
+3. The Renault band's rendered thickness (about 0.106) doesn't match
+   the 0.14 offset constant, because the offset is applied along the
+   rhombus axes rather than perpendicular to its edge (finding 3). The
+   render reads fine and the band is genuinely constant width, so per
+   the review only the code comment was corrected to state the true
+   thickness; the geometry is unchanged.
+
+Options: none — these were prescribed fixes from an explicit review
+verdict, not open decisions.
+Why: applying reviewer-identified, scoped fixes rather than re-opening
+already-reviewed areas keeps the review's gate meaningful and avoids
+re-litigating decisions (like the Mercedes/Opel shared-extrude
+pattern, or the Renault band's constant-width property) that review
+already validated as correct.
+Risk: none; each fix is scoped to exactly what the review specified,
+verified independently (tsc + fresh screenshots for the one geometry
+change).
