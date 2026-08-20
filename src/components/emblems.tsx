@@ -158,6 +158,53 @@ function MercedesEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
+// Volvo: circle with a diagonal arrow (the Mars/iron symbol) starting at
+// the ring's outer edge, pointing to the upper right at 45 degrees.
+function VolvoEmblem() {
+  const geo = useMemo(() => {
+    const outerR = 0.48, band = 0.09;
+    const innerR = outerR - band;
+
+    const ring = new THREE.Shape();
+    ring.absarc(0, 0, outerR, 0, Math.PI * 2, false);
+    const ringHole = new THREE.Path();
+    ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
+    ring.holes.push(ringHole);
+
+    // Arrow built axis-aligned along +x (shaft then arrowhead), then the
+    // whole geometry is rotated 45 degrees so the math stays simple.
+    const shaftLen = 0.22, shaftThick = 0.09;
+    const headLen = 0.18, headWidth = 0.22;
+    const halfShaft = shaftThick / 2;
+    const halfHead = headWidth / 2;
+    // Shaft starts just inside the ring's outer edge so there is no gap,
+    // and runs outward past the ring.
+    const startX = outerR - 0.03;
+
+    const arrow = new THREE.Shape();
+    arrow.moveTo(startX, halfShaft);
+    arrow.lineTo(startX + shaftLen, halfShaft);
+    arrow.lineTo(startX + shaftLen, halfHead);
+    arrow.lineTo(startX + shaftLen + headLen, 0);
+    arrow.lineTo(startX + shaftLen, -halfHead);
+    arrow.lineTo(startX + shaftLen, -halfShaft);
+    arrow.lineTo(startX, -halfShaft);
+    arrow.closePath();
+
+    const shapes = [ring, arrow];
+    const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
+    // Rotate ring + arrow together so the arrow points upper-right at 45
+    // degrees. Rotating the ring has no visible effect since it is
+    // circular, so this is simpler than rotating just the arrow's points.
+    g.rotateZ(Math.PI / 4);
+    g.center();
+    return g;
+  }, []);
+  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
+  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
+}
+
 // Fallback for any brand without modeled emblem geometry: a chrome
 // nameplate slab with the brand name on its face (drawn to a canvas — no
 // font asset needed). The back stays blank chrome, like a real badge.
@@ -210,4 +257,5 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   citroen: CitroenEmblem,
   renault: RenaultEmblem,
   mercedes: MercedesEmblem,
+  volvo: VolvoEmblem,
 };
