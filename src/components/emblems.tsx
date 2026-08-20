@@ -17,10 +17,17 @@ import { useLoader } from "@react-three/fiber";
 export const EMBLEM_CHROME = {
   color: "#f4f6f8",
   metalness: 0.9,
-  roughness: 0.22, // enough blur that reflections read as brushed chrome, not a hard mirror of the 4-panel rig
-  clearcoat: 0.6,
-  clearcoatRoughness: 0.1,
-  envMapIntensity: 1.5,
+  // Tightened from 0.22 on real evidence, not a guess: the source GLB
+  // files' own "Polished_Metal" material specifies roughnessFactor 0.14
+  // (checked directly in each file's JSON before this change), and this
+  // shared material was duller than what those files were actually
+  // designed for. Still not razor-sharp — patterns/3d.md rule 2 still
+  // applies, a true mirror in a soft studio rig goes flat/dark, this is
+  // the floor before that starts happening.
+  roughness: 0.13,
+  clearcoat: 0.85,
+  clearcoatRoughness: 0.06,
+  envMapIntensity: 2.0,
 } as const;
 
 // Vertical center of the emblem — floats where the car's body used to be so
@@ -259,7 +266,7 @@ function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): T
 // Wrong-facing does not corrupt the model, it just shows an asymmetric mark
 // (a letterform, a lion) mirrored for half of every rotation — caught by
 // looking at each brand in the running app, not guessed up front.
-function StlEmblem({ url, targetWidth = 2.0, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
+function StlEmblem({ url, targetWidth = 2.3, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
   const raw = useLoader(STLLoader, url);
   const geo = useMemo(() => normalizeStlGeometry(raw, targetWidth), [raw, targetWidth]);
   const mat = useMemo(
@@ -290,7 +297,7 @@ function stlEmblem(file: string, opts?: { targetWidth?: number; extraRotationY?:
 // EMBLEM_CHROME, same call already made for every STL brand: one
 // consistent chrome look across all 20+ badges beats each one carrying
 // whatever its own export happened to bake in.
-function GlbEmblem({ url, targetWidth = 2.0 }: { url: string; targetWidth?: number }) {
+function GlbEmblem({ url, targetWidth = 2.3 }: { url: string; targetWidth?: number }) {
   const gltf = useLoader(GLTFLoader, url);
   const mat = useMemo(() => new THREE.MeshPhysicalMaterial({ ...EMBLEM_CHROME, side: THREE.DoubleSide }), []);
   const root = useMemo(() => {
@@ -371,15 +378,15 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   audi: glbEmblem("audi.glb"),
   bmw: glbEmblem("bmw.glb"),
   mercedes: glbEmblem("mercedes.glb"),
-  peugeot: stlEmblem("peugeot.stl"),
-  renault: stlEmblem("renault.stl"),
-  skoda: stlEmblem("skoda.stl"),
+  peugeot: glbEmblem("peugeot.glb"),
+  renault: glbEmblem("renault.glb"),
+  skoda: glbEmblem("skoda.glb"),
   toyota: glbEmblem("toyota.glb"),
   volkswagen: glbEmblem("volkswagen.glb"),
-  dacia: stlEmblem("dacia.stl"),
-  hyundai: stlEmblem("hyundai.stl"),
-  kia: stlEmblem("kia.stl"),
-  opel: stlEmblem("opel.stl"),
+  dacia: glbEmblem("dacia.glb"),
+  hyundai: glbEmblem("hyundai.glb"),
+  kia: glbEmblem("kia.glb"),
+  opel: glbEmblem("opel.glb"),
   fiat: stlEmblem("fiat.stl"),
   ford: stlEmblem("ford.stl"),
   geely: stlEmblem("geely.stl"),
@@ -394,5 +401,5 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   // stay reachable via the dev ?vin= override so the geometry is ready the
   // moment either gets a confident WMI.
   saic: stlEmblem("saic.stl"),
-  vauxhall: stlEmblem("vauxhall.stl"),
+  vauxhall: glbEmblem("vauxhall.glb"),
 };

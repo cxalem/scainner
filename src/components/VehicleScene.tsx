@@ -1198,10 +1198,26 @@ function CarModelFallback() {
 // brand automatically gets a chrome nameplate badge with its name — zero
 // per-car work, uniform quality. The C4 GlbCarModel above stays dormant as
 // the bespoke-model option.
-function BrandEmblemModel({ vin, status, reduced }: { vin: string | null | undefined; status: SceneStatus; reduced: boolean }) {
+function BrandEmblemModel({
+  vin,
+  status,
+  reduced,
+  brandKeyOverride,
+}: {
+  vin: string | null | undefined;
+  status: SceneStatus;
+  reduced: boolean;
+  brandKeyOverride?: string | null;
+}) {
   const group = useRef<THREE.Group>(null!);
   const brand = useMemo(() => brandFromVin(vin), [vin]);
-  const Emblem = (brand && EMBLEMS[brand.key]) ?? null;
+  // brandKeyOverride bypasses the VIN lookup entirely (dev only, see
+  // VehicleScene below) — the only way to preview a brand that has no WMI
+  // entry at all, like saic and vauxhall (see brand.ts and
+  // docs/workflows/3d-logos/decisions-build.md for why those two are
+  // deliberately unmapped). ?vin= alone can't reach either, since there is
+  // no VIN prefix that resolves to them.
+  const Emblem = brandKeyOverride ? (EMBLEMS[brandKeyOverride] ?? null) : ((brand && EMBLEMS[brand.key]) ?? null);
 
   useFrame((_, delta) => {
     if (!group.current || reduced) return;
@@ -1223,6 +1239,11 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
   // (and tree-shaken away) in production builds since import.meta.env.DEV
   // is false there.
   const vinOverride = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("vin") : null;
+  // Dev-only, separate from vinOverride above: previews a brand directly by
+  // its EMBLEMS registry key, e.g. ?brand=vauxhall. The only way to preview
+  // a brand with no WMI entry (saic, vauxhall) — there is no VIN prefix
+  // that could reach either through vinOverride alone.
+  const brandKeyOverride = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("brand") : null;
 
   return (
     <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72">
@@ -1265,7 +1286,7 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
             car); GlbCarModel above is the bespoke C4 — swap back here if
             per-car models return. */}
         <Suspense fallback={<CarModelFallback />}>
-          <BrandEmblemModel vin={vinOverride ?? vin} status={status} reduced={reduced} />
+          <BrandEmblemModel vin={vinOverride ?? vin} status={status} reduced={reduced} brandKeyOverride={brandKeyOverride} />
         </Suspense>
         <ContactShadows position={[0, 0.01, 0]} opacity={0.32} scale={7} blur={2.2} far={2} />
       </Canvas>
