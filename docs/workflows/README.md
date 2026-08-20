@@ -11,12 +11,17 @@ scope) skip straight to a builder — the pipeline is for features, not typos.
 | # | Stage | Who | Model | Output (all under docs/workflows/<stream>/) |
 |---|-------|-----|-------|---------------------------------------------|
 | 1 | Research | researcher agent | Sonnet | `research.md` + `decisions-research.md` |
-| 2 | Plan | planner agent | Fable | `plan.md` + `decisions-plan.md` |
-| — | **GATE: user reviews the plan** | human | — | approval / changes |
+| 2 | Plan | planner agent | Fable | `plan.md` + `decisions-plan.md` + a short plan summary posted to the user (informational, NOT a blocking gate) |
 | 3 | Build | builder agent(s) | Sonnet | code on branch `ws/<stream>` + `decisions-build.md` |
 | 4 | Review | reviewer agent | Fable | `review-report.md` |
-| 5 | Cross-exam | OpenAI Codex (`codex exec`) | GPT | `codex-review.md` — questions/objections against the decision logs |
-| — | **GATE: user reviews the PR** | human | merge / request changes |
+| 5 | Cross-exam | OpenAI Codex (`codex exec`) | GPT | `codex-review.md`: questions/objections against the decision logs |
+| — | **GATE: user reviews at the end** | human | PR with a plain-language change summary; user reads it after both reviewers and manually tests the running app; merge or request changes |
+
+The pipeline does not stop for plan approval. The user can veto or
+redirect any stream at any moment, and the redirect is recorded in that
+stream's decision log. The PR description must contain: what changed in
+plain language, how to test it manually, and links to the review report
+and the Codex cross-exam.
 
 Stage 5 exists because a different model has different blind spots: Codex
 reads the review report, the decision logs, and the diff, and interrogates
