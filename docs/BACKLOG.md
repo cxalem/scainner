@@ -24,7 +24,8 @@ concurrently.
 
 - **No layout shifts.** State changes overlay or replace in place; they
   never push existing content around. (Connect→discovery flash fixed
-  2026-08-20; the clear-codes confirmation banner still violates this.)
+  2026-08-20; both clear-codes confirmation banners are now the shared
+  ConfirmWrite overlay modal, ws/write-caps 2026-08-20.)
 - **Plain language.** UI copy, docs, and reports use clear plain English:
   no em dashes, no decorative formatting. Spanish copy follows the same
   rule when i18n lands.

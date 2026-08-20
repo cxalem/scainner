@@ -405,8 +405,11 @@ export function Diagnose({ connected }: { connected: boolean }) {
           <RefreshCw className={"h-4 w-4" + (scanning ? " animate-spin" : "")} aria-hidden="true" />
           {scanning ? "Scanning…" : "Scan for codes"}
         </Button>
-        {scan && totalCodes > 0 && !confirmClear && (
-          <Button variant="outline" onClick={() => setConfirmClear(true)}>
+        {/* Stays mounted while the ConfirmWrite overlay is up: hiding it
+            shifted the toolbar behind the modal (no layout shifts), and
+            ModuleFaults already keeps its trigger visible. */}
+        {scan && totalCodes > 0 && (
+          <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={confirmClear}>
             Clear codes…
           </Button>
         )}

@@ -311,7 +311,7 @@ impl Db {
         error: Option<&str>,
     ) -> i64 {
         let conn = self.0.lock().unwrap();
-        conn.execute(
+        let res = conn.execute(
             "INSERT INTO writes_log (ts, module, action, params_json, before_json, after_json, outcome, error)
              VALUES (datetime('now'), ?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
@@ -323,8 +323,15 @@ impl Db {
                 outcome,
                 error
             ],
-        )
-        .ok();
+        );
+        if let Err(e) = &res {
+            // A write reached the car but its audit row could not be stored.
+            // The `.ok()` style the other inserts use would hide that, and
+            // for THIS table a silent gap defeats its whole purpose, so at
+            // minimum it must be loud in the logs. (Review fix, write-caps.)
+            log::error!("writes_log insert failed, the audit trail is missing a row ({module}/{action}/{outcome}): {e}");
+            return -1;
+        }
         conn.last_insert_rowid()
     }
 
