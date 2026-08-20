@@ -82,3 +82,37 @@ Recommendation (assessment, planner decides): start with Approach A for the five
 - Did not prototype either technique; no code was written or modified.
 - Did not investigate glTF/Draco tooling in depth, ruled out early (see decision log).
 - Did not obtain the full paywalled Spain top-20 brand table; section 1's ranking blends the confirmed top 6 with general market assessment.
+
+## 7. Addendum: Spain top-4 extension (Hyundai, Seat, Cupra, Toyota)
+
+Fact (web, 2026 YTD): Spain's new-car brand registrations Jan-Jul 2026 update section 1. Toyota #1 at 9% share (down 0.5% YoY), Volkswagen #2 at 6.7% (down 1.6%), Seat #3 at ~6.1%, Renault #4, Peugeot #5, Kia #6. Full top-6 is confirmed; Peugeot and Kia remain in the close tier A/B boundary. Source: [bestsellingcarsblog.com Spain July 2026](https://bestsellingcarsblog.com/2026/08/spain-july-2026-byd-80-7-ebro-80-4-stand-out-four-new-chinese-brands-arrive/), [April 2026 data](https://bestsellingcarsblog.com/2026/05/spain-april-2026-seat-23-4-peugeot-18-3-shine-in-biggest-april-volume-in-7-years/). This supersedes section 1's paywalled 2025 full-year figure.
+
+### 7.1 Mark geometry details (four brands)
+
+**Toyota** (key `toyota` in brand.ts). Fact (web): three overlapping ellipses — one vertical and one horizontal interlocked to form a "T", both sitting inside a larger outer oval. All edges are pure curves (no straight lines). The mark is symmetrical left-to-right. Source: [inkbotdesign.com Toyota Logo History](https://inkbotdesign.com/history-toyota-logo-design/), [DesignRush](https://www.designrush.com/best-designs/logo/toyota).
+
+**Hyundai** (key `hyundai`). Fact (web): a slanted bold "H" letterform inside an oval ring, creating a hole-in-ring shape. The 2023+ redesign is black/white (vs the older blue). The H has a consistent stroke weight with no serifs. The oval acts as a frame, not filled. Source: [1000logos.net Hyundai](https://1000logos.net/hyundai-logo/), [inkbotdesign.com Hyundai](https://inkbotdesign.com/hyundai-logo/).
+
+**Seat** (key `seat` in brand.ts). Fact (web): a stylized "S" made of two wide horizontal bars and diagonal stripe cuts (piston-ring inspired, or Barcelona Avenue Diagonal inspired depending on source). The 2017-present version is flat black monochrome. The S is a curved band with cuts/stripes through it, not a solid letter. Source: [fabrikbrands.com Seat Logo](https://fabrikbrands.com/branding-matters/logofile/seat-logo-history-meaning-symbol-and-evolution/), [1000logos.net Seat](https://1000logos.net/seat-logo/).
+
+**Cupra** (NOT in brand.ts today). Fact (web): Cupra is Seat's performance sub-brand (spun off ~2018 with its own identity). The car badge is a symmetrical mark made of two overlapping triangular shapes forming an X-shaped symbol. All edges are straight lines (no curves). The mark has sharp, pointed corners and reads as a tribally-inspired angular emblem. Finishes include black, bronze, or chrome. Source: [1000logos.net Cupra](https://1000logos.net/cupra-logo/), [fabrikbrands.com Cupra](https://fabrikbrands.com/branding-matters/logofile/cupra-logo-history-symbol-meaning-and-brand-heritage/).
+
+### 7.2 WMI and brand.ts coverage for Cupra
+
+Fact (web): both Seat and Cupra use the same WMI prefix VSS (Spain, Martorell-built). Cupra vehicles do not have a distinct WMI block; they are distinguished from Seat by model codes in positions 4+ of the VIN. Source: [Scribd VW WMI document](https://www.scribd.com/document/415181124/VW-World-Manufacturer-Identifier-VW), [vindecoderz.com Seat Cupra VIN decoder](https://www.vindecoderz.com/EN/Seat/CUPRA).
+
+Assessment: Cupra cannot be reliably distinguished from Seat via WMI alone. The existing `brand.ts` line `VSS: { key: "seat", name: "SEAT" }` is correct — a VSS VIN always resolves to Seat. Adding Cupra as a separate key would require either (a) a hardcoded model-code lookup (expensive, fragile), or (b) a dev-time override (like the `?vin=` query parameter already supported). For a real Cupra vehicle in the field, its VIN starts with VSS, so it arrives at BrandEmblemModel as `brand.key = "seat"`. This is a fundamental VIN limitation, not a defect in the table. Recommendation: if Cupra geometry is built, it must be gated behind the dev `?vin=` override or a UI brand selector, not auto-detected from the VIN.
+
+### 7.3 Technique evaluation for these four marks
+
+Assessment: all four marks exceed the complexity ceiling of hand-authored `THREE.Shape` (Approach A) in different ways. Toyota needs pure-curve ellipses (tedious bezier curves). Hyundai needs a letterform with an internal hole (the H's aperture). Seat needs curved bands with cut stripes (multiple overlapping paths or complex line-walking). Cupra is the only trivial case (triangles/straight lines).
+
+Specifically: Toyota's three ellipses would require either approximating each ellipse via multiple `bezierCurveTo` segments (noisy, error-prone) or accepting a faceted polygon (reads as square-ish at card size, not as smooth curves, flagged in review.md pattern 1). Hyundai's H-in-ring is a letterform with subtractive holes (the H's internal apertures), which hand-authored `THREE.Shape.holes` can theoretically handle but require manually walking the outline of a letter's serifs and apertures — a maintenance nightmare if the font ever changes. Seat's S with stripes involves either (a) multiple overlapping Shape instances (one for each stripe), (b) hand-walking a complex S-curve outline plus multiple diagonal cut paths (prone to self-intersection bugs), or (c) union operations not supported by `THREE.Shape`.
+
+Fact (web, three.js docs): `SVGLoader.createShapes()` handles all of these gracefully. Ellipses are native SVG curve elements. Letterforms are drawn in any vector app (Figma, Inkscape) with holes auto-detected from fill-rule. Overlapping paths with union operations are resolved by the SVG renderer before conversion to `THREE.Shape`. Cost: a one-time setup to wire `SVGLoader` (ships with three.js, no new package), create a registry mapping brand keys to SVG path data, and load/cache per emblem. This is the same one-time cost flagged in section 6.
+
+Recommendation (assessment, planner decides): the three hard marks (Toyota, Hyundai, Seat) now justify the Approach B (SVGLoader) pipeline. Combined they represent three distinct technical challenges (curves, holes, overlaps) that SVG solves elegantly. Cupra is a bonus: include it as either hand-authored (trivial, low priority) or defer it, since the VSS WMI ambiguity requires special handling anyway. Building Approach B for three marks is justified; building it just for Cupra is not. If the planner chooses to implement Approach A (hand-Shape) for these four despite the complexity spike, Cupra and Toyota are viable (tedious, but possible); Hyundai and Seat should be deferred until Approach B exists. This changes section 6's original recommendation because we now have concrete geometry details confirming three marks exceed the hand-authored ceiling.
+
+### 7.4 Tier ranking updates for Kia and Peugeot
+
+Fact (web): Peugeot moved to tier-A position (top 5 in Spain 2026 YTD). Kia remains tier-A but is sliding (ranked 6th, -11.1% YoY in April). Both brands stay in section 2's nameplate-fallback tier (Peugeot: tier (c) figurative lion/lion-mane; Kia: tier (b) signature wordmark), so no geometry changes recommended. This updates section 1's tier ranking in practical terms but does not change the marks' complexity assessment or recommendation.

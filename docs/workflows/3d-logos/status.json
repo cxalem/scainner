@@ -1,12 +1,13 @@
 {
   "stream": "3d-logos",
-  "stage": "codex-review",
-  "state": "PR 1 open, awaiting user review and manual test",
-  "updated": "2026-08-20T19:50:00Z",
-  "branch": "ws/3d-logos",
+  "stage": "done",
+  "state": "Merged to main (PR #1 at 9130f03, follow-up GLB commit merged separately at ebf8f82). 22 brands with real geometry (5 as real 3D GLB, 17 as flat-extruded STL); Volvo hand-built/traced.",
+  "updated": "2026-08-20T23:05:00Z",
+  "branch": "main",
   "notes": [
-    "Codex verdict: OBJECTIONS-NONBLOCKING. Production build verified the dev override is stripped from packaged output.",
-    "PR: https://github.com/cxalem/scainner/pull/1",
-    "On merge: app-perf builder starts automatically."
+    "PR #1: https://github.com/cxalem/scainner/pull/1 (merged).",
+    "One commit (real GLB geometry for Audi/BMW/Mercedes/Toyota/VW) landed on ws/3d-logos after the PR merged, so it needed its own merge into main — done directly, no second PR, at the user's request.",
+    "app-perf builder now unblocked, starting.",
+    "Open follow-ups, not blockers: GLB mesh decimation (bundle size), BMW color/texture gap, Cupra/Seat VIN ambiguity, model name/trim decode, SAIC/Vauxhall still dev-override-only (no confident WMI)."
   ]
 }

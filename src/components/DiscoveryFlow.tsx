@@ -9,6 +9,8 @@ import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { Badge, Button, Card, CardContent } from "@/components/ui";
 import { VehicleScene } from "@/components/VehicleScene";
 import type { DtcResult, EcuInfo, SensorReading } from "@/lib/meta";
+import { brandFromVin } from "@/lib/brand";
+import { decodeModelYear } from "@/lib/vin";
 
 type Step = "discovering" | "scanning" | "results";
 
@@ -66,6 +68,11 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
 
   const sceneStatus = step === "results" ? "connected" : "connecting";
   const dtcCount = scan ? scan.stored.length + scan.pending.length : null;
+  // Both decode straight from the VIN, no round trip needed — same brand
+  // lookup the emblem itself uses, plus the model year (see lib/vin.ts for
+  // why that stops at year and doesn't reach for the exact model/trim).
+  const brand = brandFromVin(vin);
+  const modelYear = decodeModelYear(vin);
 
   return (
     // m-auto on the child, not items-center on the parent: flex centering of
@@ -102,6 +109,11 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
 
         <Card>
           <CardContent className="flex flex-col gap-2.5 pt-4">
+            <Row
+              label="Vehicle"
+              value={brand ? `${brand.name}${modelYear ? `, ${modelYear}` : ""}` : "Unrecognized brand"}
+              pending={false}
+            />
             <Row label="VIN" value={vin} pending={false} />
             <Row label="Protocol" value={ecu?.protocol ?? null} pending={step === "discovering" && !ecu} />
             <Row label="ELM version" value={ecu?.elm_version ?? null} pending={step === "discovering" && !ecu} />
@@ -120,7 +132,13 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
 
         {step === "results" && sensors && sensors.length > 0 && (
           <Card>
-            <CardContent className="max-h-52 overflow-y-auto pt-4">
+            {/* overflow-y-scroll (not -auto): the scrollbar's gutter stays
+                reserved whether or not the content actually overflows, so
+                it doesn't appear the instant this list grows past max-h-52
+                and shove everything a few pixels left — the same
+                layout-shift bug class the connect flow already got fixed
+                for elsewhere, just a different trigger. */}
+            <CardContent className="max-h-52 overflow-y-scroll pt-4">
               <table className="w-full text-sm">
                 <tbody>
                   {sensors.map((s) => (

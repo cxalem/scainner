@@ -61,6 +61,26 @@ const WMI: Record<string, BrandInfo> = {
   KNE: { key: "kia", name: "KIA" },
   U5Y: { key: "kia", name: "KIA" },
   JSA: { key: "suzuki", name: "SUZUKI" },
+  // Geely Group is a real gap: BYD/Chery/Geely are among Europe's
+  // fastest-growing brands (Chery +306%, Geely Group +8.5% in H1 2026 per
+  // best-selling-cars.com) and none had a WMI entry until this row. LB3 is
+  // core Geely-badged models specifically (Coolray, Emgrand, Atlas Pro).
+  // Deliberately not adding L6T: that prefix is shared group-wide across
+  // Geely, Zeekr, and Geometry, so mapping it to "geely" would misattribute
+  // a Zeekr as a Geely — a wrong badge is worse than no badge (see
+  // docs/workflows/3d-logos/research.md section 5).
+  LB3: { key: "geely", name: "GEELY" },
+  // BYD: LGX confirmed against NHTSA's own WMI registry directly
+  // (vpic.nhtsa.dot.gov/api/vehicles/GetWMIsForManufacturer/BYD), not just a
+  // web search summary — high confidence. One low-quality source claimed
+  // "LVV" for BYD while a separate one claimed the same "LVV" for Chery;
+  // NHTSA settles the conflict for BYD specifically, LGX it is.
+  LGX: { key: "byd", name: "BYD" },
+  // Chery: LVV, corroborated by two independent secondary sources (not an
+  // official registry hit like BYD above, since Chery doesn't sell in the
+  // US and so isn't in NHTSA's database) — medium confidence, not the same
+  // bar as LGX, flagged honestly rather than presented as equally certain.
+  LVV: { key: "chery", name: "CHERY" },
   // Others
   WF0: { key: "ford", name: "FORD" },
   VS6: { key: "ford", name: "FORD" },
