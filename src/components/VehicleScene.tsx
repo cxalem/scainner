@@ -36,10 +36,11 @@ import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.j
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import { brandFromVin } from "@/lib/brand";
+import { EMBLEMS, NameplateEmblem } from "./emblems";
+import { EmblemStarfield } from "./EmblemStarfield";
 
 export type SceneStatus = "disconnected" | "connecting" | "connected";
 
-const PAPER = "#f7f7f5";
 const DEFAULT_TINT = "#e3e5e8"; // near-white — shows the texture close to its native grayscale until a real color is picked
 const PULSE_COLOR = "#2b2f36";
 
@@ -1193,103 +1194,14 @@ function CarModelFallback() {
 // GLB saga above), but a brand identity can: the VIN's first three chars
 // (WMI) name the manufacturer for every car that ever connects, and this
 // renders a spinning chrome emblem from it. Brands with modeled geometry
-// (Citroën's double chevron, so far) get the real mark; every other brand
-// automatically gets a chrome nameplate badge with its name — zero per-car
-// work, uniform quality. The C4 GlbCarModel above stays dormant as the
-// bespoke-model option.
-const EMBLEM_CHROME = {
-  color: "#f4f6f8",
-  metalness: 0.9,
-  roughness: 0.22, // enough blur that reflections read as brushed chrome, not a hard mirror of the 4-panel rig
-  clearcoat: 0.6,
-  clearcoatRoughness: 0.1,
-  envMapIntensity: 1.5,
-} as const;
-// Vertical center of the emblem — floats where the car's body used to be so
-// the existing camera framing and ContactShadows keep working unchanged.
-// (0.95 initially, which cropped the mark at the card's top edge — the
-// camera aims at the origin, so a compact object wants to sit lower than a
-// car-height one.)
-const EMBLEM_Y = 0.32;
-
-// One chevron of the Citroën mark: a "^" band of constant vertical
-// thickness. Outline walks the top edge up to the apex and back down, then
-// the bottom edge in reverse.
-function chevronShape(halfWidth: number, rise: number, thickness: number, yOffset: number): THREE.Shape {
-  const s = new THREE.Shape();
-  s.moveTo(-halfWidth, yOffset);
-  s.lineTo(0, yOffset + rise);
-  s.lineTo(halfWidth, yOffset);
-  s.lineTo(halfWidth, yOffset - thickness);
-  s.lineTo(0, yOffset + rise - thickness);
-  s.lineTo(-halfWidth, yOffset - thickness);
-  s.closePath();
-  return s;
-}
-
-function CitroenEmblem() {
-  const geo = useMemo(() => {
-    const half = 0.66, rise = 0.4, t = 0.22, gap = 0.11;
-    const g = new THREE.ExtrudeGeometry(
-      [chevronShape(half, rise, t, 0), chevronShape(half, rise, t, -(t + gap))],
-      { depth: 0.15, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.025, bevelSegments: 3 },
-    );
-    g.center();
-    return g;
-  }, []);
-  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
-}
-
-// Fallback for any brand without modeled emblem geometry: a chrome
-// nameplate slab with the brand name on its face (drawn to a canvas — no
-// font asset needed). The back stays blank chrome, like a real badge.
-function NameplateEmblem({ name }: { name: string }) {
-  const texture = useMemo(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 256;
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff"; // multiplies to the chrome base color untouched
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#181a1e";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    let size = 150;
-    do {
-      ctx.font = `700 ${size}px system-ui, Arial, sans-serif`;
-      size -= 6;
-    } while (ctx.measureText(name).width > 920 && size > 40);
-    ctx.fillText(name, canvas.width / 2, canvas.height / 2 + 8);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    return tex;
-  }, [name]);
-  const mats = useMemo(() => {
-    const chrome = new THREE.MeshPhysicalMaterial(EMBLEM_CHROME);
-    const face = new THREE.MeshPhysicalMaterial({ ...EMBLEM_CHROME, map: texture });
-    // BoxGeometry material order: +x, -x, +y, -y, +z (front), -z (back)
-    return [chrome, chrome, chrome, chrome, face, chrome];
-  }, [texture]);
-  useEffect(
-    () => () => {
-      texture.dispose();
-      mats.forEach((m) => m.dispose());
-    },
-    [texture, mats],
-  );
-  return (
-    <mesh position={[0, EMBLEM_Y, 0]} material={mats} castShadow>
-      <boxGeometry args={[2.6, 0.6, 0.16]} />
-    </mesh>
-  );
-}
-
+// (see the EMBLEMS registry in ./emblems) get the real mark; every other
+// brand automatically gets a chrome nameplate badge with its name — zero
+// per-car work, uniform quality. The C4 GlbCarModel above stays dormant as
+// the bespoke-model option.
 function BrandEmblemModel({ vin, status, reduced }: { vin: string | null | undefined; status: SceneStatus; reduced: boolean }) {
   const group = useRef<THREE.Group>(null!);
   const brand = useMemo(() => brandFromVin(vin), [vin]);
+  const Emblem = (brand && EMBLEMS[brand.key]) ?? null;
 
   useFrame((_, delta) => {
     if (!group.current || reduced) return;
@@ -1299,16 +1211,31 @@ function BrandEmblemModel({ vin, status, reduced }: { vin: string | null | undef
 
   return (
     <group ref={group}>
-      {brand?.key === "citroen" ? <CitroenEmblem /> : <NameplateEmblem name={brand?.name ?? "AUTO"} />}
+      {Emblem ? <Emblem /> : <NameplateEmblem name={brand?.name ?? "AUTO"} />}
     </group>
   );
 }
 
 export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: string | null }) {
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
+  // Dev-only override so any brand's emblem can be previewed by URL without
+  // a real connected VIN, e.g. ?vin=VF1AAAAA000000000 for Renault. Inert
+  // (and tree-shaken away) in production builds since import.meta.env.DEV
+  // is false there.
+  const vinOverride = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("vin") : null;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72" style={{ background: PAPER }}>
+    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72">
+      {/* Dark ambient-dust ground instead of the old flat light fill —
+          same starfield technique as the knowledge-base note
+          (3-Resources/starfield-header/technique.md), tuned far slower
+          (ambient dust, not a hyperspace field) and warm-toned per request.
+          Sits behind the WebGL canvas; the canvas below has no opaque
+          background of its own (gl alpha:true, no <color attach>) so this
+          shows through. Does not touch the chrome material's reflection
+          environment at all — that comes from StudioEnvironment's own
+          offscreen PMREM bake, entirely separate from this visible layer. */}
+      <EmblemStarfield />
       <Canvas
         dpr={[1, 1.75]}
         camera={{ position: [4.4, 2.6, 4.4], fov: 30 }}
@@ -1320,7 +1247,6 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
           toneMappingExposure: 1.15,
         }}
       >
-        <color attach="background" args={[PAPER]} />
         {/* Direct lights now just define shape (key + soft fill) — the
             StudioEnvironment below carries the actual reflections and most
             of the ambient fill, so these are deliberately lower-intensity
@@ -1339,11 +1265,11 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
             car); GlbCarModel above is the bespoke C4 — swap back here if
             per-car models return. */}
         <Suspense fallback={<CarModelFallback />}>
-          <BrandEmblemModel vin={vin} status={status} reduced={reduced} />
+          <BrandEmblemModel vin={vinOverride ?? vin} status={status} reduced={reduced} />
         </Suspense>
         <ContactShadows position={[0, 0.01, 0]} opacity={0.32} scale={7} blur={2.2} far={2} />
       </Canvas>
-      <p className="pointer-events-none absolute bottom-2 left-3 text-[10px] uppercase tracking-wide text-black/40">
+      <p className="pointer-events-none absolute bottom-2 left-3 z-10 text-[10px] uppercase tracking-wide text-white/45">
         {status === "disconnected" ? "Idle" : status === "connecting" ? "Discovering modules…" : "Live"}
       </p>
     </div>

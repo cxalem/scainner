@@ -16,6 +16,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import type { SceneStatus } from "@/components/VehicleScene";
 import type { CarReport, Insights } from "@/lib/meta";
+import { decodeModelYear } from "@/lib/vin";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // Overview actually mounts the scene, not on initial app load — Overview is
@@ -264,15 +265,30 @@ function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSa
 export function Overview({
   refreshKey = 0,
   connState = "disconnected",
+  vin: connectedVin = null,
 }: {
   refreshKey?: number;
   connState?: string;
+  /** The currently-connected car's VIN, from App — known earlier than
+   * Overview's own report_cars fetch below, so the emblem shows the right
+   * brand on Overview's first render instead of flashing a generic badge
+   * while report_cars catches up (App resolves this in the same handler
+   * that drives connState in the first place). */
+  vin?: string | null;
 }) {
   const [cars, setCars] = useState<[string, number][]>([]);
-  const [vin, setVin] = useState<string | null>(null);
+  const [vin, setVin] = useState<string | null>(connectedVin);
   const [report, setReport] = useState<CarReport | null>(null);
   const sceneStatus: SceneStatus =
     connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
+
+  // Adopt App's faster-known VIN the moment it changes (a new connect), but
+  // only ever move forward from it — report_cars below or the car picker
+  // can still take vin in a different direction afterward (a different car
+  // selected from the dropdown), this just seeds the very first paint.
+  useEffect(() => {
+    if (connectedVin) setVin(connectedVin);
+  }, [connectedVin]);
 
   // refreshKey ticks when a first-connect discovery flow finishes elsewhere
   // in the app — Overview mounted before that car existed, so its own
@@ -280,9 +296,9 @@ export function Overview({
   useEffect(() => {
     invoke<[string, number][]>("report_cars").then((c) => {
       setCars(c);
-      if (c.length > 0) setVin(c[0][0]);
+      if (c.length > 0 && !connectedVin) setVin(c[0][0]);
     });
-  }, [refreshKey]);
+  }, [refreshKey, connectedVin]);
   useEffect(() => {
     if (vin) invoke<CarReport>("car_report", { vin }).then(setReport).catch(() => {});
   }, [vin]);
@@ -313,6 +329,9 @@ export function Overview({
   const engineH = Math.floor(report.engine_minutes / 60);
   const engineM = Math.round(report.engine_minutes % 60);
   const verdicts = buildVerdicts(report);
+  // Model year only — see src/lib/vin.ts for why the full model/trim isn't
+  // here too, that needs a per-brand table this app doesn't have.
+  const modelYear = decodeModelYear(report.vin);
 
   return (
     <div className="flex flex-col gap-4">
@@ -332,7 +351,10 @@ export function Overview({
             ))}
           </select>
         ) : (
-          <span className="font-mono text-xs text-muted-foreground">VIN {report.vin}</span>
+          <span className="font-mono text-xs text-muted-foreground">
+            {modelYear ? `${modelYear} · ` : ""}
+            VIN {report.vin}
+          </span>
         )}
       </div>
 
