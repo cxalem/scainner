@@ -59,6 +59,7 @@ export type Insights = {
   voltage_min: number | null;
   voltage_avg: number | null;
   fuel_price: number;
+  fuel_level_pct: number | null;
 };
 export type CarReport = {
   vin: string;
@@ -88,6 +89,7 @@ export const GAUGES: { key: string; label: string; unit: string; fmt?: (v: numbe
   { key: "stft", label: "Fuel trim (S)", unit: "%", fmt: (v) => v.toFixed(1) },
   { key: "ltft", label: "Fuel trim (L)", unit: "%", fmt: (v) => v.toFixed(1) },
   { key: "fuel_rate", label: "Fuel rate", unit: "L/h", fmt: (v) => v.toFixed(2) },
+  { key: "fuel_level", label: "Fuel level", unit: "%", fmt: (v) => v.toFixed(0) },
 ];
 
 export const MONITOR_LABELS: Record<string, string> = {

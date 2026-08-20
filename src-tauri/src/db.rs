@@ -82,6 +82,10 @@ pub struct Insights {
     pub voltage_min: Option<f64>,
     pub voltage_avg: Option<f64>,
     pub fuel_price: f64,
+    /// Most recent tank-level reading (PID 012F), not a window average — the
+    /// tank level is a point-in-time gauge, not a trend. `None` if the ECU
+    /// has never reported it (many don't expose this PID over OBD2).
+    pub fuel_level_pct: Option<f64>,
 }
 
 #[derive(Serialize)]
@@ -527,6 +531,15 @@ impl Db {
         let coolant = pick(source, "coolant");
         let map_s = pick(source, "map");
         let volt = pick(source, "voltage");
+        let fuel_level_pct: Option<f64> = conn
+            .query_row(
+                "SELECT r.value FROM readings r JOIN sessions s ON r.session_id = s.id
+                 WHERE r.key='fuel_level' AND COALESCE(s.vin, ?1) = ?1
+                 ORDER BY r.ts DESC LIMIT 1",
+                params![vin],
+                |r| r.get(0),
+            )
+            .ok();
         let insights = Insights {
             window_hours: if stats_7d.is_empty() { 24.0 * 3650.0 } else { window_hours },
             engine_hours,
@@ -543,6 +556,7 @@ impl Db {
             voltage_min: volt.map(|s| s.0),
             voltage_avg: volt.map(|s| s.1),
             fuel_price,
+            fuel_level_pct,
         };
 
         CarReport {

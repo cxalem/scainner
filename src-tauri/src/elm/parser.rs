@@ -128,6 +128,7 @@ pub const PIDS: &[PidDef] = &[
     PidDef { pid: "010B", key: "map",          label: "Manifold pressure", unit: "kPa", decode: |d| Some(*d.first()? as f64) },
     PidDef { pid: "010E", key: "timing_adv",   label: "Timing advance",   unit: "°",   decode: |d| Some(*d.first()? as f64 / 2.0 - 64.0) },
     PidDef { pid: "015E", key: "fuel_rate",    label: "Fuel rate",        unit: "L/h", decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 20.0) },
+    PidDef { pid: "012F", key: "fuel_level",   label: "Fuel level",       unit: "%",   decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
 ];
 
 /// Decode a supported-PID bitmap response (0100/0120/0140/0160 → 4 data bytes).

@@ -11,6 +11,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOCK_MODE } from "@/lib/tauri";
 import type { ConnStatus } from "@/lib/meta";
 
 export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
@@ -72,6 +73,14 @@ export function Shell({
         <div className="mb-4 flex items-center gap-2 px-2 pt-1">
           <Gauge className="h-5 w-5 text-primary" aria-hidden="true" />
           <span className="text-sm font-semibold tracking-tight">Scainner</span>
+          {MOCK_MODE && (
+            <span
+              className="ml-auto rounded-full bg-warn/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warn"
+              title="No Tauri backend detected — showing simulated data for UI preview"
+            >
+              Demo data
+            </span>
+          )}
         </div>
 
         <nav className="flex flex-col gap-0.5" aria-label="Main">

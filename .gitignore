@@ -31,3 +31,7 @@ target/
 # backstop in case a dev copies one in for local testing.
 *.sqlite3
 *.sqlite3-*
+
+# Local-only heavy 3D assets for the dormant STL pipeline (29MB).
+# The active scene uses public/models/ which IS committed.
+public/models-preview/

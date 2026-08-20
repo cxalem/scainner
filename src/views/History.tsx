@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, Segmented } from "@/components/ui";
 import { GAUGES, RANGES, STAT_LABELS, type CarReport, type HistoryPoint } from "@/lib/meta";

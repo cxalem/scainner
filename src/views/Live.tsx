@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { Activity, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented } from "@/components/ui";
 import { GAUGES, type Live as LiveMap, type SensorReading } from "@/lib/meta";

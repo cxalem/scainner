@@ -1,18 +1,29 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { invoke } from "@/lib/tauri";
 import {
   BatteryCharging,
   ClipboardList,
   Database,
   Fuel,
   HeartPulse,
+  History,
   Thermometer,
+  Timer,
   Wind,
   Wrench,
 } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import type { SceneStatus } from "@/components/VehicleScene";
 import type { CarReport, Insights } from "@/lib/meta";
+
+// Code-split: pulls in three.js/@react-three (~450KB gzip) only once
+// Overview actually mounts the scene, not on initial app load — Overview is
+// the default view, unlike Vehicle/DiscoveryFlow which are already lazy at
+// the App.tsx level, so this needs its own lazy boundary.
+const VehicleScene = lazy(() =>
+  import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })),
+);
 
 type Verdict = {
   icon: typeof Wrench;
@@ -95,11 +106,58 @@ function buildVerdicts(r: CarReport): Verdict[] {
   return v;
 }
 
+function fuelStatus(pct: number): { label: string; tone: "good" | "watch" | "bad" } {
+  if (pct < 10) return { label: "Reserve", tone: "bad" };
+  if (pct < 25) return { label: "Low", tone: "watch" };
+  if (pct >= 90) return { label: "Full", tone: "good" };
+  return { label: "Good", tone: "good" };
+}
+
+/** Visual tank gauge — the most recent reading, not a window average (a tank
+ * level is a point-in-time fact, not a trend). Not every ECU reports this
+ * PID over standard OBD2; the card degrades gracefully when it's absent. */
+function FuelLevelGauge({ pct }: { pct: number }) {
+  const clamped = Math.max(0, Math.min(100, pct));
+  const status = fuelStatus(clamped);
+  const fillColor =
+    status.tone === "bad" ? "bg-destructive" : status.tone === "watch" ? "bg-warn" : "bg-primary";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between">
+        <p className="font-mono text-3xl font-semibold tabular-nums">
+          {clamped.toFixed(0)}
+          <span className="ml-1 text-sm font-normal text-muted-foreground">%</span>
+        </p>
+        <Badge variant={status.tone === "good" ? "ok" : status.tone === "watch" ? "warn" : "error"}>
+          {status.label}
+        </Badge>
+      </div>
+      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label={`Fuel tank ${clamped.toFixed(0)} percent, ${status.label.toLowerCase()}`}>
+        {/* quarter-tick marks */}
+        {[25, 50, 75].map((t) => (
+          <span key={t} className="absolute inset-y-0 w-px bg-foreground/15" style={{ left: `${t}%` }} aria-hidden="true" />
+        ))}
+        <div
+          className={`h-full origin-left rounded-full ${fillColor} motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out motion-reduce:transition-none`}
+          style={{ transform: `scaleX(${clamped / 100})`, width: "100%" }}
+        />
+      </div>
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>E</span>
+        <span>F</span>
+      </div>
+    </div>
+  );
+}
+
 function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSaved: () => void }) {
   const [price, setPrice] = useState(String(i.fuel_price));
   const days = i.window_hours >= 24 * 365 ? "all time" : `last ${Math.round(i.window_hours / 24)} days`;
+  const hasLevel = i.fuel_level_pct != null;
+  const hasConsumption = i.fuel_lph_avg != null;
 
-  if (i.fuel_lph_avg == null)
+  if (!hasLevel && !hasConsumption)
     return (
       <Card>
         <CardHeader>
@@ -122,91 +180,123 @@ function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSa
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5">
-          <Fuel className="h-4 w-4" aria-hidden="true" /> Fuel — {days}
+          <Fuel className="h-4 w-4" aria-hidden="true" /> Fuel{hasConsumption ? ` — ${days}` : ""}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Consumption</p>
-            <p className="font-mono text-xl font-semibold tabular-nums">
-              {i.l_per_100km != null ? i.l_per_100km.toFixed(1) : "—"}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">L/100km</span>
-            </p>
+      <CardContent className="flex flex-col gap-4">
+        {hasLevel && <FuelLevelGauge pct={i.fuel_level_pct!} />}
+
+        {hasConsumption ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Consumption</p>
+              <p className="font-mono text-xl font-semibold tabular-nums">
+                {i.l_per_100km != null ? i.l_per_100km.toFixed(1) : "—"}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">L/100km</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Cost per 100 km</p>
+              <p className="font-mono text-xl font-semibold tabular-nums">
+                {eur100 != null ? eur100.toFixed(2) : "—"}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">EUR</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Fuel used (~)</p>
+              <p className="font-mono text-xl font-semibold tabular-nums">
+                {i.fuel_total_l != null ? i.fuel_total_l.toFixed(1) : "—"}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">
+                  L{totalCost != null ? ` · ${totalCost.toFixed(2)} EUR` : ""}
+                </span>
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Distance (~)</p>
+              <p className="font-mono text-xl font-semibold tabular-nums">
+                {i.km_total != null ? i.km_total.toFixed(0) : "—"}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">km</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Cost per 100 km</p>
-            <p className="font-mono text-xl font-semibold tabular-nums">
-              {eur100 != null ? eur100.toFixed(2) : "—"}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">EUR</span>
-            </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Consumption stats collect automatically on your next drive.
+          </p>
+        )}
+
+        {hasConsumption && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <label htmlFor="fuel-price">Fuel price:</label>
+            <input
+              id="fuel-price"
+              inputMode="decimal"
+              className="h-7 w-16 rounded-md border border-border bg-card px-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+            <span>EUR/L</span>
+            <button
+              className="rounded text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => invoke("set_fuel_price", { price: parseFloat(price) || 1.5 }).then(onPriceSaved)}
+            >
+              save
+            </button>
+            <span className="ml-2">Includes idling. ECU-reported, ±5–10%.</span>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Fuel used (~)</p>
-            <p className="font-mono text-xl font-semibold tabular-nums">
-              {i.fuel_total_l != null ? i.fuel_total_l.toFixed(1) : "—"}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">
-                L{totalCost != null ? ` · ${totalCost.toFixed(2)} EUR` : ""}
-              </span>
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Distance (~)</p>
-            <p className="font-mono text-xl font-semibold tabular-nums">
-              {i.km_total != null ? i.km_total.toFixed(0) : "—"}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">km</span>
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <label htmlFor="fuel-price">Fuel price:</label>
-          <input
-            id="fuel-price"
-            inputMode="decimal"
-            className="h-7 w-16 rounded-md border border-border bg-card px-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-          <span>EUR/L</span>
-          <button
-            className="rounded text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            onClick={() => invoke("set_fuel_price", { price: parseFloat(price) || 1.5 }).then(onPriceSaved)}
-          >
-            save
-          </button>
-          <span className="ml-2">Includes idling. ECU-reported, ±5–10%.</span>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-export function Overview() {
+export function Overview({
+  refreshKey = 0,
+  connState = "disconnected",
+}: {
+  refreshKey?: number;
+  connState?: string;
+}) {
   const [cars, setCars] = useState<[string, number][]>([]);
   const [vin, setVin] = useState<string | null>(null);
   const [report, setReport] = useState<CarReport | null>(null);
+  const sceneStatus: SceneStatus =
+    connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
 
+  // refreshKey ticks when a first-connect discovery flow finishes elsewhere
+  // in the app — Overview mounted before that car existed, so its own
+  // effects wouldn't otherwise know to refetch.
   useEffect(() => {
     invoke<[string, number][]>("report_cars").then((c) => {
       setCars(c);
       if (c.length > 0) setVin(c[0][0]);
     });
-  }, []);
+  }, [refreshKey]);
   useEffect(() => {
     if (vin) invoke<CarReport>("car_report", { vin }).then(setReport).catch(() => {});
   }, [vin]);
 
+  const scene = (
+    <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
+      <VehicleScene status={sceneStatus} vin={vin} />
+    </Suspense>
+  );
+
   if (!report)
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-          <Database className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-          <p className="font-medium">No data yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Connect and drive — the report builds itself from recorded sessions.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        {scene}
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <Database className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+            <p className="font-medium">No data yet</p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Connect and drive — the report builds itself from recorded sessions.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
 
   const engineH = Math.floor(report.engine_minutes / 60);
@@ -235,16 +325,20 @@ export function Overview() {
         )}
       </div>
 
+      {scene}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          ["Sessions", String(report.session_count)],
-          ["Engine time", `${engineH}h ${engineM}m`],
-          ["Readings", report.total_readings.toLocaleString()],
-          ["Scans clean", `${report.scans_clean}/${report.scans_total}`],
-        ].map(([label, value]) => (
+          { label: "Sessions", value: String(report.session_count), icon: History },
+          { label: "Engine time", value: `${engineH}h ${engineM}m`, icon: Timer },
+          { label: "Readings", value: report.total_readings.toLocaleString(), icon: Database },
+          { label: "Scans clean", value: `${report.scans_clean}/${report.scans_total}`, icon: ClipboardList },
+        ].map(({ label, value, icon: Icon }) => (
           <Card key={label}>
             <CardHeader>
-              <CardTitle>{label}</CardTitle>
+              <CardTitle className="flex items-center gap-1.5">
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" /> {label}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="font-mono text-xl font-semibold tabular-nums">{value}</div>

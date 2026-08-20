@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
-
+/* Single-theme app: one light palette, no dark variant — see main.tsx. */
 :root {
   --background: oklch(0.985 0.002 90);
   --foreground: oklch(0.2 0.01 260);
@@ -15,20 +14,6 @@
   --destructive: oklch(0.55 0.2 27);
   --warn: oklch(0.72 0.15 75);
   --radius: 0.625rem;
-}
-
-.dark {
-  --background: oklch(0.17 0.01 260);
-  --foreground: oklch(0.93 0.005 90);
-  --card: oklch(0.21 0.012 260);
-  --card-foreground: oklch(0.93 0.005 90);
-  --muted: oklch(0.25 0.012 260);
-  --muted-foreground: oklch(0.65 0.015 260);
-  --border: oklch(0.29 0.012 260);
-  --primary: oklch(0.7 0.16 155);
-  --primary-foreground: oklch(0.15 0.01 260);
-  --destructive: oklch(0.65 0.19 27);
-  --warn: oklch(0.78 0.14 75);
 }
 
 @theme inline {
@@ -47,6 +32,12 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+:root {
+  /* Native UI (scrollbars, form controls) stays light even on a dark OS —
+     the app is single-theme by design. */
+  color-scheme: light;
 }
 
 body {

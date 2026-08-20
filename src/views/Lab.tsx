@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import type { UdsHit, UdsModule } from "@/lib/meta";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";

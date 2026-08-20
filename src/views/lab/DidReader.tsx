@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "@/lib/tauri";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import type { UdsHit } from "@/lib/meta";
 
