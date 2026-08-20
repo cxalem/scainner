@@ -43,8 +43,14 @@ semantically identical, since NameplateEmblem needs the `name` prop.
   (Connect, ~15s discovery, Go to dashboard) run separately per brand so
   every screenshot below is from the connected, slowly rotating state.
 
-Screenshots (saved in `docs/workflows/3d-logos/review-screenshots/`,
-untracked, for the PR stage to embed):
+Screenshots referenced below were removed from the repo 2026-08-20 —
+every design they documented (all four hand-built emblems) has since been
+replaced (Renault/Mercedes/Opel by real STL geometry, Volvo rebuilt with
+a bigger traced arrow), so the images were stale evidence for code that
+no longer exists rather than a useful record. This table is kept as the
+process history of what stage-4 review actually found and judged at the
+time; current live verification is the `?vin=` links in the PR
+description instead of static screenshots.
 
 | Brand | Evidence | Judgment at card size |
 | --- | --- | --- |
