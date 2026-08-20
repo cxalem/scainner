@@ -26,6 +26,9 @@ dist-ssr
 # Rust
 target/
 
+# Turborepo per-package run logs / metadata
+.turbo/
+
 # Never commit real recorded car data — the app's DB lives outside the repo
 # (~/Library/Application Support/com.cxalem.scainner/), but this is a defensive
 # backstop in case a dev copies one in for local testing.
@@ -33,5 +36,5 @@ target/
 *.sqlite3-*
 
 # Local-only heavy 3D assets for the dormant STL pipeline (29MB).
-# The active scene uses public/models/ which IS committed.
-public/models-preview/
+# The active scene uses apps/desktop/public/models/ which IS committed.
+apps/desktop/public/models-preview/
