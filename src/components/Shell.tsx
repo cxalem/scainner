@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Activity,
   Car,
@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
-import type { ConnStatus } from "@/lib/meta";
+import { useCyclingLabel } from "@/components/ui";
+import { CONNECT_PHRASES, type ConnStatus } from "@/lib/meta";
 
 export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
 
@@ -39,11 +40,24 @@ export function Shell({
   conn: ConnStatus;
   recording: boolean;
   onConnect: () => void;
-  onDisconnect: () => void;
+  onDisconnect: () => Promise<unknown>;
   children: ReactNode;
 }) {
   const connected = conn.state === "connected";
   const connecting = conn.state === "connecting";
+  const connectLabel = useCyclingLabel(CONNECT_PHRASES, connecting, 700);
+  // No "disconnecting" ConnStatus state exists on the backend, so this is
+  // local, sync-tracked purely to give Disconnect the pending feedback it
+  // has none of today (interaction-audit.md worst offender list).
+  const [disconnecting, setDisconnecting] = useState(false);
+  const doDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      await onDisconnect();
+    } finally {
+      setDisconnecting(false);
+    }
+  };
   const primary = NAV.filter((n) => !n.advanced);
   const advanced = NAV.filter((n) => n.advanced);
 
@@ -56,7 +70,8 @@ export function Shell({
         onClick={() => onNavigate(n.key)}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm font-medium transition-colors",
+          "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm font-medium",
+          "transition-[color,background-color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         )}
@@ -115,13 +130,17 @@ export function Shell({
           </div>
           {connected ? (
             <button
-              onClick={onDisconnect}
+              onClick={doDisconnect}
+              disabled={disconnecting}
               className={cn(
                 "flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-border text-xs font-medium",
-                "transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                "transition-[color,background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]",
+                "disabled:pointer-events-none disabled:opacity-50",
+                "motion-reduce:transition-none motion-reduce:active:scale-100",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               )}
             >
-              <Plug className="h-3.5 w-3.5" aria-hidden="true" /> Disconnect
+              <Plug className="h-3.5 w-3.5" aria-hidden="true" /> {disconnecting ? "Disconnecting…" : "Disconnect"}
             </button>
           ) : (
             <button
@@ -129,12 +148,14 @@ export function Shell({
               disabled={connecting}
               className={cn(
                 "flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-primary text-xs font-medium text-primary-foreground",
-                "transition-opacity hover:opacity-90 disabled:opacity-50",
+                "transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]",
+                "disabled:opacity-50 disabled:pointer-events-none",
+                "motion-reduce:transition-none motion-reduce:active:scale-100",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               )}
             >
               <PlugZap className="h-3.5 w-3.5" aria-hidden="true" />
-              {connecting ? "Connecting…" : "Connect"}
+              {connecting ? connectLabel : "Connect"}
             </button>
           )}
           {conn.detail && conn.state === "disconnected" && (

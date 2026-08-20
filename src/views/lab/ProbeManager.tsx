@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@/lib/tauri";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import { hex4, type UdsHit, type UdsProbe } from "@/lib/meta";
+import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/lib/queries";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -27,41 +27,66 @@ export function ProbeManager({
   candidate: UdsHit | null;
   onCandidateHandled: () => void;
 }) {
-  const [probes, setProbes] = useState<UdsProbe[]>([]);
+  const probesQuery = useListProbes();
+  const probes = probesQuery.data ?? [];
+  const addProbe = useAddProbe();
+  const toggleProbe = useToggleProbe();
+  const deleteProbe = useDeleteProbe();
   const [draft, setDraft] = useState<Partial<UdsProbe> | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<{ id: number; msg: string } | null>(null);
 
-  const loadProbes = () => invoke<UdsProbe[]>("list_probes").then(setProbes).catch(() => {});
-  useEffect(() => {
-    loadProbes();
-  }, []);
   useEffect(() => {
     if (candidate) setDraft({ did: candidate.did, len: 1, offset: 0, scale: 1, bias: 0 });
   }, [candidate]);
 
-  const save = async () => {
+  const save = () => {
     if (!draft?.label) return;
-    await invoke("add_probe", {
-      probe: {
-        id: 0,
-        module,
-        did: draft.did ?? 0,
-        label: draft.label,
-        unit: draft.unit ?? "",
-        offset: draft.offset ?? 0,
-        len: draft.len ?? 1,
-        scale: draft.scale ?? 1,
-        bias: draft.bias ?? 0,
-        enabled: true,
+    setSaveError(null);
+    addProbe.mutate(
+      {
+        probe: {
+          id: 0,
+          module,
+          did: draft.did ?? 0,
+          label: draft.label,
+          unit: draft.unit ?? "",
+          offset: draft.offset ?? 0,
+          len: draft.len ?? 1,
+          scale: draft.scale ?? 1,
+          bias: draft.bias ?? 0,
+          enabled: true,
+        },
       },
-    });
-    setDraft(null);
-    onCandidateHandled();
-    loadProbes();
+      {
+        onSuccess: () => {
+          setDraft(null);
+          onCandidateHandled();
+        },
+        onError: (e) => setSaveError(String(e instanceof Error ? e.message : e)),
+      },
+    );
   };
 
   const cancel = () => {
     setDraft(null);
     onCandidateHandled();
+  };
+
+  const toggle = (p: UdsProbe) => {
+    setRowError(null);
+    toggleProbe.mutate(
+      { id: p.id, enabled: !p.enabled },
+      { onError: (e) => setRowError({ id: p.id, msg: String(e instanceof Error ? e.message : e) }) },
+    );
+  };
+
+  const remove = (p: UdsProbe) => {
+    setRowError(null);
+    deleteProbe.mutate(
+      { id: p.id },
+      { onError: (e) => setRowError({ id: p.id, msg: String(e instanceof Error ? e.message : e) }) },
+    );
   };
 
   return (
@@ -88,12 +113,13 @@ export function ProbeManager({
                 />
               </label>
             ))}
-            <Button onClick={save} disabled={!draft.label}>
-              Save probe
+            <Button onClick={save} disabled={!draft.label || addProbe.isPending}>
+              {addProbe.isPending ? "Saving…" : "Save probe"}
             </Button>
-            <Button variant="ghost" onClick={cancel}>
+            <Button variant="ghost" onClick={cancel} disabled={addProbe.isPending}>
               Cancel
             </Button>
+            {saveError && <p className="w-full text-xs text-destructive">{saveError}</p>}
           </CardContent>
         </Card>
       )}
@@ -103,34 +129,55 @@ export function ProbeManager({
           <CardTitle>Recorded probes (polled every ~30 s while connected)</CardTitle>
         </CardHeader>
         <CardContent>
-          {probes.length === 0 ? (
+          {probesQuery.isPending ? (
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </div>
+          ) : probesQuery.isError ? (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <span>Could not load probes.</span>
+              <Button variant="outline" onClick={() => probesQuery.refetch()}>
+                Retry
+              </Button>
+            </div>
+          ) : probes.length === 0 ? (
             <p className="text-sm text-muted-foreground">None yet — scan, find something interesting, make it a probe.</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
-              {probes.map((p) => (
-                <li key={p.id} className="flex items-center justify-between border-b border-border/50 py-1.5 last:border-0">
-                  <span>
-                    <span className="font-medium">{p.label}</span>{" "}
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {p.module}/22{hex4(p.did)} [{p.offset}..{p.offset + p.len}] ×{p.scale}+{p.bias} {p.unit}
-                    </span>
-                  </span>
-                  <span className="flex gap-2">
-                    <button
-                      className="rounded text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      onClick={() => invoke("toggle_probe", { id: p.id, enabled: !p.enabled }).then(loadProbes)}
-                    >
-                      {p.enabled ? "disable" : "enable"}
-                    </button>
-                    <button
-                      className="rounded text-xs text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-                      onClick={() => invoke("delete_probe", { id: p.id }).then(loadProbes)}
-                    >
-                      delete
-                    </button>
-                  </span>
-                </li>
-              ))}
+              {probes.map((p) => {
+                const togglePending = toggleProbe.isPending && toggleProbe.variables?.id === p.id;
+                const deletePending = deleteProbe.isPending && deleteProbe.variables?.id === p.id;
+                return (
+                  <li key={p.id} className="flex flex-col gap-0.5 border-b border-border/50 py-1.5 last:border-0">
+                    <div className="flex items-center justify-between">
+                      <span>
+                        <span className="font-medium">{p.label}</span>{" "}
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {p.module}/22{hex4(p.did)} [{p.offset}..{p.offset + p.len}] ×{p.scale}+{p.bias} {p.unit}
+                        </span>
+                      </span>
+                      <span className="flex gap-2">
+                        <button
+                          className="rounded text-xs text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          onClick={() => toggle(p)}
+                          disabled={togglePending}
+                        >
+                          {togglePending ? "…" : p.enabled ? "disable" : "enable"}
+                        </button>
+                        <button
+                          className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                          onClick={() => remove(p)}
+                          disabled={deletePending}
+                        >
+                          {deletePending ? "…" : "delete"}
+                        </button>
+                      </span>
+                    </div>
+                    {rowError?.id === p.id && <p className="text-xs text-destructive">{rowError.msg}</p>}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

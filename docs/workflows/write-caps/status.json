@@ -1,10 +1,15 @@
 {
   "stream": "write-caps",
-  "stage": "research",
-  "state": "researcher running",
-  "updated": "2026-08-20T19:20:00Z",
+  "stage": "review",
+  "state": "increment 1 reviewed: ship with the three small review fixes, awaiting Codex cross-exam",
+  "updated": "2026-08-20T23:59:00Z",
   "branch": "ws/write-caps",
   "notes": [
-    "Hardware-first research: what STN2100-class dongles can safely write on PSA, competitor matrix, safety rails."
+    "Review verdict: ship. Hard rule (confirmation + logged before/after + documented reversal) verified met for both writes; no route around the confirmed guard from the frontend.",
+    "Review fixes applied: Diagnose clear button no longer unmounts under the modal, log_write insert failures are loud, BACKLOG layout-shift note updated.",
+    "Independent verification: cargo test 18 pass, cargo check + tsc clean, own Playwright walkthrough on port 4622 with screenshots (review-screenshots/), zero console errors. Port-1420 incident checked: other session's server, untouched, nothing left behind.",
+    "Open for Codex: audit-trail crash window (intent-row design for increment 2), confirmed-guard as type vs convention, one unverifiable task-brief quote in decisions-plan.",
+    "Still gated on the user's real-car test: clear a code on the C4 and check the writes_log row.",
+    "Increment 2 (actuator test) is gated on a routine-ID hunt session with the car."
   ]
 }

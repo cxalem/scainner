@@ -23,6 +23,9 @@
 //! ClearDiagnosticInformation (0x14) when the user explicitly asks to clear
 //! codes — the same operation every commercial diagnostic tool performs, and
 //! it can only erase stored records. No writes, no routines, no resets.
+//! Every clear that is actually sent lands in the `writes_log` audit table
+//! with the state read before and after (see db.rs and
+//! docs/workflows/write-caps/plan.md).
 
 use super::driver::{ElmDriver, ElmError};
 use super::parser;
@@ -231,21 +234,56 @@ fn custom_modules(db: &Db) -> Vec<UdsModule> {
 }
 
 /// Read → clear → read again, so the UI can show a verified before/after
-/// instead of a blind "done".
+/// instead of a blind "done". Every attempt that actually sends the clear
+/// lands in `writes_log`, success or failure (the write safety rail). A
+/// failed before-read aborts WITHOUT clearing: a write whose prior state
+/// could not be captured would break the audit trail, so it must not happen.
 pub fn clear_module(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<ClearOutcome, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
     setup(drv, &m).map_err(|e| e.to_string())?;
-    let before = read_dtcs(drv).unwrap_or_default();
+    let params = serde_json::json!({ "service": "14", "group": "FFFFFF" });
+    let codes_json = |v: &Vec<String>| serde_json::json!(v);
+    let before = match read_dtcs(drv) {
+        Ok(b) => b,
+        Err(e) => {
+            teardown(drv);
+            return Err(format!("Could not read the faults before clearing, so nothing was cleared: {e}"));
+        }
+    };
     let accepted = match clear_dtcs(drv) {
         Ok(ok) => ok,
         Err(e) => {
+            db.log_write(&m.label, "clear_faults", &params, Some(&codes_json(&before)), None, "error", Some(&e.to_string()));
             teardown(drv);
             return Err(e.to_string());
         }
     };
-    let after = read_dtcs(drv).unwrap_or_default();
+    let after = match read_dtcs(drv) {
+        Ok(a) => a,
+        Err(e) => {
+            db.log_write(
+                &m.label,
+                "clear_faults",
+                &params,
+                Some(&codes_json(&before)),
+                None,
+                "error",
+                Some(&format!("clear sent, but the verification read failed: {e}")),
+            );
+            teardown(drv);
+            return Err(format!("The clear was sent, but the verification read failed: {e}"));
+        }
+    };
     teardown(drv);
+    let outcome = if !accepted {
+        "refused"
+    } else if after.is_empty() {
+        "cleared"
+    } else {
+        "faults_remain"
+    };
+    db.log_write(&m.label, "clear_faults", &params, Some(&codes_json(&before)), Some(&codes_json(&after)), outcome, None);
     Ok(ClearOutcome { before, accepted, after })
 }
 

@@ -5,15 +5,18 @@
 
 import type {
   CarReport,
+  ClearOutcome,
   ConnStatus,
   DtcResult,
   DtcScanRow,
   HistoryPoint,
   KeyStat,
   Live as LiveMap,
+  ObdClearOutcome,
   SensorReading,
   UdsModule,
   UdsProbe,
+  WriteLogRow,
 } from "./meta";
 
 const MOCK_VIN = "VR7BAHNSANE014974";
@@ -235,6 +238,42 @@ let demoFaults: { stored: string[]; pending: string[]; permanent: string[] } = {
 };
 let nextScanId = 7;
 
+// ---------- write safety rail (mirrors the backend's writes_log) ----------
+
+// Module faults for the Lab's ModuleFaults card, stateful like demoFaults:
+// read shows them, a confirmed clear erases them. Keys match the mock
+// uds_modules list below.
+const demoModuleFaults: Record<string, string[]> = {
+  engine: ["P0420"],
+  bsi: ["U1109", "U1213"],
+};
+
+const MODULE_LABELS: Record<string, string> = {
+  engine: "Engine (BSI)",
+  bsi: "BSI (body)",
+};
+
+// In-memory stand-in for the writes_log table, so the Write history card
+// works in the browser demo. Reset by reloading the page.
+const WRITES: WriteLogRow[] = [];
+let nextWriteId = 1;
+
+function logMockWrite(row: Omit<WriteLogRow, "id" | "ts">) {
+  WRITES.unshift({
+    ...row,
+    id: nextWriteId++,
+    ts: new Date().toISOString().replace("T", " ").slice(0, 19),
+  });
+}
+
+// Mirrors the backend's command-boundary guard: writes without
+// `confirmed: true` refuse before touching anything.
+function requireConfirmed(args?: Record<string, unknown>) {
+  if (args?.confirmed !== true) {
+    throw new Error("Write not confirmed. This action changes the car, so the app must show the confirmation step first.");
+  }
+}
+
 // Freeze frame captured "when P0420 tripped" — moderate-load warm cruise,
 // the classic catalyst-efficiency scenario. Keys match GAUGES in meta.ts.
 const DEMO_FREEZE: Record<string, unknown> = {
@@ -249,10 +288,8 @@ const DEMO_FREEZE: Record<string, unknown> = {
 };
 
 // ---------- entry point ----------
-
-export function isMock(): boolean {
-  return typeof window !== "undefined" && !("__TAURI_INTERNALS__" in window);
-}
+// (mock-mode detection itself now lives in tauri.ts, so this module can stay
+// out of the eager bundle when it isn't needed — see tauri.ts for why.)
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -324,11 +361,44 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         o2_heater: true,
         egr_vvt: true,
       } as T;
-    case "clear_dtcs":
-      // A real clear command erases stored+pending (permanent codes only
-      // self-erase after the car verifies the fix — none in the demo).
+    case "clear_dtcs": {
+      // Full safety-rail parity with the backend: refuses unconfirmed calls,
+      // returns a verified before/after, logs the write. A real clear erases
+      // stored+pending (permanent codes only self-erase after the car
+      // verifies the fix — none in the demo).
+      requireConfirmed(args);
+      await delay(600);
+      const snapshot = (): DtcResult => ({
+        mil_on: demoFaults.stored.length > 0,
+        dtc_count: demoFaults.stored.length,
+        stored: [...demoFaults.stored],
+        pending: [...demoFaults.pending],
+        permanent: [...demoFaults.permanent],
+        voltage: 13.1,
+        freeze: null,
+      });
+      const before = snapshot();
       demoFaults = { stored: [], pending: [], permanent: [] };
-      return undefined as T;
+      const after = snapshot();
+      // The backend's verification scan lands in dtc_scans history; mirror it.
+      DTC_HISTORY.unshift({
+        ...after,
+        freeze: undefined,
+        id: nextScanId++,
+        ts: new Date().toISOString().replace("T", " ").slice(0, 19),
+      });
+      const strip = (r: DtcResult) => ({ mil_on: r.mil_on, stored: r.stored, pending: r.pending, permanent: r.permanent });
+      logMockWrite({
+        module: "Engine (OBD)",
+        action: "clear_dtcs",
+        params: { mode: "04" },
+        before: strip(before),
+        after: strip(after),
+        outcome: after.stored.length + after.pending.length === 0 ? "cleared" : "faults_remain",
+        error: null,
+      });
+      return { before, after } as ObdClearOutcome as T;
+    }
     case "reading_keys":
       return ["fuel_level"] as T;
     case "history":
@@ -368,9 +438,30 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "uds_read":
       return null as T;
     case "uds_module_dtcs":
-      return [] as T;
-    case "uds_clear":
-      return { cleared: 0 } as T;
+      await delay(500);
+      return [...(demoModuleFaults[String(args?.module ?? "")] ?? [])] as T;
+    case "uds_clear": {
+      // Same rail as the real backend. This used to return `{ cleared: 0 }`,
+      // which was never the ClearOutcome shape ModuleFaults expects — a mock
+      // parity bug (engineering.md rule 3), fixed as part of this stream.
+      requireConfirmed(args);
+      await delay(800);
+      const key = String(args?.module ?? "");
+      const before = [...(demoModuleFaults[key] ?? [])];
+      demoModuleFaults[key] = [];
+      logMockWrite({
+        module: MODULE_LABELS[key] ?? key,
+        action: "clear_faults",
+        params: { service: "14", group: "FFFFFF" },
+        before,
+        after: [],
+        outcome: "cleared",
+        error: null,
+      });
+      return { before, accepted: true, after: [] } as ClearOutcome as T;
+    }
+    case "writes_log":
+      return WRITES.slice(0, Number(args?.limit ?? 20)) as T;
     case "uds_scan":
       return [] as T;
     default:

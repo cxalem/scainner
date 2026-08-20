@@ -105,9 +105,33 @@ fn scan_dtcs(state: tauri::State<AppState>) -> Result<DtcResult, String> {
     ask(&state, Request::ScanDtcs)
 }
 
+/// Write safety rail, enforced at the command boundary: every command that
+/// writes to the car takes `confirmed` and refuses when it is false, so a
+/// stray call (a bug, a future automation) cannot skip the confirmation
+/// modal the UI shows. The frontend passes true only from that modal's
+/// confirm button.
+fn require_confirmed(confirmed: bool) -> Result<(), String> {
+    if confirmed {
+        Ok(())
+    } else {
+        Err("Write not confirmed. This action changes the car, so the app must show the confirmation step first.".into())
+    }
+}
+
+/// Clears engine DTCs (mode 04), verified: scans before, clears, scans
+/// again, and logs the whole thing to `writes_log`. Returns both scans so
+/// the UI can show an honest before/after.
 #[tauri::command]
-fn clear_dtcs(state: tauri::State<AppState>) -> Result<(), String> {
+fn clear_dtcs(state: tauri::State<AppState>, confirmed: bool) -> Result<elm::obd::ObdClearOutcome, String> {
+    require_confirmed(confirmed)?;
     ask(&state, Request::ClearDtcs)
+}
+
+/// The write audit trail, newest first: everything the app has changed on
+/// the car, with before/after state and outcome.
+#[tauri::command]
+fn writes_log(state: tauri::State<AppState>, limit: i64) -> Vec<db::WriteLogRow> {
+    state.db.writes_log(limit)
 }
 
 #[tauri::command]
@@ -160,7 +184,8 @@ fn uds_scan(state: tauri::State<AppState>, module: String, from: u16, to: u16) -
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
 #[tauri::command]
-fn uds_clear(state: tauri::State<AppState>, module: String) -> Result<ClearOutcome, String> {
+fn uds_clear(state: tauri::State<AppState>, module: String, confirmed: bool) -> Result<ClearOutcome, String> {
+    require_confirmed(confirmed)?;
     ask(&state, |tx| Request::UdsClear { module, tx })
 }
 
@@ -342,6 +367,7 @@ pub fn run() {
             uds_cancel_scan,
             uds_clear,
             uds_module_dtcs,
+            writes_log,
             list_probes,
             reading_keys,
             report_cars,
