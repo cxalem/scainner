@@ -379,3 +379,65 @@ Removed the now-superseded STL files for these 5 brands
 (bmw/mercedes/toyota/volkswagen/audi.stl) — same "don't leave unused
 assets in the PR" standard already applied to the review screenshots in
 addendum 3.
+
+## Addendum 5: batch 02 GLB — Renault, Peugeot, Kia; Hyundai missing (2026-08-20, post-merge)
+
+Source: Polished_Metal_GLB_Batch_02_CAD_FIXED_V2, applied directly to
+main after PR #1 and the addendum-4 GLB commit were already merged (no
+new PR for this one either, same direct-to-main pattern established for
+the previous post-merge GLB addition, at the user's request).
+
+The batch's own README names four brands (Renault, Peugeot, Kia,
+Hyundai) but only three files are actually in the folder — Hyundai's GLB
+is missing. Flagged to the user rather than silently shipping three of
+four with no note; hyundai.stl stays in place as the fallback until a
+real Hyundai GLB shows up.
+
+Triangle counts, much lighter than the first GLB round: Renault 6,416,
+Kia 12,640, Peugeot 70,608 (Peugeot's shield-plus-lion needs the detail
+the flat cats didn't have room for; still far below Audi's 432k or
+Mercedes' 95k from addendum 4). Net bundle effect is close to a wash this
+time (new GLBs ~2.65MB, removed STLs ~2.72MB) rather than the ~15.7MB
+jump addendum 4 flagged.
+
+Removed the three now-superseded STL files. All three verified live via
+the dev ?vin= override before committing.
+
+## Addendum 6: batch 02 completed, batch 03, material tightened, brand-key dev override (2026-08-20, post-merge)
+
+Source: the missing Hyundai GLB from addendum 5's batch 02 (delivered
+separately), plus a new batch 03 (Dacia, Opel, Skoda, Vauxhall, no
+README this time). Applied directly to main, same established pattern.
+
+Real gap found and closed, not just an asset swap: SAIC and Vauxhall
+have no WMI (see addendum 3), which meant the dev `?vin=` override could
+never reach either — there is no VIN prefix that resolves to them. Both
+were nominally "verified" in earlier addenda by the general "all brands
+checked live" claim, but that claim did not actually hold for these two
+specifically, since the mechanism to check them didn't exist yet. Added
+a second dev-only override, `?brand=<key>`, that picks an EMBLEMS
+registry key directly, bypassing VIN resolution entirely. Both saic and
+vauxhall are now confirmed live for real, not by extension of a general
+claim — this is the standing bar going forward: a brand isn't verified
+until it's actually been looked at, not just assumed covered by "all
+brands" language.
+
+Material tightened, on real evidence: the source GLB files' own
+"Polished_Metal" material specifies `roughnessFactor: 0.14` (checked
+directly in each file's JSON, this session, not assumed), while
+EMBLEM_CHROME had it at 0.22 — duller than what the source files were
+actually designed for. Tightened to roughness 0.13, clearcoat 0.6->0.85,
+clearcoatRoughness 0.1->0.06, envMapIntensity 1.5->2.0. Verified with a
+same-crop before/after screenshot (Audi rings): visibly sharper highlight
+band and stronger contrast, not asserted without looking.
+
+Fourth size bump (targetWidth 2.0 to 2.3) — checked directly against
+Citroen's full lockup (badge plus wordmark, the tallest-aspect emblem and
+therefore the real ceiling test, not a round badge that has margin to
+spare in every direction), which clears both card edges with a thinner
+but real margin. Treating this as the safe ceiling; not pushing further
+without revisiting the camera/EMBLEM_Y framing itself rather than just
+the target width number.
+
+Removed the eight now-superseded STL files (dacia, hyundai, kia, opel,
+peugeot, renault, skoda, vauxhall).

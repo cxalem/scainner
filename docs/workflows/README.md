@@ -10,29 +10,37 @@ scope) skip straight to a builder — the pipeline is for features, not typos.
 
 | # | Stage | Who | Model | Output (all under docs/workflows/<stream>/) |
 |---|-------|-----|-------|---------------------------------------------|
-| 1 | Research | researcher agent | Sonnet | `research.md` + `decisions-research.md` |
-| 2 | Plan | planner agent | Fable | `plan.md` + `decisions-plan.md` + a short plan summary posted to the user (informational, NOT a blocking gate) |
-| 3 | Build | builder agent(s) | Sonnet | code on branch `ws/<stream>` + `decisions-build.md` |
+| 1 | Research | researcher agent | Sonnet | `research.md` (rationale inline, no separate file — see Rules) |
+| 2 | Plan | planner agent | Fable | `plan.md` (rationale inline) + a short plan summary posted to the user (informational, NOT a blocking gate) |
+| 3 | Build | builder agent(s) | Sonnet | code on branch `ws/<stream>` + commit messages carrying the "why" |
 | 4 | Review | reviewer agent | Fable | `review-report.md` |
-| 5 | Cross-exam | OpenAI Codex (`codex exec`) | GPT | `codex-review.md`: questions/objections against the decision logs |
+| 5 | Cross-exam | OpenAI Codex (`codex exec`) | GPT | `codex-review.md`: questions/objections against the diff and commit history |
 | — | **GATE: user reviews at the end** | human | PR with a plain-language change summary; user reads it after both reviewers and manually tests the running app; merge or request changes |
 
 The pipeline does not stop for plan approval. The user can veto or
-redirect any stream at any moment, and the redirect is recorded in that
-stream's decision log. The PR description must contain: what changed in
-plain language, how to test it manually, and links to the review report
-and the Codex cross-exam.
+redirect any stream at any moment, and the redirect gets noted in a
+commit message or `plan.md`/`research.md` directly. The PR description
+must contain: what changed in plain language, how to test it manually,
+and links to the review report and the Codex cross-exam.
 
 Stage 5 exists because a different model has different blind spots: Codex
-reads the review report, the decision logs, and the diff, and interrogates
-the *decisions* ("why X and not Y"). Objections go back to the
-builder/reviewer; only answered objections move on.
+reads the review report, the diff, and the commit history, and
+interrogates the *decisions* ("why X and not Y"). Objections go back to
+the builder/reviewer; only answered objections move on.
 
 ## Rules
 
-- **Decision logs are mandatory.** Every agent appends to its
-  `decisions-<stage>.md`: what was decided, options considered, why, known
-  risks. Cheap to write, and they are what stage 5 cross-examines.
+- **Decision logs are the exception, not the default.** Changed
+  2026-08-20 (Alejandro: dedicated `decisions-<stage>.md` files were
+  burning real token budget better spent building). Rationale goes inline
+  in `research.md`/`plan.md` (a sentence next to the choice) or in the
+  commit message, both of which are already required and cost nothing
+  extra. Write a standalone `decisions-<stage>.md` only when something
+  genuinely needs it in one place: a call that's expensive to reverse,
+  one that surprised the author, or one a reviewer is likely to question
+  without the reasoning right in front of them. Most streams won't
+  produce one at all, and that's expected, not a gap for the reviewer to
+  flag.
 - **Role files are the skills.** Each agent's first instruction is to read
   its role file (`roles/<role>.md`) and the relevant pattern files
   (`patterns/*.md`). Lessons learned get written INTO the pattern files so
@@ -57,7 +65,8 @@ builder/reviewer; only answered objections move on.
   (`pnpm dev` / browser at :1420) hot-reloads to that branch. `git checkout
   main` switches back. The orchestrator can do this on request.
 - Interrupt any time: tell the orchestrator; the stream's agents are
-  stopped or redirected, and the decision logs record the redirect.
+  stopped or redirected, noted wherever that stream is currently writing
+  (plan.md, research.md, or the next commit message).
 
 ## Streams
 
