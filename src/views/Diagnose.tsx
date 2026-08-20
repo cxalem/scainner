@@ -1,10 +1,19 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@/lib/tauri";
+import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Copy, Info, RefreshCw, ShieldCheck, Snowflake, Sparkles, X } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useCyclingLabel } from "@/components/ui";
 import { GAUGES, MONITOR_LABELS, type DtcResult, type DtcScanRow } from "@/lib/meta";
-import { generateCodeReport, generateDiagnosisReport, getApiKey, getCodeReports, getLastReport, setApiKey, type SavedReport } from "@/lib/ai";
+import {
+  AI_PHASES,
+  generateCodeReport,
+  generateDiagnosisReport,
+  getApiKey,
+  getCodeReports,
+  getLastReport,
+  setApiKey,
+  type SavedReport,
+} from "@/lib/ai";
 import { decodeDtc, dtcInfo } from "@/lib/dtc";
+import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/lib/queries";
 
 // Every code badge in this view is a button into the per-code detail modal.
 function CodeBadge({ code, onSelect }: { code: string; onSelect: (c: string) => void }) {
@@ -85,6 +94,10 @@ function DtcDetailModal({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasKey = !!getApiKey();
+  // Plain fetch outside `invoke`, no midpoint signal possible from the
+  // Anthropic API — cycled phrases instead of a static label so a 10-60s
+  // wait doesn't read as frozen (interaction-audit.md rule 3).
+  const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const occurrences = history
     .filter((h) => h.stored.includes(code) || h.pending.includes(code) || h.permanent.includes(code))
@@ -196,7 +209,7 @@ function DtcDetailModal({
             <div className="flex items-center gap-2">
               <Button onClick={doGenerate} disabled={generating || !hasKey}>
                 <Sparkles className={"h-4 w-4" + (generating ? " animate-pulse" : "")} aria-hidden="true" />
-                {generating ? "Analyzing…" : report ? "Regenerate AI deep-dive" : "AI deep-dive for this code"}
+                {generating ? generatingLabel : report ? "Regenerate AI deep-dive" : "AI deep-dive for this code"}
               </Button>
             </div>
             {!hasKey && (
@@ -232,6 +245,7 @@ function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const saveKey = () => {
     setApiKey(keyDraft);
@@ -298,7 +312,7 @@ function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={doGenerate} disabled={generating || !hasAnyData}>
                 <Sparkles className={"h-4 w-4" + (generating ? " animate-pulse" : "")} aria-hidden="true" />
-                {generating ? "Analyzing…" : report ? "Regenerate report" : "Generate report"}
+                {generating ? generatingLabel : report ? "Regenerate report" : "Generate report"}
               </Button>
               {report && (
                 <Button variant="outline" onClick={doCopy}>
@@ -338,53 +352,39 @@ function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
 
 export function Diagnose({ connected }: { connected: boolean }) {
   const [scan, setScan] = useState<DtcResult | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<DtcScanRow[]>([]);
   const [readiness, setReadiness] = useState<Record<string, boolean> | null>(null);
   const [detailCode, setDetailCode] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedBanner, setClearedBanner] = useState<{ before: number; after: number } | null>(null);
 
-  const loadHistory = () => invoke<DtcScanRow[]>("dtc_history", { limit: 20 }).then(setHistory).catch(() => {});
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  const historyQuery = useDtcHistory();
+  const history = historyQuery.data ?? [];
+  const scanMutation = useScanDtcs();
+  const clearMutation = useClearDtcs();
+  const error = scanMutation.error ?? clearMutation.error;
 
-  const doScan = async () => {
-    setScanning(true);
-    setError(null);
-    try {
-      const r = await invoke<DtcResult>("scan_dtcs");
-      setScan(r);
-      try {
-        setReadiness(await invoke<Record<string, boolean>>("readiness"));
-      } catch {
-        // readiness is best-effort
-      }
-      loadHistory();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setScanning(false);
-    }
+  const doScan = () => {
+    scanMutation.mutate(undefined, {
+      onSuccess: ({ scan: r, readiness: rd }) => {
+        setScan(r);
+        setReadiness(rd);
+      },
+    });
   };
 
-  const doClear = async () => {
-    setConfirmClear(false);
-    setError(null);
+  const doClear = () => {
     const before = scan ? scan.stored.length + scan.pending.length : 0;
-    try {
-      await invoke("clear_dtcs");
-      // Verify: re-scan and show the outcome explicitly instead of leaving
-      // the user guessing whether anything happened.
-      const r = await invoke<DtcResult>("scan_dtcs");
-      setScan(r);
-      setClearedBanner({ before, after: r.stored.length + r.pending.length });
-      loadHistory();
-    } catch (e) {
-      setError(String(e));
-    }
+    clearMutation.mutate(undefined, {
+      onSuccess: (r) => {
+        setScan(r);
+        setClearedBanner({ before, after: r.stored.length + r.pending.length });
+      },
+      // Modal closes only once the mutation settles (success or error), not
+      // on click — the previous behavior closed it immediately, leaving a
+      // destructive, chained slow-hardware action with no visible owner
+      // while it ran (interaction-audit.md worst offender #1).
+      onSettled: () => setConfirmClear(false),
+    });
   };
 
   const totalCodes = scan ? scan.stored.length + scan.pending.length + scan.permanent.length : 0;
@@ -394,9 +394,9 @@ export function Diagnose({ connected }: { connected: boolean }) {
       <h1 className="text-lg font-semibold tracking-tight">Diagnose</h1>
 
       <div className="flex items-center gap-2">
-        <Button onClick={doScan} disabled={!connected || scanning}>
-          <RefreshCw className={"h-4 w-4" + (scanning ? " animate-spin" : "")} aria-hidden="true" />
-          {scanning ? "Scanning…" : "Scan for codes"}
+        <Button onClick={doScan} disabled={!connected || scanMutation.isPending}>
+          <RefreshCw className={"h-4 w-4" + (scanMutation.isPending ? " animate-spin" : "")} aria-hidden="true" />
+          {scanMutation.isPending ? "Scanning…" : "Scan for codes"}
         </Button>
         {scan && totalCodes > 0 && !confirmClear && (
           <Button variant="outline" onClick={() => setConfirmClear(true)}>
@@ -428,10 +428,10 @@ export function Diagnose({ connected }: { connected: boolean }) {
                 history.
               </p>
               <div className="flex items-center gap-2">
-                <Button variant="destructive" onClick={doClear}>
-                  Yes, clear
+                <Button variant="destructive" onClick={doClear} disabled={clearMutation.isPending}>
+                  {clearMutation.isPending ? "Clearing…" : "Yes, clear"}
                 </Button>
-                <Button variant="ghost" onClick={() => setConfirmClear(false)}>
+                <Button variant="ghost" onClick={() => setConfirmClear(false)} disabled={clearMutation.isPending}>
                   Cancel
                 </Button>
               </div>
@@ -442,7 +442,7 @@ export function Diagnose({ connected }: { connected: boolean }) {
 
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
+          {String(error instanceof Error ? error.message : error)}
         </div>
       )}
 
@@ -531,7 +531,20 @@ export function Diagnose({ connected }: { connected: boolean }) {
           <CardTitle>Scan history</CardTitle>
         </CardHeader>
         <CardContent>
-          {history.length === 0 ? (
+          {historyQuery.isPending ? (
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
+            </div>
+          ) : historyQuery.isError ? (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <span>Could not load scan history.</span>
+              <Button variant="outline" onClick={() => historyQuery.refetch()}>
+                Retry
+              </Button>
+            </div>
+          ) : history.length === 0 ? (
             <p className="text-sm text-muted-foreground">No scans recorded yet — run one while connected.</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
