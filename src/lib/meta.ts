@@ -1,4 +1,13 @@
 // Shared types + sensor metadata used across views.
+//
+// Types below are converted to Schema.Class command by command as the
+// Effect migration reaches them (docs/workflows/effect-architecture/plan.md)
+// — not all at once, so this file mixes plain `type` aliases (not yet
+// touched) and `Schema.Class` (validated at the DeviceService boundary).
+// Both are consumed the same way by views: as a type annotation. mock.ts's
+// `return {...} as T` idiom works unchanged against a Schema.Class type
+// (verified directly, see plan.md).
+import { Schema } from "effect";
 
 export type Live = Record<string, number>;
 export type ConnStatus = { state: string; elm_version?: string | null; detail?: string | null };
@@ -48,50 +57,66 @@ export type UdsProbe = {
   enabled: boolean;
 };
 
-export type KeyStat = { key: string; n: number; min: number; avg: number; max: number };
-export type SessionRow = {
-  id: number;
-  started_at: string;
-  ended_at: string | null;
-  readings: number;
-  max_speed: number | null;
-  max_coolant: number | null;
-  min_voltage: number | null;
-  minutes: number;
-};
-export type Insights = {
-  window_hours: number;
-  engine_hours: number;
-  fuel_lph_avg: number | null;
-  speed_avg: number | null;
-  l_per_100km: number | null;
-  fuel_total_l: number | null;
-  km_total: number | null;
-  ltft_avg: number | null;
-  coolant_max: number | null;
-  coolant_reached_op: boolean;
-  boost_max_kpa: number | null;
-  baro_kpa: number | null;
-  voltage_min: number | null;
-  voltage_avg: number | null;
-  fuel_price: number;
-  fuel_level_pct: number | null;
-};
-export type CarReport = {
-  vin: string;
-  insights: Insights;
-  session_count: number;
-  engine_minutes: number;
-  total_readings: number;
-  first: string | null;
-  last: string | null;
-  scans_total: number;
-  scans_clean: number;
-  sessions: SessionRow[];
-  stats_7d: KeyStat[];
-  stats_all: KeyStat[];
-  daily_voltage: { day: string; min: number; avg: number; max: number }[];
-};
+export class KeyStat extends Schema.Class<KeyStat>("KeyStat")({
+  key: Schema.String,
+  n: Schema.Number,
+  min: Schema.Number,
+  avg: Schema.Number,
+  max: Schema.Number,
+}) {}
+
+export class SessionRow extends Schema.Class<SessionRow>("SessionRow")({
+  id: Schema.Number,
+  started_at: Schema.String,
+  ended_at: Schema.NullOr(Schema.String),
+  readings: Schema.Number,
+  max_speed: Schema.NullOr(Schema.Number),
+  max_coolant: Schema.NullOr(Schema.Number),
+  min_voltage: Schema.NullOr(Schema.Number),
+  minutes: Schema.Number,
+}) {}
+
+export class Insights extends Schema.Class<Insights>("Insights")({
+  window_hours: Schema.Number,
+  engine_hours: Schema.Number,
+  fuel_lph_avg: Schema.NullOr(Schema.Number),
+  speed_avg: Schema.NullOr(Schema.Number),
+  l_per_100km: Schema.NullOr(Schema.Number),
+  fuel_total_l: Schema.NullOr(Schema.Number),
+  km_total: Schema.NullOr(Schema.Number),
+  ltft_avg: Schema.NullOr(Schema.Number),
+  coolant_max: Schema.NullOr(Schema.Number),
+  coolant_reached_op: Schema.Boolean,
+  boost_max_kpa: Schema.NullOr(Schema.Number),
+  baro_kpa: Schema.NullOr(Schema.Number),
+  voltage_min: Schema.NullOr(Schema.Number),
+  voltage_avg: Schema.NullOr(Schema.Number),
+  fuel_price: Schema.Number,
+  fuel_level_pct: Schema.NullOr(Schema.Number),
+}) {}
+
+export class DailyVoltage extends Schema.Class<DailyVoltage>("DailyVoltage")({
+  day: Schema.String,
+  min: Schema.Number,
+  avg: Schema.Number,
+  max: Schema.Number,
+}) {}
+
+export class CarReport extends Schema.Class<CarReport>("CarReport")({
+  vin: Schema.String,
+  insights: Insights,
+  session_count: Schema.Number,
+  engine_minutes: Schema.Number,
+  total_readings: Schema.Number,
+  first: Schema.NullOr(Schema.String),
+  last: Schema.NullOr(Schema.String),
+  scans_total: Schema.Number,
+  scans_clean: Schema.Number,
+  sessions: Schema.Array(SessionRow),
+  stats_7d: Schema.Array(KeyStat),
+  stats_all: Schema.Array(KeyStat),
+  daily_voltage: Schema.Array(DailyVoltage),
+}) {}
 
 export const GAUGES: { key: string; label: string; unit: string; fmt?: (v: number) => string }[] = [
   { key: "rpm", label: "RPM", unit: "rpm", fmt: (v) => v.toFixed(0) },

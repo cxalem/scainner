@@ -3,10 +3,12 @@
 // server state — they call one of these hooks instead. Query keys start
 // with the Tauri command name verbatim, then its args in call order
 // (plan.md rule 2). Mutations invalidate the keys plan.md rule 4 names.
+import { Effect } from "effect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@/lib/tauri";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import type {
-  CarReport,
   DtcResult,
   EcuInfo,
   DtcScanRow,
@@ -29,10 +31,15 @@ export function useReportCars() {
 
 // No placeholderData/keepPreviousData on purpose — a VIN change must drop to
 // the skeleton, never show the previous car's report (plan.md rule 12).
+//
+// First hook migrated to the Effect+Schema+Layer pattern (effect-architecture
+// plan.md phase 1 proof) — the hook's own shape (queryKey, enabled) is
+// unchanged, only queryFn's body now runs through DeviceService and gets a
+// Schema-validated CarReport back instead of a raw, unchecked invoke result.
 export function useCarReport(vin: string | null) {
   return useQuery({
     queryKey: ["car_report", vin],
-    queryFn: () => invoke<CarReport>("car_report", { vin }),
+    queryFn: () => runPromise(Effect.flatMap(DeviceService, (s) => s.carReport(vin!))),
     enabled: vin != null,
   });
 }
