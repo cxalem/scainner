@@ -1,0 +1,12 @@
+{
+  "stream": "app-perf",
+  "stage": "plan",
+  "state": "plan amended with interaction feedback, build blocked on ws/3d-logos merge",
+  "updated": "2026-08-20T18:20:00Z",
+  "branch": "ws/app-perf",
+  "notes": [
+    "Plan covers both halves now: data caching (TanStack Query, skeletons) and touch feedback (pending states, error surfacing, press states, phase narration).",
+    "Acceptance: no interactive element ships without press, pending, and error feedback. Audit table is the review checklist.",
+    "Builder starts right after the 3d-logos PR merges."
+  ]
+}

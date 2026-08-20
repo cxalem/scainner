@@ -406,18 +406,37 @@ export function Diagnose({ connected }: { connected: boolean }) {
       </div>
 
       {confirmClear && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
-          <span>
-            This erases stored codes and resets readiness monitors. The scan above is already saved to history.
-            Really clear?
-          </span>
-          <Button variant="destructive" onClick={doClear}>
-            Yes, clear
-          </Button>
-          <Button variant="ghost" onClick={() => setConfirmClear(false)}>
-            Cancel
-          </Button>
+        // Modal, not an inline banner: the banner pushed the whole page down
+        // (layout shift, forbidden by the design principles). Centered card
+        // over a darkened, blurred backdrop, per the user's own sketch.
+        <div
+          className="fixed inset-0 z-50 flex overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm"
+          onClick={() => setConfirmClear(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm clearing codes"
+        >
+          <Card className="m-auto w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" /> Clear fault codes?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm">
+              <p>
+                This erases stored codes and resets readiness monitors. The scan above is already saved to
+                history.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="destructive" onClick={doClear}>
+                  Yes, clear
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmClear(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

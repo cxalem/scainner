@@ -185,6 +185,17 @@ function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSa
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {hasLevel && <FuelLevelGauge pct={i.fuel_level_pct!} />}
+        {!hasLevel && hasConsumption && (
+          // Honest absence beats silent absence. Verified against real data:
+          // the C4 answered every polled PID thousands of times except fuel
+          // level (PID 012F), zero answers ever. PSA keeps tank level in the
+          // BSI body computer, which is not reachable over standard OBD2 or
+          // this dongle's UDS path (see UDS_INVESTIGATION_LOG.md).
+          <p className="text-xs text-muted-foreground">
+            This car does not report its tank level over standard OBD2, so there is no fuel gauge here.
+            Consumption below comes from the engine and works normally.
+          </p>
+        )}
 
         {hasConsumption ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

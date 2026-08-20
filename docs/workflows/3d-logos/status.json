@@ -1,11 +1,12 @@
 {
   "stream": "3d-logos",
-  "stage": "build",
-  "state": "builder running",
-  "updated": "2026-08-20T13:05:00Z",
+  "stage": "codex-review",
+  "state": "PR 1 open, awaiting user review and manual test",
+  "updated": "2026-08-20T19:50:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "Research and plan complete. Builder implementing 4 brands (Renault, Mercedes, Volvo, Opel) in a worktree.",
-    "Renault is the gate: if it does not read recognizably in the small card, the builder stops and reports."
+    "Codex verdict: OBJECTIONS-NONBLOCKING. Production build verified the dev override is stripped from packaged output.",
+    "PR: https://github.com/cxalem/scainner/pull/1",
+    "On merge: app-perf builder starts automatically."
   ]
 }
