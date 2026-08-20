@@ -13,6 +13,22 @@ export type DtcResult = {
   freeze?: Record<string, unknown> | null;
 };
 export type DtcScanRow = DtcResult & { id: number; ts: string };
+// Verified engine clear: the scan right before the clear and right after.
+export type ObdClearOutcome = { before: DtcResult; after: DtcResult };
+// Verified per-module UDS clear (before/after fault code lists).
+export type ClearOutcome = { before: string[]; accepted: boolean; after: string[] };
+// One row of the write audit trail (writes_log table).
+export type WriteLogRow = {
+  id: number;
+  ts: string;
+  module: string;
+  action: string;
+  params: Record<string, unknown>;
+  before: unknown;
+  after: unknown;
+  outcome: "cleared" | "faults_remain" | "refused" | "error";
+  error: string | null;
+};
 export type EcuInfo = { vin: string; protocol: string; elm_version: string };
 export type HistoryPoint = { ts: string; value: number };
 export type SensorReading = { pid: string; key: string; label: string; unit: string; value: number };

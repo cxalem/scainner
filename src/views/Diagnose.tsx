@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { invoke } from "@/lib/tauri";
 import { AlertTriangle, CheckCircle2, Copy, Info, RefreshCw, ShieldCheck, Snowflake, Sparkles, X } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import { GAUGES, MONITOR_LABELS, type DtcResult, type DtcScanRow } from "@/lib/meta";
+import { GAUGES, MONITOR_LABELS, type DtcResult, type DtcScanRow, type ObdClearOutcome } from "@/lib/meta";
+import { ConfirmWrite } from "@/components/ConfirmWrite";
+import { WriteHistory } from "@/components/WriteHistory";
 import { generateCodeReport, generateDiagnosisReport, getApiKey, getCodeReports, getLastReport, setApiKey, type SavedReport } from "@/lib/ai";
 import { decodeDtc, dtcInfo } from "@/lib/dtc";
 
@@ -345,6 +347,7 @@ export function Diagnose({ connected }: { connected: boolean }) {
   const [detailCode, setDetailCode] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedBanner, setClearedBanner] = useState<{ before: number; after: number } | null>(null);
+  const [writesRefresh, setWritesRefresh] = useState(0);
 
   const loadHistory = () => invoke<DtcScanRow[]>("dtc_history", { limit: 20 }).then(setHistory).catch(() => {});
   useEffect(() => {
@@ -373,17 +376,21 @@ export function Diagnose({ connected }: { connected: boolean }) {
   const doClear = async () => {
     setConfirmClear(false);
     setError(null);
-    const before = scan ? scan.stored.length + scan.pending.length : 0;
     try {
-      await invoke("clear_dtcs");
-      // Verify: re-scan and show the outcome explicitly instead of leaving
-      // the user guessing whether anything happened.
-      const r = await invoke<DtcResult>("scan_dtcs");
-      setScan(r);
-      setClearedBanner({ before, after: r.stored.length + r.pending.length });
+      // The backend does the whole verified write (scan, clear, scan again)
+      // and logs it to the write history; `confirmed: true` is required or
+      // the command refuses. Part of the write safety rail.
+      const outcome = await invoke<ObdClearOutcome>("clear_dtcs", { confirmed: true });
+      setScan(outcome.after);
+      setClearedBanner({
+        before: outcome.before.stored.length + outcome.before.pending.length,
+        after: outcome.after.stored.length + outcome.after.pending.length,
+      });
       loadHistory();
     } catch (e) {
       setError(String(e));
+    } finally {
+      setWritesRefresh((n) => n + 1);
     }
   };
 
@@ -406,38 +413,15 @@ export function Diagnose({ connected }: { connected: boolean }) {
       </div>
 
       {confirmClear && (
-        // Modal, not an inline banner: the banner pushed the whole page down
-        // (layout shift, forbidden by the design principles). Centered card
-        // over a darkened, blurred backdrop, per the user's own sketch.
-        <div
-          className="fixed inset-0 z-50 flex overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm"
-          onClick={() => setConfirmClear(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirm clearing codes"
-        >
-          <Card className="m-auto w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-1.5">
-                <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" /> Clear fault codes?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 text-sm">
-              <p>
-                This erases stored codes and resets readiness monitors. The scan above is already saved to
-                history.
-              </p>
-              <div className="flex items-center gap-2">
-                <Button variant="destructive" onClick={doClear}>
-                  Yes, clear
-                </Button>
-                <Button variant="ghost" onClick={() => setConfirmClear(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <ConfirmWrite
+          title="Clear fault codes?"
+          module="Engine (OBD)"
+          whatChanges="This erases the stored and pending fault codes and resets the readiness monitors. Permanent codes, if any, only erase themselves after the car verifies the fault is gone. The scan above is already saved to history."
+          reversal="No. Erased codes cannot be put back. This is still safe to do: the codes stay saved in scan history and in the write history below, and a fault that is still present will report itself again on its own."
+          confirmLabel="Yes, clear"
+          onConfirm={doClear}
+          onCancel={() => setConfirmClear(false)}
+        />
       )}
 
       {error && (
@@ -452,20 +436,21 @@ export function Diagnose({ connected }: { connected: boolean }) {
             {clearedBanner.after === 0 ? (
               <>
                 <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                Cleared and verified — {clearedBanner.before || "no"} code
+                Cleared and verified: {clearedBanner.before || "no"} code
                 {clearedBanner.before === 1 ? "" : "s"} before, none remaining.
               </>
             ) : (
               <>
                 <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-                Cleared, but {clearedBanner.after} code{clearedBanner.after === 1 ? "" : "s"} came straight back —
-                active fault{clearedBanner.after === 1 ? "" : "s"}, not leftovers. Worth investigating.
+                Cleared, but {clearedBanner.after} code{clearedBanner.after === 1 ? "" : "s"} came straight back.
+                {clearedBanner.after === 1 ? " That is an active fault" : " Those are active faults"}, not leftovers,
+                and worth investigating.
               </>
             )}
           </p>
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            No ignition cycle needed for the check-engine light — it goes off with the clear. Two things reset with
+            No ignition cycle is needed for the check-engine light. It goes off with the clear. Two things reset with
             it: readiness monitors re-run over your next few drives (relevant before an ITV), and permanent codes (if
             any) erase themselves only after the car self-verifies the fault is gone.
           </p>
@@ -559,6 +544,8 @@ export function Diagnose({ connected }: { connected: boolean }) {
           )}
         </CardContent>
       </Card>
+
+      <WriteHistory refresh={writesRefresh} />
 
       <AiReportCard hasAnyData={history.length > 0 || scan !== null} />
 

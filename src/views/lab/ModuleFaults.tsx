@@ -2,14 +2,17 @@ import { useState } from "react";
 import { invoke } from "@/lib/tauri";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { ConfirmWrite } from "@/components/ConfirmWrite";
+import type { ClearOutcome } from "@/lib/meta";
 
-type ClearOutcome = { before: string[]; accepted: boolean; after: string[] };
-
-/// Reads and clears fault codes stored on the module itself (as opposed to
-/// the standard engine DTCs in Diagnose). Clearing is verified: read →
-/// clear → read again, so the result is an honest before/after instead of a
-/// blind "done" button.
-export function ModuleFaults({ module, connected }: { module: string; connected: boolean }) {
+// Reads and clears fault codes stored on the module itself (as opposed to
+// the standard engine DTCs in Diagnose). Clearing is a real write, so it
+// goes through the full safety rail: the shared ConfirmWrite modal (no more
+// inline banner, which shifted layout), `confirmed: true` at the command
+// boundary, and a persisted before/after row in the write history (shown in
+// Diagnose). The clear is verified: read, clear, read again, so the result
+// is an honest before/after instead of a blind "done" button.
+export function ModuleFaults({ module, label, connected }: { module: string; label: string; connected: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [faults, setFaults] = useState<string[] | null>(null);
@@ -35,7 +38,7 @@ export function ModuleFaults({ module, connected }: { module: string; connected:
     setError(null);
     setOutcome(null);
     try {
-      const result = await invoke<ClearOutcome>("uds_clear", { module });
+      const result = await invoke<ClearOutcome>("uds_clear", { module, confirmed: true });
       setOutcome(result);
       setFaults(result.after);
     } catch (e) {
@@ -53,7 +56,7 @@ export function ModuleFaults({ module, connected }: { module: string; connected:
       <CardContent className="flex flex-col gap-3">
         <p className="text-xs text-muted-foreground">
           Faults stored on the selected module itself. Codes starting with <span className="font-mono">U</span> are
-          communication faults — scans routinely leave these behind (the module goes quiet while answering us, and
+          communication faults, and scans routinely leave these behind (the module goes quiet while answering us, and
           its neighbours log "lost contact"). They are harmless and expected.
         </p>
 
@@ -62,9 +65,9 @@ export function ModuleFaults({ module, connected }: { module: string; connected:
             <RefreshCw className={"h-4 w-4" + (busy === "read" ? " animate-spin" : "")} aria-hidden="true" />
             {busy === "read" ? "Reading…" : "Read faults"}
           </Button>
-          {faults && faults.length > 0 && !confirmClear && (
+          {faults && faults.length > 0 && (
             <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={busy !== null}>
-              Clear {faults.length} fault{faults.length === 1 ? "" : "s"}…
+              {busy === "clear" ? "Clearing…" : `Clear ${faults.length} fault${faults.length === 1 ? "" : "s"}…`}
             </Button>
           )}
         </div>
@@ -89,32 +92,39 @@ export function ModuleFaults({ module, connected }: { module: string; connected:
         )}
 
         {confirmClear && (
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
-            <span>Erase all stored codes on this module? The app verifies the result afterwards.</span>
-            <Button variant="destructive" onClick={clear} disabled={busy !== null}>
-              {busy === "clear" ? "Clearing…" : "Yes, clear"}
-            </Button>
-            <Button variant="ghost" onClick={() => setConfirmClear(false)}>
-              Cancel
-            </Button>
-          </div>
+          <ConfirmWrite
+            title="Clear module faults?"
+            module={label}
+            whatChanges="This erases every fault code stored on this module. The app reads the module again right after, so the result is verified, and the write is saved to the write history in Diagnose."
+            reversal="No. Erased codes cannot be put back. This is still safe to do: the codes just read are saved in the write history, and a fault that is still present will report itself again on its own."
+            confirmLabel="Yes, clear"
+            busy={busy !== null}
+            onConfirm={clear}
+            onCancel={() => setConfirmClear(false)}
+          />
         )}
 
-        {outcome && (
+        {outcome && !outcome.accepted && (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
+            The module refused the clear command. Nothing was changed.
+          </p>
+        )}
+
+        {outcome && outcome.accepted && (
           <div className="flex flex-col gap-1.5 rounded-md border border-border bg-muted/50 p-3 text-sm">
             <p className="flex items-center gap-1.5 font-medium">
               {outcome.after.length === 0 ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Cleared and verified — {outcome.before.length || "no"} fault
+                  Cleared and verified: {outcome.before.length || "no"} fault
                   {outcome.before.length === 1 ? "" : "s"} before, none remaining.
                 </>
               ) : (
                 <>
                   <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-                  Cleared {outcome.before.length}, but {outcome.after.length} came straight back — those are active
-                  faults, not leftovers. Worth investigating.
+                  Cleared {outcome.before.length}, but {outcome.after.length} came straight back. Those are active
+                  faults, not leftovers, and worth investigating.
                 </>
               )}
             </p>
@@ -127,7 +137,7 @@ export function ModuleFaults({ module, connected }: { module: string; connected:
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               If a dashboard light is still on: it lives on modules this dongle can't reach (BSI/cluster) and clears
-              by itself after an ignition cycle — engine off, wait a minute, start again. No further action needed.
+              by itself after an ignition cycle. Engine off, wait a minute, start again. No further action needed.
             </p>
           </div>
         )}
