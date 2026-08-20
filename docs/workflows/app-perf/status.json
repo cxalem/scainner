@@ -1,12 +1,11 @@
 {
   "stream": "app-perf",
   "stage": "plan",
-  "state": "planner running",
-  "updated": "2026-08-20T14:05:00Z",
+  "state": "plan complete, build blocked on ws/3d-logos merge",
+  "updated": "2026-08-20T16:40:00Z",
   "branch": "ws/app-perf",
   "notes": [
-    "Research done: views refetch everything on every tab switch, no shared cache, inconsistent loading states.",
-    "Real build measured: 204KB gzip main chunk (recharts eager), 264KB VehicleScene chunk with dead loader code.",
-    "Recommendation: TanStack Query v5. Build sequenced after 3d-logos merges and before i18n."
+    "Plan done: TanStack Query v5, centralized query keys, standard card pattern (loading vs empty distinct), migration riskiest first.",
+    "Builder starts only after the 3d-logos PR merges to main."
   ]
 }
