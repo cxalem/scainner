@@ -65,6 +65,43 @@ export function CitroenEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
+// Renault: diamond ring (the current "losange" mark, simplified to a flat
+// two-shape outline). Outer rhombus 0.95 wide x 1.10 tall, inner rhombus
+// hole leaves a constant-looking band about 0.14 thick.
+function RenaultEmblem() {
+  const geo = useMemo(() => {
+    const outerHalfW = 0.475, outerHalfH = 0.55;
+    const band = 0.14;
+    // Inner rhombus scaled down from the outer one by roughly `band` in
+    // each direction, measured along each axis, so the band reads as a
+    // constant visual thickness all the way around.
+    const innerHalfW = outerHalfW - band;
+    const innerHalfH = outerHalfH - band * (outerHalfH / outerHalfW);
+
+    const outer = new THREE.Shape();
+    outer.moveTo(0, outerHalfH);
+    outer.lineTo(outerHalfW, 0);
+    outer.lineTo(0, -outerHalfH);
+    outer.lineTo(-outerHalfW, 0);
+    outer.closePath();
+
+    const hole = new THREE.Path();
+    hole.moveTo(0, innerHalfH);
+    hole.lineTo(innerHalfW, 0);
+    hole.lineTo(0, -innerHalfH);
+    hole.lineTo(-innerHalfW, 0);
+    hole.closePath();
+    outer.holes.push(hole);
+
+    const g = new THREE.ExtrudeGeometry(outer, EXTRUDE_SETTINGS);
+    g.center();
+    return g;
+  }, []);
+  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
+  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
+}
+
 // Fallback for any brand without modeled emblem geometry: a chrome
 // nameplate slab with the brand name on its face (drawn to a canvas — no
 // font asset needed). The back stays blank chrome, like a real badge.
@@ -115,4 +152,5 @@ export function NameplateEmblem({ name }: { name: string }) {
 // a new component plus a new entry, no changes needed elsewhere.
 export const EMBLEMS: Record<string, React.ComponentType> = {
   citroen: CitroenEmblem,
+  renault: RenaultEmblem,
 };
