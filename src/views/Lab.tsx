@@ -7,7 +7,9 @@ import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
 import { ProbeManager } from "@/views/lab/ProbeManager";
 import { RangeScanner } from "@/views/lab/RangeScanner";
 
-/// Read-only manufacturer-specific diagnostics (UDS beyond standard OBD2).
+/// Manufacturer-specific diagnostics (UDS beyond standard OBD2). Reads plus
+/// one write: the fault clear in ModuleFaults, which runs on the write
+/// safety rail (ConfirmWrite modal, confirmed flag, write history).
 /// This component just owns the module selection shared across every card;
 /// each card is its own focused component under `views/lab/`.
 export function Lab({ connected }: { connected: boolean }) {
@@ -41,16 +43,17 @@ export function Lab({ connected }: { connected: boolean }) {
         </div>
       </div>
       <p className="text-sm text-muted-foreground">
-        Manufacturer-specific reads (UDS service 22) to modules beyond standard OBD. Read-only — nothing here can
-        change the car. Identified values become recorded probes. The four built-in modules use PSA/Citroën/Peugeot
-        addresses — on any other brand, add your own module below with your ECU's CAN IDs.
+        Manufacturer-specific reads (UDS service 22) to modules beyond standard OBD. The only thing here that can
+        change the car is the fault clear in Module faults, and it runs behind a confirmation and lands in the write
+        history. Identified values become recorded probes. The four built-in modules use PSA/Citroën/Peugeot
+        addresses. On any other brand, add your own module below with your ECU's CAN IDs.
       </p>
 
       <ModuleManager />
       <DidReader module={mod} connected={connected} />
       <RangeScanner module={mod} connected={connected} onProbeCandidate={setProbeCandidate} />
       <ProbeManager module={mod} candidate={probeCandidate} onCandidateHandled={() => setProbeCandidate(null)} />
-      <ModuleFaults module={mod} connected={connected} />
+      <ModuleFaults module={mod} label={selected?.label ?? mod} connected={connected} />
     </div>
   );
 }

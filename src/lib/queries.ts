@@ -11,9 +11,11 @@ import type {
   EcuInfo,
   DtcScanRow,
   HistoryPoint,
+  ObdClearOutcome,
   SensorReading,
   UdsModule,
   UdsProbe,
+  WriteLogRow,
 } from "@/lib/meta";
 
 // ---------- reads ----------
@@ -132,19 +134,32 @@ export function useScanDtcs() {
   });
 }
 
+// This is a write, not a read — the backend refuses without `confirmed:
+// true` (write-caps' hard rule, src-tauri/src/lib.rs's require_confirmed),
+// and it already does the verified before/after scan itself, returning
+// ObdClearOutcome directly. No separate re-scan needed on this side; that
+// was the pre-write-caps contract, this mutation predates that change and
+// was still calling the old shape until this fix.
 export function useClearDtcs() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      await invoke("clear_dtcs");
-      // Verify: re-scan and return the outcome, same as before this
-      // migration — Diagnose keeps its rescan-after-clear behavior.
-      return invoke<DtcResult>("scan_dtcs");
-    },
+    mutationFn: () => invoke<ObdClearOutcome>("clear_dtcs", { confirmed: true }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dtc_history"] });
       qc.invalidateQueries({ queryKey: ["car_report"] });
+      qc.invalidateQueries({ queryKey: ["writes_log"] });
     },
+  });
+}
+
+// The write audit trail (writes_log table) — every change this app has sent
+// to the car, part 2 of the write-caps hard rule. useClearDtcs above
+// invalidates this key, so the history card updates the moment a write
+// actually lands.
+export function useWritesLog(limit = 20) {
+  return useQuery({
+    queryKey: ["writes_log", limit],
+    queryFn: () => invoke<WriteLogRow[]>("writes_log", { limit }),
   });
 }
 

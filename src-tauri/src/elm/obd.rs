@@ -19,6 +19,41 @@ pub struct DtcResult {
     pub freeze: Option<serde_json::Value>,
 }
 
+/// Verified engine-DTC clear: the full scan taken right before the mode 04
+/// clear and the full scan taken right after it. The write-caps hard rule
+/// requires a logged before/after for every write; this is the "before" and
+/// "after". The caller (supervisor) persists it to `writes_log`.
+#[derive(Serialize, Clone)]
+pub struct ObdClearOutcome {
+    pub before: DtcResult,
+    pub after: DtcResult,
+}
+
+/// How a verified clear can fail. The caller needs to know which phase died
+/// because the audit log must say whether the car was actually written:
+/// `BeforeScanFailed` means nothing was sent (not logged as a write),
+/// `ClearFailed` and `VerifyFailed` mean a write was attempted or done and
+/// MUST be logged, with whatever state was captured.
+pub enum ClearError {
+    BeforeScanFailed(String),
+    ClearFailed { before: DtcResult, error: String },
+    VerifyFailed { before: DtcResult, error: String },
+}
+
+/// Read, clear (mode 04), read again. If the before-scan fails, nothing is
+/// cleared: a write whose prior state could not be captured would break the
+/// audit trail, so it must not happen.
+pub fn clear_and_verify(drv: &mut ElmDriver) -> Result<ObdClearOutcome, ClearError> {
+    let before = scan_dtcs(drv).map_err(ClearError::BeforeScanFailed)?;
+    if let Err(e) = drv.cmd("04", Duration::from_secs(10)) {
+        return Err(ClearError::ClearFailed { before, error: e.to_string() });
+    }
+    match scan_dtcs(drv) {
+        Ok(after) => Ok(ObdClearOutcome { before, after }),
+        Err(e) => Err(ClearError::VerifyFailed { before, error: e }),
+    }
+}
+
 #[derive(Serialize, Clone)]
 pub struct EcuInfo {
     pub vin: String,

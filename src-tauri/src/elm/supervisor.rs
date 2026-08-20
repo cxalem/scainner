@@ -29,7 +29,7 @@ pub struct ConnStatus {
 
 pub enum Request {
     ScanDtcs(Sender<Result<obd::DtcResult, String>>),
-    ClearDtcs(Sender<Result<(), String>>),
+    ClearDtcs(Sender<Result<obd::ObdClearOutcome, String>>),
     ReadEcuInfo(Sender<Result<obd::EcuInfo, String>>),
     Readiness(Sender<Result<HashMap<String, bool>, String>>),
     AllSensors(Sender<Result<Vec<obd::SensorReading>, String>>),
@@ -361,7 +361,57 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
             let _ = tx.send(res);
         }
         Request::ClearDtcs(tx) => {
-            let res = drv.cmd("04", Duration::from_secs(10)).map(|_| ()).map_err(|e| e.to_string());
+            // Write safety rail: read before, clear, read after, and ALWAYS
+            // log the attempt to writes_log once the clear command has been
+            // sent (a failed before-scan aborts without writing, so it is
+            // not logged as a write — nothing touched the car).
+            let dtc_json = |r: &obd::DtcResult| {
+                serde_json::json!({
+                    "mil_on": r.mil_on,
+                    "stored": r.stored,
+                    "pending": r.pending,
+                    "permanent": r.permanent,
+                })
+            };
+            let params = serde_json::json!({ "mode": "04" });
+            let res = match obd::clear_and_verify(drv) {
+                Ok(outcome) => {
+                    // The post-clear scan lands in history like any other
+                    // scan, same as the UI's old clear-then-rescan flow did.
+                    let a = &outcome.after;
+                    db.insert_dtc_scan(a.mil_on, &a.stored, &a.pending, &a.permanent, a.voltage, a.freeze.as_ref());
+                    let verdict = if a.stored.is_empty() && a.pending.is_empty() { "cleared" } else { "faults_remain" };
+                    db.log_write(
+                        "Engine (OBD)",
+                        "clear_dtcs",
+                        &params,
+                        Some(&dtc_json(&outcome.before)),
+                        Some(&dtc_json(a)),
+                        verdict,
+                        None,
+                    );
+                    Ok(outcome)
+                }
+                Err(obd::ClearError::BeforeScanFailed(e)) => {
+                    Err(format!("Could not read the current codes before clearing, so nothing was cleared: {e}"))
+                }
+                Err(obd::ClearError::ClearFailed { before, error }) => {
+                    db.log_write("Engine (OBD)", "clear_dtcs", &params, Some(&dtc_json(&before)), None, "error", Some(&error));
+                    Err(format!("The clear command failed: {error}"))
+                }
+                Err(obd::ClearError::VerifyFailed { before, error }) => {
+                    db.log_write(
+                        "Engine (OBD)",
+                        "clear_dtcs",
+                        &params,
+                        Some(&dtc_json(&before)),
+                        None,
+                        "error",
+                        Some(&format!("clear sent, but the verification scan failed: {error}")),
+                    );
+                    Err(format!("The clear was sent, but the verification scan failed: {error}. Run a new scan to see the current state."))
+                }
+            };
             let _ = tx.send(res);
         }
         Request::ReadEcuInfo(tx) => {
