@@ -55,10 +55,12 @@ concurrently.
 - [ ] Report quality pass with a real faulty-car briefing once one exists.
 
 ### C. 3D identity (src/components/VehicleScene.tsx, src/lib/brand.ts)
-- [x] Real modeled emblems for Citroen, Volvo (hand-authored/SVG-traced)
-      and Audi, BMW, Mercedes, Peugeot, Renault, Skoda, Toyota, Volkswagen,
-      Dacia, Hyundai, Kia, Opel (real STL geometry, supplied directly).
-      Everything else still falls back to the chrome nameplate.
+- [x] Real modeled emblems: Volvo (hand-authored/SVG-traced, no STL
+      supplied yet) and Audi, BMW, Citroen, Dacia, Fiat, Ford, Geely,
+      Hyundai, Kia, Mercedes, Opel, Peugeot, Renault, Skoda, Toyota,
+      Volkswagen (real STL geometry, supplied directly). Everything else
+      still falls back to the chrome nameplate. New WMI gap closed: Geely
+      (LB3); BYD/Chery still unmapped, fast-growing in Europe.
 - [ ] Drag-to-rotate / scroll-to-zoom (OrbitControls) instead of spin-only.
 - [ ] Decide fate of the dormant C4 car pipelines (GlbCarModel/StlCarModel/
       CarModel + repair script + model assets): keep one, delete the rest.

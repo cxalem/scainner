@@ -230,3 +230,42 @@ increase. Not treated as a blocker for a desktop app, but a real
 follow-up if bundle size becomes a concern: STL decimation/simplification
 per file, or converting to a more compact format (glTF/Draco) at build
 time, either done without touching this component's interface.
+
+## Addendum 2: batch 04 — Citroen, Fiat, Ford, Geely (2026-08-20)
+
+Source: a fourth STL batch from Alejandro
+(Brand_Emblems_STL_Proper_Batch_04_FIXED), README states "direct
+vector-to-STL conversion from source SVG artwork, no raster tracing, no
+manually recreated lettering, no substitute geometry" — same
+take-at-face-value caveat as the addendum above.
+
+Citroen: had real hand-authored geometry since the very start of this
+stream (the original double-chevron work). Replaced anyway with the STL,
+consistent with the priority order patterns/3d.md rule 8 now states (real
+STL > traced SVG > hand-authored) and because the STL includes the full
+lockup (chevron badge plus the cursive "citroën" wordmark beneath it),
+more than the hand-built version modeled. chevronShape and the old
+CitroenEmblem are removed, not kept dormant — the STL fully supersedes
+what they did.
+
+Fiat and Ford: both already had WMI coverage in brand.ts (ZFA, WF0/VS6)
+but sat on the NameplateEmblem fallback until now. Straightforward STL
+swap, no new WMI work needed.
+
+Geely: new WMI entry (LB3), a real gap closed, not just a swap. Geely
+Group brands were flagged as a coverage gap in this stream's own
+research.md addendum (BYD/Chery/Geely growing fast in Europe, none had a
+VIN entry). Deliberately used LB3 (Geely-badged models specifically:
+Coolray, Emgrand, Atlas Pro) rather than the group-wide L6T prefix, which
+is shared across Geely, Zeekr, and Geometry — mapping the shared prefix
+to "geely" would misattribute a Zeekr or Geometry car as Geely-badged, a
+wrong badge being worse than the generic nameplate fallback (research.md
+section 5's standing principle). BYD and Chery remain unmapped; no STL
+was supplied for either and no WMI research was done for them in this
+pass.
+
+Also bumped emblem size again (StlEmblem default 1.5 to 1.75, Volvo's
+ring/arrow proportionally) per a second direct request in the same
+session, re-checked against the card-cropping constraint in both views
+before shipping — same check as the first size bump, not skipped because
+it was the second time.

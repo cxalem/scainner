@@ -105,55 +105,20 @@ function svgEmblemGeometry(svgMarkup: string, targetWidth: number): THREE.Extrud
 // accurately, unlike the ring's gapped-annulus outline.
 const VOLVO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250"><path d="M227.9,54l-12.7,12.7c10.9,16.8,17.2,36.8,17.2,58.3c0,59.3-48.1,107.4-107.4,107.4S17.6,184.3,17.6,125 S65.7,17.6,125,17.6c21.6,0,41.6,6.4,58.4,17.3l12.7-12.7C176,8.2,151.4,0,125,0C56,0,0,56,0,125s56,125,125,125s125-56,125-125 C250,98.6,241.8,74.1,227.9,54z"/></svg>`;
 
-// One chevron of the Citroën mark: a "^" band of constant vertical
-// thickness. Outline walks the top edge up to the apex and back down, then
-// the bottom edge in reverse.
-export function chevronShape(halfWidth: number, rise: number, thickness: number, yOffset: number): THREE.Shape {
-  const s = new THREE.Shape();
-  s.moveTo(-halfWidth, yOffset);
-  s.lineTo(0, yOffset + rise);
-  s.lineTo(halfWidth, yOffset);
-  s.lineTo(halfWidth, yOffset - thickness);
-  s.lineTo(0, yOffset + rise - thickness);
-  s.lineTo(-halfWidth, yOffset - thickness);
-  s.closePath();
-  return s;
-}
-
-export function CitroenEmblem() {
-  const geo = useMemo(() => {
-    const half = 0.66, rise = 0.4, t = 0.22, gap = 0.11;
-    const g = new THREE.ExtrudeGeometry(
-      [chevronShape(half, rise, t, 0), chevronShape(half, rise, t, -(t + gap))],
-      EXTRUDE_SETTINGS,
-    );
-    g.center();
-    // Bigger footprint, same bevel/depth as EXTRUDE_SETTINGS baked in above —
-    // scaling x/y only (not z) keeps the chrome edge looking like a constant
-    // real-world thickness instead of getting chunkier as the mark grows,
-    // same principle svgEmblemGeometry already applies for the traced marks.
-    g.scale(1.35, 1.35, 1);
-    return g;
-  }, []);
-  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
-}
-
 // Volvo: traced from the real mark, see VOLVO_SVG above (ring with a gap
 // for the arrow, plus the arrow — wordmark dropped).
 function VolvoEmblem() {
-  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 1.15), []);
+  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 1.35), []);
   const arrowGeo = useMemo(() => {
     // Mars/iron-symbol arrow: a shaft crossing well past the ring's own
     // center, plus a triangular head extending past its edge, at the
     // classic 45 degrees. Origin (0,0) is the ring's center, so this shape
     // is built directly against that, not centered on itself.
-    const shaftLen = 0.74, shaftThick = 0.1;
-    const headLen = 0.26, headWidth = 0.29;
+    const shaftLen = 0.87, shaftThick = 0.12;
+    const headLen = 0.3, headWidth = 0.34;
     const halfShaft = shaftThick / 2;
     const halfHead = headWidth / 2;
-    const startX = -0.1; // starts inside the ring, past its center, so the shaft visibly crosses the band
+    const startX = -0.12; // starts inside the ring, past its center, so the shaft visibly crosses the band
 
     const arrow = new THREE.Shape();
     arrow.moveTo(startX, halfShaft);
@@ -293,7 +258,7 @@ function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): T
 // Wrong-facing does not corrupt the model, it just shows an asymmetric mark
 // (a letterform, a lion) mirrored for half of every rotation — caught by
 // looking at each brand in the running app, not guessed up front.
-function StlEmblem({ url, targetWidth = 1.5, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
+function StlEmblem({ url, targetWidth = 1.75, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
   const raw = useLoader(STLLoader, url);
   const geo = useMemo(() => normalizeStlGeometry(raw, targetWidth), [raw, targetWidth]);
   const mat = useMemo(
@@ -316,8 +281,8 @@ function stlEmblem(file: string, opts?: { targetWidth?: number; extraRotationY?:
 // falls back to NameplateEmblem in VehicleScene. Adding a new brand is just
 // a new component plus a new entry, no changes needed elsewhere.
 export const EMBLEMS: Record<string, React.ComponentType> = {
-  citroen: CitroenEmblem,
   volvo: VolvoEmblem,
+  citroen: stlEmblem("citroen.stl"),
   audi: stlEmblem("audi.stl"),
   bmw: stlEmblem("bmw.stl"),
   mercedes: stlEmblem("mercedes.stl"),
@@ -330,4 +295,7 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   hyundai: stlEmblem("hyundai.stl"),
   kia: stlEmblem("kia.stl"),
   opel: stlEmblem("opel.stl"),
+  fiat: stlEmblem("fiat.stl"),
+  ford: stlEmblem("ford.stl"),
+  geely: stlEmblem("geely.stl"),
 };

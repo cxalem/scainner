@@ -1,14 +1,15 @@
 {
   "stream": "3d-logos",
   "stage": "build",
-  "state": "12 brands now real STL geometry (Toyota, VW, BMW, Hyundai, Opel, Mercedes, Renault, Peugeot, Skoda, Kia, Dacia, Audi); Citroen and Volvo stay hand-built/traced. PR 1 updated, awaiting user review and manual test.",
-  "updated": "2026-08-20T21:10:00Z",
+  "state": "16 brands now real STL geometry (Toyota, VW, BMW, Hyundai, Opel, Mercedes, Renault, Peugeot, Skoda, Kia, Dacia, Audi, Citroen, Fiat, Ford, Geely); Volvo stays hand-built/traced (no STL supplied yet). PR 1 updated, awaiting user review and manual test.",
+  "updated": "2026-08-20T21:35:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "STL files supplied directly by Alejandro (two batches), provenance recorded in decisions-build.md addendum.",
-    "All 12 verified live in-browser via dev ?vin= override, not just load-without-error.",
-    "Emblem size bumped across all brands per request, checked against the card-cropping constraint.",
-    "Follow-up, not done: BMW's quartered roundel would benefit from color, STL carries no UV/material data so this needs hand-authored UVs if ever pursued.",
+    "STL files supplied directly by Alejandro across 4 batches, provenance recorded in decisions-build.md addenda.",
+    "New WMI entry: geely (LB3) — closes a real coverage gap, BYD/Chery still unmapped.",
+    "All 16 verified live in-browser via dev ?vin= override, not just load-without-error.",
+    "Emblem size bumped twice per request, checked against the card-cropping constraint both times.",
+    "Follow-up, not done: BMW's quartered roundel would benefit from color (STL has no UV/material data); BYD/Chery WMI + emblem still open.",
     "PR: https://github.com/cxalem/scainner/pull/1",
     "On merge: app-perf builder starts automatically."
   ]
