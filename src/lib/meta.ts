@@ -1,61 +1,108 @@
 // Shared types + sensor metadata used across views.
 //
-// Types below are converted to Schema.Class command by command as the
-// Effect migration reaches them (docs/workflows/effect-architecture/plan.md)
-// — not all at once, so this file mixes plain `type` aliases (not yet
-// touched) and `Schema.Class` (validated at the DeviceService boundary).
-// Both are consumed the same way by views: as a type annotation. mock.ts's
+// Every invoke-response type is a Schema.Class, validated at the
+// DeviceService boundary (docs/workflows/effect-architecture/plan.md) —
+// consumed the same way by views as any other type annotation. mock.ts's
 // `return {...} as T` idiom works unchanged against a Schema.Class type
-// (verified directly, see plan.md).
+// (verified directly, see plan.md). `Live` stays a plain type: it's a
+// listen()-event payload, not an invoke response (research.md section 8
+// scopes the event-listener surface out of this migration).
 import { Schema } from "effect";
 
+// Live-event payload (from `listen("live-update", ...)`, not `invoke`) —
+// stays a plain type. research.md section 8 scopes Effect's Stream module
+// (the event-listener surface) out of this migration; only request/response
+// invoke calls go through Schema.
 export type Live = Record<string, number>;
-export type ConnStatus = { state: string; elm_version?: string | null; detail?: string | null };
 
-export type DtcResult = {
-  mil_on: boolean;
-  dtc_count: number;
-  stored: string[];
-  pending: string[];
-  permanent: string[];
-  voltage?: number | null;
-  freeze?: Record<string, unknown> | null;
+export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
+  state: Schema.String,
+  elm_version: Schema.optional(Schema.NullOr(Schema.String)),
+  detail: Schema.optional(Schema.NullOr(Schema.String)),
+}) {}
+
+const dtcResultFields = {
+  mil_on: Schema.Boolean,
+  dtc_count: Schema.Number,
+  // Schema.mutable: views push/spread these into their own useState arrays
+  // (Diagnose.tsx, ModuleFaults.tsx) — a plain `string[]`, like the type
+  // this replaces, not Schema.Array's default `readonly string[]`.
+  stored: Schema.mutable(Schema.Array(Schema.String)),
+  pending: Schema.mutable(Schema.Array(Schema.String)),
+  permanent: Schema.mutable(Schema.Array(Schema.String)),
+  voltage: Schema.optional(Schema.NullOr(Schema.Number)),
+  freeze: Schema.optional(Schema.NullOr(Schema.Record({ key: Schema.String, value: Schema.Unknown }))),
 };
-export type DtcScanRow = DtcResult & { id: number; ts: string };
+export class DtcResult extends Schema.Class<DtcResult>("DtcResult")(dtcResultFields) {}
+export class DtcScanRow extends Schema.Class<DtcScanRow>("DtcScanRow")({
+  ...dtcResultFields,
+  id: Schema.Number,
+  ts: Schema.String,
+}) {}
 // Verified engine clear: the scan right before the clear and right after.
-export type ObdClearOutcome = { before: DtcResult; after: DtcResult };
+export class ObdClearOutcome extends Schema.Class<ObdClearOutcome>("ObdClearOutcome")({
+  before: DtcResult,
+  after: DtcResult,
+}) {}
 // Verified per-module UDS clear (before/after fault code lists).
-export type ClearOutcome = { before: string[]; accepted: boolean; after: string[] };
+export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
+  before: Schema.mutable(Schema.Array(Schema.String)),
+  accepted: Schema.Boolean,
+  after: Schema.mutable(Schema.Array(Schema.String)),
+}) {}
 // One row of the write audit trail (writes_log table).
-export type WriteLogRow = {
-  id: number;
-  ts: string;
-  module: string;
-  action: string;
-  params: Record<string, unknown>;
-  before: unknown;
-  after: unknown;
-  outcome: "cleared" | "faults_remain" | "refused" | "error";
-  error: string | null;
-};
-export type EcuInfo = { vin: string; protocol: string; elm_version: string };
-export type HistoryPoint = { ts: string; value: number };
-export type SensorReading = { pid: string; key: string; label: string; unit: string; value: number };
+export class WriteLogRow extends Schema.Class<WriteLogRow>("WriteLogRow")({
+  id: Schema.Number,
+  ts: Schema.String,
+  module: Schema.String,
+  action: Schema.String,
+  params: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+  before: Schema.Unknown,
+  after: Schema.Unknown,
+  outcome: Schema.Literal("cleared", "faults_remain", "refused", "error"),
+  error: Schema.NullOr(Schema.String),
+}) {}
+export class EcuInfo extends Schema.Class<EcuInfo>("EcuInfo")({
+  vin: Schema.String,
+  protocol: Schema.String,
+  elm_version: Schema.String,
+}) {}
+export class HistoryPoint extends Schema.Class<HistoryPoint>("HistoryPoint")({
+  ts: Schema.String,
+  value: Schema.Number,
+}) {}
+export class SensorReading extends Schema.Class<SensorReading>("SensorReading")({
+  pid: Schema.String,
+  key: Schema.String,
+  label: Schema.String,
+  unit: Schema.String,
+  value: Schema.Number,
+}) {}
 
-export type UdsModule = { key: string; label: string; req: string; resp: string; builtin: boolean };
-export type UdsHit = { did: number; hex: string; ascii: string };
-export type UdsProbe = {
-  id: number;
-  module: string;
-  did: number;
-  label: string;
-  unit: string;
-  offset: number;
-  len: number;
-  scale: number;
-  bias: number;
-  enabled: boolean;
-};
+export class UdsModule extends Schema.Class<UdsModule>("UdsModule")({
+  key: Schema.String,
+  label: Schema.String,
+  req: Schema.String,
+  resp: Schema.String,
+  builtin: Schema.Boolean,
+}) {}
+export class UdsHit extends Schema.Class<UdsHit>("UdsHit")({
+  did: Schema.Number,
+  hex: Schema.String,
+  ascii: Schema.String,
+}) {}
+export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
+  id: Schema.Number,
+  module: Schema.String,
+  did: Schema.Number,
+  label: Schema.String,
+  unit: Schema.String,
+  offset: Schema.Number,
+  len: Schema.Number,
+  scale: Schema.Number,
+  bias: Schema.Number,
+  enabled: Schema.Boolean,
+}) {}
 
 export class KeyStat extends Schema.Class<KeyStat>("KeyStat")({
   key: Schema.String,
