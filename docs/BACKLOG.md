@@ -24,7 +24,8 @@ concurrently.
 
 - **No layout shifts.** State changes overlay or replace in place; they
   never push existing content around. (Connect→discovery flash fixed
-  2026-08-20; the clear-codes confirmation banner still violates this.)
+  2026-08-20; both clear-codes confirmation banners are now the shared
+  ConfirmWrite overlay modal, ws/write-caps 2026-08-20.)
 - **Plain language.** UI copy, docs, and reports use clear plain English:
   no em dashes, no decorative formatting. Spanish copy follows the same
   rule when i18n lands.
@@ -137,6 +138,14 @@ concurrently.
       HARD RULE: every write action gets an explicit confirmation, a
       logged before/after state, and a documented reversal path. No write
       ships without all three.
+- [x] Increment 1 (2026-08-20, ws/write-caps): the safety rail itself,
+      wired to the two existing real writes. writes_log audit table +
+      Write history card, shared ConfirmWrite modal (reversal text
+      required), confirmed flag enforced at the command boundary,
+      backend-verified engine clear. No new-to-the-car writes yet.
+- [ ] Increment 2: routine-ID hunt session with the real car (engine/ABS),
+      then the first actuator test behind the same rail (hard timeout +
+      auto-revert). See docs/workflows/write-caps/plan.md.
 
 ### E. Fleet realism (mock + real hardware)
 - [ ] Second-car test: any non-Citroën VIN exercises the nameplate emblem

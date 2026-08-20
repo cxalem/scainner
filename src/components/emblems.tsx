@@ -47,14 +47,6 @@ export const EXTRUDE_SETTINGS = {
   bevelSegments: 3,
 } as const;
 
-// Same recipe, plus curveSegments for shapes with arcs (rings): the default
-// (12) makes a circle look visibly faceted at card size, so brands built
-// from THREE.Shape.absarc use this instead.
-const EXTRUDE_SETTINGS_CURVED = {
-  ...EXTRUDE_SETTINGS,
-  curveSegments: 24,
-} as const;
-
 // Brands whose real mark is a curve or a self-overlapping outline (Renault's
 // doubled diamond lines, Volvo's ring-with-gap) are traced from the real
 // vector logo instead of hand-walked point by point — a hand-authored
@@ -69,7 +61,7 @@ const EXTRUDE_SETTINGS_CURVED = {
 // <style> block: SVGLoader parses a detached DOM, which does not resolve
 // CSS class rules, so a class-based fill-rule would silently fall back to
 // the wrong winding and fill in the doubled-line gap.
-function shapesFromSvg(svgMarkup: string): THREE.Shape[] {
+export function shapesFromSvg(svgMarkup: string): THREE.Shape[] {
   const svgData = new SVGLoader().parse(svgMarkup);
   return svgData.paths.flatMap((path) => SVGLoader.createShapes(path));
 }
@@ -79,7 +71,14 @@ function shapesFromSvg(svgMarkup: string): THREE.Shape[] {
 // own coordinate scale. The source is in SVG space (y grows downward);
 // `.scale(scale, -scale, scale)` both normalizes size and flips to three's
 // y-up convention in one step.
-function svgEmblemGeometry(svgMarkup: string, targetWidth: number): THREE.ExtrudeGeometry {
+//
+// Currently unreferenced in EMBLEMS below: this traced Renault and Volvo
+// (see decisions-build.md addenda 1-2) back when neither had a real STL or
+// GLB yet. Both have since arrived as real files and were swapped over —
+// kept, not deleted, dormant infrastructure for the next brand that shows
+// up as a 2D reference with no 3D file, exported so noUnusedLocals doesn't
+// force a choice between deleting working code and a silenced warning.
+export function svgEmblemGeometry(svgMarkup: string, targetWidth: number): THREE.ExtrudeGeometry {
   const shapes = shapesFromSvg(svgMarkup);
   const box = new THREE.Box2();
   for (const shape of shapes) {
@@ -98,69 +97,6 @@ function svgEmblemGeometry(svgMarkup: string, targetWidth: number): THREE.Extrud
   g.scale(scale, -scale, scale);
   g.center();
   return g;
-}
-
-// Volvo "iron mark" ring, traced from Wikimedia Commons
-// File:Volvo-Iron-Mark-Black.svg (the VOLVO wordmark paths from that file
-// are dropped, too fine to read at badge size, the same call already made
-// for BMW/VW in research.md section 2). That file's own "arrow" path is
-// also dropped: rendered, it is a small boxy zigzag confined to one
-// corner, not a diagonal shaft with a point — checked two independent
-// Commons uploads of this mark and both trace the same odd shape there, so
-// this looks like a real quality gap in the source rather than a one-off
-// bad file. The arrow is hand-authored below instead, a plain diagonal
-// shaft and triangular head is well inside what hand-Shape draws
-// accurately, unlike the ring's gapped-annulus outline.
-const VOLVO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250"><path d="M227.9,54l-12.7,12.7c10.9,16.8,17.2,36.8,17.2,58.3c0,59.3-48.1,107.4-107.4,107.4S17.6,184.3,17.6,125 S65.7,17.6,125,17.6c21.6,0,41.6,6.4,58.4,17.3l12.7-12.7C176,8.2,151.4,0,125,0C56,0,0,56,0,125s56,125,125,125s125-56,125-125 C250,98.6,241.8,74.1,227.9,54z"/></svg>`;
-
-// Volvo: traced from the real mark, see VOLVO_SVG above (ring with a gap
-// for the arrow, plus the arrow — wordmark dropped).
-function VolvoEmblem() {
-  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 1.55), []);
-  const arrowGeo = useMemo(() => {
-    // Mars/iron-symbol arrow: a shaft crossing well past the ring's own
-    // center, plus a triangular head extending past its edge, at the
-    // classic 45 degrees. Origin (0,0) is the ring's center, so this shape
-    // is built directly against that, not centered on itself.
-    const shaftLen = 1.0, shaftThick = 0.14;
-    const headLen = 0.35, headWidth = 0.39;
-    const halfShaft = shaftThick / 2;
-    const halfHead = headWidth / 2;
-    const startX = -0.14; // starts inside the ring, past its center, so the shaft visibly crosses the band
-
-    const arrow = new THREE.Shape();
-    arrow.moveTo(startX, halfShaft);
-    arrow.lineTo(startX + shaftLen, halfShaft);
-    arrow.lineTo(startX + shaftLen, halfHead);
-    arrow.lineTo(startX + shaftLen + headLen, 0);
-    arrow.lineTo(startX + shaftLen, -halfHead);
-    arrow.lineTo(startX + shaftLen, -halfShaft);
-    arrow.lineTo(startX, -halfShaft);
-    arrow.closePath();
-
-    const g = new THREE.ExtrudeGeometry(arrow, EXTRUDE_SETTINGS_CURVED);
-    g.rotateZ(Math.PI / 4);
-    // svgEmblemGeometry centers the ring on all three axes via .center();
-    // this shape was extruded from z=0 (unaffected by the rotateZ above),
-    // so it needs the matching z shift by hand to sit at the same depth.
-    g.translate(0, 0, -EXTRUDE_SETTINGS_CURVED.depth / 2);
-    return g;
-  }, []);
-  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(
-    () => () => {
-      ringGeo.dispose();
-      arrowGeo.dispose();
-      mat.dispose();
-    },
-    [ringGeo, arrowGeo, mat],
-  );
-  return (
-    <group position={[0, EMBLEM_Y, 0]}>
-      <mesh geometry={ringGeo} material={mat} castShadow />
-      <mesh geometry={arrowGeo} material={mat} castShadow />
-    </group>
-  );
 }
 
 // Fallback for any brand without modeled emblem geometry: a chrome
@@ -214,6 +150,13 @@ export function NameplateEmblem({ name }: { name: string }) {
 // fidelity from the hand-authored/SVG-traced shapes above, and the reason
 // those are being retired brand by brand as real files arrive.
 //
+// Currently unreferenced in EMBLEMS below: every brand that had an STL got
+// upgraded to a real GLB (see the GlbEmblem section further down) once one
+// arrived, and every brand since has arrived as GLB directly. Kept, not
+// deleted — dormant infrastructure for the next brand that shows up as
+// STL-only, exported so the compiler's noUnusedLocals doesn't force a
+// choice between deleting working code and carrying a silenced warning.
+//
 // These files come from at least two different export pipelines (the
 // source batch mixes ASCII and binary STL headers), so this does not
 // assume one fixed up-axis convention. Every emblem here is a flat medallion
@@ -230,7 +173,7 @@ export function NameplateEmblem({ name }: { name: string }) {
 // silently.
 const STL_CREASE_ANGLE = Math.PI / 4;
 
-function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): THREE.BufferGeometry {
+export function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): THREE.BufferGeometry {
   let geo = raw.clone(); // useLoader caches the parsed geometry across instances (patterns/3d.md rule 9) — never mutate it directly
   geo.computeBoundingBox();
   const size = new THREE.Vector3();
@@ -266,7 +209,7 @@ function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): T
 // Wrong-facing does not corrupt the model, it just shows an asymmetric mark
 // (a letterform, a lion) mirrored for half of every rotation — caught by
 // looking at each brand in the running app, not guessed up front.
-function StlEmblem({ url, targetWidth = 2.3, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
+export function StlEmblem({ url, targetWidth = 2.3, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
   const raw = useLoader(STLLoader, url);
   const geo = useMemo(() => normalizeStlGeometry(raw, targetWidth), [raw, targetWidth]);
   const mat = useMemo(
@@ -279,7 +222,7 @@ function StlEmblem({ url, targetWidth = 2.3, extraRotationY = 0 }: { url: string
   );
 }
 
-function stlEmblem(file: string, opts?: { targetWidth?: number; extraRotationY?: number }): React.ComponentType {
+export function stlEmblem(file: string, opts?: { targetWidth?: number; extraRotationY?: number }): React.ComponentType {
   return function BoundStlEmblem() {
     return <StlEmblem url={`/emblems/stl/${file}`} {...opts} />;
   };
@@ -373,8 +316,8 @@ function glbEmblem(file: string, opts?: { targetWidth?: number }): React.Compone
 // falls back to NameplateEmblem in VehicleScene. Adding a new brand is just
 // a new component plus a new entry, no changes needed elsewhere.
 export const EMBLEMS: Record<string, React.ComponentType> = {
-  volvo: VolvoEmblem,
-  citroen: stlEmblem("citroen.stl"),
+  volvo: glbEmblem("volvo.glb"),
+  citroen: glbEmblem("citroen.glb"),
   audi: glbEmblem("audi.glb"),
   bmw: glbEmblem("bmw.glb"),
   mercedes: glbEmblem("mercedes.glb"),
@@ -387,19 +330,21 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   hyundai: glbEmblem("hyundai.glb"),
   kia: glbEmblem("kia.glb"),
   opel: glbEmblem("opel.glb"),
-  fiat: stlEmblem("fiat.stl"),
-  ford: stlEmblem("ford.stl"),
-  geely: stlEmblem("geely.stl"),
-  byd: stlEmblem("byd.stl"),
-  chery: stlEmblem("chery.stl"),
-  tesla: stlEmblem("tesla.stl"),
-  seat: stlEmblem("seat.stl"),
-  // saic and vauxhall have no brand.ts WMI entry on purpose — see brand.ts
-  // and decisions-build.md. SAIC Motor doesn't retail cars under its own
-  // name (badges as MG/Roewe/Maxus instead), and Vauxhall shares Opel's W0L
-  // prefix with no reliable way to tell them apart from the VIN alone. Both
-  // stay reachable via the dev ?vin= override so the geometry is ready the
-  // moment either gets a confident WMI.
-  saic: stlEmblem("saic.stl"),
+  fiat: glbEmblem("fiat.glb"),
+  ford: glbEmblem("ford.glb"),
+  geely: glbEmblem("geely.glb"),
+  byd: glbEmblem("byd.glb"),
+  chery: glbEmblem("chery.glb"),
+  tesla: glbEmblem("tesla.glb"),
+  seat: glbEmblem("seat.glb"),
+  // saic, vauxhall, and cupra have no brand.ts WMI entry on purpose — see
+  // brand.ts and decisions-build.md. SAIC Motor doesn't retail cars under
+  // its own name (badges as MG/Roewe/Maxus instead), Vauxhall shares
+  // Opel's W0L prefix, and Cupra shares Seat's VSS prefix — neither pair
+  // has a reliable way to tell its two brands apart from the VIN alone.
+  // All three stay reachable via the dev ?brand= override so the geometry
+  // is ready the moment any of them gets a confident WMI.
+  saic: glbEmblem("saic.glb"),
   vauxhall: glbEmblem("vauxhall.glb"),
+  cupra: glbEmblem("cupra.glb"),
 };

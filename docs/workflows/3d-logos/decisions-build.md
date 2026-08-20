@@ -441,3 +441,54 @@ the target width number.
 
 Removed the eight now-superseded STL files (dacia, hyundai, kia, opel,
 peugeot, renault, skoda, vauxhall).
+
+## Addendum 7: every brand now GLB, Cupra added, mirrored-backside finding (2026-08-20, post-merge)
+
+Source: Seat (standalone), batch 04 (Citroen, Fiat, Ford, Geely), batch 05
+(BYD, Chery, SAIC, Tesla), and an "extras" drop (Volvo, Cupra) — all
+applied directly to main, same pattern as prior post-merge GLB additions.
+
+This completes the GLB migration: every brand now renders from real GLB
+geometry except none — Volvo (previously the last hand-built/traced
+holdout) is GLB now too, and its file includes the VOLVO wordmark this
+time (the earlier hand-built version dropped it; the community STL arrow
+that prompted that decision is superseded). Cupra is new, not a swap —
+first real geometry for it. Same as SAIC/Vauxhall, no WMI: confirmed
+again in this pass that Cupra shares Seat's VSS prefix with no reliable
+way to tell them apart from the VIN alone, so it's dev-override-only
+(?brand=cupra). Removed all 9 now-superseded STL files; public/emblems/stl
+is empty (kept, not deleted as a path — the dormant StlEmblem
+infrastructure below still writes to it if a future brand needs it).
+
+Removed VolvoEmblem and VOLVO_SVG outright (brand-specific, genuinely
+superseded, same treatment as Citroen/Renault/Mercedes/Opel's earlier
+hand-built versions). Kept shapesFromSvg/svgEmblemGeometry as exported
+dormant infrastructure, same reasoning as StlEmblem/normalizeStlGeometry
+in addendum 6 — generic, reusable, cheap to keep, real work to rebuild.
+
+Bundle size, named plainly: emblem payload is now ~70MB (up from ~37MB).
+This has grown every round and needs real attention soon — see the
+existing decimation follow-up from addendum 4, now considerably more
+urgent than "before it matters," it matters now.
+
+**Real finding, not previously caught**: verified Citroen and Volvo across
+multiple rotation frames (patterns/3d.md rule 4) rather than one angle,
+and both show their wordmark mirrored/backwards for part of the spin
+("CITROËN" and "VOLVO" both caught reading reversed). This is not a
+one-off bug in these two files — it is a structural property of
+DoubleSide rendering on any flat medallion with asymmetric front-only
+detail (text, in particular): a continuously spinning object shows its
+back for roughly half of every rotation, and the back of a real/detailed
+mesh reads as a mirror of the front. extraRotationY (StlEmblem's existing
+parameter) cannot fix this — it only shifts which half of the rotation is
+"correct," it cannot eliminate the wrong half, since eliminating it needs
+the back face to render as blank chrome (matching a real badge's
+unadorned backing) rather than a mirrored copy of the front's detail,
+which needs a front/back material split most likely keyed off face-normal
+direction, not attempted here. Almost every asymmetric/lettered brand
+shipped this whole stream likely has this to some degree (VW, Kia, Ford,
+BMW, Fiat, SAIC, BYD...) — this was not caught earlier because prior
+verification mostly checked one or two frames per brand rather than a
+full rotation, the exact gap patterns/3d.md rule 4 already warned about.
+Flagged as a real follow-up, not fixed in this pass — real geometry work,
+not a config tweak, and out of scope for "update the logos."

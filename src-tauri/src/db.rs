@@ -45,6 +45,23 @@ fn one() -> usize { 1 }
 fn onef() -> f64 { 1.0 }
 fn yes() -> bool { true }
 
+/// One row of the write audit trail: everything the app has ever changed on
+/// the car, with the state read before and after. See `docs/workflows/
+/// write-caps/plan.md` — no write ships without landing here.
+#[derive(Serialize, Clone)]
+pub struct WriteLogRow {
+    pub id: i64,
+    pub ts: String,
+    pub module: String,
+    pub action: String,
+    pub params: serde_json::Value,
+    pub before: Option<serde_json::Value>,
+    pub after: Option<serde_json::Value>,
+    /// "cleared" | "faults_remain" | "refused" | "error"
+    pub outcome: String,
+    pub error: Option<String>,
+}
+
 #[derive(Serialize)]
 pub struct SessionSummary {
     pub id: i64,
@@ -189,6 +206,26 @@ impl Db {
             );
             "#,
         )?;
+        // Write audit trail (write-caps increment 1): every write the app
+        // sends to the car inserts a row here, success or failure, with the
+        // state read before and after. This is the persisted half of the
+        // stream's hard rule (confirmation + logged before/after +
+        // documented reversal path).
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS writes_log (
+                id INTEGER PRIMARY KEY,
+                ts TEXT NOT NULL,
+                module TEXT NOT NULL,
+                action TEXT NOT NULL,
+                params_json TEXT NOT NULL DEFAULT '{}',
+                before_json TEXT,
+                after_json TEXT,
+                outcome TEXT NOT NULL,
+                error TEXT
+            );
+            "#,
+        )?;
         // Custom UDS modules (any brand beyond the built-in PSA four): a
         // name plus two CAN IDs, added through the UI. This is what makes
         // the UDS Lab work on non-PSA cars — see elm/uds.rs.
@@ -258,6 +295,70 @@ impl Db {
         )
         .ok();
         conn.last_insert_rowid()
+    }
+
+    /// Append one row to the write audit trail. Called from every write
+    /// handler, on success AND on failure — the trail is only trustworthy
+    /// if nothing can touch the car without landing here.
+    pub fn log_write(
+        &self,
+        module: &str,
+        action: &str,
+        params: &serde_json::Value,
+        before: Option<&serde_json::Value>,
+        after: Option<&serde_json::Value>,
+        outcome: &str,
+        error: Option<&str>,
+    ) -> i64 {
+        let conn = self.0.lock().unwrap();
+        let res = conn.execute(
+            "INSERT INTO writes_log (ts, module, action, params_json, before_json, after_json, outcome, error)
+             VALUES (datetime('now'), ?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                module,
+                action,
+                params.to_string(),
+                before.map(|v| v.to_string()),
+                after.map(|v| v.to_string()),
+                outcome,
+                error
+            ],
+        );
+        if let Err(e) = &res {
+            // A write reached the car but its audit row could not be stored.
+            // The `.ok()` style the other inserts use would hide that, and
+            // for THIS table a silent gap defeats its whole purpose, so at
+            // minimum it must be loud in the logs. (Review fix, write-caps.)
+            log::error!("writes_log insert failed, the audit trail is missing a row ({module}/{action}/{outcome}): {e}");
+            return -1;
+        }
+        conn.last_insert_rowid()
+    }
+
+    pub fn writes_log(&self, limit: i64) -> Vec<WriteLogRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, ts, module, action, params_json, before_json, after_json, outcome, error
+                 FROM writes_log ORDER BY id DESC LIMIT ?1",
+            )
+            .unwrap();
+        stmt.query_map(params![limit], |r| {
+            Ok(WriteLogRow {
+                id: r.get(0)?,
+                ts: r.get(1)?,
+                module: r.get(2)?,
+                action: r.get(3)?,
+                params: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or(serde_json::json!({})),
+                before: r.get::<_, Option<String>>(5)?.and_then(|s| serde_json::from_str(&s).ok()),
+                after: r.get::<_, Option<String>>(6)?.and_then(|s| serde_json::from_str(&s).ok()),
+                outcome: r.get(7)?,
+                error: r.get(8)?,
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
     }
 
     pub fn dtc_history(&self, limit: i64) -> Vec<DtcScan> {
@@ -662,5 +763,70 @@ impl Db {
             "readings": readings.iter().map(|(ts, k, v)| serde_json::json!({"ts": ts, "key": k, "value": v})).collect::<Vec<_>>(),
         })
         .to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_db() -> Db {
+        // ":memory:" is SQLite's in-memory database name; Db::open passes it
+        // through to Connection::open unchanged.
+        Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    #[test]
+    fn writes_log_round_trip() {
+        let db = test_db();
+        let id = db.log_write(
+            "engine",
+            "clear_faults",
+            &serde_json::json!({"group": "FFFFFF"}),
+            Some(&serde_json::json!(["P0420", "P0301"])),
+            Some(&serde_json::json!([])),
+            "cleared",
+            None,
+        );
+        assert!(id > 0);
+        let rows = db.writes_log(10);
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!(row.module, "engine");
+        assert_eq!(row.action, "clear_faults");
+        assert_eq!(row.outcome, "cleared");
+        assert_eq!(row.before, Some(serde_json::json!(["P0420", "P0301"])));
+        assert_eq!(row.after, Some(serde_json::json!([])));
+        assert_eq!(row.error, None);
+    }
+
+    #[test]
+    fn writes_log_records_failures_too() {
+        let db = test_db();
+        db.log_write(
+            "abs",
+            "clear_faults",
+            &serde_json::json!({}),
+            Some(&serde_json::json!(["C1560"])),
+            None,
+            "error",
+            Some("link dropped mid-clear"),
+        );
+        let rows = db.writes_log(10);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].outcome, "error");
+        assert_eq!(rows[0].error.as_deref(), Some("link dropped mid-clear"));
+        assert_eq!(rows[0].after, None);
+    }
+
+    #[test]
+    fn writes_log_newest_first_and_limited() {
+        let db = test_db();
+        for i in 0..5 {
+            db.log_write("engine", &format!("action_{i}"), &serde_json::json!({}), None, None, "cleared", None);
+        }
+        let rows = db.writes_log(3);
+        assert_eq!(rows.len(), 3);
+        assert_eq!(rows[0].action, "action_4");
     }
 }
