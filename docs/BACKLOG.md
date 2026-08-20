@@ -28,6 +28,9 @@ concurrently.
 - **Plain language.** UI copy, docs, and reports use clear plain English:
   no em dashes, no decorative formatting. Spanish copy follows the same
   rule when i18n lands.
+- **Honest absence.** When a car cannot provide a value (unsupported PID,
+  unreachable module), the UI says so in one plain sentence. Silent
+  hiding reads as a bug. First case: the C4 fuel gauge, 2026-08-20.
 
 ### A. Diagnostics UX (src/views/Diagnose.tsx, src/lib/meta.ts)
 - [ ] Clear-codes confirmation: replace the inline banner (pushes the whole

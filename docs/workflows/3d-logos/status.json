@@ -1,11 +1,13 @@
 {
   "stream": "3d-logos",
-  "stage": "review",
-  "state": "reviewer running",
-  "updated": "2026-08-20T13:50:00Z",
+  "stage": "build-fix",
+  "state": "reviewer verdict fix-then-ship, builder applying fixes",
+  "updated": "2026-08-20T17:10:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "Builder done: 4 brands (Renault, Mercedes, Volvo, Opel) + Citroen moved to emblems.tsx. Renault gate passed first try.",
-    "6 commits on ws/3d-logos. Reviewer re-verifying independently."
+    "Review passed Renault, Mercedes, Volvo, the extraction, the registry and the dev override.",
+    "One defect: Opel Blitz reads as an S-wave at card size; builder sharpening the zigzag constants.",
+    "Two log-hygiene fixes: a fabricated plan quote in the build log, and a wrong thickness comment on Renault.",
+    "Next: Codex cross-exam, then PR."
   ]
 }
