@@ -64,6 +64,24 @@ concurrently.
 - [ ] First-run experience: empty-DB states audited end to end.
 - [ ] App icon + name polish for distribution.
 
+### H. Loading, state and performance (structural: touches every view)
+- [ ] Proper loading states for every part of the app: skeletons per card,
+      never a blank area, never a layout jump when data arrives.
+- [ ] Incremental loading: render the shell immediately, stream data in
+      per card; heavy pieces (three.js scene) arrive last without blocking
+      the rest.
+- [ ] Proper state management: today every view hand-rolls invoke +
+      useEffect + useState with no cache, so data refetches on every tab
+      switch and error states are inconsistent. Research server-state
+      libraries (TanStack Query is the obvious candidate) wrapped around
+      Tauri invoke, plus what if anything is needed for client state.
+- [ ] Performance budget: no SSR exists (Vite + Tauri, not Next) and none
+      is needed; the wins are fast first paint, cached data on
+      navigation, code splitting, and asset weight. Audit bundle and
+      startup time, set budgets, enforce in review.
+      Note: sequencing versus stream F (i18n) matters; both restructure
+      the views. Research can run in parallel; builds must be ordered.
+
 ### F. Internationalization (structural: touches every view)
 - [ ] i18n system with English + Spanish. First testers are Spanish
       speakers in Spain, so Spanish is a launch requirement, not polish.
@@ -72,6 +90,18 @@ concurrently.
       extraction strategy, AI-report language; plan needs the user gate
       before any build). Large file boundary: coordinate so no other
       stream runs concurrently over the views.
+
+### G. Write capabilities (product differentiator, safety-critical)
+- [ ] The product vision is read AND write: not just showing faults but
+      fixing what can be fixed from the ECU side. Today we clear codes.
+      Next candidates, in rising risk order: UDS routine control and
+      actuator tests, adaptation resets, service functions.
+      Research stream first: what STN2100-class Bluetooth hardware can
+      safely do (PSA first, then generally), what competitors ship
+      (OBDeleven, Carly, Launch, Autel), and the safety rail design.
+      HARD RULE: every write action gets an explicit confirmation, a
+      logged before/after state, and a documented reversal path. No write
+      ships without all three.
 
 ### E. Fleet realism (mock + real hardware)
 - [ ] Second-car test: any non-Citroën VIN exercises the nameplate emblem

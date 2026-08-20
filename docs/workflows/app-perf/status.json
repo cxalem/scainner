@@ -1,0 +1,12 @@
+{
+  "stream": "app-perf",
+  "stage": "plan",
+  "state": "planner running",
+  "updated": "2026-08-20T14:05:00Z",
+  "branch": "ws/app-perf",
+  "notes": [
+    "Research done: views refetch everything on every tab switch, no shared cache, inconsistent loading states.",
+    "Real build measured: 204KB gzip main chunk (recharts eager), 264KB VehicleScene chunk with dead loader code.",
+    "Recommendation: TanStack Query v5. Build sequenced after 3d-logos merges and before i18n."
+  ]
+}

@@ -1,11 +1,11 @@
 {
   "stream": "3d-logos",
-  "stage": "build",
-  "state": "builder running",
-  "updated": "2026-08-20T13:05:00Z",
+  "stage": "review",
+  "state": "reviewer running",
+  "updated": "2026-08-20T13:50:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "Research and plan complete. Builder implementing 4 brands (Renault, Mercedes, Volvo, Opel) in a worktree.",
-    "Renault is the gate: if it does not read recognizably in the small card, the builder stops and reports."
+    "Builder done: 4 brands (Renault, Mercedes, Volvo, Opel) + Citroen moved to emblems.tsx. Renault gate passed first try.",
+    "6 commits on ws/3d-logos. Reviewer re-verifying independently."
   ]
 }
