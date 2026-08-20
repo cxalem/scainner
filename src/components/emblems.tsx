@@ -8,6 +8,7 @@
 // material behavior, per-emblem triangle budget).
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
+import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 
 export const EMBLEM_CHROME = {
   color: "#f4f6f8",
@@ -43,6 +44,71 @@ const EXTRUDE_SETTINGS_CURVED = {
   curveSegments: 24,
 } as const;
 
+// Brands whose real mark is a curve or a self-overlapping outline (Renault's
+// doubled diamond lines, Volvo's ring-with-gap) are traced from the real
+// vector logo instead of hand-walked point by point — a hand-authored
+// approximation of a curve is a guess, tracing the actual path is not. The
+// source markup is the brand's real published mark (Wikimedia Commons,
+// vetted as below the copyright threshold for simple geometric marks — see
+// docs/workflows/3d-logos/research.md section 4), trimmed to just the shape
+// the badge needs (wordmarks/lettering dropped, illegible at card size) and
+// embedded here so parsing needs no network access at runtime.
+//
+// The style attribute is set inline on each <path> rather than left in a
+// <style> block: SVGLoader parses a detached DOM, which does not resolve
+// CSS class rules, so a class-based fill-rule would silently fall back to
+// the wrong winding and fill in the doubled-line gap.
+function shapesFromSvg(svgMarkup: string): THREE.Shape[] {
+  const svgData = new SVGLoader().parse(svgMarkup);
+  return svgData.paths.flatMap((path) => SVGLoader.createShapes(path));
+}
+
+// Builds extruded geometry from real SVG markup, normalized to this
+// module's shared depth/bevel proportions regardless of the source SVG's
+// own coordinate scale. The source is in SVG space (y grows downward);
+// `.scale(scale, -scale, scale)` both normalizes size and flips to three's
+// y-up convention in one step.
+function svgEmblemGeometry(svgMarkup: string, targetWidth: number): THREE.ExtrudeGeometry {
+  const shapes = shapesFromSvg(svgMarkup);
+  const box = new THREE.Box2();
+  for (const shape of shapes) {
+    for (const p of shape.getPoints(12)) box.expandByPoint(p);
+  }
+  const rawWidth = box.max.x - box.min.x;
+  const scale = targetWidth / rawWidth;
+  const g = new THREE.ExtrudeGeometry(shapes, {
+    depth: EXTRUDE_SETTINGS.depth / scale,
+    bevelEnabled: true,
+    bevelThickness: EXTRUDE_SETTINGS.bevelThickness / scale,
+    bevelSize: EXTRUDE_SETTINGS.bevelSize / scale,
+    bevelSegments: EXTRUDE_SETTINGS.bevelSegments,
+    curveSegments: 24,
+  });
+  g.scale(scale, -scale, scale);
+  g.center();
+  return g;
+}
+
+// Renault 2021 "Renaulution" mark: the diamond redrawn as two thin doubled
+// outlines rather than one solid band (source: Wikimedia Commons
+// File:Renault 2021.svg — a single compound path, evenodd fill, whose two
+// nested diamond loops are what create the doubled-line look and the gap
+// between them).
+const RENAULT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 954 1255"><path style="fill-rule:evenodd;" d="M953.5,626.91 l-334.98,-626.91 h-94.51 L190.07,626.91 l215.27,403.24 l47.25,-89.26 L285.63,626.91 l285.63,-536.6 l286.68,536.6 l-333.93,627.96 h94.51 L953.5,626.91 zM762.38,626.91 L548.16,224.72 l-48.3,89.26 l168.02,312.93 l-286.68,537.65 L94.51,626.91 l334.98,-626.91 h-95.56 L0,626.91 l333.93,627.96 h94.51 L762.38,626.91 z"/></svg>`;
+
+// Volvo "iron mark" ring, traced from Wikimedia Commons
+// File:Volvo-Iron-Mark-Black.svg (the VOLVO wordmark paths from that file
+// are dropped, too fine to read at badge size, the same call already made
+// for BMW/VW in research.md section 2). That file's own "arrow" path is
+// also dropped: rendered, it is a small boxy zigzag confined to one
+// corner, not a diagonal shaft with a point — checked two independent
+// Commons uploads of this mark and both trace the same odd shape there, so
+// this looks like a real quality gap in the source rather than a one-off
+// bad file. The arrow is hand-authored below instead, a plain diagonal
+// shaft and triangular head is well inside what hand-Shape draws
+// accurately, unlike the ring's gapped-annulus outline.
+const VOLVO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250"><path d="M227.9,54l-12.7,12.7c10.9,16.8,17.2,36.8,17.2,58.3c0,59.3-48.1,107.4-107.4,107.4S17.6,184.3,17.6,125 S65.7,17.6,125,17.6c21.6,0,41.6,6.4,58.4,17.3l12.7-12.7C176,8.2,151.4,0,125,0C56,0,0,56,0,125s56,125,125,125s125-56,125-125 C250,98.6,241.8,74.1,227.9,54z"/></svg>`;
+
 // One chevron of the Citroën mark: a "^" band of constant vertical
 // thickness. Outline walks the top edge up to the apex and back down, then
 // the bottom edge in reverse.
@@ -73,43 +139,9 @@ export function CitroenEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
-// Renault: diamond ring (the current "losange" mark, simplified to a flat
-// two-shape outline). Outer rhombus 0.95 wide x 1.10 tall, inner rhombus
-// hole is offset 0.14 along each axis below; because that offset is along
-// the axes rather than perpendicular to the rhombus edge, the rendered
-// band thickness is actually about 0.106, not 0.14. The band is still
-// constant width and reads fine at card size (confirmed by review), so no
-// geometry change — this comment exists so a future brand does not copy
-// the 0.14 constant expecting a 0.14 band.
+// Renault: traced from the real mark, see RENAULT_SVG above.
 function RenaultEmblem() {
-  const geo = useMemo(() => {
-    const outerHalfW = 0.475, outerHalfH = 0.55;
-    const band = 0.14;
-    // Inner rhombus scaled down from the outer one by roughly `band` in
-    // each direction, measured along each axis, so the band reads as a
-    // constant visual thickness all the way around.
-    const innerHalfW = outerHalfW - band;
-    const innerHalfH = outerHalfH - band * (outerHalfH / outerHalfW);
-
-    const outer = new THREE.Shape();
-    outer.moveTo(0, outerHalfH);
-    outer.lineTo(outerHalfW, 0);
-    outer.lineTo(0, -outerHalfH);
-    outer.lineTo(-outerHalfW, 0);
-    outer.closePath();
-
-    const hole = new THREE.Path();
-    hole.moveTo(0, innerHalfH);
-    hole.lineTo(innerHalfW, 0);
-    hole.lineTo(0, -innerHalfH);
-    hole.lineTo(-innerHalfW, 0);
-    hole.closePath();
-    outer.holes.push(hole);
-
-    const g = new THREE.ExtrudeGeometry(outer, EXTRUDE_SETTINGS);
-    g.center();
-    return g;
-  }, []);
+  const geo = useMemo(() => svgEmblemGeometry(RENAULT_SVG, 0.95), []);
   const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
   useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
@@ -163,28 +195,20 @@ function MercedesEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
-// Volvo: circle with a diagonal arrow (the Mars/iron symbol) starting at
-// the ring's outer edge, pointing to the upper right at 45 degrees.
+// Volvo: traced from the real mark, see VOLVO_SVG above (ring with a gap
+// for the arrow, plus the arrow — wordmark dropped).
 function VolvoEmblem() {
-  const geo = useMemo(() => {
-    const outerR = 0.48, band = 0.09;
-    const innerR = outerR - band;
-
-    const ring = new THREE.Shape();
-    ring.absarc(0, 0, outerR, 0, Math.PI * 2, false);
-    const ringHole = new THREE.Path();
-    ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
-    ring.holes.push(ringHole);
-
-    // Arrow built axis-aligned along +x (shaft then arrowhead), then the
-    // whole geometry is rotated 45 degrees so the math stays simple.
-    const shaftLen = 0.22, shaftThick = 0.09;
-    const headLen = 0.18, headWidth = 0.22;
+  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 0.96), []);
+  const arrowGeo = useMemo(() => {
+    // Mars/iron-symbol arrow: a shaft crossing well past the ring's own
+    // center, plus a triangular head extending past its edge, at the
+    // classic 45 degrees. Origin (0,0) is the ring's center, so this shape
+    // is built directly against that, not centered on itself.
+    const shaftLen = 0.62, shaftThick = 0.08;
+    const headLen = 0.22, headWidth = 0.24;
     const halfShaft = shaftThick / 2;
     const halfHead = headWidth / 2;
-    // Shaft starts just inside the ring's outer edge so there is no gap,
-    // and runs outward past the ring.
-    const startX = outerR - 0.03;
+    const startX = -0.08; // starts inside the ring, past its center, so the shaft visibly crosses the band
 
     const arrow = new THREE.Shape();
     arrow.moveTo(startX, halfShaft);
@@ -196,18 +220,29 @@ function VolvoEmblem() {
     arrow.lineTo(startX, -halfShaft);
     arrow.closePath();
 
-    const shapes = [ring, arrow];
-    const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
-    // Rotate ring + arrow together so the arrow points upper-right at 45
-    // degrees. Rotating the ring has no visible effect since it is
-    // circular, so this is simpler than rotating just the arrow's points.
+    const g = new THREE.ExtrudeGeometry(arrow, EXTRUDE_SETTINGS_CURVED);
     g.rotateZ(Math.PI / 4);
-    g.center();
+    // svgEmblemGeometry centers the ring on all three axes via .center();
+    // this shape was extruded from z=0 (unaffected by the rotateZ above),
+    // so it needs the matching z shift by hand to sit at the same depth.
+    g.translate(0, 0, -EXTRUDE_SETTINGS_CURVED.depth / 2);
     return g;
   }, []);
   const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
+  useEffect(
+    () => () => {
+      ringGeo.dispose();
+      arrowGeo.dispose();
+      mat.dispose();
+    },
+    [ringGeo, arrowGeo, mat],
+  );
+  return (
+    <group position={[0, EMBLEM_Y, 0]}>
+      <mesh geometry={ringGeo} material={mat} castShadow />
+      <mesh geometry={arrowGeo} material={mat} castShadow />
+    </group>
+  );
 }
 
 // One arm of the Opel "Blitz": a bar of constant height `halfT * 2` from
