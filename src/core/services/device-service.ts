@@ -59,7 +59,7 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly historyPoints: (key: string, hours: number) => Effect.Effect<HistoryPoint[], InvokeError | ParseResult.ParseError>;
     // uds
     readonly udsModules: () => Effect.Effect<UdsModule[], InvokeError | ParseResult.ParseError>;
-    readonly addUdsModule: (v: {
+    readonly addUdsModule: (fields: {
       key: string;
       label: string;
       req: string;
@@ -109,7 +109,7 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   historyPoints: (key, hours) => decoded(Schema.mutable(Schema.Array(HistoryPoint)), "history", { key, sinceHours: hours }),
 
   udsModules: () => decoded(Schema.mutable(Schema.Array(UdsModule)), "uds_modules"),
-  addUdsModule: (v) => call<void>("add_uds_module", v),
+  addUdsModule: (fields) => call<void>("add_uds_module", fields),
   deleteUdsModule: (key) => call<void>("delete_uds_module", { key }),
   udsRead: (module, did) => decoded(Schema.NullOr(UdsHit), "uds_read", { module, did }),
   udsScan: (module, from, to) => decoded(Schema.mutable(Schema.Array(UdsHit)), "uds_scan", { module, from, to }),

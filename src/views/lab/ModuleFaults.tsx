@@ -28,7 +28,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     setError(null);
     setOutcome(null);
     try {
-      setFaults(await runPromise(Effect.flatMap(DeviceService, (s) => s.udsModuleDtcs(module))));
+      setFaults(await runPromise(Effect.flatMap(DeviceService, (device) => device.udsModuleDtcs(module))));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -42,7 +42,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     setError(null);
     setOutcome(null);
     try {
-      const result = await runPromise(Effect.flatMap(DeviceService, (s) => s.udsClear(module)));
+      const result = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsClear(module)));
       setOutcome(result);
       setFaults(result.after);
       // WriteHistory lives in a different view (Diagnose); this is what

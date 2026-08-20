@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@/core/services/device-service";
 
-const run = <A, E>(f: (s: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
+const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
 
 // limit is hardcoded (never varies in the UI), so it stays out of the key —
@@ -15,7 +15,7 @@ const run = <A, E>(f: (s: Effect.Effect.Success<typeof DeviceService>) => Effect
 export function useDtcHistory() {
   return useQuery({
     queryKey: ["dtc_history"],
-    queryFn: () => run((s) => s.dtcHistory(20)),
+    queryFn: () => run((device) => device.dtcHistory(20)),
   });
 }
 
@@ -26,11 +26,11 @@ export function useScanDtcs() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () =>
-      run((s) =>
+      run((device) =>
         Effect.gen(function* () {
-          const scan = yield* s.scanDtcs();
+          const scan = yield* device.scanDtcs();
           // readiness is best-effort, same as before this migration.
-          const readiness = yield* s.readiness().pipe(Effect.catchAll(() => Effect.succeed(null)));
+          const readiness = yield* device.readiness().pipe(Effect.catchAll(() => Effect.succeed(null)));
           return { scan, readiness };
         }),
       ),
@@ -50,7 +50,7 @@ export function useScanDtcs() {
 export function useClearDtcs() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => run((s) => s.clearDtcs()),
+    mutationFn: () => run((device) => device.clearDtcs()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dtc_history"] });
       qc.invalidateQueries({ queryKey: ["car_report"] });
@@ -66,6 +66,6 @@ export function useClearDtcs() {
 export function useWritesLog(limit = 20) {
   return useQuery({
     queryKey: ["writes_log", limit],
-    queryFn: () => run((s) => s.writesLog(limit)),
+    queryFn: () => run((device) => device.writesLog(limit)),
   });
 }

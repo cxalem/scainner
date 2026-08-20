@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@/core/services/device-service";
 
-const run = <A, E>(f: (s: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
+const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
 
 // enabled: false — Live's "Read all sensors" is a manual sweep, not a mount
@@ -14,7 +14,7 @@ const run = <A, E>(f: (s: Effect.Effect.Success<typeof DeviceService>) => Effect
 export function useAllSensors() {
   return useQuery({
     queryKey: ["all_sensors"],
-    queryFn: () => run((s) => s.allSensors()),
+    queryFn: () => run((device) => device.allSensors()),
     enabled: false,
   });
 }

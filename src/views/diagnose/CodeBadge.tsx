@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui";
 
 // Every code badge in this view is a button into the per-code detail modal.
-export function CodeBadge({ code, onSelect }: { code: string; onSelect: (c: string) => void }) {
+export function CodeBadge({ code, onSelect }: { code: string; onSelect: (code: string) => void }) {
   return (
     <button
       type="button"

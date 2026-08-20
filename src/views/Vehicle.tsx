@@ -26,7 +26,7 @@ export function Vehicle({ connected }: { connected: boolean }) {
     setCopyingWhich(label);
     setCopyError(null);
     try {
-      const json = await runPromise(Effect.flatMap(DeviceService, (s) => s.exportJson(hours)));
+      const json = await runPromise(Effect.flatMap(DeviceService, (device) => device.exportJson(hours)));
       await navigator.clipboard.writeText(json);
       flashCopy(label);
     } catch (e) {
@@ -40,7 +40,7 @@ export function Vehicle({ connected }: { connected: boolean }) {
     setCopyingWhich("ai");
     setCopyError(null);
     try {
-      const md = await runPromise(Effect.flatMap(DeviceService, (s) => s.aiContext(24 * 30)));
+      const md = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
       await navigator.clipboard.writeText(md);
       flashCopy("ai");
     } catch (e) {

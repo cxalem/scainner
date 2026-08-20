@@ -74,19 +74,19 @@ export function ProbeManager({
     onCandidateHandled();
   };
 
-  const toggle = (p: UdsProbe) => {
+  const toggle = (probe: UdsProbe) => {
     setRowError(null);
     toggleProbe.mutate(
-      { id: p.id, enabled: !p.enabled },
-      { onError: (e) => setRowError({ id: p.id, msg: String(e instanceof Error ? e.message : e) }) },
+      { id: probe.id, enabled: !probe.enabled },
+      { onError: (e) => setRowError({ id: probe.id, msg: String(e instanceof Error ? e.message : e) }) },
     );
   };
 
-  const remove = (p: UdsProbe) => {
+  const remove = (probe: UdsProbe) => {
     setRowError(null);
     deleteProbe.mutate(
-      { id: p.id },
-      { onError: (e) => setRowError({ id: p.id, msg: String(e instanceof Error ? e.message : e) }) },
+      { id: probe.id },
+      { onError: (e) => setRowError({ id: probe.id, msg: String(e instanceof Error ? e.message : e) }) },
     );
   };
 
@@ -146,36 +146,36 @@ export function ProbeManager({
             <p className="text-sm text-muted-foreground">None yet — scan, find something interesting, make it a probe.</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
-              {probes.map((p) => {
-                const togglePending = toggleProbe.isPending && toggleProbe.variables?.id === p.id;
-                const deletePending = deleteProbe.isPending && deleteProbe.variables?.id === p.id;
+              {probes.map((probe) => {
+                const togglePending = toggleProbe.isPending && toggleProbe.variables?.id === probe.id;
+                const deletePending = deleteProbe.isPending && deleteProbe.variables?.id === probe.id;
                 return (
-                  <li key={p.id} className="flex flex-col gap-0.5 border-b border-border/50 py-1.5 last:border-0">
+                  <li key={probe.id} className="flex flex-col gap-0.5 border-b border-border/50 py-1.5 last:border-0">
                     <div className="flex items-center justify-between">
                       <span>
-                        <span className="font-medium">{p.label}</span>{" "}
+                        <span className="font-medium">{probe.label}</span>{" "}
                         <span className="font-mono text-xs text-muted-foreground">
-                          {p.module}/22{hex4(p.did)} [{p.offset}..{p.offset + p.len}] ×{p.scale}+{p.bias} {p.unit}
+                          {probe.module}/22{hex4(probe.did)} [{probe.offset}..{probe.offset + probe.len}] ×{probe.scale}+{probe.bias} {probe.unit}
                         </span>
                       </span>
                       <span className="flex gap-2">
                         <button
                           className="rounded text-xs text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          onClick={() => toggle(p)}
+                          onClick={() => toggle(probe)}
                           disabled={togglePending}
                         >
-                          {togglePending ? "…" : p.enabled ? "disable" : "enable"}
+                          {togglePending ? "…" : probe.enabled ? "disable" : "enable"}
                         </button>
                         <button
                           className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-                          onClick={() => remove(p)}
+                          onClick={() => remove(probe)}
                           disabled={deletePending}
                         >
                           {deletePending ? "…" : "delete"}
                         </button>
                       </span>
                     </div>
-                    {rowError?.id === p.id && <p className="text-xs text-destructive">{rowError.msg}</p>}
+                    {rowError?.id === probe.id && <p className="text-xs text-destructive">{rowError.msg}</p>}
                   </li>
                 );
               })}

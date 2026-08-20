@@ -61,8 +61,8 @@ export const AiServiceLive = Layer.succeed(AiService, {
       );
 
       const md = message.content
-        .filter((b) => b.type === "text" && b.text)
-        .map((b) => b.text)
+        .filter((block) => block.type === "text" && block.text)
+        .map((block) => block.text)
         .join("\n")
         .trim();
       if (!md) return yield* Effect.fail(new ApiError({ detail: "Empty response from the model." }));

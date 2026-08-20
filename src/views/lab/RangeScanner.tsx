@@ -56,7 +56,7 @@ export function RangeScanner({
       for (let start = from; start <= to; start += SCAN_CHUNK) {
         const end = Math.min(start + SCAN_CHUNK - 1, to);
         setProgress(`scanning ${hex4(start)}–${hex4(end)}… (${all.length} hits so far)`);
-        const chunk = await runPromise(Effect.flatMap(DeviceService, (s) => s.udsScan(module, start, end)));
+        const chunk = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsScan(module, start, end)));
         all.push(...chunk);
         setHits([...all]);
       }
@@ -101,7 +101,7 @@ export function RangeScanner({
           {busy && (
             <Button
               variant="outline"
-              onClick={() => runPromise(Effect.flatMap(DeviceService, (s) => s.udsCancelScan()))}
+              onClick={() => runPromise(Effect.flatMap(DeviceService, (device) => device.udsCancelScan()))}
             >
               Cancel
             </Button>

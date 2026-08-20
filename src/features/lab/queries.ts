@@ -10,13 +10,13 @@ import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@/core/services/device-service";
 import type { UdsProbe } from "@/features/lab/schema";
 
-const run = <A, E>(f: (s: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
+const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
 
 export function useUdsModules() {
   return useQuery({
     queryKey: ["uds_modules"],
-    queryFn: () => run((s) => s.udsModules()),
+    queryFn: () => run((device) => device.udsModules()),
   });
 }
 
@@ -26,7 +26,7 @@ export function useUdsModules() {
 export function useListProbes() {
   return useQuery({
     queryKey: ["list_probes"],
-    queryFn: () => run((s) => s.listProbes()),
+    queryFn: () => run((device) => device.listProbes()),
   });
 }
 
@@ -34,7 +34,7 @@ export function useAddUdsModule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { key: string; label: string; req: string; resp: string }) =>
-      run((s) => s.addUdsModule(vars)),
+      run((device) => device.addUdsModule(vars)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["uds_modules"] }),
   });
 }
@@ -42,7 +42,7 @@ export function useAddUdsModule() {
 export function useDeleteUdsModule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { key: string }) => run((s) => s.deleteUdsModule(vars.key)),
+    mutationFn: (vars: { key: string }) => run((device) => device.deleteUdsModule(vars.key)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["uds_modules"] }),
   });
 }
@@ -50,7 +50,7 @@ export function useDeleteUdsModule() {
 export function useAddProbe() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { probe: UdsProbe }) => run((s) => s.addProbe(vars.probe)),
+    mutationFn: (vars: { probe: UdsProbe }) => run((device) => device.addProbe(vars.probe)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["list_probes"] }),
   });
 }
@@ -58,7 +58,7 @@ export function useAddProbe() {
 export function useToggleProbe() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: number; enabled: boolean }) => run((s) => s.toggleProbe(vars.id, vars.enabled)),
+    mutationFn: (vars: { id: number; enabled: boolean }) => run((device) => device.toggleProbe(vars.id, vars.enabled)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["list_probes"] }),
   });
 }
@@ -66,7 +66,7 @@ export function useToggleProbe() {
 export function useDeleteProbe() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: number }) => run((s) => s.deleteProbe(vars.id)),
+    mutationFn: (vars: { id: number }) => run((device) => device.deleteProbe(vars.id)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["list_probes"] }),
   });
 }

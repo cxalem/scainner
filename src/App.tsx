@@ -55,10 +55,10 @@ export default function App() {
     // still looking at the connect gate, so first connect doesn't pay the
     // chunk load inside the gate→overlay transition.
     void import("@/components/DiscoveryFlow");
-    runPromise(Effect.flatMap(DeviceService, (s) => s.connStatus()))
+    runPromise(Effect.flatMap(DeviceService, (device) => device.connStatus()))
       .then(setConn)
       .catch(() => {});
-    runPromise(Effect.flatMap(DeviceService, (s) => s.reportCars()))
+    runPromise(Effect.flatMap(DeviceService, (device) => device.reportCars()))
       .then((cars) => setKnownVins(new Set(cars.map(([v]) => v))))
       .catch(() => setKnownVins(new Set()));
     const un1 = listen<ConnStatus>("conn-status", (e) => {
@@ -95,7 +95,7 @@ export default function App() {
   // so the overlay is there from the dashboard's very first frame.
   useEffect(() => {
     if (conn.state !== "connected" || knownVins === null) return;
-    runPromise(Effect.flatMap(DeviceService, (s) => s.carInfo()))
+    runPromise(Effect.flatMap(DeviceService, (device) => device.carInfo()))
       .then((rows) => {
         const vin = Object.fromEntries(rows).vin as string | undefined;
         if (vin) setCurrentVin(vin);
@@ -116,7 +116,7 @@ export default function App() {
   const recording = connected && Object.keys(live).length > 0;
 
   if (!hasConnectedOnce) {
-    return <ConnectGate conn={conn} onConnect={() => runPromise(Effect.flatMap(DeviceService, (s) => s.connect()))} />;
+    return <ConnectGate conn={conn} onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))} />;
   }
 
   return (
@@ -126,8 +126,8 @@ export default function App() {
         onNavigate={setView}
         conn={conn}
         recording={recording}
-        onConnect={() => runPromise(Effect.flatMap(DeviceService, (s) => s.connect()))}
-        onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (s) => s.disconnect()))}
+        onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))}
+        onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
       >
         {view === "overview" && <Overview connState={conn.state} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} />}

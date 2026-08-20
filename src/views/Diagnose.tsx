@@ -199,21 +199,21 @@ export function Diagnose({ connected }: { connected: boolean }) {
             <p className="text-sm text-muted-foreground">No scans recorded yet — run one while connected.</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
-              {history.map((h) => {
-                const n = h.stored.length + h.pending.length + h.permanent.length;
+              {history.map((scan) => {
+                const codeCount = scan.stored.length + scan.pending.length + scan.permanent.length;
                 return (
-                  <li key={h.id} className="flex items-center justify-between border-b border-border py-1.5 last:border-0">
-                    <span className="font-mono text-xs text-muted-foreground">{h.ts} UTC</span>
+                  <li key={scan.id} className="flex items-center justify-between border-b border-border py-1.5 last:border-0">
+                    <span className="font-mono text-xs text-muted-foreground">{scan.ts} UTC</span>
                     <span className="flex items-center gap-2">
-                      {n === 0 ? (
+                      {codeCount === 0 ? (
                         <Badge variant="ok">clean</Badge>
                       ) : (
-                        [...new Set([...h.stored, ...h.pending, ...h.permanent])].map((c) => (
-                          <CodeBadge key={c} code={c} onSelect={setDetailCode} />
+                        [...new Set([...scan.stored, ...scan.pending, ...scan.permanent])].map((code) => (
+                          <CodeBadge key={code} code={code} onSelect={setDetailCode} />
                         ))
                       )}
-                      {h.voltage != null && (
-                        <span className="font-mono text-xs text-muted-foreground">{h.voltage.toFixed(1)}V</span>
+                      {scan.voltage != null && (
+                        <span className="font-mono text-xs text-muted-foreground">{scan.voltage.toFixed(1)}V</span>
                       )}
                     </span>
                   </li>

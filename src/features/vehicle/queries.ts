@@ -7,13 +7,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@/core/services/device-service";
 
-const run = <A, E>(f: (s: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
+const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
 
 export function useReportCars() {
   return useQuery({
     queryKey: ["report_cars"],
-    queryFn: () => run((s) => s.reportCars()),
+    queryFn: () => run((device) => device.reportCars()),
   });
 }
 
@@ -22,7 +22,7 @@ export function useReportCars() {
 export function useCarReport(vin: string | null) {
   return useQuery({
     queryKey: ["car_report", vin],
-    queryFn: () => run((s) => s.carReport(vin!)),
+    queryFn: () => run((device) => device.carReport(vin!)),
     enabled: vin != null,
   });
 }
@@ -30,21 +30,21 @@ export function useCarReport(vin: string | null) {
 export function useCarInfo() {
   return useQuery({
     queryKey: ["car_info"],
-    queryFn: () => run((s) => s.carInfo()),
+    queryFn: () => run((device) => device.carInfo()),
   });
 }
 
 export function useDbPath() {
   return useQuery({
     queryKey: ["db_path"],
-    queryFn: () => run((s) => s.dbPath()),
+    queryFn: () => run((device) => device.dbPath()),
   });
 }
 
 export function useSetFuelPrice() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { price: number }) => run((s) => s.setFuelPrice(vars.price)),
+    mutationFn: (vars: { price: number }) => run((device) => device.setFuelPrice(vars.price)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["car_report"] }),
   });
 }
@@ -52,7 +52,7 @@ export function useSetFuelPrice() {
 export function useReadEcuInfo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => run((s) => s.readEcuInfo()),
+    mutationFn: () => run((device) => device.readEcuInfo()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["car_info"] }),
   });
 }

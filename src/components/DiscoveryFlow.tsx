@@ -52,8 +52,8 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
     started.current = true;
     runPromise(
       Effect.gen(function* () {
-        const s = yield* DeviceService;
-        const info = yield* s.readEcuInfo().pipe(Effect.catchAll(() => Effect.succeed(null)));
+        const device = yield* DeviceService;
+        const info = yield* device.readEcuInfo().pipe(Effect.catchAll(() => Effect.succeed(null)));
         setEcu(info);
         yield* Effect.sleep("700 millis"); // let identity land before the sweep starts
         setStep("scanning");
@@ -62,8 +62,8 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
         // parallel, same as the Promise.all it replaces.
         const [sensorList, dtc] = yield* Effect.all(
           [
-            s.allSensors().pipe(Effect.catchAll(() => Effect.succeed([]))),
-            s.scanDtcs().pipe(Effect.catchAll(() => Effect.succeed(null))),
+            device.allSensors().pipe(Effect.catchAll(() => Effect.succeed([]))),
+            device.scanDtcs().pipe(Effect.catchAll(() => Effect.succeed(null))),
           ],
           { concurrency: "unbounded" },
         );
