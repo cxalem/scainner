@@ -159,14 +159,14 @@ export function ProbeManager({
                       </span>
                       <span className="flex gap-2">
                         <button
-                          className="rounded text-xs text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          className="rounded text-xs text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           onClick={() => toggle(p)}
                           disabled={togglePending}
                         >
                           {togglePending ? "…" : p.enabled ? "disable" : "enable"}
                         </button>
                         <button
-                          className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                          className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
                           onClick={() => remove(p)}
                           disabled={deletePending}
                         >

@@ -148,7 +148,7 @@ export function RemoveModuleButton({ module, onRemoved }: { module: UdsModule; o
   return (
     <span className="flex items-center gap-1.5">
       <button
-        className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+        className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
         onClick={remove}
         disabled={deleteModule.isPending}
       >

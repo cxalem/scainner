@@ -148,7 +148,12 @@ function DtcDetailModal({
             </CardTitle>
             <p className="mt-1 text-sm font-medium">{info?.title ?? "Not in the built-in library — structural decode and AI analysis below"}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 hover:bg-muted">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-md p-1 hover:bg-muted transition-transform active:scale-90 motion-reduce:transition-none motion-reduce:active:scale-100"
+          >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </CardHeader>

@@ -174,6 +174,116 @@ The real before/after gzip table only gets recorded once, at the end of
 step 7, after both charts point at the shared lazy file — logged in the
 final entry of this document, not here.
 
+## Step 5 — Lab's per-row mutation pending state uses `.variables`, not per-row mutation instances
+
+What: `ProbeManager`'s toggle/delete buttons share ONE `useToggleProbe()`/
+`useDeleteProbe()` mutation instance across the whole probe list, and
+disable only the row actually in flight by comparing `mutation.variables?.id`
+to that row's id, rather than creating a separate mutation hook per row.
+Options: (a) one shared mutation instance per action, disabling the whole
+list while any row is in flight, (b) one shared instance, per-row disable
+via `.variables`, (c) a mutation instance per row (not how TanStack Query
+hooks are meant to be used — they're not indexed by data).
+Why: (b). This is the standard React Query idiom for a list of identical
+mutations and gives genuinely per-row feedback (rule 1) without the
+blanket-disable compromise I did take elsewhere (see Vehicle's export
+buttons below) — worth the small extra type complexity here because the
+probe list can be long and disabling the whole list for one row's write
+would read as broken.
+Risk: none — `.variables` is only populated while `isPending` is true, so
+it can't stick to a stale row after a mutation settles.
+
+## Step 4 — Vehicle's three export buttons share one `copyingWhich` flag instead of independent per-button pending state
+
+What: "Copy AI briefing," "Raw JSON, 24h," and "Raw JSON, 30d" all disable
+together while any one of them is copying, rather than each tracking its
+own independent pending flag.
+Options: (a) three independent `useState`/pending flags, one per button,
+(b) one shared `copyingWhich: string | null` flag, disabling all three
+during any single copy.
+Why: (b), a deliberate simplification. These are plain `invoke`+clipboard
+calls outside the query layer (not mutations, so no `.variables` idiom to
+lean on like Lab's probes), and export mock latency is well under a
+second — the audit's rule 1 bar is "at least disable + slight opacity dip"
+for instant actions, which a shared flag satisfies for all three. Three
+separate `useState` calls for a same-card, mutually-exclusive-in-practice
+action (nobody clicks two export buttons at once) would be more code for
+no observable difference.
+Risk: a user who deliberately double-clicks a second export button while
+the first is still copying finds it briefly disabled instead of also
+starting. Acceptable — it self-clears within the copy's own latency.
+
+## Step 7 — bundle trims: both already landed inside steps 1 and 3
+
+What: plan.md step 7 lists both bundle-trim actions ((a) `mock.ts` dynamic
+import, (b) recharts lazy split) as a discrete final step. (a) shipped in
+step 1's commit (alongside the `tauri.ts` rewrite the query migration
+already required touching); (b) shipped in two halves, `charts.tsx` +
+Overview's chart in step 1, History's chart in step 3, since History was
+the second and last recharts consumer.
+Options: (a) hold both trims until every view was migrated, as a literal
+final step, (b) land each trim in the step that was already touching the
+relevant file.
+Why: (b) — same reasoning as the early `charts.tsx` decision already
+logged above: `tauri.ts` was already being rewritten for the query
+migration in step 1, and each view's own migration step was already the
+commit rewriting that view's chart usage. No separate "step 7 commit"
+exists; this entry stands in for it and points at where each half
+actually landed, so the plan's step numbering maps onto real commits
+without a reader assuming step 7 was skipped.
+Risk: none — the fallback plan.md offered ("ship (a) alone, log it" if (b)
+fights Vite chunking) was never needed; both landed cleanly, confirmed by
+the gzip table below.
+
+## Final bundle table (plan.md step 7 requirement)
+
+`npx vite build`, gzip sizes, same machine, same mock data:
+
+| Chunk | Before (main, baseline) | After | Change |
+|---|---|---|---|
+| `index` (main, eager) | 204.98 KB | 107.95 KB | **-97.03 KB (-47%)** |
+| `charts` (lazy, new) | — (was inside `index`) | 104.89 KB | new lazy chunk |
+| `mock` (lazy, new) | — (was inside `index`) | 2.99 KB | new lazy chunk, MOCK_MODE only |
+| `VehicleScene` (lazy) | 274.99 KB | 275.01 KB | unchanged (stream C's file, out of scope) |
+| `Vehicle` (lazy) | ~1.2 KB | 1.50 KB | unchanged shape, +TanStack Query hooks |
+| `DiscoveryFlow` (lazy) | ~1.6 KB | 1.65 KB | unchanged |
+| `with-selector` (lazy, new) | — | 0.85 KB | TanStack Query's external-store shim |
+
+The number that matters for startup: the eager main chunk a fresh page
+load has to parse before anything else runs dropped from 204.98 KB to
+107.95 KB gzip — recharts and the mock event bus both left the startup
+path entirely, moving to lazy chunks loaded only when actually needed
+(a chart renders, or MOCK_MODE is true). `@tanstack/react-query` itself
+lives inside that smaller `index` chunk now (it's used by every view) and
+the net number still dropped sharply, confirming research.md section 8's
+sizing call: the ~13-16 KB the library costs is small next to what
+recharts and mock.ts were costing by riding along unconditionally.
+`VehicleScene` is untouched, as scoped (decisions-plan.md: deferred to
+stream C, which owns that file).
+
+## Interactive-element press-state final pass
+
+What: after finishing the six migration steps, did one more pass adding
+`active:scale` press feedback to the small text-link buttons that were
+still hover/underline-only: Overview's fuel-price "save" link, Lab's
+`RemoveModuleButton`, `ProbeManager`'s enable/disable/delete links,
+`RangeScanner`'s "→ probe" link, and the DTC detail modal's close (X)
+button.
+Options: (a) stop at plan.md rule 11's literal wording ("the shared
+Button, Segmented, and nav classes"), leaving small inline text-links as
+hover/focus-only, (b) extend the same treatment to every remaining
+clickable control, per the acceptance criteria's broader "no interactive
+element anywhere ships without press feedback."
+Why: (b). Rule 11 names three specific shared class families as the
+minimum; the acceptance criteria (and the audit's own rule 6: "including
+instant, sync-only controls like nav where a fix costs nothing") ask for
+full coverage. `ErrorBoundary.tsx`'s reload button was the one exception
+left untouched — that file is outside every step's file list and outside
+this stream's view/component boundary entirely, so touching it would be
+scope creep into a file the plan never named.
+Risk: none — purely additive className changes, verified with a full
+fresh-connect regression pass afterward (see final verification note).
+
 ## Verification for step 1
 
 Browser (localhost:5183, mock mode): connect flow narrates "Waking the
@@ -185,3 +295,43 @@ shows "saving…" then updates Cost per 100km/Fuel used figures live (proof
 battery chart renders inside its lazy Suspense boundary with no visible
 pop-in at this data size. No console errors at any point.
 `npx tsc --noEmit`: clean.
+
+## Verification for steps 2-6, and final full-app regression pass
+
+Each step was checked in the browser (localhost:5183, mock mode)
+immediately after its own commit, screenshots at each pending/loaded/error
+state where reachable:
+- Diagnose: Scanning… disables the scan button; the clear-codes modal
+  stays open showing "Clearing…" with both buttons disabled, closes only
+  on settle with the correct before/after banner; scan history updates
+  live.
+- History: chart skeleton is exactly `h-72`, swaps to the real chart with
+  no jump; stats/sessions tables show sized skeleton rows before data.
+- Vehicle: Identity card skeleton then real rows; Read from ECU wired to
+  `isPending`/`isError` (mock resolves fast enough that the pending frame
+  is hard to catch in a screenshot, but the same wiring pattern was
+  screenshotted successfully on the slower Diagnose/Overview mutations);
+  Copy AI briefing round-trips through clipboard with the richer "Copied —
+  paste it to any AI" label preserved.
+- Lab: Modules and Recorded probes show sized skeletons then data; Add
+  module shows "Saving…", disables, closes on success (mock.ts's
+  `add_uds_module` is a no-op returning a static list — a pre-existing
+  mock-mode limitation, not something this migration introduced or could
+  fix from the frontend).
+- Live: enabled:false confirmed (table stays empty until Read is pressed);
+  "Interrogating ECU…" pending narration shown; the sensor table survives
+  a Live → Overview → Live round trip instead of being wiped — the
+  specific bug this step targeted.
+
+After the final press-state polish pass, ran one more full regression from
+a hard page reload: connect → discovery flow (VIN/protocol/sensors/fault
+codes rows resolve correctly) → dashboard → Diagnose scan/clear working
+end to end. Zero console errors across the entire session, every step
+included. `npx tsc --noEmit` clean at every commit boundary, and after
+this final pass.
+
+Not independently re-screenshotted in this final pass: Overview's
+tab-switch cache instancy and the battery chart, already confirmed in
+step 1's verification above and unaffected by later commits (no further
+edits touched Overview after step 1 except the fuel-price link's
+className in the final polish pass).
