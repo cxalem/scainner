@@ -6,7 +6,7 @@ import { DeviceService } from "@/core/services/device-service";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
-import type { ClearOutcome } from "@/lib/meta";
+import type { ClearOutcome } from "@/features/lab/schema";
 
 // Reads and clears fault codes stored on the module itself (as opposed to
 // the standard engine DTCs in Diagnose). Clearing is a real write, so it

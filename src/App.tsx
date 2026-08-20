@@ -11,7 +11,7 @@ import { Live } from "@/views/Live";
 import { History } from "@/views/History";
 import { Diagnose } from "@/views/Diagnose";
 import { Lab } from "@/views/Lab";
-import type { ConnStatus, Live as LiveMap } from "@/lib/meta";
+import type { ConnStatus, Live as LiveMap } from "@/shared/domain/connection";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // something that needs the 3D scene — Overview (once connected),

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Activity, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, useCyclingLabel } from "@/components/ui";
-import { ALL_SENSORS_PHRASES, GAUGES, type Live as LiveMap } from "@/lib/meta";
-import { useAllSensors } from "@/lib/queries";
+import { ALL_SENSORS_PHRASES, GAUGES } from "@/shared/domain/gauges";
+import type { Live as LiveMap } from "@/shared/domain/connection";
+import { useAllSensors } from "@/features/live/queries";
 
 function Gauges({ live }: { live: LiveMap }) {
   return (

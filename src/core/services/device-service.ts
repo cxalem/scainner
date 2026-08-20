@@ -9,21 +9,12 @@
 import { Context, Effect, Layer, Schema, type ParseResult } from "effect";
 import { invoke } from "@/lib/tauri";
 import { InvokeError } from "@/core/errors";
-import {
-  CarReport,
-  ClearOutcome,
-  ConnStatus,
-  DtcResult,
-  DtcScanRow,
-  EcuInfo,
-  HistoryPoint,
-  ObdClearOutcome,
-  SensorReading,
-  UdsHit,
-  UdsModule,
-  UdsProbe,
-  WriteLogRow,
-} from "@/lib/meta";
+import { ConnStatus } from "@/shared/domain/connection";
+import { CarReport, EcuInfo } from "@/features/vehicle/schema";
+import { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@/features/diagnose/schema";
+import { ClearOutcome, UdsHit, UdsModule, UdsProbe } from "@/features/lab/schema";
+import { SensorReading } from "@/features/live/schema";
+import { HistoryPoint } from "@/features/history/schema";
 
 // Collapses the try/promise/catch boilerplate every hand-written call site
 // used to repeat (research.md section 2). `decoded` adds a Schema parse on

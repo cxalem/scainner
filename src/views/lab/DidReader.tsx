@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@/core/services/device-service";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import type { UdsHit } from "@/lib/meta";
+import type { UdsHit } from "@/features/lab/schema";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";

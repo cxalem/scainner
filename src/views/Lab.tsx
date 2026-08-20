@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { UdsHit } from "@/lib/meta";
-import { useUdsModules } from "@/lib/queries";
+import type { UdsHit } from "@/features/lab/schema";
+import { useUdsModules } from "@/features/lab/queries";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";

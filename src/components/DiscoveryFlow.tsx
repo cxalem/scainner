@@ -10,7 +10,9 @@ import { DeviceService } from "@/core/services/device-service";
 import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { Badge, Button, Card, CardContent } from "@/components/ui";
 import { VehicleScene } from "@/components/VehicleScene";
-import type { DtcResult, EcuInfo, SensorReading } from "@/lib/meta";
+import type { DtcResult } from "@/features/diagnose/schema";
+import type { EcuInfo } from "@/features/vehicle/schema";
+import type { SensorReading } from "@/features/live/schema";
 import { brandFromVin } from "@/lib/brand";
 import { decodeModelYear } from "@/lib/vin";
 

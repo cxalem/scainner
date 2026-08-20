@@ -9,7 +9,7 @@ import { Gauge, PlugZap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
-import { CONNECT_PHRASES, type ConnStatus } from "@/lib/meta";
+import { CONNECT_PHRASES, type ConnStatus } from "@/shared/domain/connection";
 
 export function ConnectGate({ conn, onConnect }: { conn: ConnStatus; onConnect: () => void }) {
   const connecting = conn.state === "connecting";

@@ -24,9 +24,9 @@ import {
   useTransientLabel,
 } from "@/components/ui";
 import type { SceneStatus } from "@/components/VehicleScene";
-import type { CarReport, Insights } from "@/lib/meta";
+import type { CarReport, Insights } from "@/features/vehicle/schema";
 import { decodeModelYear } from "@/lib/vin";
-import { useCarReport, useReportCars, useSetFuelPrice } from "@/lib/queries";
+import { useCarReport, useReportCars, useSetFuelPrice } from "@/features/vehicle/queries";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // Overview actually mounts the scene, not on initial app load — Overview is

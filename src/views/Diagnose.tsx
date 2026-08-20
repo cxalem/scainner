@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Copy, Info, RefreshCw, ShieldCheck, Snowflake, Sparkles, X } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useCyclingLabel, useTransientLabel } from "@/components/ui";
-import { GAUGES, MONITOR_LABELS, type DtcResult, type DtcScanRow } from "@/lib/meta";
+import { GAUGES, MONITOR_LABELS } from "@/shared/domain/gauges";
+import type { DtcResult, DtcScanRow } from "@/features/diagnose/schema";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
 import { WriteHistory } from "@/components/WriteHistory";
 import {
@@ -15,7 +16,7 @@ import {
   type SavedReport,
 } from "@/lib/ai";
 import { decodeDtc, dtcInfo } from "@/lib/dtc";
-import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/lib/queries";
+import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/features/diagnose/queries";
 
 // Every code badge in this view is a button into the per-code detail modal.
 function CodeBadge({ code, onSelect }: { code: string; onSelect: (c: string) => void }) {

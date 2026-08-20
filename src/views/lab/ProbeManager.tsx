@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
-import { hex4, type UdsHit, type UdsProbe } from "@/lib/meta";
-import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/lib/queries";
+import { hex4 } from "@/shared/domain/gauges";
+import type { UdsHit, UdsProbe } from "@/features/lab/schema";
+import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/features/lab/queries";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";

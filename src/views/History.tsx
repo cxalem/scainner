@@ -1,7 +1,8 @@
 import { Suspense, lazy, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, Skeleton } from "@/components/ui";
-import { GAUGES, RANGES, STAT_LABELS } from "@/lib/meta";
-import { useCarReport, useHistoryPoints, useReadingKeys, useReportCars } from "@/lib/queries";
+import { GAUGES, RANGES, STAT_LABELS } from "@/shared/domain/gauges";
+import { useCarReport, useReportCars } from "@/features/vehicle/queries";
+import { useHistoryPoints, useReadingKeys } from "@/features/history/queries";
 
 // Same lazy recharts boundary Overview's battery chart uses (charts.tsx) —
 // this is the second of the two usages plan.md's bundle-trim step targets.
