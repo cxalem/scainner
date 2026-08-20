@@ -4,7 +4,9 @@
 // fault-code check — rather than a canned animation, so what's shown here is
 // always true of the car that just connected.
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@/lib/tauri";
+import { Effect } from "effect";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { Badge, Button, Card, CardContent } from "@/components/ui";
 import { VehicleScene } from "@/components/VehicleScene";
@@ -46,24 +48,28 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    (async () => {
-      try {
-        const info = await invoke<EcuInfo>("read_ecu_info").catch(() => null);
+    runPromise(
+      Effect.gen(function* () {
+        const s = yield* DeviceService;
+        const info = yield* s.readEcuInfo().pipe(Effect.catchAll(() => Effect.succeed(null)));
         setEcu(info);
-        await new Promise((r) => setTimeout(r, 700)); // let identity land before the sweep starts
+        yield* Effect.sleep("700 millis"); // let identity land before the sweep starts
         setStep("scanning");
 
-        const [sensorList, dtc] = await Promise.all([
-          invoke<SensorReading[]>("all_sensors").catch(() => [] as SensorReading[]),
-          invoke<DtcResult>("scan_dtcs").catch(() => null),
-        ]);
+        // Effect.all with concurrency: "unbounded" runs both requests in
+        // parallel, same as the Promise.all it replaces.
+        const [sensorList, dtc] = yield* Effect.all(
+          [
+            s.allSensors().pipe(Effect.catchAll(() => Effect.succeed([]))),
+            s.scanDtcs().pipe(Effect.catchAll(() => Effect.succeed(null))),
+          ],
+          { concurrency: "unbounded" },
+        );
         setSensors(sensorList);
         setScan(dtc);
         setStep("results");
-      } catch (e) {
-        setError(String(e));
-      }
-    })();
+      }),
+    ).catch((e) => setError(String(e)));
   }, []);
 
   const sceneStatus = step === "results" ? "connected" : "connecting";

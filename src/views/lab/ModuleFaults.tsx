@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Effect } from "effect";
 import { useQueryClient } from "@tanstack/react-query";
-import { invoke } from "@/lib/tauri";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
@@ -26,7 +28,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     setError(null);
     setOutcome(null);
     try {
-      setFaults(await invoke<string[]>("uds_module_dtcs", { module }));
+      setFaults(await runPromise(Effect.flatMap(DeviceService, (s) => s.udsModuleDtcs(module))));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -40,7 +42,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     setError(null);
     setOutcome(null);
     try {
-      const result = await invoke<ClearOutcome>("uds_clear", { module, confirmed: true });
+      const result = await runPromise(Effect.flatMap(DeviceService, (s) => s.udsClear(module)));
       setOutcome(result);
       setFaults(result.after);
       // WriteHistory lives in a different view (Diagnose); this is what

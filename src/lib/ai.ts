@@ -15,7 +15,9 @@
 // `anthropic-dangerous-direct-browser-access` header). "Dangerous" refers
 // to shipping a key inside a public web app — irrelevant here: this is a
 // local desktop tool and the key is the user's own, entered locally.
-import { invoke } from "@/lib/tauri";
+import { Effect } from "effect";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 
 const KEY_STORAGE = "scainner.anthropic_api_key";
 const REPORT_STORAGE = "scainner.last_ai_report";
@@ -112,7 +114,7 @@ async function callClaude(system: string, userContent: string): Promise<string> 
 }
 
 export async function generateDiagnosisReport(): Promise<SavedReport> {
-  const briefing = await invoke<string>("ai_context", { sinceHours: 24 * 30 });
+  const briefing = await runPromise(Effect.flatMap(DeviceService, (s) => s.aiContext(24 * 30)));
   const md = await callClaude(SYSTEM_PROMPT, briefing);
   const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md };
   localStorage.setItem(REPORT_STORAGE, JSON.stringify(report));
@@ -156,7 +158,7 @@ export function getCodeReports(): CodeReports {
 }
 
 export async function generateCodeReport(code: string, occurrenceSummary: string): Promise<SavedReport> {
-  const briefing = await invoke<string>("ai_context", { sinceHours: 24 * 30 });
+  const briefing = await runPromise(Effect.flatMap(DeviceService, (s) => s.aiContext(24 * 30)));
   const md = await callClaude(
     CODE_SYSTEM_PROMPT,
     `${briefing}\n\n---\n\n# FOCUS CODE: ${code}\n\nRecorded occurrences of ${code} (from the scan history above):\n${occurrenceSummary}`,
