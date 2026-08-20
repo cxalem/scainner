@@ -75,7 +75,12 @@ export function CitroenEmblem() {
 
 // Renault: diamond ring (the current "losange" mark, simplified to a flat
 // two-shape outline). Outer rhombus 0.95 wide x 1.10 tall, inner rhombus
-// hole leaves a constant-looking band about 0.14 thick.
+// hole is offset 0.14 along each axis below; because that offset is along
+// the axes rather than perpendicular to the rhombus edge, the rendered
+// band thickness is actually about 0.106, not 0.14. The band is still
+// constant width and reads fine at card size (confirmed by review), so no
+// geometry change — this comment exists so a future brand does not copy
+// the 0.14 constant expecting a 0.14 band.
 function RenaultEmblem() {
   const geo = useMemo(() => {
     const outerHalfW = 0.475, outerHalfH = 0.55;
