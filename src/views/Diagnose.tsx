@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Copy, Info, RefreshCw, ShieldCheck, Snowflake, Sparkles, X } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useCyclingLabel } from "@/components/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useCyclingLabel, useTransientLabel } from "@/components/ui";
 import { GAUGES, MONITOR_LABELS, type DtcResult, type DtcScanRow } from "@/lib/meta";
 import {
   AI_PHASES,
@@ -21,7 +21,7 @@ function CodeBadge({ code, onSelect }: { code: string; onSelect: (c: string) => 
     <button
       type="button"
       onClick={() => onSelect(code)}
-      className="rounded-full transition-transform hover:scale-105 focus-visible:outline-2"
+      className="rounded-full transition-transform hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-2"
       aria-label={`Details for ${code}`}
     >
       <Badge variant="error" className="cursor-pointer font-mono underline-offset-2 hover:underline">
@@ -249,7 +249,10 @@ function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
   const [report, setReport] = useState<SavedReport | null>(() => getLastReport());
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  // Same transient success idiom as Overview's fuel save and Vehicle's
+  // exports — plan.md rule 10 extracted it into ui.tsx once, so this card
+  // uses the shared helper too instead of its own useState+setTimeout.
+  const [copyLabel, flashCopy] = useTransientLabel(1500);
   const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const saveKey = () => {
@@ -274,8 +277,7 @@ function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
   const doCopy = async () => {
     if (!report) return;
     await navigator.clipboard.writeText(report.md);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    flashCopy("copied");
   };
 
   return (
@@ -321,7 +323,7 @@ function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
               </Button>
               {report && (
                 <Button variant="outline" onClick={doCopy}>
-                  <Copy className="h-4 w-4" aria-hidden="true" /> {copied ? "Copied" : "Copy"}
+                  <Copy className="h-4 w-4" aria-hidden="true" /> {copyLabel === "copied" ? "Copied" : "Copy"}
                 </Button>
               )}
               <Button variant="ghost" onClick={() => setEditingKey(true)}>

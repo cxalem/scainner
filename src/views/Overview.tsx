@@ -274,7 +274,7 @@ function FuelCard({ insights: i }: { insights: Insights }) {
             >
               {setFuelPrice.isPending ? "saving…" : savedLabel === "saved" ? "saved" : "save"}
             </button>
-            {setFuelPrice.isError && <span className="text-destructive">Could not save — try again.</span>}
+            {setFuelPrice.isError && <span className="text-destructive">Could not save. Try again.</span>}
             <span className="ml-2">Includes idling. ECU-reported, ±5–10%.</span>
           </div>
         )}
@@ -340,6 +340,27 @@ export function Overview({
           ))}
         </div>
         <CardSkeleton rows={4} />
+      </div>
+    );
+  }
+
+  // The cars list itself failed. Without this branch a failed fetch would
+  // fall through to the "No data yet" copy below, which plan.md rule 6
+  // reserves for a successful fetch that found nothing.
+  if (carsQuery.isError && !effectiveVin) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        {scene}
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
+            <p className="font-medium">Could not load the car list.</p>
+            <Button variant="outline" onClick={() => carsQuery.refetch()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

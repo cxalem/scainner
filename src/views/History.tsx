@@ -103,7 +103,10 @@ export function History() {
   const firstVin = carsQuery.data?.[0]?.[0] ?? null;
   const reportQuery = useCarReport(firstVin);
   const report = reportQuery.data ?? null;
-  const reportLoading = carsQuery.isPending || reportQuery.isPending;
+  // A disabled query (no car yet, so useCarReport(null) never runs) still
+  // reports isPending — gate on firstVin so an empty DB shows the real
+  // empty-state copy instead of skeletons that never resolve.
+  const reportLoading = carsQuery.isPending || (firstVin !== null && reportQuery.isPending);
 
   const stats = report ? (statWindow === "7d" ? report.stats_7d : report.stats_all) : [];
 
