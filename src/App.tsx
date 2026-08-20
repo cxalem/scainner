@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { invoke, listen } from "@/lib/tauri";
 import { Shell, type ViewKey } from "@/components/Shell";
 import { ConnectGate } from "@/components/ConnectGate";
@@ -21,6 +22,7 @@ const DiscoveryFlow = lazy(() =>
 );
 
 export default function App() {
+  const queryClient = useQueryClient();
   const [view, setView] = useState<ViewKey>("overview");
   const [conn, setConn] = useState<ConnStatus>({ state: "disconnected" });
   const [live, setLive] = useState<LiveMap>({});
@@ -40,7 +42,6 @@ export default function App() {
   // catches up. Kept separate from discoverVin, which only ever holds a
   // *new* car's VIN and is cleared once the discovery overlay finishes.
   const [currentVin, setCurrentVin] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   // Sticky on purpose — once true it stays true for the rest of the app
   // session, even across later disconnects. Gates the blank ConnectGate
   // screen, not the Shell's own per-view "disconnected" states.
@@ -55,7 +56,16 @@ export default function App() {
     invoke<[string, number][]>("report_cars")
       .then((cars) => setKnownVins(new Set(cars.map(([v]) => v))))
       .catch(() => setKnownVins(new Set()));
-    const un1 = listen<ConnStatus>("conn-status", (e) => setConn(e.payload));
+    const un1 = listen<ConnStatus>("conn-status", (e) => {
+      setConn(e.payload);
+      // A new session can add data behind any view, and a blanket
+      // revalidate is cheap over local IPC — a curated per-command
+      // invalidation list would only rot as commands are added
+      // (decisions-plan.md: "Invalidate everything on connect, nothing on
+      // live-update"). live-update is deliberately excluded: it fires
+      // continuously and would thrash the cache.
+      if (e.payload.state === "connected") void queryClient.invalidateQueries();
+    });
     const un2 = listen<LiveMap>("live-update", (e) => {
       setLive((prev) => ({ ...prev, ...e.payload }));
       if (staleTimer.current) window.clearTimeout(staleTimer.current);
@@ -65,7 +75,7 @@ export default function App() {
       un1.then((f) => f());
       un2.then((f) => f());
     };
-  }, []);
+  }, [queryClient]);
 
   // Fires once per newly-seen VIN: the backend already stamps the VIN onto
   // the session during its connect handshake, so by the time conn.state
@@ -114,7 +124,7 @@ export default function App() {
         onConnect={() => invoke("connect")}
         onDisconnect={() => invoke("disconnect")}
       >
-        {view === "overview" && <Overview refreshKey={refreshKey} connState={conn.state} vin={currentVin} />}
+        {view === "overview" && <Overview connState={conn.state} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} />}
         {view === "history" && <History />}
         {view === "diagnose" && <Diagnose connected={connected} />}
@@ -134,7 +144,11 @@ export default function App() {
             vin={discoverVin}
             onDone={() => {
               setDiscoverVin(null);
-              setRefreshKey((k) => k + 1);
+              // Replaces the old refreshKey counter (plan.md rule 3):
+              // Overview mounted before this car existed, so its own
+              // queries wouldn't otherwise know to refetch.
+              queryClient.invalidateQueries({ queryKey: ["report_cars"] });
+              queryClient.invalidateQueries({ queryKey: ["car_report"] });
             }}
           />
         </Suspense>

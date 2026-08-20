@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { invoke } from "@/lib/tauri";
 import { Activity, Database, RefreshCw } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Segmented } from "@/components/ui";
-import { GAUGES, type Live as LiveMap, type SensorReading } from "@/lib/meta";
+import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, useCyclingLabel } from "@/components/ui";
+import { ALL_SENSORS_PHRASES, GAUGES, type Live as LiveMap } from "@/lib/meta";
+import { useAllSensors } from "@/lib/queries";
 
 function Gauges({ live }: { live: LiveMap }) {
   return (
@@ -28,25 +28,11 @@ function Gauges({ live }: { live: LiveMap }) {
 }
 
 function AllSensorsTable({ connected }: { connected: boolean }) {
-  const [rows, setRows] = useState<SensorReading[]>([]);
-  const [reading, setReading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [readAt, setReadAt] = useState<string | null>(null);
+  const sensorsQuery = useAllSensors();
+  const rows = sensorsQuery.data ?? [];
+  const reading = sensorsQuery.isFetching;
+  const readingLabel = useCyclingLabel(ALL_SENSORS_PHRASES, reading, 3000);
   const [filter, setFilter] = useState("");
-
-  const readAll = async () => {
-    setReading(true);
-    setError(null);
-    try {
-      const r = await invoke<SensorReading[]>("all_sensors");
-      setRows(r);
-      setReadAt(new Date().toLocaleTimeString());
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setReading(false);
-    }
-  };
 
   const shown = rows.filter(
     (r) =>
@@ -58,9 +44,9 @@ function AllSensorsTable({ connected }: { connected: boolean }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={readAll} disabled={!connected || reading}>
+        <Button onClick={() => sensorsQuery.refetch()} disabled={!connected || reading}>
           <RefreshCw className={"h-4 w-4" + (reading ? " animate-spin" : "")} aria-hidden="true" />
-          {reading ? "Interrogating ECU…" : "Read all sensors"}
+          {reading ? readingLabel : "Read all sensors"}
         </Button>
         <input
           aria-label="Filter sensors"
@@ -69,16 +55,16 @@ function AllSensorsTable({ connected }: { connected: boolean }) {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {readAt && (
+        {sensorsQuery.dataUpdatedAt > 0 && rows.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            read at {readAt} · {rows.length} sensors
+            read at {new Date(sensorsQuery.dataUpdatedAt).toLocaleTimeString()} · {rows.length} sensors
           </span>
         )}
       </div>
 
-      {error && (
+      {sensorsQuery.isError && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
+          {String(sensorsQuery.error instanceof Error ? sensorsQuery.error.message : sensorsQuery.error)}
         </div>
       )}
 
