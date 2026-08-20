@@ -1,0 +1,12 @@
+{
+  "stream": "i18n",
+  "stage": "research",
+  "state": "research complete, plan queued behind app-perf build",
+  "updated": "2026-08-20T19:20:00Z",
+  "branch": "ws/i18n",
+  "notes": [
+    "Recommendation: typed dictionary (en.ts/es.ts + useT hook), no framework; tsc enforces missing keys.",
+    "Hard cases found: DTC library content, AI prompt locale, Rust-side user-facing strings.",
+    "Builds after app-perf per sequencing decision."
+  ]
+}

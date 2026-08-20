@@ -33,7 +33,7 @@ concurrently.
   hiding reads as a bug. First case: the C4 fuel gauge, 2026-08-20.
 
 ### A. Diagnostics UX (src/views/Diagnose.tsx, src/lib/meta.ts)
-- [ ] Clear-codes confirmation: replace the inline banner (pushes the whole
+- [x] Clear-codes confirmation: replace the inline banner (pushes the whole
       page down — layout shift) with a modal in the style of the DTC detail
       modal (centered card, dimmed backdrop, optional blur). User sketch:
       full-screen modal, card in the middle, background darker/blurred.

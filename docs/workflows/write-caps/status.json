@@ -1,0 +1,10 @@
+{
+  "stream": "write-caps",
+  "stage": "research",
+  "state": "researcher running",
+  "updated": "2026-08-20T19:20:00Z",
+  "branch": "ws/write-caps",
+  "notes": [
+    "Hardware-first research: what STN2100-class dongles can safely write on PSA, competitor matrix, safety rails."
+  ]
+}
