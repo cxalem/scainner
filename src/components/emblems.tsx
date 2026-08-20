@@ -205,6 +205,50 @@ function VolvoEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
+// Opel: circle crossed by a horizontal lightning bolt (the "Blitz"). One
+// closed Z-shaped band of constant thickness spanning the ring's full
+// horizontal diameter: left arm, diagonal step down through the center,
+// right arm.
+function OpelEmblem() {
+  const geo = useMemo(() => {
+    const outerR = 0.52, band = 0.08;
+    const innerR = outerR - band;
+
+    const ring = new THREE.Shape();
+    ring.absarc(0, 0, outerR, 0, Math.PI * 2, false);
+    const ringHole = new THREE.Path();
+    ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
+    ring.holes.push(ringHole);
+
+    // Blitz outline: constant thickness `t`, drawn as a Z band spanning
+    // -innerR to +innerR. Top edge walks left-arm, diagonal, right-arm;
+    // bottom edge is the same path offset down by t, walked in reverse to
+    // close the shape without self-intersecting.
+    const t = 0.12;
+    const armLen = innerR * 0.55;
+    const stepY = 0.16; // vertical drop of the diagonal step
+
+    const blitz = new THREE.Shape();
+    blitz.moveTo(-innerR, stepY / 2 + t / 2);
+    blitz.lineTo(-innerR + armLen, stepY / 2 + t / 2);
+    blitz.lineTo(innerR - armLen, -stepY / 2 + t / 2);
+    blitz.lineTo(innerR, -stepY / 2 + t / 2);
+    blitz.lineTo(innerR, -stepY / 2 - t / 2);
+    blitz.lineTo(innerR - armLen, -stepY / 2 - t / 2);
+    blitz.lineTo(-innerR + armLen, stepY / 2 - t / 2);
+    blitz.lineTo(-innerR, stepY / 2 - t / 2);
+    blitz.closePath();
+
+    const shapes = [ring, blitz];
+    const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
+    g.center();
+    return g;
+  }, []);
+  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
+  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
+}
+
 // Fallback for any brand without modeled emblem geometry: a chrome
 // nameplate slab with the brand name on its face (drawn to a canvas — no
 // font asset needed). The back stays blank chrome, like a real badge.
@@ -258,4 +302,5 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   renault: RenaultEmblem,
   mercedes: MercedesEmblem,
   volvo: VolvoEmblem,
+  opel: OpelEmblem,
 };
