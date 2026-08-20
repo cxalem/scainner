@@ -54,20 +54,36 @@ const WMI: Record<string, BrandInfo> = {
   SJN: { key: "nissan", name: "NISSAN" },
   VSK: { key: "nissan", name: "NISSAN" },
   JM1: { key: "mazda", name: "MAZDA" },
-  JMZ: { key: "mazda", name: "MAZDA" },
+  // JMZ removed 2026-08-21 (full-table audit,
+  // docs/workflows/3d-logos/wmi-audit.md): no source found at all, not in
+  // NHTSA's registry, not in Mazda's own 11-row NHTSA list, just an
+  // unsourced AI-summary claim with no checkable page behind it. Same
+  // principle as everywhere else in this file — a wrong badge is worse
+  // than no badge, and this one was never actually confirmed to be right.
   KMH: { key: "hyundai", name: "HYUNDAI" },
   TMA: { key: "hyundai", name: "HYUNDAI" },
   KNA: { key: "kia", name: "KIA" },
   KNE: { key: "kia", name: "KIA" },
   U5Y: { key: "kia", name: "KIA" },
-  JSA: { key: "suzuki", name: "SUZUKI" },
+  // Was JSA until the audit above caught a real error, not just low
+  // confidence: NHTSA confirms JSA is a motorcycle WMI (Suzuki Motor of
+  // America, VehicleType Motorcycle, shared with Kawasaki), not a car
+  // code. JS2 is Suzuki's actual passenger-car/truck code, NHTSA-confirmed
+  // plain "SUZUKI."
+  JS2: { key: "suzuki", name: "SUZUKI" },
   // Geely Group is a real gap: BYD/Chery/Geely are among Europe's
   // fastest-growing brands (Chery +306%, Geely Group +8.5% in H1 2026 per
   // best-selling-cars.com) and none had a WMI entry until this row. LB3 is
-  // core Geely-badged models specifically (Coolray, Emgrand, Atlas Pro).
-  // Deliberately not adding L6T: that prefix is shared group-wide across
-  // Geely, Zeekr, and Geometry, so mapping it to "geely" would misattribute
-  // a Zeekr as a Geely — a wrong badge is worse than no badge (see
+  // core Geely-badged models (Coolray, Emgrand, Atlas Pro) — that mapping
+  // holds up across every source checked. The excluded-L6T reasoning
+  // below is weaker than originally stated: the audit
+  // (docs/workflows/3d-logos/wmi-audit.md) found Wikibooks directly
+  // contradicts which sub-brands (Geometry, mainline Geely) sit on LB3 vs
+  // L6T specifically — genuinely unresolved, not a settled split. Still
+  // deliberately not adding L6T, since it's at least partly Zeekr's
+  // (NHTSA-confirmed, Zeekr registered its own US entity under L6T in
+  // Nov 2024) and the wrong-badge-worse-than-no-badge principle applies
+  // regardless of exactly how the group's other prefixes shake out (see
   // docs/workflows/3d-logos/research.md section 5).
   LB3: { key: "geely", name: "GEELY" },
   // BYD: LGX confirmed against NHTSA's own WMI registry directly
@@ -90,7 +106,13 @@ const WMI: Record<string, BrandInfo> = {
   XP7: { key: "tesla", name: "TESLA" },
   SAL: { key: "land-rover", name: "LAND ROVER" },
   SAJ: { key: "jaguar", name: "JAGUAR" },
-  VXK: { key: "opel", name: "OPEL" },
+  // VXK removed 2026-08-21 (full-table audit,
+  // docs/workflows/3d-logos/wmi-audit.md): two source lineages directly
+  // contradict each other on what this code even is — one says
+  // Opel/Vauxhall-shared (France-built Grandland), the other says
+  // Vauxhall-specific with a separate code (VLG) for the shared cars.
+  // Not a confidence gap, an unresolved conflict; W0L below already
+  // covers real Opel cars correctly on its own.
 };
 
 export function brandFromVin(vin: string | null | undefined): BrandInfo | null {

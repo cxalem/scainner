@@ -339,11 +339,16 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   seat: glbEmblem("seat.glb"),
   // saic, vauxhall, and cupra have no brand.ts WMI entry on purpose — see
   // brand.ts and decisions-build.md. SAIC Motor doesn't retail cars under
-  // its own name (badges as MG/Roewe/Maxus instead), Vauxhall shares
-  // Opel's W0L prefix, and Cupra shares Seat's VSS prefix — neither pair
-  // has a reliable way to tell its two brands apart from the VIN alone.
-  // All three stay reachable via the dev ?brand= override so the geometry
-  // is ready the moment any of them gets a confident WMI.
+  // its own name (badges as MG/Roewe/Maxus instead). Vauxhall and Cupra
+  // are softer calls, corrected 2026-08-21 after a full-table audit
+  // (docs/workflows/3d-logos/wmi-audit.md): the "Vauxhall shares Opel's
+  // W0L" and "Cupra shares Seat's VSS" claims are plausible and likely
+  // true, not authoritatively confirmed — real sources disagree on
+  // whether Vauxhall has its own distinct codes instead, and no primary
+  // source settles the Seat/Cupra claim either. Either way there's no
+  // confident WMI for either brand today, so the practical result is the
+  // same: all three stay reachable via the dev ?brand= override so the
+  // geometry is ready the moment any of them gets one.
   saic: glbEmblem("saic.glb"),
   vauxhall: glbEmblem("vauxhall.glb"),
   cupra: glbEmblem("cupra.glb"),
