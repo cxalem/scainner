@@ -84,6 +84,11 @@ concurrently.
 - [x] Dark card background with slow drifting particles behind the badge
       (EmblemStarfield.tsx, adapted from the knowledge-base starfield
       note), replacing the flat light card.
+- [x] Real 3D GLB geometry (rounded torus rings, true depth/fillets, a
+      step up from flat-extruded STL) for Audi, BMW, Mercedes, Toyota, VW.
+      Adds ~15.7MB to the bundle for these 5 brands alone (~25MB total
+      emblem payload) — candidate for mesh decimation before more brands
+      move to this pipeline at full CAD tessellation.
 - [ ] Drag-to-rotate / scroll-to-zoom (OrbitControls) instead of spin-only.
 - [ ] Decide fate of the dormant C4 car pipelines (GlbCarModel/StlCarModel/
       CarModel + repair script + model assets): keep one, delete the rest.

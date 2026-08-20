@@ -335,3 +335,47 @@ VehicleScene card, done together at the user's direction:
   own reference car — a hand-built exhaustive model database is not a
   realistic scope either. Wired the year into Overview's header and
   DiscoveryFlow's info card (new "Vehicle" row: brand name + year).
+
+## Addendum 4: real 3D GLB emblems for Audi, BMW, Mercedes, Toyota, VW (2026-08-20)
+
+Source: two GLB drops from Alejandro — a single Audi file
+(Audi_emblem_CAD_rounded_polished_metal.glb, trimesh-generated, 4
+separate ring meshes) and a batch of 4
+(Polished_Metal_GLB_Batch_01_CAD_FIXED_V2: BMW, Mercedes-Benz, Toyota,
+Volkswagen). The batch README states this corrects a real defect in an
+earlier unseen pass ("removes the scalloped/stepped side-wall artifacts
+seen in the previous batch") — taken at face value per this stream's
+usual caveat, not independently verifiable from inside this repo.
+
+This is a genuine step up from the flat-extruded STL geometry: real
+rounded torus rings with true depth and fillets instead of flat bevels,
+visibly more premium. Verified live in-browser for all 5 (not just load
+success) — correct orientation, smooth shading, no faceting, no
+mirroring.
+
+New GlbEmblem component (emblems.tsx), parallel to StlEmblem but
+operating at the Object3D level instead of per-geometry buffers, since a
+GLB is a scene graph (Audi is 4 separate mesh nodes) rather than one
+BufferGeometry: rotate/scale/center the whole cloned scene using the same
+thinnest-axis auto-detection as the STL path, then swap every mesh's
+material for the shared EMBLEM_CHROME (discarding each file's own baked
+"Polished_Metal" PBR material, for the same one-consistent-look-across-
+every-badge reason STL emblems already ignore their source coloring).
+Does not run toCreasedNormals — GLB carries real vertex normals from its
+own export pipeline, unlike STL's per-facet soup, and both Audi and the
+batch-01 four render smooth without it.
+
+Bundle size, named plainly rather than left as a silent tradeoff: this
+swap alone adds roughly 15.7MB (removed ~1.15MB of STL for these 5
+brands, added ~16.8MB of GLB). Total public/emblems payload is now about
+25MB. Not a blocker for a desktop app users install once, but a real
+number, and the geometric detail (>50k triangles per brand, over 100k for
+some) is far beyond what's visible at the card's actual render size —
+worth decimating before this goes much further if more brands move to
+this pipeline, rather than compounding the bundle size with every future
+GLB drop at full CAD tessellation.
+
+Removed the now-superseded STL files for these 5 brands
+(bmw/mercedes/toyota/volkswagen/audi.stl) — same "don't leave unused
+assets in the PR" standard already applied to the review screenshots in
+addendum 3.
