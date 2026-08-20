@@ -3,6 +3,10 @@ packages:
   - "packages/*"
 allowBuilds:
   esbuild: true
+# pnpm's minimum-release-age supply-chain gate blocks packages published too
+# recently; these just-released Expo SDK 57 versions are allowlisted so
+# apps/mobile can install. Exact-pinned: extend this list (or remove it once
+# the versions age past the gate) when bumping Expo.
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.17'
   - '@expo/fingerprint@0.20.9'

@@ -40,6 +40,13 @@ supervisor) + React/TypeScript frontend (Tailwind, shadcn-style components,
 lucide-react icons, recharts). No cloud, no telemetry, no account — the
 database lives on your machine.
 
+## Repository layout
+
+The repo is a pnpm + Turborepo monorepo: `apps/desktop` (the Tauri app
+described in this README), `apps/mobile` (an Expo app, early scaffold),
+and `packages/core` (the shared Effect schemas and service contracts both
+apps type against).
+
 ## Architecture
 
 The backend is split by what each layer knows, so "how do I talk to the car"
@@ -47,7 +54,7 @@ The backend is split by what each layer knows, so "how do I talk to the car"
 *this* car's manufacturer support" (UDS) don't mix:
 
 ```
-src-tauri/src/
+apps/desktop/src-tauri/src/
 ├── lib.rs              Tauri command surface — thin wrappers that either
 │                        read the DB directly or `ask()` the supervisor
 ├── db.rs                SQLite layer: schema, migrations, every query
@@ -71,10 +78,12 @@ src-tauri/src/
 to "which module answers X" — the file worth reading first to see how the
 pieces fit.
 
-The frontend is one file per screen under `src/views/`, with `views/lab/`
-holding the UDS Lab's five cards (module manager, DID reader, range scanner,
-probe manager, module-fault clearer) as separate components. Shared types
-and sensor metadata live in `src/lib/meta.ts`.
+The frontend is one file per screen under `apps/desktop/src/views/`, with
+`views/lab/` holding the UDS Lab's five cards (module manager, DID reader,
+range scanner, probe manager, module-fault clearer) as separate components.
+The shared domain schemas and service contracts live in `packages/core`;
+display metadata (gauge definitions, labels) in
+`apps/desktop/src/shared/domain/gauges.ts`.
 
 Frontend and backend only talk through Tauri's `invoke()`/event-emit bridge
 — `lib.rs`'s `tauri::generate_handler![...]` list is the complete API
@@ -85,9 +94,9 @@ surface between them.
 Built and tested against a **vGate iCar Pro** (classic-Bluetooth variant) on
 **macOS**. The Bluetooth handling (PIN pairing, a "sulk mode" where the
 dongle periodically stops answering until re-paired) is specific to that
-dongle and this platform — see `src-tauri/src/elm/driver.rs`, and
+dongle and this platform — see `apps/desktop/src-tauri/src/elm/driver.rs`, and
 `UDS_INVESTIGATION_LOG.md` for how it was diagnosed. If your dongle
-enumerates differently, override without touching code:
+enumerates differently, override without touching code (from `apps/desktop`):
 
 ```bash
 SCAINNER_OBD_PORT=/dev/cu.YourDongle SCAINNER_OBD_MAC=aa-bb-cc-dd-ee-ff SCAINNER_OBD_PIN=0000 pnpm tauri dev
@@ -133,7 +142,8 @@ what an identifier measures) — the same method applies to any brand.
 ## Running it
 
 ```bash
-pnpm install
+pnpm install          # at the repo root
+cd apps/desktop
 pnpm tauri dev
 ```
 
@@ -150,11 +160,13 @@ RUST_LOG=debug pnpm tauri dev   # connection lifecycle, scan start/end
 RUST_LOG=trace pnpm tauri dev   # + per-DID scan progress
 ```
 
+(Also from `apps/desktop`.)
+
 ### Tests
 
 ```bash
-cd src-tauri && cargo test   # parser + UDS decode logic — no hardware needed
-pnpm exec tsc --noEmit       # frontend type-check
+cd apps/desktop/src-tauri && cargo test   # parser + UDS decode logic — no hardware needed
+pnpm typecheck                            # from the repo root: type-checks every package
 ```
 
 Several Rust tests use real captured bytes from the author's car as fixtures
@@ -168,7 +180,7 @@ terms) except one, explicitly gated: clearing fault codes. That's the same
 operation every commercial diagnostic tool performs, and it only erases
 stored records — it cannot change how the car drives. There's no code path
 that writes configuration, flashes firmware, or runs actuator/routine
-commands. `src-tauri/src/elm/uds.rs` is the file to check.
+commands. `apps/desktop/src-tauri/src/elm/uds.rs` is the file to check.
 
 ## License
 

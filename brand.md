@@ -8,7 +8,7 @@ skeuomorphic-gauge, racing-font cliché of the OBD app category.
 
 ## Palette
 
-Defined as CSS custom properties in `src/index.css` (light + `.dark` variants),
+Defined as CSS custom properties in `apps/desktop/src/index.css` (light + `.dark` variants),
 exposed through Tailwind v4 `@theme inline` tokens. Use tokens only — never raw hex.
 
 - `--primary`: green (oklch 0.55/0.18/155 light · 0.7/0.16/155 dark) — the single
