@@ -27,9 +27,9 @@ export function Diagnose({ connected }: { connected: boolean }) {
 
   const doScan = () => {
     scanMutation.mutate(undefined, {
-      onSuccess: ({ scan: r, readiness: rd }) => {
-        setScan(r);
-        setReadiness(rd);
+      onSuccess: ({ scan: scanResult, readiness: readinessResult }) => {
+        setScan(scanResult);
+        setReadiness(readinessResult);
       },
     });
   };
@@ -157,9 +157,9 @@ export function Diagnose({ connected }: { connected: boolean }) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(readiness).map(([k, ready]) => (
-                <Badge key={k} variant={ready ? "ok" : "warn"}>
-                  {MONITOR_LABELS[k] ?? k}: {ready ? "ready" : "not ready"}
+              {Object.entries(readiness).map(([monitor, ready]) => (
+                <Badge key={monitor} variant={ready ? "ok" : "warn"}>
+                  {MONITOR_LABELS[monitor] ?? monitor}: {ready ? "ready" : "not ready"}
                 </Badge>
               ))}
             </div>

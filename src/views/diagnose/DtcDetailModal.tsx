@@ -35,17 +35,17 @@ export function DtcDetailModal({
   const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const occurrences = history
-    .filter((h) => h.stored.includes(code) || h.pending.includes(code) || h.permanent.includes(code))
-    .map((h) => ({
-      ts: h.ts,
-      role: h.stored.includes(code) ? "stored" : h.pending.includes(code) ? "pending" : "permanent",
-      voltage: h.voltage,
+    .filter((row) => row.stored.includes(code) || row.pending.includes(code) || row.permanent.includes(code))
+    .map((row) => ({
+      ts: row.ts,
+      role: row.stored.includes(code) ? "stored" : row.pending.includes(code) ? "pending" : "permanent",
+      voltage: row.voltage,
     }));
 
   const freeze =
     scan?.freeze && String((scan.freeze as Record<string, unknown>).trigger_dtc) === code
       ? (scan.freeze as Record<string, unknown>)
-      : (history.find((h) => h.freeze && String((h.freeze as Record<string, unknown>).trigger_dtc) === code)
+      : (history.find((row) => row.freeze && String((row.freeze as Record<string, unknown>).trigger_dtc) === code)
           ?.freeze as Record<string, unknown> | undefined) ?? null;
 
   const doGenerate = async () => {
@@ -53,7 +53,7 @@ export function DtcDetailModal({
     setError(null);
     try {
       const summary =
-        occurrences.map((o) => `- ${o.ts} UTC — seen as ${o.role}${o.voltage != null ? ` (battery ${o.voltage.toFixed(1)} V)` : ""}`).join("\n") +
+        occurrences.map((occ) => `- ${occ.ts} UTC — seen as ${occ.role}${occ.voltage != null ? ` (battery ${occ.voltage.toFixed(1)} V)` : ""}`).join("\n") +
         (freeze ? `\nFreeze frame at the moment it tripped: ${JSON.stringify(freeze)}` : "");
       setReport(await generateCodeReport(code, summary || "(no recorded occurrences — code seen in a live scan only)"));
     } catch (e) {
@@ -112,10 +112,10 @@ export function DtcDetailModal({
               <p className="text-muted-foreground">Not in any recorded scan (seen live only).</p>
             ) : (
               <ul className="flex flex-col gap-1">
-                {occurrences.map((o, i) => (
-                  <li key={i} className="flex items-center justify-between border-b border-border py-1 last:border-0">
-                    <span className="font-mono text-xs text-muted-foreground">{o.ts} UTC</span>
-                    <Badge variant={o.role === "pending" ? "warn" : "error"}>{o.role}</Badge>
+                {occurrences.map((occ, index) => (
+                  <li key={index} className="flex items-center justify-between border-b border-border py-1 last:border-0">
+                    <span className="font-mono text-xs text-muted-foreground">{occ.ts} UTC</span>
+                    <Badge variant={occ.role === "pending" ? "warn" : "error"}>{occ.role}</Badge>
                   </li>
                 ))}
               </ul>
@@ -129,16 +129,16 @@ export function DtcDetailModal({
               <div>
                 <p className="mb-1 font-medium">Common causes (most likely first)</p>
                 <ol className="list-decimal pl-5 text-muted-foreground">
-                  {info.causes.map((c) => (
-                    <li key={c}>{c}</li>
+                  {info.causes.map((cause) => (
+                    <li key={cause}>{cause}</li>
                   ))}
                 </ol>
               </div>
               <div>
                 <p className="mb-1 font-medium">Typical symptoms</p>
                 <ul className="list-disc pl-5 text-muted-foreground">
-                  {info.symptoms.map((s) => (
-                    <li key={s}>{s}</li>
+                  {info.symptoms.map((symptom) => (
+                    <li key={symptom}>{symptom}</li>
                   ))}
                 </ul>
               </div>

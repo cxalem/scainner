@@ -2,7 +2,7 @@ import { Snowflake } from "lucide-react";
 import { GAUGES } from "@/shared/domain/gauges";
 
 export function FreezeFrame({ data }: { data: Record<string, unknown> }) {
-  const entries = Object.entries(data).filter(([k]) => k !== "trigger_dtc");
+  const entries = Object.entries(data).filter(([entryKey]) => entryKey !== "trigger_dtc");
   return (
     <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
       <p className="mb-2 flex items-center gap-1.5 font-medium">
@@ -12,13 +12,13 @@ export function FreezeFrame({ data }: { data: Record<string, unknown> }) {
         )}
       </p>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3">
-        {entries.map(([k, v]) => {
-          const g = GAUGES.find((x) => x.key === k);
+        {entries.map(([entryKey, value]) => {
+          const gauge = GAUGES.find((candidate) => candidate.key === entryKey);
           return (
-            <div key={k} className="flex justify-between gap-2">
-              <span className="text-muted-foreground">{g?.label ?? k}</span>
+            <div key={entryKey} className="flex justify-between gap-2">
+              <span className="text-muted-foreground">{gauge?.label ?? entryKey}</span>
               <span className="font-mono">
-                {typeof v === "number" ? (g?.fmt ? g.fmt(v) : v) : String(v)} {g?.unit ?? ""}
+                {typeof value === "number" ? (gauge?.fmt ? gauge.fmt(value) : value) : String(value)} {gauge?.unit ?? ""}
               </span>
             </div>
           );

@@ -29,8 +29,8 @@ export function FuelLevelGauge({ pct }: { pct: number }) {
       </div>
       <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label={`Fuel tank ${clamped.toFixed(0)} percent, ${status.label.toLowerCase()}`}>
         {/* quarter-tick marks */}
-        {[25, 50, 75].map((t) => (
-          <span key={t} className="absolute inset-y-0 w-px bg-foreground/15" style={{ left: `${t}%` }} aria-hidden="true" />
+        {[25, 50, 75].map((tick) => (
+          <span key={tick} className="absolute inset-y-0 w-px bg-foreground/15" style={{ left: `${tick}%` }} aria-hidden="true" />
         ))}
         <div
           className={`h-full origin-left rounded-full ${fillColor} motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out motion-reduce:transition-none`}

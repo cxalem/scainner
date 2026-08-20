@@ -19,8 +19,8 @@ export function DidReader({ module, connected }: { module: string; connected: bo
     setBusy(true);
     setError(null);
     try {
-      const r = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsRead(module, parseInt(did, 16))));
-      setResult(r ?? "nothing");
+      const hit = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsRead(module, parseInt(did, 16))));
+      setResult(hit ?? "nothing");
     } catch (e) {
       setError(String(e));
     } finally {

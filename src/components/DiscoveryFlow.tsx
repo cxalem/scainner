@@ -149,11 +149,11 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
             <CardContent className="max-h-52 overflow-y-scroll pt-4">
               <table className="w-full text-sm">
                 <tbody>
-                  {sensors.map((s) => (
-                    <tr key={s.pid} className="border-b border-border/50 last:border-0">
-                      <td className="py-1 text-muted-foreground">{s.label}</td>
+                  {sensors.map((sensor) => (
+                    <tr key={sensor.pid} className="border-b border-border/50 last:border-0">
+                      <td className="py-1 text-muted-foreground">{sensor.label}</td>
                       <td className="py-1 text-right font-mono tabular-nums">
-                        {s.value.toFixed(1)} <span className="text-xs text-muted-foreground">{s.unit}</span>
+                        {sensor.value.toFixed(1)} <span className="text-xs text-muted-foreground">{sensor.unit}</span>
                       </td>
                     </tr>
                   ))}
