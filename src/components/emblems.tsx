@@ -10,6 +10,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useLoader } from "@react-three/fiber";
 
@@ -277,20 +278,104 @@ function stlEmblem(file: string, opts?: { targetWidth?: number; extraRotationY?:
   };
 }
 
+// GLB emblem: a full scene (multiple mesh nodes, e.g. Audi's four separate
+// ring meshes) rather than one BufferGeometry, so normalization happens at
+// the Object3D level — rotate/scale/center the whole group — instead of
+// the STL path's per-geometry buffer transforms. GLB ships real vertex
+// normals from its own export pipeline (unlike STL's per-facet soup), so
+// this does not run toCreasedNormals; if a future GLB turns out faceted,
+// that's the first thing to add back; see patterns/3d.md rule 1.
+//
+// The source file's own material is discarded in favor of the shared
+// EMBLEM_CHROME, same call already made for every STL brand: one
+// consistent chrome look across all 20+ badges beats each one carrying
+// whatever its own export happened to bake in.
+function GlbEmblem({ url, targetWidth = 2.0 }: { url: string; targetWidth?: number }) {
+  const gltf = useLoader(GLTFLoader, url);
+  const mat = useMemo(() => new THREE.MeshPhysicalMaterial({ ...EMBLEM_CHROME, side: THREE.DoubleSide }), []);
+  const root = useMemo(() => {
+    // useLoader caches the parsed gltf across instances (patterns/3d.md
+    // rule 9) — clone the scene graph before mutating any of it.
+    const scene = gltf.scene.clone(true);
+    scene.updateMatrixWorld(true);
+
+    const box0 = new THREE.Box3().setFromObject(scene);
+    const size0 = new THREE.Vector3();
+    box0.getSize(size0);
+    const extents: Array<[number, "x" | "y" | "z"]> = [
+      [size0.x, "x"],
+      [size0.y, "y"],
+      [size0.z, "z"],
+    ];
+    extents.sort((a, b) => a[0] - b[0]);
+    const depthAxis = extents[0][1];
+    if (depthAxis === "x") scene.rotateY(Math.PI / 2);
+    else if (depthAxis === "y") scene.rotateX(Math.PI / 2);
+    scene.updateMatrixWorld(true);
+
+    const box1 = new THREE.Box3().setFromObject(scene);
+    const size1 = new THREE.Vector3();
+    box1.getSize(size1);
+    const width = Math.max(size1.x, size1.y);
+    const scale = width > 0 ? targetWidth / width : 1;
+    scene.scale.setScalar(scale);
+    scene.updateMatrixWorld(true);
+
+    const box2 = new THREE.Box3().setFromObject(scene);
+    const center = new THREE.Vector3();
+    box2.getCenter(center);
+    scene.position.sub(center);
+
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        (child as THREE.Mesh).material = mat;
+        (child as THREE.Mesh).castShadow = true;
+      }
+    });
+    return scene;
+  }, [gltf, mat, targetWidth]);
+
+  useEffect(
+    () => () => {
+      mat.dispose();
+      root.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).geometry.dispose();
+      });
+    },
+    [root, mat],
+  );
+
+  // Centering is already baked into `root`'s own position (set above,
+  // relative to its own bounding box) — the EMBLEM_Y offset goes on a
+  // wrapping group instead of `root` itself, so a JSX position prop here
+  // can't clobber that.
+  return (
+    <group position={[0, EMBLEM_Y, 0]}>
+      <primitive object={root} />
+    </group>
+  );
+}
+
+function glbEmblem(file: string, opts?: { targetWidth?: number }): React.ComponentType {
+  return function BoundGlbEmblem() {
+    return <GlbEmblem url={`/emblems/glb/${file}`} {...opts} />;
+  };
+}
+
 // Registry: brand.key -> modeled emblem component. Anything not listed here
 // falls back to NameplateEmblem in VehicleScene. Adding a new brand is just
 // a new component plus a new entry, no changes needed elsewhere.
 export const EMBLEMS: Record<string, React.ComponentType> = {
   volvo: VolvoEmblem,
   citroen: stlEmblem("citroen.stl"),
-  audi: stlEmblem("audi.stl"),
-  bmw: stlEmblem("bmw.stl"),
-  mercedes: stlEmblem("mercedes.stl"),
+  audi: glbEmblem("audi.glb"),
+  bmw: glbEmblem("bmw.glb"),
+  mercedes: glbEmblem("mercedes.glb"),
   peugeot: stlEmblem("peugeot.stl"),
   renault: stlEmblem("renault.stl"),
   skoda: stlEmblem("skoda.stl"),
-  toyota: stlEmblem("toyota.stl"),
-  volkswagen: stlEmblem("volkswagen.stl"),
+  toyota: glbEmblem("toyota.glb"),
+  volkswagen: glbEmblem("volkswagen.glb"),
   dacia: stlEmblem("dacia.stl"),
   hyundai: stlEmblem("hyundai.stl"),
   kia: stlEmblem("kia.stl"),

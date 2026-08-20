@@ -1,16 +1,18 @@
 {
   "stream": "3d-logos",
   "stage": "build",
-  "state": "22 brands now real STL geometry; Volvo stays hand-built/traced. Dark starfield card, third size bump, VIN-timing fix, model-year decode. PR 1 updated, awaiting user review and manual test.",
-  "updated": "2026-08-20T22:20:00Z",
+  "state": "22 brands with real geometry (5 as real 3D GLB, 17 as flat-extruded STL); Volvo stays hand-built/traced. Dark starfield card, VIN-timing fix, model-year decode. PR 1 updated, awaiting user review and manual test.",
+  "updated": "2026-08-20T22:45:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "STL files supplied directly by Alejandro across 6 batches, provenance recorded in decisions-build.md addenda 1-3.",
+    "Audi, BMW, Mercedes, Toyota, VW upgraded to real GLB geometry (rounded torus rings, true depth) — new GlbEmblem component, superseded STL files for these 5 removed.",
+    "Bundle size named plainly: ~25MB total emblem payload now, ~15.7MB of that from this GLB round alone. Not a blocker for a desktop app, but a real candidate for mesh decimation before more brands move to this pipeline at full CAD tessellation.",
+    "STL files supplied directly by Alejandro across 6 batches, GLB across 2 drops, provenance recorded in decisions-build.md addenda 1-4.",
     "New WMI entries: geely (LB3, high confidence), byd (LGX, NHTSA-confirmed), chery (LVV, medium confidence). saic and vauxhall deliberately have no WMI (see addendum 3).",
     "Emblem card redesigned: dark gradient + slow particle dust (EmblemStarfield.tsx), from the user's own knowledge-base starfield note, three variants previewed as an artifact before picking one.",
-    "Real bug fixed, not just a preference: Overview's emblem briefly showed the wrong brand on connect (independent slower VIN fetch racing the connecting animation). Now passed down from App as a prop.",
-    "New src/lib/vin.ts: offline model-year decode (ISO 3779 position 10). Full model/trim decode investigated and explicitly not done — evidence in decisions-build.md addendum 3 (NHTSA works for US-sold brands, fails for the app's own reference car, a Citroen).",
-    "All new brands verified live in-browser via dev ?vin= override before committing.",
+    "Real bug fixed, not just a preference: Overview's emblem briefly showed the wrong brand on connect. Now passed down from App as a prop instead of independently re-fetched.",
+    "New src/lib/vin.ts: offline model-year decode. Full model/trim decode investigated and explicitly not done — see decisions-build.md addendum 3.",
+    "All brands verified live in-browser via dev ?vin= override before committing.",
     "PR: https://github.com/cxalem/scainner/pull/1",
     "On merge: app-perf builder starts automatically."
   ]
