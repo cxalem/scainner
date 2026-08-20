@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { invoke } from "@/lib/tauri";
+import { Effect } from "effect";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import { Bot, Car, Copy, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useTransientLabel } from "@/components/ui";
-import { useCarInfo, useDbPath, useReadEcuInfo } from "@/lib/queries";
+import { useCarInfo, useDbPath, useReadEcuInfo } from "@/features/vehicle/queries";
 
 export function Vehicle({ connected }: { connected: boolean }) {
   const infoQuery = useCarInfo();
@@ -24,7 +26,7 @@ export function Vehicle({ connected }: { connected: boolean }) {
     setCopyingWhich(label);
     setCopyError(null);
     try {
-      const json = await invoke<string>("export_json", { sinceHours: hours });
+      const json = await runPromise(Effect.flatMap(DeviceService, (device) => device.exportJson(hours)));
       await navigator.clipboard.writeText(json);
       flashCopy(label);
     } catch (e) {
@@ -38,7 +40,7 @@ export function Vehicle({ connected }: { connected: boolean }) {
     setCopyingWhich("ai");
     setCopyError(null);
     try {
-      const md = await invoke<string>("ai_context", { sinceHours: 24 * 30 });
+      const md = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
       await navigator.clipboard.writeText(md);
       flashCopy("ai");
     } catch (e) {

@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
-import { invoke, listen } from "@/lib/tauri";
+import { Effect } from "effect";
+import { listen } from "@/lib/tauri";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import { hex4, type UdsHit } from "@/lib/meta";
+import { hex4 } from "@/shared/domain/gauges";
+import type { UdsHit } from "@/features/lab/schema";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -52,7 +56,7 @@ export function RangeScanner({
       for (let start = from; start <= to; start += SCAN_CHUNK) {
         const end = Math.min(start + SCAN_CHUNK - 1, to);
         setProgress(`scanning ${hex4(start)}–${hex4(end)}… (${all.length} hits so far)`);
-        const chunk = await invoke<UdsHit[]>("uds_scan", { module, from: start, to: end });
+        const chunk = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsScan(module, start, end)));
         all.push(...chunk);
         setHits([...all]);
       }
@@ -95,7 +99,10 @@ export function RangeScanner({
             {busy ? (liveProgress ? `Scanning… (${liveProgress.hits} found)` : "Scanning…") : "Scan"}
           </Button>
           {busy && (
-            <Button variant="outline" onClick={() => invoke("uds_cancel_scan")}>
+            <Button
+              variant="outline"
+              onClick={() => runPromise(Effect.flatMap(DeviceService, (device) => device.udsCancelScan()))}
+            >
               Cancel
             </Button>
           )}

@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
-import { CONNECT_PHRASES, type ConnStatus } from "@/lib/meta";
+import { CONNECT_PHRASES, type ConnStatus } from "@/shared/domain/connection";
 
 export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
 

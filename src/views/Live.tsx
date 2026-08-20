@@ -1,23 +1,24 @@
 import { useState } from "react";
 import { Activity, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, useCyclingLabel } from "@/components/ui";
-import { ALL_SENSORS_PHRASES, GAUGES, type Live as LiveMap } from "@/lib/meta";
-import { useAllSensors } from "@/lib/queries";
+import { ALL_SENSORS_PHRASES, GAUGES } from "@/shared/domain/gauges";
+import type { Live as LiveMap } from "@/shared/domain/connection";
+import { useAllSensors } from "@/features/live/queries";
 
 function Gauges({ live }: { live: LiveMap }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {GAUGES.map((g) => {
-        const v = live[g.key];
+      {GAUGES.map((gauge) => {
+        const value = live[gauge.key];
         return (
-          <Card key={g.key} className={v === undefined ? "opacity-50" : ""}>
+          <Card key={gauge.key} className={value === undefined ? "opacity-50" : ""}>
             <CardHeader>
-              <CardTitle>{g.label}</CardTitle>
+              <CardTitle>{gauge.label}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="font-mono text-2xl font-semibold tabular-nums">
-                {v === undefined ? "—" : g.fmt ? g.fmt(v) : v}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">{g.unit}</span>
+                {value === undefined ? "—" : gauge.fmt ? gauge.fmt(value) : value}
+                <span className="ml-1 text-xs font-normal text-muted-foreground">{gauge.unit}</span>
               </div>
             </CardContent>
           </Card>
@@ -91,12 +92,12 @@ function AllSensorsTable({ connected }: { connected: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((r) => (
-                  <tr key={r.pid} className="border-b border-border/50 last:border-0">
-                    <td className="py-1.5 font-mono text-xs text-muted-foreground">{r.pid}</td>
-                    <td className="py-1.5">{r.label}</td>
+                {shown.map((reading) => (
+                  <tr key={reading.pid} className="border-b border-border/50 last:border-0">
+                    <td className="py-1.5 font-mono text-xs text-muted-foreground">{reading.pid}</td>
+                    <td className="py-1.5">{reading.label}</td>
                     <td className="py-1.5 text-right font-mono tabular-nums">
-                      {r.value.toFixed(1)} <span className="text-xs text-muted-foreground">{r.unit}</span>
+                      {reading.value.toFixed(1)} <span className="text-xs text-muted-foreground">{reading.unit}</span>
                     </td>
                   </tr>
                 ))}

@@ -3,19 +3,27 @@
 // The backend already builds a full diagnostic briefing (`ai_context`: car
 // identity, recent DTC scans with freeze frames, sensor stats) that was
 // designed for manual pasting into an AI chat. This module closes the loop:
-// it sends that briefing to the Anthropic API directly from the webview and
-// returns a structured diagnosis.
+// it sends that briefing to the Anthropic API and returns a structured
+// diagnosis. The fetch call itself lives behind AiService
+// (core/services/ai-service.ts, the Effect+Schema+Layer pattern) — this
+// file owns the prompts, key storage, and report caching around it.
 //
 // Key handling: the API key is the USER'S OWN, entered once in the Diagnose
 // tab and kept in localStorage — deliberately NOT in the SQLite DB (the DB
 // is exported wholesale into AI briefings and demo dumps; a key stored
-// there would leak into them) and never bundled into the app.
+// there would leak into them) and never bundled into the app. This did not
+// change when the fetch moved behind AiService: the key is read here and
+// passed in as a plain argument, AiService never touches localStorage.
 //
 // The direct-from-browser call is Anthropic's documented CORS path (the
-// `anthropic-dangerous-direct-browser-access` header). "Dangerous" refers
-// to shipping a key inside a public web app — irrelevant here: this is a
-// local desktop tool and the key is the user's own, entered locally.
-import { invoke } from "@/lib/tauri";
+// `anthropic-dangerous-direct-browser-access` header, set in AiService).
+// "Dangerous" refers to shipping a key inside a public web app — irrelevant
+// here: this is a local desktop tool and the key is the user's own, entered
+// locally.
+import { Effect } from "effect";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
+import { AiService } from "@/core/services/ai-service";
 
 const KEY_STORAGE = "scainner.anthropic_api_key";
 const REPORT_STORAGE = "scainner.last_ai_report";
@@ -70,49 +78,18 @@ Numbered, ordered by effort/cost — cheapest checks first. Be concrete (what to
 
 Rules: never invent data that is not in the briefing; state uncertainty honestly; metric units; under 500 words total.`;
 
+// Call mechanics live in AiService (core/services/ai-service.ts) - same
+// wrap-and-validate shape as DeviceService. This function's own signature
+// and thrown-Error behavior are unchanged, so the two call sites below
+// needed no edits beyond this function's body.
 async function callClaude(system: string, userContent: string): Promise<string> {
   const key = getApiKey();
   if (!key) throw new Error("No API key configured.");
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 2000,
-      system,
-      messages: [{ role: "user", content: userContent }],
-    }),
-  });
-
-  if (!res.ok) {
-    let detail = `${res.status}`;
-    try {
-      const err = (await res.json()) as { error?: { message?: string } };
-      if (err.error?.message) detail = `${res.status}: ${err.error.message}`;
-    } catch {
-      // status alone is fine
-    }
-    throw new Error(`Anthropic API error ${detail}`);
-  }
-
-  const data = (await res.json()) as { content: { type: string; text?: string }[] };
-  const md = data.content
-    .filter((b) => b.type === "text" && b.text)
-    .map((b) => b.text)
-    .join("\n")
-    .trim();
-  if (!md) throw new Error("Empty response from the model.");
-  return md;
+  return runPromise(Effect.flatMap(AiService, (ai) => ai.complete({ apiKey: key, model: MODEL, system, userContent })));
 }
 
 export async function generateDiagnosisReport(): Promise<SavedReport> {
-  const briefing = await invoke<string>("ai_context", { sinceHours: 24 * 30 });
+  const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
   const md = await callClaude(SYSTEM_PROMPT, briefing);
   const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md };
   localStorage.setItem(REPORT_STORAGE, JSON.stringify(report));
@@ -156,7 +133,7 @@ export function getCodeReports(): CodeReports {
 }
 
 export async function generateCodeReport(code: string, occurrenceSummary: string): Promise<SavedReport> {
-  const briefing = await invoke<string>("ai_context", { sinceHours: 24 * 30 });
+  const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
   const md = await callClaude(
     CODE_SYSTEM_PROMPT,
     `${briefing}\n\n---\n\n# FOCUS CODE: ${code}\n\nRecorded occurrences of ${code} (from the scan history above):\n${occurrenceSummary}`,

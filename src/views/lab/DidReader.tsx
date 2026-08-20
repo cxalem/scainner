@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { invoke } from "@/lib/tauri";
+import { Effect } from "effect";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import type { UdsHit } from "@/lib/meta";
+import type { UdsHit } from "@/features/lab/schema";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -17,8 +19,8 @@ export function DidReader({ module, connected }: { module: string; connected: bo
     setBusy(true);
     setError(null);
     try {
-      const r = await invoke<UdsHit | null>("uds_read", { module, did: parseInt(did, 16) });
-      setResult(r ?? "nothing");
+      const hit = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsRead(module, parseInt(did, 16))));
+      setResult(hit ?? "nothing");
     } catch (e) {
       setError(String(e));
     } finally {

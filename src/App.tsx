@@ -1,6 +1,9 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Effect } from "effect";
 import { useQueryClient } from "@tanstack/react-query";
-import { invoke, listen } from "@/lib/tauri";
+import { listen } from "@/lib/tauri";
+import { runPromise } from "@/core/runtime";
+import { DeviceService } from "@/core/services/device-service";
 import { Shell, type ViewKey } from "@/components/Shell";
 import { ConnectGate } from "@/components/ConnectGate";
 import { Overview } from "@/views/Overview";
@@ -8,7 +11,7 @@ import { Live } from "@/views/Live";
 import { History } from "@/views/History";
 import { Diagnose } from "@/views/Diagnose";
 import { Lab } from "@/views/Lab";
-import type { ConnStatus, Live as LiveMap } from "@/lib/meta";
+import type { ConnStatus, Live as LiveMap } from "@/shared/domain/connection";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // something that needs the 3D scene — Overview (once connected),
@@ -52,8 +55,10 @@ export default function App() {
     // still looking at the connect gate, so first connect doesn't pay the
     // chunk load inside the gate→overlay transition.
     void import("@/components/DiscoveryFlow");
-    invoke<ConnStatus>("conn_status").then(setConn).catch(() => {});
-    invoke<[string, number][]>("report_cars")
+    runPromise(Effect.flatMap(DeviceService, (device) => device.connStatus()))
+      .then(setConn)
+      .catch(() => {});
+    runPromise(Effect.flatMap(DeviceService, (device) => device.reportCars()))
       .then((cars) => setKnownVins(new Set(cars.map(([v]) => v))))
       .catch(() => setKnownVins(new Set()));
     const un1 = listen<ConnStatus>("conn-status", (e) => {
@@ -90,7 +95,7 @@ export default function App() {
   // so the overlay is there from the dashboard's very first frame.
   useEffect(() => {
     if (conn.state !== "connected" || knownVins === null) return;
-    invoke<[string, string][]>("car_info")
+    runPromise(Effect.flatMap(DeviceService, (device) => device.carInfo()))
       .then((rows) => {
         const vin = Object.fromEntries(rows).vin as string | undefined;
         if (vin) setCurrentVin(vin);
@@ -111,7 +116,7 @@ export default function App() {
   const recording = connected && Object.keys(live).length > 0;
 
   if (!hasConnectedOnce) {
-    return <ConnectGate conn={conn} onConnect={() => invoke("connect")} />;
+    return <ConnectGate conn={conn} onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))} />;
   }
 
   return (
@@ -121,8 +126,8 @@ export default function App() {
         onNavigate={setView}
         conn={conn}
         recording={recording}
-        onConnect={() => invoke("connect")}
-        onDisconnect={() => invoke("disconnect")}
+        onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))}
+        onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
       >
         {view === "overview" && <Overview connState={conn.state} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} />}

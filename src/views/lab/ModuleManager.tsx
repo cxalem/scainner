@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
-import type { UdsModule } from "@/lib/meta";
-import { useAddUdsModule, useDeleteUdsModule, useUdsModules } from "@/lib/queries";
+import type { UdsModule } from "@/features/lab/schema";
+import { useAddUdsModule, useDeleteUdsModule, useUdsModules } from "@/features/lab/queries";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
