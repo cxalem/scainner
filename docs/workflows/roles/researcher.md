@@ -16,7 +16,17 @@ the solution — you map the territory.
 4. Scope check: list what you deliberately did NOT investigate and why.
 5. Keep `research.md` under ~150 lines. Dense beats long.
 
-## Decision log (`decisions-research.md`)
+## Decision rationale
 
-For every judgment call (sources trusted, approaches discarded early,
-scope cuts): what, options, why, risk. One short block each.
+Changed 2026-08-20 (Alejandro: dedicated decision-log files were burning
+real token budget better spent building): don't write a separate
+`decisions-research.md` for routine calls. Fold rationale straight into
+`research.md` inline (a sentence after the finding, not a whole extra
+file) or into the commit message, which costs nothing extra since it's
+required anyway.
+
+Write a short standalone `decisions-research.md` only for something a
+later stage genuinely needs to see in one place: a call that's expensive
+to reverse, one that surprised you, or one a reviewer is likely to
+question without the reasoning in front of them. Most research doesn't
+need this file at all.
