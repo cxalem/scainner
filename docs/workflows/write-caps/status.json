@@ -1,10 +1,12 @@
 {
   "stream": "write-caps",
-  "stage": "research",
-  "state": "researcher running",
-  "updated": "2026-08-20T19:20:00Z",
+  "stage": "plan",
+  "state": "plan written, builder starting in same worktree (no plan gate for this stream)",
+  "updated": "2026-08-20T21:30:00Z",
   "branch": "ws/write-caps",
   "notes": [
-    "Hardware-first research: what STN2100-class dongles can safely write on PSA, competitor matrix, safety rails."
+    "Increment 1 = safety rail on the two existing real writes (writes_log table, ConfirmWrite modal, confirmed flag at the command boundary, backend-verified engine clear).",
+    "No new-to-the-car writes this increment: actuator test needs a routine-ID hunt session with the real car first (see decisions-plan.md).",
+    "Hard rule restated in acceptance criteria: confirmation + persisted before/after + documented reversal path, all three, every write."
   ]
 }
