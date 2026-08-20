@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { invoke } from "@/lib/tauri";
 import {
+  AlertTriangle,
   BatteryCharging,
   ClipboardList,
   Database,
@@ -12,11 +12,21 @@ import {
   Wind,
   Wrench,
 } from "lucide-react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardSkeleton,
+  Skeleton,
+  useTransientLabel,
+} from "@/components/ui";
 import type { SceneStatus } from "@/components/VehicleScene";
 import type { CarReport, Insights } from "@/lib/meta";
 import { decodeModelYear } from "@/lib/vin";
+import { useCarReport, useReportCars, useSetFuelPrice } from "@/lib/queries";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // Overview actually mounts the scene, not on initial app load — Overview is
@@ -25,6 +35,8 @@ import { decodeModelYear } from "@/lib/vin";
 const VehicleScene = lazy(() =>
   import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })),
 );
+// Same reasoning, for recharts (see src/components/charts.tsx).
+const BatteryChart = lazy(() => import("@/components/charts").then((m) => ({ default: m.BatteryChart })));
 
 type Verdict = {
   icon: typeof Wrench;
@@ -152,8 +164,10 @@ function FuelLevelGauge({ pct }: { pct: number }) {
   );
 }
 
-function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSaved: () => void }) {
+function FuelCard({ insights: i }: { insights: Insights }) {
   const [price, setPrice] = useState(String(i.fuel_price));
+  const setFuelPrice = useSetFuelPrice();
+  const [savedLabel, flashSaved] = useTransientLabel();
   const days = i.window_hours >= 24 * 365 ? "all time" : `last ${Math.round(i.window_hours / 24)} days`;
   const hasLevel = i.fuel_level_pct != null;
   const hasConsumption = i.fuel_lph_avg != null;
@@ -249,11 +263,18 @@ function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSa
             />
             <span>EUR/L</span>
             <button
-              className="rounded text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              onClick={() => invoke("set_fuel_price", { price: parseFloat(price) || 1.5 }).then(onPriceSaved)}
+              className="rounded text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              disabled={setFuelPrice.isPending}
+              onClick={() =>
+                setFuelPrice.mutate(
+                  { price: parseFloat(price) || 1.5 },
+                  { onSuccess: () => flashSaved("saved") },
+                )
+              }
             >
-              save
+              {setFuelPrice.isPending ? "saving…" : savedLabel === "saved" ? "saved" : "save"}
             </button>
+            {setFuelPrice.isError && <span className="text-destructive">Could not save — try again.</span>}
             <span className="ml-2">Includes idling. ECU-reported, ±5–10%.</span>
           </div>
         )}
@@ -263,11 +284,9 @@ function FuelCard({ insights: i, onPriceSaved }: { insights: Insights; onPriceSa
 }
 
 export function Overview({
-  refreshKey = 0,
   connState = "disconnected",
   vin: connectedVin = null,
 }: {
-  refreshKey?: number;
   connState?: string;
   /** The currently-connected car's VIN, from App — known earlier than
    * Overview's own report_cars fetch below, so the emblem shows the right
@@ -276,9 +295,9 @@ export function Overview({
    * that drives connState in the first place). */
   vin?: string | null;
 }) {
-  const [cars, setCars] = useState<[string, number][]>([]);
+  const carsQuery = useReportCars();
+  const cars = carsQuery.data ?? [];
   const [vin, setVin] = useState<string | null>(connectedVin);
-  const [report, setReport] = useState<CarReport | null>(null);
   const sceneStatus: SceneStatus =
     connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
 
@@ -290,26 +309,43 @@ export function Overview({
     if (connectedVin) setVin(connectedVin);
   }, [connectedVin]);
 
-  // refreshKey ticks when a first-connect discovery flow finishes elsewhere
-  // in the app — Overview mounted before that car existed, so its own
-  // effects wouldn't otherwise know to refetch.
+  // Runs whenever the cars list resolves (fresh mount, or a background
+  // revalidation after connect/discovery invalidates it) and picks the
+  // first car when nothing more specific (App's connectedVin) is known yet
+  // — same behavior the old refreshKey-keyed effect had.
   useEffect(() => {
-    invoke<[string, number][]>("report_cars").then((c) => {
-      setCars(c);
-      if (c.length > 0 && !connectedVin) setVin(c[0][0]);
-    });
-  }, [refreshKey, connectedVin]);
-  useEffect(() => {
-    if (vin) invoke<CarReport>("car_report", { vin }).then(setReport).catch(() => {});
-  }, [vin]);
+    if (cars.length > 0 && !connectedVin) setVin(cars[0][0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carsQuery.data, connectedVin]);
+
+  const effectiveVin = vin ?? connectedVin;
+  const reportQuery = useCarReport(effectiveVin);
 
   const scene = (
     <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
-      <VehicleScene status={sceneStatus} vin={vin} />
+      <VehicleScene status={sceneStatus} vin={effectiveVin} />
     </Suspense>
   );
 
-  if (!report)
+  // Still discovering whether any car exists at all — distinct from "no car
+  // found" (research.md section 2: these two used to render identically).
+  if (carsQuery.isPending) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        {scene}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} rows={1} />
+          ))}
+        </div>
+        <CardSkeleton rows={4} />
+      </div>
+    );
+  }
+
+  // Confirmed empty: the cars fetch succeeded and found none.
+  if (!effectiveVin) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
@@ -325,7 +361,44 @@ export function Overview({
         </Card>
       </div>
     );
+  }
 
+  if (reportQuery.isPending) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        {scene}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} rows={1} />
+          ))}
+        </div>
+        <CardSkeleton rows={4} />
+        <CardSkeleton rows={4} />
+        <CardSkeleton contentClassName="h-44" />
+      </div>
+    );
+  }
+
+  if (reportQuery.isError || !reportQuery.data) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        {scene}
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
+            <p className="font-medium">Could not load this car's report.</p>
+            <Button variant="outline" onClick={() => reportQuery.refetch()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const report = reportQuery.data;
   const engineH = Math.floor(report.engine_minutes / 60);
   const engineM = Math.round(report.engine_minutes % 60);
   const verdicts = buildVerdicts(report);
@@ -410,10 +483,7 @@ export function Overview({
         </CardContent>
       </Card>
 
-      <FuelCard
-        insights={report.insights}
-        onPriceSaved={() => vin && invoke<CarReport>("car_report", { vin }).then(setReport)}
-      />
+      <FuelCard insights={report.insights} />
 
       <Card>
         <CardHeader>
@@ -426,17 +496,9 @@ export function Overview({
             <p className="text-sm text-muted-foreground">No voltage data yet.</p>
           ) : (
             <div className="h-44 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={report.daily_voltage} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>
-                  <CartesianGrid strokeOpacity={0.15} vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 10 }} minTickGap={32} />
-                  <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="max" stroke="var(--primary)" strokeWidth={1} dot={false} isAnimationActive={false} />
-                  <Line type="monotone" dataKey="avg" stroke="var(--primary)" strokeWidth={2} dot={false} isAnimationActive={false} />
-                  <Line type="monotone" dataKey="min" stroke="var(--destructive)" strokeWidth={1} dot={false} isAnimationActive={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                <BatteryChart data={report.daily_voltage} />
+              </Suspense>
             </div>
           )}
         </CardContent>
