@@ -119,3 +119,88 @@ weight in a shipped desktop bundle; models and VehicleScene belong to
 stream C; i18n is sequenced after this stream precisely so it touches
 final code. Builders inherit the planner's discipline or their sprawl.
 Risk: none material; each cut has a home elsewhere.
+
+# Amendment (2026-08-20): interaction-audit fold-in
+
+## Fold the interaction audit into this stream, not a new one
+
+What: adopted interaction-audit.md's rules as plan rules 7-12 and folded
+its worst offenders into the existing steps, instead of chartering a
+separate interaction stream.
+Options: (a) separate stream after app-perf, (b) fold in here.
+Why: (b). The audit touches the same files this stream already rewrites,
+and half its fixes fall out of the migration for free: useMutation hands
+back isPending, the plan just makes wiring it to the button explicit. A
+separate stream would touch every view a second time, the exact rework
+the i18n sequencing argument exists to avoid. User asked for feedback on
+every touch; one coherent build delivers it once.
+Risk: a bigger stream. Contained: the additions are mechanical (disable,
+catch, label) and each step's "look at" list already verifies them.
+
+## Fold offenders into existing steps rather than adding steps
+
+What: Diagnose clear (step 2), Vehicle read-ECU (step 4), ConnectGate/
+Shell connect and Disconnect (step 1), AI narration (step 2), Live
+read-all (step 6), Lab unhandled writes (step 5). Shared primitives
+(press states, transient success helper) ship in step 1 with the skeletons.
+Options: (a) a dedicated "interaction pass" step at the end, (b) fix each
+offender in the step that already migrates its view.
+Why: (b). Each fix lands in the commit that already rewrites that view's
+data layer, verified by the same per-step demo check; a trailing pass
+would reopen every file and blur which commit owns which behavior.
+Primitives go first because every later step consumes them.
+Risk: step 1 grows again. Accepted; it is still one view plus shared UI.
+
+## Keep the no-Rust non-goal: timed phrases, not backend progress events
+
+What: connect and all_sensors get time-based phrase cycling on the
+frontend; the audit's suggestion of a RangeScanner-style backend progress
+event is recorded as follow-up, not built.
+Options: (a) add progress events in Rust for honest per-phase narration,
+(b) frontend timed phrases now, backend event later.
+Why: (b). This stream's boundary is the frontend data layer; opening
+src-tauri widens review surface and invalidates the "no Rust changes"
+scope every reviewer relies on. Timed phrases already clear the audit's
+bar ("more than a static label") and are the same mechanism the AI calls
+need anyway, since those are plain fetch and can never get IPC progress.
+Risk: narration for connect is approximate, not phase-true. Acceptable
+until a later stream adds the event; the mock's fixed delays make timed
+phrases look right in the demo.
+
+## AI generation is in scope for feedback rules despite being outside the query layer
+
+What: the two AI report actions (plain fetch in ai.ts, not invoke) get the
+phrase-cycling pending treatment but are NOT wrapped in TanStack Query.
+Options: (a) leave them out as non-Tauri, (b) apply the feedback rules
+only, (c) also migrate them to useMutation.
+Why: (b). They are the longest waits in the app, so excluding them fails
+the user's "every touch" ask. Wrapping them in the query cache buys
+nothing: results are one-shot documents already persisted to localStorage,
+not cacheable server state, and (c) would drag ai.ts's key handling into
+the query layer for no invalidation benefit.
+Risk: two async idioms remain in Diagnose. Acceptable; the boundary
+(invoke = query layer, AI fetch = local pending state) is stated in rule 9.
+
+## No toast system; reuse the transient label pattern
+
+What: successes that change off-screen data reuse the existing "label
+flips to Saved/Copied for ~2s" pattern, extracted once into ui.tsx.
+Options: (a) add a toast/notification system, (b) reuse the label flip.
+Why: (b), per the audit's own rule 4. The app already has a proven,
+layout-shift-free success idiom in two places; a toast layer is a new
+dependency or subsystem, new placement decisions, and a new i18n surface,
+for zero added information.
+Risk: off-screen effects are confirmed only at the trigger. That is the
+point: feedback where the user's eyes already are.
+
+## Acceptance criterion extended to the audit table
+
+What: added "no interactive element ships without press, pending, and
+error feedback" and named the audit's inventory table as the reviewer's
+checklist.
+Options: spot-check a few controls, or check the full table.
+Why: the table already enumerates every control with its current gaps, so
+review cost is a walk down an existing list; anything less re-opens the
+gap the audit was commissioned to close.
+Risk: review takes longer. Accepted; it is the deliverable the user asked
+for.
