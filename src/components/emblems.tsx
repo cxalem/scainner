@@ -225,8 +225,11 @@ function OpelEmblem() {
     // bottom edge is the same path offset down by t, walked in reverse to
     // close the shape without self-intersecting.
     const t = 0.12;
-    const armLen = innerR * 0.55;
-    const stepY = 0.16; // vertical drop of the diagonal step
+    const armLen = innerR * 0.62;
+    const stepY = 0.28; // vertical drop of the diagonal step — steep enough that the
+    // diagonal reads as a bolt's angled stroke, not a shallow S-curve. The original
+    // 0.55 / 0.16 pairing gave a slope of about 0.4 over a long run, which the bevel
+    // rounded into a soft wave at card size (review finding 1).
 
     const blitz = new THREE.Shape();
     blitz.moveTo(-innerR, stepY / 2 + t / 2);
