@@ -161,3 +161,72 @@ already validated as correct.
 Risk: none; each fix is scoped to exactly what the review specified,
 verified independently (tsc + fresh screenshots for the one geometry
 change).
+
+## Addendum: STL emblems replace hand-authored/traced shapes (2026-08-20)
+
+Source: Alejandro supplied two STL batches directly
+(Brand_Emblems_STL_Proper_Batch_02: Audi, BMW, Mercedes-Benz, Peugeot,
+Renault, Skoda, Toyota, Volkswagen; Batch_03: Dacia, Hyundai, Kia, Opel,
+plus a README). This is not agent-researched provenance — the README
+states "Kia and Opel are built from current vector logo artwork; Hyundai
+is vector-traced from a high-resolution official-symbol render; Dacia is
+a faithful geometric reconstruction of the current Dacia Link emblem," a
+claim taken at face value since it can't be independently re-verified
+from inside this repo, the same honesty standard as any other unverified
+external claim in these logs.
+
+What changed: RenaultEmblem, MercedesEmblem, and OpelEmblem (the
+hand-authored / SVG-traced shapes built earlier this stream) are removed,
+replaced by real STL geometry via a new generic StlEmblem component.
+Audi, BMW, Peugeot, Skoda, Toyota, Volkswagen, Dacia, Hyundai, and Kia go
+from NameplateEmblem fallback to real modeled geometry for the first
+time. Citroen and Volvo are unchanged (no STL supplied for either yet).
+
+Decision: auto-detect the depth axis from each file's own bounding box
+(thinnest axis wins) rather than a fixed per-batch rotation constant.
+The batch mixes ASCII and binary STL headers, meaning at least two
+different export tools produced these files with no shared up-axis
+convention to rely on. A 90-degree axis swap is a proper rotation, so
+this cannot mirror any artwork, only pick which of two faces ends up
+toward the camera — checked per brand in the running app, not assumed.
+
+Decision: toCreasedNormals runs unconditionally on every STL load, not
+conditionally on whether a given file looked faceted when tested. STL is
+a facet soup by format regardless of source tool (patterns/3d.md rule 1);
+skipping this because today's 12 files happened to load looking fine
+would be exactly the kind of latent bug a future re-export could trigger
+silently.
+
+Verified: all 12 brands checked live in the browser via the dev ?vin=
+override (not just that they loaded without error) — correct orientation,
+smooth shading, legible marks. Peugeot's lion and BMW's quartered roundel
+in particular were expected to be the hard cases (this stream's own
+research.md called Peugeot's mark "figurative... nameplate" and BMW's
+"tiny wordmark likely unreadable") and both read fine as real sculpted
+geometry, which flat hand-authored shapes could not have managed for
+either.
+
+Also bumped: overall emblem size across every brand (StlEmblem default
+target width, plus proportional bumps to Citroen and Volvo's hand-built
+geometry) at Alejandro's request, verified against patterns/3d.md rule 7's
+card-cropping constraint in both the connect-flow card and the dashboard
+Overview card before shipping.
+
+Not done here: color/texture. STL carries no UV or material data, so
+"texture" is out of reach without hand-authoring UVs per brand, real
+effort for real payoff on maybe one or two marks (BMW's quartered
+roundel is the one that would benefit most, since its design leans on
+color contrast the others don't). Left as monochrome chrome per
+Alejandro's own stated fallback ("if not, use them as they are would be
+nice") — flagged here as a named follow-up, not silently dropped.
+
+Verified the production build too, not just dev: `vite build` bundles all
+12 STL files into the packaged output correctly (confirmed files land in
+dist/emblems/stl/, no network fetch needed at runtime, consistent with
+the ?vin= dev-override production trace Codex already did for this
+stream). Total STL payload is 5.1MB, Peugeot alone is 2.4MB of that -
+worth naming honestly rather than leaving it a silent bundle-size
+increase. Not treated as a blocker for a desktop app, but a real
+follow-up if bundle size becomes a concern: STL decimation/simplification
+per file, or converting to a more compact format (glTF/Draco) at build
+time, either done without touching this component's interface.

@@ -9,6 +9,9 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { useLoader } from "@react-three/fiber";
 
 export const EMBLEM_CHROME = {
   color: "#f4f6f8",
@@ -89,13 +92,6 @@ function svgEmblemGeometry(svgMarkup: string, targetWidth: number): THREE.Extrud
   return g;
 }
 
-// Renault 2021 "Renaulution" mark: the diamond redrawn as two thin doubled
-// outlines rather than one solid band (source: Wikimedia Commons
-// File:Renault 2021.svg — a single compound path, evenodd fill, whose two
-// nested diamond loops are what create the doubled-line look and the gap
-// between them).
-const RENAULT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 954 1255"><path style="fill-rule:evenodd;" d="M953.5,626.91 l-334.98,-626.91 h-94.51 L190.07,626.91 l215.27,403.24 l47.25,-89.26 L285.63,626.91 l285.63,-536.6 l286.68,536.6 l-333.93,627.96 h94.51 L953.5,626.91 zM762.38,626.91 L548.16,224.72 l-48.3,89.26 l168.02,312.93 l-286.68,537.65 L94.51,626.91 l334.98,-626.91 h-95.56 L0,626.91 l333.93,627.96 h94.51 L762.38,626.91 z"/></svg>`;
-
 // Volvo "iron mark" ring, traced from Wikimedia Commons
 // File:Volvo-Iron-Mark-Black.svg (the VOLVO wordmark paths from that file
 // are dropped, too fine to read at badge size, the same call already made
@@ -132,62 +128,11 @@ export function CitroenEmblem() {
       EXTRUDE_SETTINGS,
     );
     g.center();
-    return g;
-  }, []);
-  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
-}
-
-// Renault: traced from the real mark, see RENAULT_SVG above.
-function RenaultEmblem() {
-  const geo = useMemo(() => svgEmblemGeometry(RENAULT_SVG, 0.95), []);
-  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
-}
-
-// Mercedes-Benz: three-pointed star inside a ring. Ring is an annulus
-// (outer absarc + inner-circle hole); star is three elongated rhombus
-// spokes from near the center to the ring's inner edge, at 90/210/330
-// degrees (pointing up, and down-left/down-right).
-function MercedesEmblem() {
-  const geo = useMemo(() => {
-    const outerR = 0.55, band = 0.07;
-    const innerR = outerR - band;
-
-    const ring = new THREE.Shape();
-    ring.absarc(0, 0, outerR, 0, Math.PI * 2, false);
-    const ringHole = new THREE.Path();
-    ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
-    ring.holes.push(ringHole);
-
-    // Each spoke: a thin quadrilateral from near dead center out to the
-    // ring's inner edge, at the given angle. A small offset from center
-    // keeps the three spokes from all meeting at one exact point (which
-    // can produce degenerate triangles).
-    const spokeWidth = 0.13;
-    const spokeLen = innerR + 0.02; // slight overlap into the ring so there is no visible seam
-    function spokeShape(angleDeg: number): THREE.Shape {
-      const a = (angleDeg * Math.PI) / 180;
-      const dir = new THREE.Vector2(Math.cos(a), Math.sin(a));
-      const perp = new THREE.Vector2(-dir.y, dir.x);
-      const halfW = spokeWidth / 2;
-      const base = dir.clone().multiplyScalar(0.02);
-      const tip = dir.clone().multiplyScalar(spokeLen);
-      const p1 = base.clone().add(perp.clone().multiplyScalar(halfW));
-      const p2 = base.clone().add(perp.clone().multiplyScalar(-halfW));
-      const s = new THREE.Shape();
-      s.moveTo(p1.x, p1.y);
-      s.lineTo(tip.x, tip.y);
-      s.lineTo(p2.x, p2.y);
-      s.closePath();
-      return s;
-    }
-
-    const shapes = [ring, spokeShape(90), spokeShape(210), spokeShape(330)];
-    const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
-    g.center();
+    // Bigger footprint, same bevel/depth as EXTRUDE_SETTINGS baked in above —
+    // scaling x/y only (not z) keeps the chrome edge looking like a constant
+    // real-world thickness instead of getting chunkier as the mark grows,
+    // same principle svgEmblemGeometry already applies for the traced marks.
+    g.scale(1.35, 1.35, 1);
     return g;
   }, []);
   const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
@@ -198,17 +143,17 @@ function MercedesEmblem() {
 // Volvo: traced from the real mark, see VOLVO_SVG above (ring with a gap
 // for the arrow, plus the arrow — wordmark dropped).
 function VolvoEmblem() {
-  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 0.96), []);
+  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 1.15), []);
   const arrowGeo = useMemo(() => {
     // Mars/iron-symbol arrow: a shaft crossing well past the ring's own
     // center, plus a triangular head extending past its edge, at the
     // classic 45 degrees. Origin (0,0) is the ring's center, so this shape
     // is built directly against that, not centered on itself.
-    const shaftLen = 0.62, shaftThick = 0.08;
-    const headLen = 0.22, headWidth = 0.24;
+    const shaftLen = 0.74, shaftThick = 0.1;
+    const headLen = 0.26, headWidth = 0.29;
     const halfShaft = shaftThick / 2;
     const halfHead = headWidth / 2;
-    const startX = -0.08; // starts inside the ring, past its center, so the shaft visibly crosses the band
+    const startX = -0.1; // starts inside the ring, past its center, so the shaft visibly crosses the band
 
     const arrow = new THREE.Shape();
     arrow.moveTo(startX, halfShaft);
@@ -243,57 +188,6 @@ function VolvoEmblem() {
       <mesh geometry={arrowGeo} material={mat} castShadow />
     </group>
   );
-}
-
-// One arm of the Opel "Blitz": a bar of constant height `halfT * 2` from
-// the flat end (xBase, at the ring's inner edge) to xKink, then tapering on
-// both edges to a single point at (xTip, yTip). yTip is pulled in toward 0
-// relative to yBase so the point angles toward the ring's center rather
-// than staying level, matching the real mark's diagonal read (source:
-// Wikimedia Commons "Logo Opel-1987.svg" — two overlapping pointed bars
-// with a visible gap between their tips, not one continuous band).
-function blitzArmShape(xBase: number, xKink: number, xTip: number, yBase: number, yTip: number, halfT: number): THREE.Shape {
-  const s = new THREE.Shape();
-  s.moveTo(xBase, yBase + halfT);
-  s.lineTo(xKink, yBase + halfT);
-  s.lineTo(xTip, yTip);
-  s.lineTo(xKink, yBase - halfT);
-  s.lineTo(xBase, yBase - halfT);
-  s.closePath();
-  return s;
-}
-
-// Opel: circle crossed by a horizontal lightning bolt (the "Blitz"). Two
-// separate pointed arms — not one continuous band, see blitzArmShape —
-// offset above and below center so their tips cross with a gap between
-// them, the way the real mark's zigzag notch reads.
-function OpelEmblem() {
-  const geo = useMemo(() => {
-    const outerR = 0.52, band = 0.08;
-    const innerR = outerR - band;
-
-    const ring = new THREE.Shape();
-    ring.absarc(0, 0, outerR, 0, Math.PI * 2, false);
-    const ringHole = new THREE.Path();
-    ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
-    ring.holes.push(ringHole);
-
-    const halfT = 0.065;
-    const yTop = 0.14, yBot = -0.14;
-    // Top arm: flat from the left inner edge, tapers to a point past
-    // center on the right. Bottom arm mirrors it, flat from the right
-    // inner edge, tapering past center on the left.
-    const topArm = blitzArmShape(-innerR, -0.02, 0.3, yTop, 0.02, halfT);
-    const bottomArm = blitzArmShape(innerR, 0.02, -0.3, yBot, -0.02, halfT);
-
-    const shapes = [ring, topArm, bottomArm];
-    const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
-    g.center();
-    return g;
-  }, []);
-  const mat = useMemo(() => new THREE.MeshPhysicalMaterial(EMBLEM_CHROME), []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
-  return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
 // Fallback for any brand without modeled emblem geometry: a chrome
@@ -341,13 +235,99 @@ export function NameplateEmblem({ name }: { name: string }) {
   );
 }
 
+// Real 3D badges, sourced from STL files (see public/emblems/stl and
+// docs/workflows/3d-logos/decisions-build.md for provenance). Each is an
+// actual sculpted medallion, not a flat extruded outline — a step up in
+// fidelity from the hand-authored/SVG-traced shapes above, and the reason
+// those are being retired brand by brand as real files arrive.
+//
+// These files come from at least two different export pipelines (the
+// source batch mixes ASCII and binary STL headers), so this does not
+// assume one fixed up-axis convention. Every emblem here is a flat medallion
+// (60mm mark, ~2.4mm extrusion per the source README), so whichever axis
+// has the smallest bounding-box extent is the depth axis, regardless of
+// which way the source tool exported it — auto-detected per file instead of
+// a per-brand rotation constant.
+//
+// STL is a facet soup by construction: three unshared vertices per
+// triangle, so naive shading is flat "camo" faceting on any curved surface
+// (patterns/3d.md rule 1, the same failure mode the C4 GLB hit). Every STL
+// load here runs toCreasedNormals unconditionally, not just the ones that
+// looked wrong when tested, since a future re-export could reintroduce it
+// silently.
+const STL_CREASE_ANGLE = Math.PI / 4;
+
+function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): THREE.BufferGeometry {
+  let geo = raw.clone(); // useLoader caches the parsed geometry across instances (patterns/3d.md rule 9) — never mutate it directly
+  geo.computeBoundingBox();
+  const size = new THREE.Vector3();
+  geo.boundingBox!.getSize(size);
+
+  const extents: Array<[number, "x" | "y" | "z"]> = [
+    [size.x, "x"],
+    [size.y, "y"],
+    [size.z, "z"],
+  ];
+  extents.sort((a, b) => a[0] - b[0]);
+  const depthAxis = extents[0][1];
+  // A 90-degree axis swap is a proper rotation (determinant +1), so this
+  // never mirrors the design — only which of the two faces ends up
+  // pointing which way, not a left-right flip of the artwork on either face.
+  if (depthAxis === "x") geo.rotateY(Math.PI / 2);
+  else if (depthAxis === "y") geo.rotateX(Math.PI / 2);
+
+  geo.computeBoundingBox();
+  const size2 = new THREE.Vector3();
+  geo.boundingBox!.getSize(size2);
+  const width = Math.max(size2.x, size2.y);
+  const scale = width > 0 ? targetWidth / width : 1;
+  geo.scale(scale, scale, scale);
+  geo.center();
+
+  geo = toCreasedNormals(geo, STL_CREASE_ANGLE);
+  return geo;
+}
+
+// extraRotationY handles the one thing bounding-box math can't decide: which
+// of the medallion's two faces ends up facing the camera's side of the spin.
+// Wrong-facing does not corrupt the model, it just shows an asymmetric mark
+// (a letterform, a lion) mirrored for half of every rotation — caught by
+// looking at each brand in the running app, not guessed up front.
+function StlEmblem({ url, targetWidth = 1.5, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
+  const raw = useLoader(STLLoader, url);
+  const geo = useMemo(() => normalizeStlGeometry(raw, targetWidth), [raw, targetWidth]);
+  const mat = useMemo(
+    () => new THREE.MeshPhysicalMaterial({ ...EMBLEM_CHROME, side: THREE.DoubleSide }),
+    [],
+  );
+  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  return (
+    <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} rotation={[0, extraRotationY, 0]} castShadow />
+  );
+}
+
+function stlEmblem(file: string, opts?: { targetWidth?: number; extraRotationY?: number }): React.ComponentType {
+  return function BoundStlEmblem() {
+    return <StlEmblem url={`/emblems/stl/${file}`} {...opts} />;
+  };
+}
+
 // Registry: brand.key -> modeled emblem component. Anything not listed here
 // falls back to NameplateEmblem in VehicleScene. Adding a new brand is just
 // a new component plus a new entry, no changes needed elsewhere.
 export const EMBLEMS: Record<string, React.ComponentType> = {
   citroen: CitroenEmblem,
-  renault: RenaultEmblem,
-  mercedes: MercedesEmblem,
   volvo: VolvoEmblem,
-  opel: OpelEmblem,
+  audi: stlEmblem("audi.stl"),
+  bmw: stlEmblem("bmw.stl"),
+  mercedes: stlEmblem("mercedes.stl"),
+  peugeot: stlEmblem("peugeot.stl"),
+  renault: stlEmblem("renault.stl"),
+  skoda: stlEmblem("skoda.stl"),
+  toyota: stlEmblem("toyota.stl"),
+  volkswagen: stlEmblem("volkswagen.stl"),
+  dacia: stlEmblem("dacia.stl"),
+  hyundai: stlEmblem("hyundai.stl"),
+  kia: stlEmblem("kia.stl"),
+  opel: stlEmblem("opel.stl"),
 };

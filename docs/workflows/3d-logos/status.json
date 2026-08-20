@@ -1,11 +1,14 @@
 {
   "stream": "3d-logos",
-  "stage": "codex-review",
-  "state": "PR 1 open, awaiting user review and manual test",
-  "updated": "2026-08-20T19:50:00Z",
+  "stage": "build",
+  "state": "12 brands now real STL geometry (Toyota, VW, BMW, Hyundai, Opel, Mercedes, Renault, Peugeot, Skoda, Kia, Dacia, Audi); Citroen and Volvo stay hand-built/traced. PR 1 updated, awaiting user review and manual test.",
+  "updated": "2026-08-20T21:10:00Z",
   "branch": "ws/3d-logos",
   "notes": [
-    "Codex verdict: OBJECTIONS-NONBLOCKING. Production build verified the dev override is stripped from packaged output.",
+    "STL files supplied directly by Alejandro (two batches), provenance recorded in decisions-build.md addendum.",
+    "All 12 verified live in-browser via dev ?vin= override, not just load-without-error.",
+    "Emblem size bumped across all brands per request, checked against the card-cropping constraint.",
+    "Follow-up, not done: BMW's quartered roundel would benefit from color, STL carries no UV/material data so this needs hand-authored UVs if ever pursued.",
     "PR: https://github.com/cxalem/scainner/pull/1",
     "On merge: app-perf builder starts automatically."
   ]

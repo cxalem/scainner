@@ -55,8 +55,10 @@ concurrently.
 - [ ] Report quality pass with a real faulty-car briefing once one exists.
 
 ### C. 3D identity (src/components/VehicleScene.tsx, src/lib/brand.ts)
-- [ ] Emblem geometry for 2-3 more brands (Peugeot, Renault, VW are
-      geometric marks — extrudable shapes like the chevrons).
+- [x] Real modeled emblems for Citroen, Volvo (hand-authored/SVG-traced)
+      and Audi, BMW, Mercedes, Peugeot, Renault, Skoda, Toyota, Volkswagen,
+      Dacia, Hyundai, Kia, Opel (real STL geometry, supplied directly).
+      Everything else still falls back to the chrome nameplate.
 - [ ] Drag-to-rotate / scroll-to-zoom (OrbitControls) instead of spin-only.
 - [ ] Decide fate of the dormant C4 car pipelines (GlbCarModel/StlCarModel/
       CarModel + repair script + model assets): keep one, delete the rest.
