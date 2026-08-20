@@ -47,6 +47,21 @@ concurrently.
       still get structural decode + AI).
 - [ ] Surface "codes found" state on Overview's fault-record verdict with a
       one-click jump to Diagnose. (Verdict text exists; needs the link.)
+- [x] Sensor list scrollbar layout shift in DiscoveryFlow (overflow-y-auto
+      to overflow-y-scroll, gutter now reserved either way).
+- [x] Emblem showing the wrong (generic) brand briefly on connect, fixed at
+      the root cause: Overview now receives the VIN as a prop from App
+      (known earlier) instead of re-fetching it independently and racing
+      the "connecting" animation.
+- [x] Model year decode from the VIN (src/lib/vin.ts, ISO 3779 position 10,
+      offline, universal) — surfaced in Overview's header and
+      DiscoveryFlow's new "Vehicle" row. Full model/trim decode was
+      investigated and is NOT done: no free, comprehensive source exists
+      for European-market brands (checked directly against NHTSA's VIN
+      decoder — works for US-sold brands, fails outright for this app's
+      own reference car, a Citroen). See src/lib/vin.ts header and
+      docs/workflows/3d-logos/decisions-build.md addendum 3 for the
+      evidence and the options if this gets picked up later.
 
 ### B. AI layer (src/lib/ai.ts, src-tauri)
 - [ ] Streaming report generation (progressive render instead of spinner).
@@ -56,11 +71,19 @@ concurrently.
 
 ### C. 3D identity (src/components/VehicleScene.tsx, src/lib/brand.ts)
 - [x] Real modeled emblems: Volvo (hand-authored/SVG-traced, no STL
-      supplied yet) and Audi, BMW, Citroen, Dacia, Fiat, Ford, Geely,
-      Hyundai, Kia, Mercedes, Opel, Peugeot, Renault, Skoda, Toyota,
-      Volkswagen (real STL geometry, supplied directly). Everything else
-      still falls back to the chrome nameplate. New WMI gap closed: Geely
-      (LB3); BYD/Chery still unmapped, fast-growing in Europe.
+      supplied yet) and Audi, BMW, BYD, Chery, Citroen, Dacia, Fiat, Ford,
+      Geely, Hyundai, Kia, Mercedes, Opel, Peugeot, Renault, SAIC, Seat,
+      Skoda, Tesla, Toyota, Vauxhall, Volkswagen (real STL geometry,
+      supplied directly). Everything else still falls back to the chrome
+      nameplate. New WMI gaps closed: Geely (LB3, high confidence), BYD
+      (LGX, confirmed against NHTSA's registry), Chery (LVV, medium
+      confidence, two secondary sources). SAIC and Vauxhall deliberately
+      have no WMI: SAIC doesn't retail under its own name (badges as
+      MG/Roewe/Maxus instead), Vauxhall shares Opel's W0L with no reliable
+      way to tell them apart — both reachable via dev override only.
+- [x] Dark card background with slow drifting particles behind the badge
+      (EmblemStarfield.tsx, adapted from the knowledge-base starfield
+      note), replacing the flat light card.
 - [ ] Drag-to-rotate / scroll-to-zoom (OrbitControls) instead of spin-only.
 - [ ] Decide fate of the dormant C4 car pipelines (GlbCarModel/StlCarModel/
       CarModel + repair script + model assets): keep one, delete the rest.

@@ -108,17 +108,17 @@ const VOLVO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250"
 // Volvo: traced from the real mark, see VOLVO_SVG above (ring with a gap
 // for the arrow, plus the arrow — wordmark dropped).
 function VolvoEmblem() {
-  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 1.35), []);
+  const ringGeo = useMemo(() => svgEmblemGeometry(VOLVO_SVG, 1.55), []);
   const arrowGeo = useMemo(() => {
     // Mars/iron-symbol arrow: a shaft crossing well past the ring's own
     // center, plus a triangular head extending past its edge, at the
     // classic 45 degrees. Origin (0,0) is the ring's center, so this shape
     // is built directly against that, not centered on itself.
-    const shaftLen = 0.87, shaftThick = 0.12;
-    const headLen = 0.3, headWidth = 0.34;
+    const shaftLen = 1.0, shaftThick = 0.14;
+    const headLen = 0.35, headWidth = 0.39;
     const halfShaft = shaftThick / 2;
     const halfHead = headWidth / 2;
-    const startX = -0.12; // starts inside the ring, past its center, so the shaft visibly crosses the band
+    const startX = -0.14; // starts inside the ring, past its center, so the shaft visibly crosses the band
 
     const arrow = new THREE.Shape();
     arrow.moveTo(startX, halfShaft);
@@ -258,7 +258,7 @@ function normalizeStlGeometry(raw: THREE.BufferGeometry, targetWidth: number): T
 // Wrong-facing does not corrupt the model, it just shows an asymmetric mark
 // (a letterform, a lion) mirrored for half of every rotation — caught by
 // looking at each brand in the running app, not guessed up front.
-function StlEmblem({ url, targetWidth = 1.75, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
+function StlEmblem({ url, targetWidth = 2.0, extraRotationY = 0 }: { url: string; targetWidth?: number; extraRotationY?: number }) {
   const raw = useLoader(STLLoader, url);
   const geo = useMemo(() => normalizeStlGeometry(raw, targetWidth), [raw, targetWidth]);
   const mat = useMemo(
@@ -298,4 +298,16 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   fiat: stlEmblem("fiat.stl"),
   ford: stlEmblem("ford.stl"),
   geely: stlEmblem("geely.stl"),
+  byd: stlEmblem("byd.stl"),
+  chery: stlEmblem("chery.stl"),
+  tesla: stlEmblem("tesla.stl"),
+  seat: stlEmblem("seat.stl"),
+  // saic and vauxhall have no brand.ts WMI entry on purpose — see brand.ts
+  // and decisions-build.md. SAIC Motor doesn't retail cars under its own
+  // name (badges as MG/Roewe/Maxus instead), and Vauxhall shares Opel's W0L
+  // prefix with no reliable way to tell them apart from the VIN alone. Both
+  // stay reachable via the dev ?vin= override so the geometry is ready the
+  // moment either gets a confident WMI.
+  saic: stlEmblem("saic.stl"),
+  vauxhall: stlEmblem("vauxhall.stl"),
 };

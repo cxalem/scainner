@@ -33,6 +33,13 @@ export default function App() {
   // the dashboard.
   const [knownVins, setKnownVins] = useState<Set<string> | null>(null);
   const [discoverVin, setDiscoverVin] = useState<string | null>(null);
+  // The currently-connected car's VIN, known as early as car_info resolves
+  // (same handler as discoverVin below) — passed down to Overview so its
+  // emblem shows the right brand from Overview's very first render instead
+  // of a brief generic badge while Overview's own, slower report_cars fetch
+  // catches up. Kept separate from discoverVin, which only ever holds a
+  // *new* car's VIN and is cleared once the discovery overlay finishes.
+  const [currentVin, setCurrentVin] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   // Sticky on purpose — once true it stays true for the rest of the app
   // session, even across later disconnects. Gates the blank ConnectGate
@@ -76,6 +83,7 @@ export default function App() {
     invoke<[string, string][]>("car_info")
       .then((rows) => {
         const vin = Object.fromEntries(rows).vin as string | undefined;
+        if (vin) setCurrentVin(vin);
         if (vin && !knownVins.has(vin)) {
           setKnownVins((prev) => new Set(prev ?? []).add(vin));
           setDiscoverVin(vin);
@@ -106,7 +114,7 @@ export default function App() {
         onConnect={() => invoke("connect")}
         onDisconnect={() => invoke("disconnect")}
       >
-        {view === "overview" && <Overview refreshKey={refreshKey} connState={conn.state} />}
+        {view === "overview" && <Overview refreshKey={refreshKey} connState={conn.state} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} />}
         {view === "history" && <History />}
         {view === "diagnose" && <Diagnose connected={connected} />}

@@ -269,3 +269,69 @@ ring/arrow proportionally) per a second direct request in the same
 session, re-checked against the card-cropping constraint in both views
 before shipping — same check as the first size bump, not skipped because
 it was the second time.
+
+## Addendum 3: batches 05/06 — BYD, Chery, Tesla, SAIC, Seat, Vauxhall; particles; VIN work (2026-08-20)
+
+STL sources: batch 05 (BYD, Chery — both flagged as a real gap in the
+research addendum), a corrected batch 05_FIXED for Tesla/SAIC ("Both are
+direct vector-to-SVG extrusions... both meshes validated watertight,"
+superseding the originals), and batch 06 (Seat, Vauxhall).
+
+WMI decisions, checked against authoritative sources this time, not just
+web search summaries:
+- BYD (LGX): confirmed directly against NHTSA's own WMI registry API
+  (`vpic.nhtsa.dot.gov/api/vehicles/GetWMIsForManufacturer/BYD`), high
+  confidence. One low-quality source had claimed "LVV" for BYD; NHTSA
+  settles that it's actually LGX.
+- Chery (LVV): NHTSA has no record (Chery doesn't sell in the US), so this
+  rests on two independent secondary sources instead of an official
+  registry hit — medium confidence, logged as such rather than presented
+  equal to BYD's.
+- Tesla, Seat: already had WMI coverage, straightforward STL swap.
+- SAIC: no WMI added, deliberately. Researched what a "SAIC" badge would
+  even mean on a real car and found it doesn't: SAIC Motor doesn't retail
+  under its own name, it sells as MG (LSJ), Roewe (LSJ), or Maxus
+  (LSK/LSH). There's no real car a "saic" WMI mapping could ever match.
+  Component is registered and reachable via dev override for when/if that
+  changes.
+- Vauxhall: no WMI added either. It shares Opel's W0L prefix (same German
+  plants), no reliable way to tell them apart from the VIN alone — same
+  shared-prefix situation as Cupra/Seat, same resolution (dev override
+  only, W0L keeps resolving to Opel).
+
+Also in this pass, not strictly 3d-logos scope but touching the same
+VehicleScene card, done together at the user's direction:
+- Emblem card background: dark gradient + slow-drifting dust particles
+  behind the badge, replacing the flat light card. Adapted directly from
+  the knowledge-base note (3-Resources/starfield-header/technique.md,
+  cloned from ai.manz.dev) — typed arrays, weighted pools, wrap-around
+  edges, same shape, retuned far slower (ambient dust, not the original's
+  drifting-stars pace) and warm-toned per the user's pick from a live
+  three-variant preview. New component: EmblemStarfield.tsx. Confirmed
+  this doesn't touch the chrome material's reflection environment, which
+  comes from StudioEnvironment's own offscreen PMREM bake, entirely
+  separate from this visible background layer.
+- Third size bump (StlEmblem default 1.75 to 2.0, Volvo proportionally),
+  re-checked against cropping.
+- Fixed a real timing bug, not just a preference: Overview's emblem could
+  briefly show the generic nameplate badge before flipping to the correct
+  brand on connect, because Overview independently re-fetched the VIN via
+  report_cars instead of receiving it from App, which already resolves it
+  earlier in the same connect handler. Now passed down as a prop.
+- Fixed a scrollbar layout shift in DiscoveryFlow's sensor list
+  (overflow-y-auto to overflow-y-scroll, reserves the gutter).
+- New src/lib/vin.ts: decodes model YEAR from VIN position 10 (ISO 3779,
+  universal, offline, no lookup table needed beyond the standard one).
+  Deliberately does not attempt full model/trim decoding — checked
+  directly against NHTSA's free VIN-decode API before writing this off:
+  it works cleanly for a real US-market VIN (Ford F-150 decoded exactly
+  right) but fails outright for this app's own demo VIN, a Citroen
+  (VR7-prefixed) — "Manufacturer is not registered with NHTSA for sale or
+  importation in the U.S." Not a demo-data quirk: every real Citroen VIN
+  hits the same wall, and Citroen/Peugeot/Renault/Seat/Dacia/Fiat cover a
+  large share of Spain's actual fleet. NHTSA is a real option worth
+  wiring up later as a best-effort online lookup for the brands that do
+  sell in the US, but it is not a fix for the rest, including this app's
+  own reference car — a hand-built exhaustive model database is not a
+  realistic scope either. Wired the year into Overview's header and
+  DiscoveryFlow's info card (new "Vehicle" row: brand name + year).

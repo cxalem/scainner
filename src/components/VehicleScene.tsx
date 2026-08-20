@@ -37,10 +37,10 @@ import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import { brandFromVin } from "@/lib/brand";
 import { EMBLEMS, NameplateEmblem } from "./emblems";
+import { EmblemStarfield } from "./EmblemStarfield";
 
 export type SceneStatus = "disconnected" | "connecting" | "connected";
 
-const PAPER = "#f7f7f5";
 const DEFAULT_TINT = "#e3e5e8"; // near-white — shows the texture close to its native grayscale until a real color is picked
 const PULSE_COLOR = "#2b2f36";
 
@@ -1225,7 +1225,17 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
   const vinOverride = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("vin") : null;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72" style={{ background: PAPER }}>
+    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72">
+      {/* Dark ambient-dust ground instead of the old flat light fill —
+          same starfield technique as the knowledge-base note
+          (3-Resources/starfield-header/technique.md), tuned far slower
+          (ambient dust, not a hyperspace field) and warm-toned per request.
+          Sits behind the WebGL canvas; the canvas below has no opaque
+          background of its own (gl alpha:true, no <color attach>) so this
+          shows through. Does not touch the chrome material's reflection
+          environment at all — that comes from StudioEnvironment's own
+          offscreen PMREM bake, entirely separate from this visible layer. */}
+      <EmblemStarfield />
       <Canvas
         dpr={[1, 1.75]}
         camera={{ position: [4.4, 2.6, 4.4], fov: 30 }}
@@ -1237,7 +1247,6 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
           toneMappingExposure: 1.15,
         }}
       >
-        <color attach="background" args={[PAPER]} />
         {/* Direct lights now just define shape (key + soft fill) — the
             StudioEnvironment below carries the actual reflections and most
             of the ambient fill, so these are deliberately lower-intensity
@@ -1260,7 +1269,7 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
         </Suspense>
         <ContactShadows position={[0, 0.01, 0]} opacity={0.32} scale={7} blur={2.2} far={2} />
       </Canvas>
-      <p className="pointer-events-none absolute bottom-2 left-3 text-[10px] uppercase tracking-wide text-black/40">
+      <p className="pointer-events-none absolute bottom-2 left-3 z-10 text-[10px] uppercase tracking-wide text-white/45">
         {status === "disconnected" ? "Idle" : status === "connecting" ? "Discovering modules…" : "Live"}
       </p>
     </div>

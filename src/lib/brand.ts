@@ -70,6 +70,17 @@ const WMI: Record<string, BrandInfo> = {
   // a Zeekr as a Geely — a wrong badge is worse than no badge (see
   // docs/workflows/3d-logos/research.md section 5).
   LB3: { key: "geely", name: "GEELY" },
+  // BYD: LGX confirmed against NHTSA's own WMI registry directly
+  // (vpic.nhtsa.dot.gov/api/vehicles/GetWMIsForManufacturer/BYD), not just a
+  // web search summary — high confidence. One low-quality source claimed
+  // "LVV" for BYD while a separate one claimed the same "LVV" for Chery;
+  // NHTSA settles the conflict for BYD specifically, LGX it is.
+  LGX: { key: "byd", name: "BYD" },
+  // Chery: LVV, corroborated by two independent secondary sources (not an
+  // official registry hit like BYD above, since Chery doesn't sell in the
+  // US and so isn't in NHTSA's database) — medium confidence, not the same
+  // bar as LGX, flagged honestly rather than presented as equally certain.
+  LVV: { key: "chery", name: "CHERY" },
   // Others
   WF0: { key: "ford", name: "FORD" },
   VS6: { key: "ford", name: "FORD" },
