@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import { hex4 } from "@/shared/domain/gauges";
-import type { UdsHit, UdsProbe } from "@/features/lab/schema";
+import type { UdsHit, UdsProbe } from "@scainner/core";
 import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/features/lab/queries";
 
 const inputCls =

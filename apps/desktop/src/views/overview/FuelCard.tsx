@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Fuel } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, useTransientLabel } from "@/components/ui";
-import type { Insights } from "@/features/vehicle/schema";
+import type { Insights } from "@scainner/core";
 import { useSetFuelPrice } from "@/features/vehicle/queries";
 import { FuelLevelGauge } from "@/views/overview/FuelLevelGauge";
 

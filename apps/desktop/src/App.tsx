@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { useQueryClient } from "@tanstack/react-query";
 import { listen } from "@/lib/tauri";
 import { runPromise } from "@/core/runtime";
-import { DeviceService } from "@/core/services/device-service";
+import { DeviceService } from "@scainner/core";
 import { Shell, type ViewKey } from "@/components/Shell";
 import { ConnectGate } from "@/components/ConnectGate";
 import { Overview } from "@/views/Overview";
@@ -11,7 +11,7 @@ import { Live } from "@/views/Live";
 import { History } from "@/views/History";
 import { Diagnose } from "@/views/Diagnose";
 import { Lab } from "@/views/Lab";
-import type { ConnStatus, Live as LiveMap } from "@/shared/domain/connection";
+import type { ConnStatus, Live as LiveMap } from "@scainner/core";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // something that needs the 3D scene — Overview (once connected),

@@ -20,6 +20,9 @@ importers:
       '@react-three/fiber':
         specifier: ^9.7.0
         version: 9.7.0(@types/react@19.2.18)(immer@11.1.16)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(three@0.185.1)
+      '@scainner/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0))
@@ -84,6 +87,16 @@ importers:
       vite:
         specifier: ^7.0.4
         version: 7.3.6(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/core:
+    dependencies:
+      effect:
+        specifier: ^3.22.1
+        version: 3.22.1
+    devDependencies:
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
 
 packages:
 

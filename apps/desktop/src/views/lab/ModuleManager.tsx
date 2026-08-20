@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
-import type { UdsModule } from "@/features/lab/schema";
+import type { UdsModule } from "@scainner/core";
 import { useAddUdsModule, useDeleteUdsModule, useUdsModules } from "@/features/lab/queries";
 
 const inputCls =

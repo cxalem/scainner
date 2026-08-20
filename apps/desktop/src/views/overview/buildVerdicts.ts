@@ -1,5 +1,5 @@
 import { BatteryCharging, ClipboardList, Thermometer, Wind, Wrench } from "lucide-react";
-import type { CarReport } from "@/features/vehicle/schema";
+import type { CarReport } from "@scainner/core";
 
 export type Verdict = {
   icon: typeof Wrench;

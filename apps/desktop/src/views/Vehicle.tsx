@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
-import { DeviceService } from "@/core/services/device-service";
+import { DeviceService } from "@scainner/core";
 import { Bot, Car, Copy, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useTransientLabel } from "@/components/ui";
 import { useCarInfo, useDbPath, useReadEcuInfo } from "@/features/vehicle/queries";

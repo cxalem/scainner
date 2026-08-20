@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useCyclingLabel } from "@/components/ui";
-import type { DtcResult, DtcScanRow } from "@/features/diagnose/schema";
+import type { DtcResult, DtcScanRow } from "@scainner/core";
 import { AI_PHASES, generateCodeReport, getApiKey, getCodeReports, type SavedReport } from "@/lib/ai";
 import { decodeDtc, dtcInfo } from "@/lib/dtc";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";

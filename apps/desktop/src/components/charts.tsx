@@ -6,7 +6,7 @@
 // Rollup keeps them in a single shared chunk (decisions-plan.md: "the
 // recharts split as an in-scope step").
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { CarReport } from "@/features/vehicle/schema";
+import type { CarReport } from "@scainner/core";
 
 export function BatteryChart({ data }: { data: CarReport["daily_voltage"] }) {
   return (

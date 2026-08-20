@@ -22,8 +22,7 @@
 // locally.
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
-import { DeviceService } from "@/core/services/device-service";
-import { AiService } from "@/core/services/ai-service";
+import { AiService, DeviceService } from "@scainner/core";
 
 const KEY_STORAGE = "scainner.anthropic_api_key";
 const REPORT_STORAGE = "scainner.last_ai_report";

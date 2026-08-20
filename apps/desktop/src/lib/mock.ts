@@ -3,12 +3,12 @@
 // dongle attached). Lets the UI be previewed and iterated on without a car.
 // See `src/lib/tauri.ts` for how this is switched in.
 
-import type { ConnStatus, Live as LiveMap } from "@/shared/domain/connection";
-import type { CarReport, KeyStat } from "@/features/vehicle/schema";
-import type { ClearOutcome, UdsModule, UdsProbe } from "@/features/lab/schema";
-import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@/features/diagnose/schema";
-import type { HistoryPoint } from "@/features/history/schema";
-import type { SensorReading } from "@/features/live/schema";
+import type { ConnStatus, Live as LiveMap } from "@scainner/core";
+import type { CarReport, KeyStat } from "@scainner/core";
+import type { ClearOutcome, UdsModule, UdsProbe } from "@scainner/core";
+import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@scainner/core";
+import type { HistoryPoint } from "@scainner/core";
+import type { SensorReading } from "@scainner/core";
 
 const MOCK_VIN = "VR7BAHNSANE014974";
 

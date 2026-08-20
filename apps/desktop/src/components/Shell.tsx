@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
-import { CONNECT_PHRASES, type ConnStatus } from "@/shared/domain/connection";
+import { CONNECT_PHRASES, type ConnStatus } from "@scainner/core";
 
 export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw, ShieldCheck } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import { MONITOR_LABELS } from "@/shared/domain/gauges";
-import type { DtcResult } from "@/features/diagnose/schema";
+import type { DtcResult } from "@scainner/core";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
 import { WriteHistory } from "@/components/WriteHistory";
 import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/features/diagnose/queries";

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Effect } from "effect";
 import { listen } from "@/lib/tauri";
 import { runPromise } from "@/core/runtime";
-import { DeviceService } from "@/core/services/device-service";
+import { DeviceService } from "@scainner/core";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { hex4 } from "@/shared/domain/gauges";
-import type { UdsHit } from "@/features/lab/schema";
+import type { UdsHit } from "@scainner/core";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";

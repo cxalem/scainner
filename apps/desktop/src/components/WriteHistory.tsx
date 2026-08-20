@@ -1,7 +1,7 @@
 import { PenLine } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import { useWritesLog } from "@/features/diagnose/queries";
-import type { WriteLogRow } from "@/features/diagnose/schema";
+import type { WriteLogRow } from "@scainner/core";
 
 // The visible half of the write audit trail (writes_log table): every change
 // this app has sent to the car, with what was there before and after. Part 2

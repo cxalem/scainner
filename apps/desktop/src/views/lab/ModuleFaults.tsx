@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Effect } from "effect";
 import { useQueryClient } from "@tanstack/react-query";
 import { runPromise } from "@/core/runtime";
-import { DeviceService } from "@/core/services/device-service";
+import { DeviceService } from "@scainner/core";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
-import type { ClearOutcome } from "@/features/lab/schema";
+import type { ClearOutcome } from "@scainner/core";
 
 // Reads and clears fault codes stored on the module itself (as opposed to
 // the standard engine DTCs in Diagnose). Clearing is a real write, so it

@@ -3,8 +3,8 @@
 // service Layer once; `runPromise` is what queryFn/call sites use to run
 // an Effect and get back a plain Promise (TanStack Query's own contract).
 import { Layer, ManagedRuntime } from "effect";
-import { DeviceServiceLive } from "@/core/services/device-service";
-import { AiServiceLive } from "@/core/services/ai-service";
+import { AiServiceLive } from "@scainner/core";
+import { DeviceServiceLive } from "@/core/services/device-service-live";
 
 const AppLayer = Layer.mergeAll(DeviceServiceLive, AiServiceLive);
 

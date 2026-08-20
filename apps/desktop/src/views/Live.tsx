@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Activity, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, useCyclingLabel } from "@/components/ui";
 import { ALL_SENSORS_PHRASES, GAUGES } from "@/shared/domain/gauges";
-import type { Live as LiveMap } from "@/shared/domain/connection";
+import type { Live as LiveMap } from "@scainner/core";
 import { useAllSensors } from "@/features/live/queries";
 
 function Gauges({ live }: { live: LiveMap }) {

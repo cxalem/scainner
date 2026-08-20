@@ -4,7 +4,7 @@
 // never SQLite) stays in ai.ts unchanged; this service takes the key as a
 // plain argument, so this file has no reason to know where it's stored.
 import { Context, Effect, Layer, Schema } from "effect";
-import { ApiError } from "@/core/errors";
+import { ApiError } from "../errors";
 
 class AnthropicBlock extends Schema.Class<AnthropicBlock>("AnthropicBlock")({
   type: Schema.String,

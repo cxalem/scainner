@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { UdsHit } from "@/features/lab/schema";
+import type { UdsHit } from "@scainner/core";
 import { useUdsModules } from "@/features/lab/queries";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";

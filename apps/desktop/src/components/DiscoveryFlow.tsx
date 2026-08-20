@@ -6,13 +6,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
-import { DeviceService } from "@/core/services/device-service";
+import { DeviceService } from "@scainner/core";
 import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import { Badge, Button, Card, CardContent } from "@/components/ui";
 import { VehicleScene } from "@/components/VehicleScene";
-import type { DtcResult } from "@/features/diagnose/schema";
-import type { EcuInfo } from "@/features/vehicle/schema";
-import type { SensorReading } from "@/features/live/schema";
+import type { DtcResult } from "@scainner/core";
+import type { EcuInfo } from "@scainner/core";
+import type { SensorReading } from "@scainner/core";
 import { brandFromVin } from "@/lib/brand";
 import { decodeModelYear } from "@/lib/vin";
 
