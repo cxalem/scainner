@@ -288,10 +288,8 @@ const DEMO_FREEZE: Record<string, unknown> = {
 };
 
 // ---------- entry point ----------
-
-export function isMock(): boolean {
-  return typeof window !== "undefined" && !("__TAURI_INTERNALS__" in window);
-}
+// (mock-mode detection itself now lives in tauri.ts, so this module can stay
+// out of the eager bundle when it isn't needed — see tauri.ts for why.)
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

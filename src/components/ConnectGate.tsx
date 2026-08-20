@@ -8,10 +8,12 @@
 import { Gauge, PlugZap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
-import type { ConnStatus } from "@/lib/meta";
+import { useCyclingLabel } from "@/components/ui";
+import { CONNECT_PHRASES, type ConnStatus } from "@/lib/meta";
 
 export function ConnectGate({ conn, onConnect }: { conn: ConnStatus; onConnect: () => void }) {
   const connecting = conn.state === "connecting";
+  const connectLabel = useCyclingLabel(CONNECT_PHRASES, connecting, 700);
 
   return (
     <div className="flex h-screen items-center justify-center bg-background text-foreground">
@@ -30,12 +32,14 @@ export function ConnectGate({ conn, onConnect }: { conn: ConnStatus; onConnect: 
           disabled={connecting}
           className={cn(
             "flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-sm font-medium text-primary-foreground",
-            "transition-opacity hover:opacity-90 disabled:opacity-50",
+            "transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]",
+            "disabled:opacity-50 disabled:pointer-events-none",
+            "motion-reduce:transition-none motion-reduce:active:scale-100",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           )}
         >
           <PlugZap className="h-4 w-4" aria-hidden="true" />
-          {connecting ? "Connecting…" : "Connect"}
+          {connecting ? connectLabel : "Connect"}
         </button>
         <p className="text-xs text-muted-foreground">Ignition on, then connect.</p>
         {conn.detail && conn.state === "disconnected" && (

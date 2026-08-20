@@ -18,6 +18,7 @@ export function ConfirmWrite({
   reversal,
   confirmLabel,
   busy,
+  busyLabel,
   onConfirm,
   onCancel,
 }: {
@@ -27,6 +28,11 @@ export function ConfirmWrite({
   reversal: string;
   confirmLabel: string;
   busy?: boolean;
+  // What the confirm button says while busy — every pending write action
+  // gets a visible label change, not just a disabled button (app-perf's
+  // interaction-feedback standard). Falls back to confirmLabel if omitted,
+  // so existing callers don't break, but every real write should pass one.
+  busyLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -58,7 +64,7 @@ export function ConfirmWrite({
           </p>
           <div className="flex items-center gap-2">
             <Button variant="destructive" onClick={onConfirm} disabled={busy}>
-              {confirmLabel}
+              {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
             </Button>
             <Button variant="ghost" onClick={onCancel} disabled={busy}>
               Cancel

@@ -1,37 +1,38 @@
 import { useState } from "react";
-import { invoke } from "@/lib/tauri";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import type { UdsModule } from "@/lib/meta";
+import { useAddUdsModule, useDeleteUdsModule, useUdsModules } from "@/lib/queries";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 /// Lists built-in + custom UDS modules and lets the user add their own (any
 /// brand's CAN request/response IDs) — the feature that makes the Lab work
-/// beyond the four PSA defaults.
-export function ModuleManager({
-  modules,
-  onModulesChanged,
-}: {
-  modules: UdsModule[];
-  onModulesChanged: () => void;
-}) {
+/// beyond the four PSA defaults. Shares the `uds_modules` query with Lab.tsx
+/// (same cache entry, no extra round trip) rather than taking the list as a
+/// prop, so this card owns its own loading/error state independently.
+export function ModuleManager() {
+  const modulesQuery = useUdsModules();
+  const modules = modulesQuery.data ?? [];
+  const addModule = useAddUdsModule();
   const [addingModule, setAddingModule] = useState(false);
   const [draft, setDraft] = useState({ key: "", label: "", req: "", resp: "" });
   const [error, setError] = useState<string | null>(null);
 
-  const save = async () => {
+  const save = () => {
     setError(null);
     const { key, label, req, resp } = draft;
     if (!key || !label || !req || !resp) return;
-    try {
-      await invoke("add_uds_module", { key: key.toLowerCase().replace(/\s+/g, "_"), label, req, resp });
-      setDraft({ key: "", label: "", req: "", resp: "" });
-      setAddingModule(false);
-      onModulesChanged();
-    } catch (e) {
-      setError(String(e));
-    }
+    addModule.mutate(
+      { key: key.toLowerCase().replace(/\s+/g, "_"), label, req, resp },
+      {
+        onSuccess: () => {
+          setDraft({ key: "", label: "", req: "", resp: "" });
+          setAddingModule(false);
+        },
+        onError: (e) => setError(String(e instanceof Error ? e.message : e)),
+      },
+    );
   };
 
   return (
@@ -47,16 +48,30 @@ export function ModuleManager({
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <ul className="flex flex-col gap-1 text-sm">
-          {modules.map((m) => (
-            <li key={m.key} className="flex items-center justify-between border-b border-border/50 py-1 last:border-0">
-              <span>
-                {m.label} <span className="font-mono text-xs text-muted-foreground">{m.req}→{m.resp}</span>
-              </span>
-              <span className="text-xs text-muted-foreground">{m.builtin ? "built-in" : "custom"}</span>
-            </li>
-          ))}
-        </ul>
+        {modulesQuery.isPending ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-full" />
+          </div>
+        ) : modulesQuery.isError ? (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <span>Could not load modules.</span>
+            <Button variant="outline" onClick={() => modulesQuery.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-1 text-sm">
+            {modules.map((m) => (
+              <li key={m.key} className="flex items-center justify-between border-b border-border/50 py-1 last:border-0">
+                <span>
+                  {m.label} <span className="font-mono text-xs text-muted-foreground">{m.req}→{m.resp}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">{m.builtin ? "built-in" : "custom"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {addingModule && (
           <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
             <p className="text-xs text-muted-foreground">
@@ -100,10 +115,10 @@ export function ModuleManager({
                   onChange={(e) => setDraft({ ...draft, resp: e.target.value.toUpperCase() })}
                 />
               </label>
-              <Button onClick={save} disabled={!draft.key || !draft.label || !draft.req || !draft.resp}>
-                Save
+              <Button onClick={save} disabled={!draft.key || !draft.label || !draft.req || !draft.resp || addModule.isPending}>
+                {addModule.isPending ? "Saving…" : "Save"}
               </Button>
-              <Button variant="ghost" onClick={() => setAddingModule(false)}>
+              <Button variant="ghost" onClick={() => setAddingModule(false)} disabled={addModule.isPending}>
                 Cancel
               </Button>
             </div>
@@ -116,16 +131,30 @@ export function ModuleManager({
 }
 
 export function RemoveModuleButton({ module, onRemoved }: { module: UdsModule; onRemoved: () => void }) {
-  const remove = async () => {
-    await invoke("delete_uds_module", { key: module.key });
-    onRemoved();
+  const deleteModule = useDeleteUdsModule();
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = () => {
+    setError(null);
+    deleteModule.mutate(
+      { key: module.key },
+      {
+        onSuccess: onRemoved,
+        onError: (e) => setError(String(e instanceof Error ? e.message : e)),
+      },
+    );
   };
+
   return (
-    <button
-      className="rounded text-xs text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-      onClick={remove}
-    >
-      remove
-    </button>
+    <span className="flex items-center gap-1.5">
+      <button
+        className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+        onClick={remove}
+        disabled={deleteModule.isPending}
+      >
+        {deleteModule.isPending ? "removing…" : "remove"}
+      </button>
+      {error && <span className="text-xs text-destructive">{error}</span>}
+    </span>
   );
 }

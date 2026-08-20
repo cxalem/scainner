@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
 import { PenLine } from "lucide-react";
-import { invoke } from "@/lib/tauri";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
+import { useWritesLog } from "@/lib/queries";
 import type { WriteLogRow } from "@/lib/meta";
 
 // The visible half of the write audit trail (writes_log table): every change
 // this app has sent to the car, with what was there before and after. Part 2
-// of the write-caps hard rule. Bump `refresh` after a write to reload.
+// of the write-caps hard rule. useClearDtcs and ModuleFaults' clear() both
+// invalidate the writes_log query key, so this stays current on its own,
+// no manual refresh prop needed.
 
 const OUTCOME_BADGE: Record<WriteLogRow["outcome"], { label: string; variant: "ok" | "warn" | "error" }> = {
   cleared: { label: "cleared", variant: "ok" },
@@ -45,12 +46,8 @@ const ACTION_LABELS: Record<string, string> = {
   clear_faults: "Fault code clear",
 };
 
-export function WriteHistory({ refresh }: { refresh: number }) {
-  const [rows, setRows] = useState<WriteLogRow[]>([]);
-
-  useEffect(() => {
-    invoke<WriteLogRow[]>("writes_log", { limit: 20 }).then(setRows).catch(() => {});
-  }, [refresh]);
+export function WriteHistory() {
+  const { data: rows = [], isPending, isError, refetch } = useWritesLog();
 
   return (
     <Card>
@@ -60,7 +57,19 @@ export function WriteHistory({ refresh }: { refresh: number }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {rows.length === 0 ? (
+        {isPending ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-full" />
+          </div>
+        ) : isError ? (
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <span>Could not load write history.</span>
+            <Button variant="outline" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No writes recorded yet. Every change this app sends to the car is listed here, with the state read
             before and after.

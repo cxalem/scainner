@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@/lib/tauri";
 import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
@@ -13,6 +14,7 @@ import type { ClearOutcome } from "@/lib/meta";
 // Diagnose). The clear is verified: read, clear, read again, so the result
 // is an honest before/after instead of a blind "done" button.
 export function ModuleFaults({ module, label, connected }: { module: string; label: string; connected: boolean }) {
+  const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [faults, setFaults] = useState<string[] | null>(null);
@@ -41,6 +43,9 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
       const result = await invoke<ClearOutcome>("uds_clear", { module, confirmed: true });
       setOutcome(result);
       setFaults(result.after);
+      // WriteHistory lives in a different view (Diagnose); this is what
+      // makes it show this write without waiting for a fresh mount there.
+      qc.invalidateQueries({ queryKey: ["writes_log"] });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -98,6 +103,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
             whatChanges="This erases every fault code stored on this module. The app reads the module again right after, so the result is verified, and the write is saved to the write history in Diagnose."
             reversal="No. Erased codes cannot be put back. This is still safe to do: the codes just read are saved in the write history, and a fault that is still present will report itself again on its own."
             confirmLabel="Yes, clear"
+            busyLabel="Clearing…"
             busy={busy !== null}
             onConfirm={clear}
             onCancel={() => setConfirmClear(false)}

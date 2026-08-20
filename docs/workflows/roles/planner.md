@@ -19,7 +19,15 @@ without improvising on the hard parts.
    question for the user gate. Do not pass ambiguity to the builder.
 6. Keep `plan.md` under ~120 lines.
 
-## Decision log (`decisions-plan.md`)
+## Decision rationale
 
-Every architectural choice, sequencing choice, and scope cut: what,
-options, why, risk.
+Changed 2026-08-20 (Alejandro: dedicated decision-log files were burning
+real token budget better spent building): don't write a separate
+`decisions-plan.md` for routine calls. Fold rationale straight into
+`plan.md` inline (a sentence next to the choice, not a whole extra file).
+
+Write a short standalone `decisions-plan.md` only for something a later
+stage genuinely needs to see in one place: an architectural choice that's
+expensive to reverse, a scope cut that materially changes what ships, or
+a call a reviewer is likely to question without the reasoning in front
+of them. Most plans don't need this file at all.

@@ -134,3 +134,14 @@ export const RANGES = [
 ];
 
 export const hex4 = (n: number) => n.toString(16).toUpperCase().padStart(4, "0");
+
+// ---------- pending-state phrase narration ----------
+// Module-level constants (not inline arrays) so components can pass them
+// straight to useCyclingLabel without retriggering its effect every render.
+// No backend progress event for connect/all_sensors — these are timed
+// phrases on the frontend, a deliberate scope cut (decisions-plan.md: "Keep
+// the no-Rust non-goal").
+
+export const CONNECT_PHRASES = ["Waking the dongle…", "Negotiating protocol…"] as const;
+
+export const ALL_SENSORS_PHRASES = ["Interrogating ECU…", "Sweeping sensor PIDs…"] as const;

@@ -20,6 +20,15 @@ import { invoke } from "@/lib/tauri";
 const KEY_STORAGE = "scainner.anthropic_api_key";
 const REPORT_STORAGE = "scainner.last_ai_report";
 
+// These calls are the longest real waits in the app (10-60s) and, being a
+// plain `fetch` outside `invoke`, can never get IPC progress events — a
+// static "Analyzing…" label reads as frozen well before the response
+// arrives. Cycled via useCyclingLabel wherever a report is generated
+// (interaction-audit.md rule 3, decisions-plan.md "AI generation is in
+// scope for feedback rules"). Module-level constant for the same reason as
+// meta.ts's phrase arrays: a stable reference for useCyclingLabel's effect.
+export const AI_PHASES = ["Sending briefing…", "Waiting for the model…", "Writing report…"] as const;
+
 // Latest-generation default; small enough latency for an interactive
 // "generate report" button, strong enough for real diagnostic reasoning.
 const MODEL = "claude-sonnet-5";

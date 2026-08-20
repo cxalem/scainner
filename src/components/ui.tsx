@@ -1,5 +1,6 @@
 // Minimal shadcn-style primitives (hand-rolled, no CLI): Card, Button, Badge, Tabs.
 import * as React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 // ---------- Card ----------
@@ -21,6 +22,45 @@ export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDi
   return <div className={cn("p-4 pt-0", className)} {...props} />;
 }
 
+// ---------- Skeleton ----------
+// Reuses the app's one existing skeleton language (animate-pulse + bg-muted,
+// already used by the two Suspense boundaries) everywhere a query is
+// isPending, instead of blank space or a "loading…" string.
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} {...props} />;
+}
+
+/** A Card-shaped loading placeholder, sized to match the content it stands
+ * in for so nothing shifts once real data lands (engineering.md rule 5).
+ * Pass `rows` for a simple label/value list shape, or `contentClassName`
+ * (e.g. "h-44") for a chart- or table-shaped card that fills one block. */
+export function CardSkeleton({
+  title = true,
+  rows = 3,
+  contentClassName,
+}: {
+  title?: boolean;
+  rows?: number;
+  contentClassName?: string;
+}) {
+  return (
+    <Card>
+      {title && (
+        <CardHeader>
+          <Skeleton className="h-4 w-32" />
+        </CardHeader>
+      )}
+      <CardContent className={contentClassName ? undefined : "flex flex-col gap-2"}>
+        {contentClassName ? (
+          <Skeleton className={cn("w-full", contentClassName)} />
+        ) : (
+          Array.from({ length: rows }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ---------- Button ----------
 type ButtonVariant = "default" | "outline" | "destructive" | "ghost";
 export function Button({
@@ -37,7 +77,9 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium",
+        "transition-[color,background-color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100",
+        "disabled:pointer-events-none disabled:opacity-50",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         variants[variant],
         className
@@ -68,7 +110,8 @@ export function Segmented<T extends string>({
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "rounded-md px-3 py-1.5 text-sm font-medium",
+            "transition-[color,background-color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             value === o.value ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground"
           )}
@@ -155,4 +198,49 @@ export function TabsContent({ value, children }: { value: string; children: Reac
   const ctx = React.useContext(TabsCtx);
   if (ctx.value !== value) return null;
   return <div className="mt-4">{children}</div>;
+}
+
+// ---------- success/pending feedback helpers ----------
+// (interaction-audit.md rules 4 and 5/9 — shared once instead of the
+// hand-rolled useState+setTimeout pattern that used to live in three places)
+
+/** Flips a label on for `ms`, then clears it — the app's one success idiom
+ * ("Saved"/"Copied" for ~2s), reused instead of a new toast system
+ * (decisions-plan.md: "No toast system; reuse the transient label
+ * pattern"). Call `flash("saved")` and compare `label === "saved"`; several
+ * call sites in one component (e.g. two export buttons) can share one
+ * instance by flashing different string values. */
+export function useTransientLabel(ms = 2000) {
+  const [label, setLabel] = useState<string | null>(null);
+  const timer = useRef<number | null>(null);
+  const flash = useCallback(
+    (value: string) => {
+      setLabel(value);
+      if (timer.current) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setLabel(null), ms);
+    },
+    [ms],
+  );
+  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
+  return [label, flash] as const;
+}
+
+/** Cycles through a present-tense phrase list while `active` is true, so a
+ * long wait (connect, a full sensor sweep, an AI report) reads as moving
+ * forward instead of frozen on one static label (interaction-audit.md rule
+ * 3/5). Resets to the first phrase whenever `active` goes false, so the next
+ * wait always starts from the beginning. Pass a module-level constant array
+ * for `phrases` — a literal defined inline would re-trigger the effect on
+ * every render. */
+export function useCyclingLabel(phrases: readonly string[], active: boolean, intervalMs = 3000): string {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (!active) {
+      setI(0);
+      return;
+    }
+    const id = window.setInterval(() => setI((n) => (n + 1) % phrases.length), intervalMs);
+    return () => window.clearInterval(id);
+  }, [active, intervalMs, phrases]);
+  return phrases[i] ?? phrases[0];
 }

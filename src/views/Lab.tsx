@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@/lib/tauri";
-import type { UdsHit, UdsModule } from "@/lib/meta";
+import { useState } from "react";
+import type { UdsHit } from "@/lib/meta";
+import { useUdsModules } from "@/lib/queries";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
@@ -13,14 +13,10 @@ import { RangeScanner } from "@/views/lab/RangeScanner";
 /// This component just owns the module selection shared across every card;
 /// each card is its own focused component under `views/lab/`.
 export function Lab({ connected }: { connected: boolean }) {
-  const [modules, setModules] = useState<UdsModule[]>([]);
+  const modulesQuery = useUdsModules();
+  const modules = modulesQuery.data ?? [];
   const [mod, setMod] = useState("engine");
   const [probeCandidate, setProbeCandidate] = useState<UdsHit | null>(null);
-
-  const loadModules = () => invoke<UdsModule[]>("uds_modules").then(setModules).catch(() => {});
-  useEffect(() => {
-    loadModules();
-  }, []);
 
   const selected = modules.find((m) => m.key === mod);
 
@@ -42,13 +38,7 @@ export function Lab({ connected }: { connected: boolean }) {
             ))}
           </select>
           {selected && !selected.builtin && (
-            <RemoveModuleButton
-              module={selected}
-              onRemoved={() => {
-                loadModules();
-                setMod("engine");
-              }}
-            />
+            <RemoveModuleButton module={selected} onRemoved={() => setMod("engine")} />
           )}
         </div>
       </div>
@@ -59,7 +49,7 @@ export function Lab({ connected }: { connected: boolean }) {
         addresses. On any other brand, add your own module below with your ECU's CAN IDs.
       </p>
 
-      <ModuleManager modules={modules} onModulesChanged={loadModules} />
+      <ModuleManager />
       <DidReader module={mod} connected={connected} />
       <RangeScanner module={mod} connected={connected} onProbeCandidate={setProbeCandidate} />
       <ProbeManager module={mod} candidate={probeCandidate} onCandidateHandled={() => setProbeCandidate(null)} />

@@ -133,7 +133,7 @@ export function RangeScanner({
                     <td className="px-2 py-1 text-muted-foreground">|{h.ascii}|</td>
                     <td className="px-2 py-1">
                       <button
-                        className="rounded text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="rounded text-primary hover:underline transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         onClick={() => onProbeCandidate(h)}
                       >
                         → probe
