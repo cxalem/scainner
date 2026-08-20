@@ -210,10 +210,28 @@ function VolvoEmblem() {
   return <mesh geometry={geo} material={mat} position={[0, EMBLEM_Y, 0]} castShadow />;
 }
 
-// Opel: circle crossed by a horizontal lightning bolt (the "Blitz"). One
-// closed Z-shaped band of constant thickness spanning the ring's full
-// horizontal diameter: left arm, diagonal step down through the center,
-// right arm.
+// One arm of the Opel "Blitz": a bar of constant height `halfT * 2` from
+// the flat end (xBase, at the ring's inner edge) to xKink, then tapering on
+// both edges to a single point at (xTip, yTip). yTip is pulled in toward 0
+// relative to yBase so the point angles toward the ring's center rather
+// than staying level, matching the real mark's diagonal read (source:
+// Wikimedia Commons "Logo Opel-1987.svg" — two overlapping pointed bars
+// with a visible gap between their tips, not one continuous band).
+function blitzArmShape(xBase: number, xKink: number, xTip: number, yBase: number, yTip: number, halfT: number): THREE.Shape {
+  const s = new THREE.Shape();
+  s.moveTo(xBase, yBase + halfT);
+  s.lineTo(xKink, yBase + halfT);
+  s.lineTo(xTip, yTip);
+  s.lineTo(xKink, yBase - halfT);
+  s.lineTo(xBase, yBase - halfT);
+  s.closePath();
+  return s;
+}
+
+// Opel: circle crossed by a horizontal lightning bolt (the "Blitz"). Two
+// separate pointed arms — not one continuous band, see blitzArmShape —
+// offset above and below center so their tips cross with a gap between
+// them, the way the real mark's zigzag notch reads.
 function OpelEmblem() {
   const geo = useMemo(() => {
     const outerR = 0.52, band = 0.08;
@@ -225,29 +243,15 @@ function OpelEmblem() {
     ringHole.absarc(0, 0, innerR, 0, Math.PI * 2, true);
     ring.holes.push(ringHole);
 
-    // Blitz outline: constant thickness `t`, drawn as a Z band spanning
-    // -innerR to +innerR. Top edge walks left-arm, diagonal, right-arm;
-    // bottom edge is the same path offset down by t, walked in reverse to
-    // close the shape without self-intersecting.
-    const t = 0.12;
-    const armLen = innerR * 0.62;
-    const stepY = 0.28; // vertical drop of the diagonal step — steep enough that the
-    // diagonal reads as a bolt's angled stroke, not a shallow S-curve. The original
-    // 0.55 / 0.16 pairing gave a slope of about 0.4 over a long run, which the bevel
-    // rounded into a soft wave at card size (review finding 1).
+    const halfT = 0.065;
+    const yTop = 0.14, yBot = -0.14;
+    // Top arm: flat from the left inner edge, tapers to a point past
+    // center on the right. Bottom arm mirrors it, flat from the right
+    // inner edge, tapering past center on the left.
+    const topArm = blitzArmShape(-innerR, -0.02, 0.3, yTop, 0.02, halfT);
+    const bottomArm = blitzArmShape(innerR, 0.02, -0.3, yBot, -0.02, halfT);
 
-    const blitz = new THREE.Shape();
-    blitz.moveTo(-innerR, stepY / 2 + t / 2);
-    blitz.lineTo(-innerR + armLen, stepY / 2 + t / 2);
-    blitz.lineTo(innerR - armLen, -stepY / 2 + t / 2);
-    blitz.lineTo(innerR, -stepY / 2 + t / 2);
-    blitz.lineTo(innerR, -stepY / 2 - t / 2);
-    blitz.lineTo(innerR - armLen, -stepY / 2 - t / 2);
-    blitz.lineTo(-innerR + armLen, stepY / 2 - t / 2);
-    blitz.lineTo(-innerR, stepY / 2 - t / 2);
-    blitz.closePath();
-
-    const shapes = [ring, blitz];
+    const shapes = [ring, topArm, bottomArm];
     const g = new THREE.ExtrudeGeometry(shapes, EXTRUDE_SETTINGS_CURVED);
     g.center();
     return g;
