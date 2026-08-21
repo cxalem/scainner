@@ -161,9 +161,9 @@ export function ScanConsole({
                 {scan.mil_on ? (
                   <Badge variant="error">{t.diagnose.console.milOn(scan.dtc_count)}</Badge>
                 ) : (
-                  <Badge variant="ok">
-                    <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" /> {t.diagnose.console.milOff}
-                  </Badge>
+                  // Badge's own dot already carries the "ok" signal — no
+                  // need for a second checkmark icon on top of it.
+                  <Badge variant="ok">{t.diagnose.console.milOff}</Badge>
                 )}
                 {scan.voltage != null && <Badge variant="muted">{formatVoltage(scan.voltage, locale)}</Badge>}
               </div>
