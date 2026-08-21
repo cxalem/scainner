@@ -34,4 +34,8 @@ env_logger = "0.11.11"
 # it the user would have to quit and reopen the app by hand.
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Client-generated cloud ids (schema v3): every syncable row gets a uuid at
+# creation that becomes its Postgres primary key, making sync pushes
+# idempotent/retry-safe (docs/workflows/data-core/plan.md, sync section).
+uuid = { version = "1", features = ["v4"] }
 

@@ -337,6 +337,26 @@ export const en: Dictionary = {
       briefingExplainer:
         "The AI briefing is a readable markdown summary — car identity, recent scans with freeze frames, and sensor stats — sized to paste straight into a chat.",
     },
+    account: {
+      cardTitle: "Account & cloud sync",
+      explainer:
+        "Sign in with a one-time code from your email — no password. Once signed in, this device's recorded data backs up to your account automatically. Everything keeps working offline either way.",
+      emailLabel: "Email",
+      emailPlaceholder: "you@example.com",
+      sendCode: "Send code",
+      sendingCode: "Sending…",
+      codeSentTo: (email) => `We emailed a 6-digit code to ${email}.`,
+      codeLabel: "One-time code",
+      verify: "Sign in",
+      verifying: "Signing in…",
+      signedInAs: (email) => `Signed in as ${email}`,
+      syncNow: "Sync now",
+      syncing: "Syncing…",
+      lastSync: (time) => `Last synced at ${time}.`,
+      neverSynced: "Not synced yet this session.",
+      syncErrorLabel: "Sync failed:",
+      signOut: "Sign out",
+    },
   },
   discoveryFlow: {
     newVehicle: "New vehicle",

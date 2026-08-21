@@ -7,6 +7,7 @@ import { Effect } from "effect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
+import { resetSyncWatermark } from "@/lib/sync";
 
 const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
@@ -63,6 +64,9 @@ export function useNameCurrentVehicle() {
       void qc.invalidateQueries({ queryKey: ["list_vehicles"] });
       void qc.invalidateQueries({ queryKey: ["vehicle_report"] });
       void qc.invalidateQueries({ queryKey: ["dtc_history"] });
+      // Naming back-stamps rows recorded BEHIND the sync watermark —
+      // rescan from zero so the newly claimed data ships too (idempotent).
+      void resetSyncWatermark();
     },
   });
 }

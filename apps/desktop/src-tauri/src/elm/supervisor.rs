@@ -201,53 +201,93 @@ fn run_loop(
             vehicle_is_new,
         });
 
+        // Adaptive polling: ask the ECU once which mode-01 PIDs it supports
+        // and poll only those. The old Peugeot answers 5 of the poll set's
+        // 12 — before this, the other 7 burned a NO DATA timeout on EVERY
+        // sweep (multi-second sweeps, sluggish live data, requests queuing
+        // behind dead reads). Empty result = bitmap read failed = poll
+        // everything, the pre-existing behavior.
+        let supported_pids = obd::supported_pids(&mut drv);
+        if supported_pids.is_empty() {
+            log::warn!("supported-PID bitmap unavailable — polling the full set");
+        } else {
+            let polled: Vec<&str> = parser::PIDS
+                .iter()
+                .filter(|p| {
+                    u8::from_str_radix(&p.pid[2..], 16)
+                        .map(|n| supported_pids.contains(&n))
+                        .unwrap_or(true)
+                })
+                .map(|p| p.key)
+                .collect();
+            log::info!("ECU supports {} PIDs; polling: {}", supported_pids.len(), polled.join(", "));
+        }
+
         let mut consecutive_failures = 0u32;
         let mut tick: u64 = 0;
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
 
         // ---- polling phase ----
-        loop {
-            // Serve any pending requests first.
-            while let Ok(req) = rx.try_recv() {
-                match req {
-                    Request::Stop => {
-                        db.end_connection(ctx.connection_id);
-                        set_status(&app, &status, ConnStatus { state: "disconnected".into(), ..Default::default() });
-                        return;
-                    }
-                    // Handled inline, not in handle_request: naming mutates
-                    // the loop's own identity ctx and re-emits conn-status,
-                    // both of which live here.
-                    Request::NameVehicle { name, tx } => {
-                        let trimmed = name.trim();
-                        if trimmed.is_empty() {
-                            let _ = tx.send(Err("name is empty".into()));
-                        } else if ctx.vehicle_id.is_some() {
-                            let _ = tx.send(Err("this connection already has an identified vehicle".into()));
-                        } else {
-                            let id = db.create_vehicle_named(trimmed);
-                            db.link_connection_vehicle(ctx.connection_id, id);
-                            ctx.vehicle_id = Some(id);
-                            set_status(&app, &status, ConnStatus {
-                                state: "connected".into(),
-                                elm_version: Some(version.clone()),
-                                detail: None,
-                                vin: None,
-                                vehicle_id: Some(id),
-                                display_name: Some(trimmed.to_string()),
-                                // Naming IS this vehicle's first appearance.
-                                vehicle_is_new: true,
-                            });
-                            let _ = tx.send(Ok(id));
+        // Drains every queued one-shot request. A macro (not a fn/closure)
+        // because Stop must `return` from run_loop itself, and NameVehicle
+        // mutates the loop's own ctx and re-emits conn-status. Invoked both
+        // at the top of each tick AND between individual PID reads below —
+        // requests used to wait for a whole 12-PID sweep (seconds on a slow
+        // bus) before even starting, the second half of the "click scan,
+        // nothing happens for a beat" jank reported live 2026-08-21 (the
+        // first half was sync Tauri commands blocking the main thread, see
+        // lib.rs's ask()). Now a request waits at most one PID read.
+        macro_rules! service_requests {
+            () => {
+                while let Ok(req) = rx.try_recv() {
+                    match req {
+                        Request::Stop => {
+                            db.end_connection(ctx.connection_id);
+                            set_status(&app, &status, ConnStatus { state: "disconnected".into(), ..Default::default() });
+                            return;
                         }
+                        Request::NameVehicle { name, tx } => {
+                            let trimmed = name.trim();
+                            if trimmed.is_empty() {
+                                let _ = tx.send(Err("name is empty".into()));
+                            } else if ctx.vehicle_id.is_some() {
+                                let _ = tx.send(Err("this connection already has an identified vehicle".into()));
+                            } else {
+                                let id = db.create_vehicle_named(trimmed);
+                                db.link_connection_vehicle(ctx.connection_id, id);
+                                ctx.vehicle_id = Some(id);
+                                set_status(&app, &status, ConnStatus {
+                                    state: "connected".into(),
+                                    elm_version: Some(version.clone()),
+                                    detail: None,
+                                    vin: None,
+                                    vehicle_id: Some(id),
+                                    display_name: Some(trimmed.to_string()),
+                                    // Naming IS this vehicle's first appearance.
+                                    vehicle_is_new: true,
+                                });
+                                let _ = tx.send(Ok(id));
+                            }
+                        }
+                        req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx),
                     }
-                    req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx),
                 }
-            }
+            };
+        }
+
+        loop {
+            service_requests!();
 
             let mut values: HashMap<String, f64> = HashMap::new();
             for pid in parser::PIDS {
+                if !supported_pids.is_empty() {
+                    let n = u8::from_str_radix(&pid.pid[2..], 16).unwrap_or(0);
+                    if !supported_pids.contains(&n) {
+                        continue;
+                    }
+                }
+                service_requests!();
                 match drv.cmd(pid.pid, Duration::from_secs(3)) {
                     Ok(raw) => {
                         let lines = parser::clean_response(&raw);
@@ -558,7 +598,20 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
             let _ = tx.send(obd::readiness(drv));
         }
         Request::AllSensors(tx) => {
-            let _ = tx.send(obd::read_all_sensors(drv));
+            // Persist the sweep, not just display it: the full-catalog
+            // sweep is exactly the "which sensors does THIS car actually
+            // answer" map, and before this it evaporated with the UI. As
+            // plain readings rows it lands per-vehicle, feeds the reports,
+            // and rides the cloud sync like everything else. The map
+            // itself is then just DISTINCT keys for the vehicle joined
+            // against parser.rs's static FULL_PIDS catalog.
+            let res = obd::read_all_sensors(drv).map(|list| {
+                for s in &list {
+                    db.insert_reading(ctx.connection_id, ctx.vehicle_id, &s.key, s.value);
+                }
+                list
+            });
+            let _ = tx.send(res);
         }
         Request::UdsRead { module, did, tx } => {
             let _ = tx.send(uds::read_one(drv, db, &module, did));

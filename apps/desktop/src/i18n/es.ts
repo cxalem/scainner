@@ -345,6 +345,26 @@ export const es: Dictionary = {
       briefingExplainer:
         "El resumen para IA es un markdown legible con la identidad del coche, los escaneos recientes con sus freeze frames y las estadísticas de sensores, pensado para pegarlo directamente en un chat.",
     },
+    account: {
+      cardTitle: "Cuenta y sincronización",
+      explainer:
+        "Inicia sesión con un código de un solo uso que llega a tu correo, sin contraseña. Con la sesión iniciada, los datos grabados en este equipo se respaldan automáticamente en tu cuenta. Todo sigue funcionando sin conexión igualmente.",
+      emailLabel: "Correo",
+      emailPlaceholder: "tu@ejemplo.com",
+      sendCode: "Enviar código",
+      sendingCode: "Enviando…",
+      codeSentTo: (email) => `Hemos enviado un código de 6 dígitos a ${email}.`,
+      codeLabel: "Código de un solo uso",
+      verify: "Iniciar sesión",
+      verifying: "Iniciando sesión…",
+      signedInAs: (email) => `Sesión iniciada como ${email}`,
+      syncNow: "Sincronizar ahora",
+      syncing: "Sincronizando…",
+      lastSync: (time) => `Última sincronización a las ${time}.`,
+      neverSynced: "Todavía no se ha sincronizado en esta sesión.",
+      syncErrorLabel: "Fallo de sincronización:",
+      signOut: "Cerrar sesión",
+    },
   },
   discoveryFlow: {
     newVehicle: "Vehículo nuevo",

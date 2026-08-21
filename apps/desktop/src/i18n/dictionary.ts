@@ -334,6 +334,25 @@ export type Dictionary = {
       copyRawJson30d: string;
       briefingExplainer: string;
     };
+    account: {
+      cardTitle: string;
+      explainer: string;
+      emailLabel: string;
+      emailPlaceholder: string;
+      sendCode: string;
+      sendingCode: string;
+      codeSentTo: (email: string) => string;
+      codeLabel: string;
+      verify: string;
+      verifying: string;
+      signedInAs: (email: string) => string;
+      syncNow: string;
+      syncing: string;
+      lastSync: (time: string) => string;
+      neverSynced: string;
+      syncErrorLabel: string;
+      signOut: string;
+    };
   };
   discoveryFlow: {
     newVehicle: string;

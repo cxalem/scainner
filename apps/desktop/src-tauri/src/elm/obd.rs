@@ -191,9 +191,14 @@ pub fn readiness(drv: &mut ElmDriver) -> Result<std::collections::HashMap<String
     Ok(out)
 }
 
-/// Discover which PIDs the ECU supports (0100/0120/0140/0160 bitmaps), then
-/// read every one we know how to decode. One-shot, ~10-20 s.
-pub fn read_all_sensors(drv: &mut ElmDriver) -> Result<Vec<SensorReading>, String> {
+/// Ask the ECU which mode-01 PIDs it supports (0100/0120/0140/0160
+/// bitmaps). Empty on any failure — callers treat that as "unknown, assume
+/// everything" rather than an error. Also used at connect time to make the
+/// poll loop adaptive: the old Peugeot answers 5 of the poll set's 12
+/// PIDs, and every unsupported one burned a NO DATA timeout per sweep
+/// (proven live 2026-08-21 by the kline probe — the ECU declares its set
+/// honestly, so asking once beats failing forever).
+pub fn supported_pids(drv: &mut ElmDriver) -> Vec<u8> {
     let mut supported: Vec<u8> = Vec::new();
     for base in [0x00u8, 0x20, 0x40, 0x60] {
         let cmd = format!("01{base:02X}");
@@ -210,6 +215,13 @@ pub fn read_all_sensors(drv: &mut ElmDriver) -> Result<Vec<SensorReading>, Strin
             _ => break,
         }
     }
+    supported
+}
+
+/// Discover which PIDs the ECU supports, then read every one we know how
+/// to decode. One-shot, ~10-20 s.
+pub fn read_all_sensors(drv: &mut ElmDriver) -> Result<Vec<SensorReading>, String> {
+    let supported = supported_pids(drv);
     if supported.is_empty() {
         return Err("ECU did not report supported PIDs".into());
     }
