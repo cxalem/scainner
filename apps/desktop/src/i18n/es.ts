@@ -223,6 +223,7 @@ export const es: Dictionary = {
       saved: "guardado",
       save: "guardar",
       saveFailed: "No se pudo guardar. Inténtalo de nuevo.",
+      invalidPrice: "Introduce un precio mayor que 0.",
       estimateNote: "Incluye el ralentí. Datos de la ECU, ±5-10%.",
       tankAriaLabel: (pct, status) => `Depósito de combustible al ${pct} por ciento, ${status}`,
       status: { reserve: "Reserva", low: "Bajo", full: "Lleno", good: "Bien" },

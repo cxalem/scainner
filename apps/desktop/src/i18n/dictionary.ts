@@ -219,6 +219,7 @@ export type Dictionary = {
       saved: string;
       save: string;
       saveFailed: string;
+      invalidPrice: string;
       estimateNote: string;
       tankAriaLabel: (pct: string, status: string) => string;
       status: { reserve: string; low: string; full: string; good: string };

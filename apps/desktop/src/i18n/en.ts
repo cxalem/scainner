@@ -215,6 +215,7 @@ export const en: Dictionary = {
       saved: "saved",
       save: "save",
       saveFailed: "Could not save. Try again.",
+      invalidPrice: "Enter a price above 0.",
       estimateNote: "Includes idling. ECU-reported, ±5–10%.",
       tankAriaLabel: (pct, status) => `Fuel tank ${pct} percent, ${status}`,
       status: { reserve: "Reserve", low: "Low", full: "Full", good: "Good" },

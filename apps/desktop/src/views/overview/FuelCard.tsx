@@ -32,6 +32,16 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
 
   const eur100 = i.l_per_100km != null ? i.l_per_100km * i.fuel_price : null;
   const totalCost = i.fuel_total_l != null ? i.fuel_total_l * i.fuel_price : null;
+  // No magic default here on purpose: a fuel price that fails to parse must
+  // never silently save as some made-up number (it used to fall back to
+  // 1.5 EUR/L) — it's an editable economic assumption that then feeds
+  // cost-per-100km and total-cost above, so a fake value there is just as
+  // misleading as a fake sensor reading (Alejandro, 2026-08-21: nothing in
+  // the app should show a hardcoded stand-in for real data). Instead the
+  // Save button just stays disabled with an inline reason until the input
+  // is a real positive number.
+  const parsedPrice = parseFloat(price);
+  const isValidPrice = Number.isFinite(parsedPrice) && parsedPrice > 0;
 
   return (
     <Card>
@@ -95,24 +105,26 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
             <input
               id="fuel-price"
               inputMode="decimal"
-              className="h-7 w-16 rounded-md border border-border bg-card px-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-invalid={!isValidPrice}
+              className="h-7 w-16 rounded-md border border-border bg-card px-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary aria-[invalid=true]:border-destructive"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
             <span>EUR/L</span>
             <button
               className="rounded text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              disabled={setFuelPrice.isPending}
+              disabled={setFuelPrice.isPending || !isValidPrice}
               onClick={() =>
                 setFuelPrice.mutate(
-                  { price: parseFloat(price) || 1.5 },
+                  { price: parsedPrice },
                   { onSuccess: () => flashSaved("saved") },
                 )
               }
             >
               {setFuelPrice.isPending ? t.overview.fuel.saving : savedLabel === "saved" ? t.overview.fuel.saved : t.overview.fuel.save}
             </button>
-            {setFuelPrice.isError && <span className="text-destructive">{t.overview.fuel.saveFailed}</span>}
+            {!isValidPrice && <span className="text-destructive">{t.overview.fuel.invalidPrice}</span>}
+            {isValidPrice && setFuelPrice.isError && <span className="text-destructive">{t.overview.fuel.saveFailed}</span>}
             <span className="ml-2">{t.overview.fuel.estimateNote}</span>
           </div>
         )}

@@ -8,10 +8,14 @@
 // Color: there is no reliable way to read a car's real paint color from its
 // VIN or its ECU (the VIN doesn't encode it, and the one module that might
 // hold vehicle-config data — the BSI — doesn't respond over this dongle's
-// path; see UDS_INVESTIGATION_LOG.md). So `color` here is always
-// user-entered (persisted via the `set_body_color` command / `body_color`
-// key in car_info, picked in the Vehicle tab's Identity card), never
-// detected. To make that adjustable at all, we use a *desaturated* copy of
+// path; see UDS_INVESTIGATION_LOG.md). So `color` here was designed to be
+// user-entered, never detected — but that input path (a `set_body_color`
+// command / `body_color` key in car_info, picked in the Vehicle tab) was
+// never actually built, and this `color`-aware model (CarModel, below) is
+// itself dormant — BrandEmblemModel is the active model today and takes no
+// color at all. Kept for a possible future per-car-model feature, not a
+// live one; don't take "picked in the Identity card" as true of the current
+// UI. To make color adjustable at all, we use a *desaturated* copy of
 // the original texture (citroen-c4-diffuse-gray.jpg, generated once from the
 // source color map) as the material's map, and multiply it by the chosen
 // color — texture × color is how three.js (and every real-time renderer)
