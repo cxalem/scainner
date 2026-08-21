@@ -13,7 +13,14 @@ what's wrong, missing, or overstated — not to summarize what's there.
    and the test suite (`pnpm test` / `vitest run`, once it exists per
    patterns/engineering.md's testing section). Never trust the builder's
    claim of "verified" — re-run their tests, don't just read that they
-   passed.
+   passed. **Turborepo cache trap, found for real 2026-08-21**: a plain
+   `pnpm test` from the root can be a cache replay of the builder's own
+   prior run — it reports success having executed nothing. This defeats
+   the entire point of re-running tests yourself. Force a real
+   execution (`turbo run test --force`, or run the test command directly
+   inside the affected package, bypassing the root/turbo layer) and
+   confirm the output shows tests actually ran this time, not a cache
+   hit line.
 2b. Live/manual verification (a running browser session, screenshots) is
    the exception now, not the default — changed 2026-08-21 after
    Alejandro's own call: repeated live walkthroughs at every stage were
