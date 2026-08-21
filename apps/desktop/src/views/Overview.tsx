@@ -14,6 +14,7 @@ import { decodeModelYear } from "@/lib/vin";
 import { useCarReport, useReportCars } from "@/features/vehicle/queries";
 import { buildVerdicts } from "@/views/overview/buildVerdicts";
 import { FuelCard } from "@/views/overview/FuelCard";
+import { useT } from "@/i18n";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
 // Overview actually mounts the scene, not on initial app load — Overview is
@@ -37,6 +38,7 @@ export function Overview({
    * that drives connState in the first place). */
   vin?: string | null;
 }) {
+  const t = useT();
   const carsQuery = useReportCars();
   const cars = carsQuery.data ?? [];
   const [vin, setVin] = useState<string | null>(connectedVin);
@@ -74,7 +76,7 @@ export function Overview({
   if (carsQuery.isPending) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {scene}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -92,14 +94,14 @@ export function Overview({
   if (carsQuery.isError && !effectiveVin) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {scene}
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
-            <p className="font-medium">Could not load the car list.</p>
+            <p className="font-medium">{t.overview.couldNotLoadCars}</p>
             <Button variant="outline" onClick={() => carsQuery.refetch()}>
-              Retry
+              {t.common.retry}
             </Button>
           </CardContent>
         </Card>
@@ -111,15 +113,13 @@ export function Overview({
   if (!effectiveVin) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {scene}
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <Database className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-            <p className="font-medium">No data yet</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Connect and drive — the report builds itself from recorded sessions.
-            </p>
+            <p className="font-medium">{t.overview.noDataYet}</p>
+            <p className="max-w-sm text-sm text-muted-foreground">{t.overview.noDataYetExplainer}</p>
           </CardContent>
         </Card>
       </div>
@@ -129,7 +129,7 @@ export function Overview({
   if (reportQuery.isPending) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {scene}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -146,14 +146,14 @@ export function Overview({
   if (reportQuery.isError || !reportQuery.data) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {scene}
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
-            <p className="font-medium">Could not load this car's report.</p>
+            <p className="font-medium">{t.overview.couldNotLoadReport}</p>
             <Button variant="outline" onClick={() => reportQuery.refetch()}>
-              Retry
+              {t.common.retry}
             </Button>
           </CardContent>
         </Card>
@@ -164,7 +164,7 @@ export function Overview({
   const report = reportQuery.data;
   const engineH = Math.floor(report.engine_minutes / 60);
   const engineM = Math.round(report.engine_minutes % 60);
-  const verdicts = buildVerdicts(report);
+  const verdicts = buildVerdicts(report, t);
   // Model year only — see src/lib/vin.ts for why the full model/trim isn't
   // here too, that needs a per-brand table this app doesn't have.
   const modelYear = decodeModelYear(report.vin);
@@ -172,17 +172,17 @@ export function Overview({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold tracking-tight">Overview</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {cars.length > 1 ? (
           <select
-            aria-label="Car"
+            aria-label={t.overview.carAriaLabel}
             className="h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             value={vin ?? ""}
             onChange={(e) => setVin(e.target.value)}
           >
             {cars.map(([v, n]) => (
               <option key={v} value={v}>
-                {v} ({n} sessions)
+                {t.overview.carOption(v, n)}
               </option>
             ))}
           </select>
@@ -198,10 +198,10 @@ export function Overview({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Sessions", value: String(report.session_count), icon: History },
-          { label: "Engine time", value: `${engineH}h ${engineM}m`, icon: Timer },
-          { label: "Readings", value: report.total_readings.toLocaleString(), icon: Database },
-          { label: "Scans clean", value: `${report.scans_clean}/${report.scans_total}`, icon: ClipboardList },
+          { label: t.overview.stats.sessions, value: String(report.session_count), icon: History },
+          { label: t.overview.stats.engineTime, value: `${engineH}h ${engineM}m`, icon: Timer },
+          { label: t.overview.stats.readings, value: report.total_readings.toLocaleString(), icon: Database },
+          { label: t.overview.stats.scansClean, value: `${report.scans_clean}/${report.scans_total}`, icon: ClipboardList },
         ].map(({ label, value, icon: Icon }) => (
           <Card key={label}>
             <CardHeader>
@@ -219,7 +219,7 @@ export function Overview({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            <HeartPulse className="h-4 w-4" aria-hidden="true" /> Health summary
+            <HeartPulse className="h-4 w-4" aria-hidden="true" /> {t.overview.health.cardTitle}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -232,7 +232,11 @@ export function Overview({
                   <p className="text-sm font-medium">
                     {v.title}{" "}
                     <Badge variant={v.status === "good" ? "ok" : v.status === "watch" ? "warn" : "error"}>
-                      {v.status === "good" ? "all good" : v.status === "watch" ? "keep an eye" : "attention"}
+                      {v.status === "good"
+                        ? t.overview.health.statusGood
+                        : v.status === "watch"
+                          ? t.overview.health.statusWatch
+                          : t.overview.health.statusBad}
                     </Badge>
                   </p>
                   <p className="text-sm text-muted-foreground">{v.text}</p>
@@ -240,9 +244,7 @@ export function Overview({
               </div>
             );
           })}
-          {verdicts.length === 0 && (
-            <p className="text-sm text-muted-foreground">Not enough data yet — drive a bit with Scainner connected.</p>
-          )}
+          {verdicts.length === 0 && <p className="text-sm text-muted-foreground">{t.overview.health.notEnoughData}</p>}
         </CardContent>
       </Card>
 
@@ -251,12 +253,12 @@ export function Overview({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            <BatteryCharging className="h-4 w-4" aria-hidden="true" /> Battery — daily min / avg / max
+            <BatteryCharging className="h-4 w-4" aria-hidden="true" /> {t.overview.battery.cardTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {report.daily_voltage.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No voltage data yet.</p>
+            <p className="text-sm text-muted-foreground">{t.overview.battery.noData}</p>
           ) : (
             <div className="h-44 w-full">
               <Suspense fallback={<Skeleton className="h-full w-full" />}>

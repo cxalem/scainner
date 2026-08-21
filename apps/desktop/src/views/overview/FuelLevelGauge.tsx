@@ -1,18 +1,21 @@
 import { Badge } from "@/components/ui";
+import { useT } from "@/i18n";
+import type { Dictionary } from "@/i18n";
 
-function fuelStatus(pct: number): { label: string; tone: "good" | "watch" | "bad" } {
-  if (pct < 10) return { label: "Reserve", tone: "bad" };
-  if (pct < 25) return { label: "Low", tone: "watch" };
-  if (pct >= 90) return { label: "Full", tone: "good" };
-  return { label: "Good", tone: "good" };
+function fuelStatus(pct: number, t: Dictionary): { label: string; tone: "good" | "watch" | "bad" } {
+  if (pct < 10) return { label: t.overview.fuel.status.reserve, tone: "bad" };
+  if (pct < 25) return { label: t.overview.fuel.status.low, tone: "watch" };
+  if (pct >= 90) return { label: t.overview.fuel.status.full, tone: "good" };
+  return { label: t.overview.fuel.status.good, tone: "good" };
 }
 
 /** Visual tank gauge — the most recent reading, not a window average (a tank
  * level is a point-in-time fact, not a trend). Not every ECU reports this
  * PID over standard OBD2; the card degrades gracefully when it's absent. */
 export function FuelLevelGauge({ pct }: { pct: number }) {
+  const t = useT();
   const clamped = Math.max(0, Math.min(100, pct));
-  const status = fuelStatus(clamped);
+  const status = fuelStatus(clamped, t);
   const fillColor =
     status.tone === "bad" ? "bg-destructive" : status.tone === "watch" ? "bg-warn" : "bg-primary";
 
@@ -27,7 +30,11 @@ export function FuelLevelGauge({ pct }: { pct: number }) {
           {status.label}
         </Badge>
       </div>
-      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label={`Fuel tank ${clamped.toFixed(0)} percent, ${status.label.toLowerCase()}`}>
+      <div
+        className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted"
+        role="img"
+        aria-label={t.overview.fuel.tankAriaLabel(clamped.toFixed(0), status.label.toLowerCase())}
+      >
         {/* quarter-tick marks */}
         {[25, 50, 75].map((tick) => (
           <span key={tick} className="absolute inset-y-0 w-px bg-foreground/15" style={{ left: `${tick}%` }} aria-hidden="true" />

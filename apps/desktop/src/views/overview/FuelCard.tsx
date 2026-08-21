@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle, useTransientLabel } from "@/c
 import type { Insights } from "@scainner/core";
 import { useSetFuelPrice } from "@/features/vehicle/queries";
 import { FuelLevelGauge } from "@/views/overview/FuelLevelGauge";
+import { useT } from "@/i18n";
 
 export function FuelCard({ insights: i }: { insights: Insights }) {
+  const t = useT();
   const [price, setPrice] = useState(String(i.fuel_price));
   const setFuelPrice = useSetFuelPrice();
   const [savedLabel, flashSaved] = useTransientLabel();
-  const days = i.window_hours >= 24 * 365 ? "all time" : `last ${Math.round(i.window_hours / 24)} days`;
+  const days =
+    i.window_hours >= 24 * 365 ? t.overview.fuel.allTime : t.overview.fuel.lastNDays(Math.round(i.window_hours / 24));
   const hasLevel = i.fuel_level_pct != null;
   const hasConsumption = i.fuel_lph_avg != null;
 
@@ -18,25 +21,34 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            <Fuel className="h-4 w-4" aria-hidden="true" /> Fuel
+            <Fuel className="h-4 w-4" aria-hidden="true" /> {t.overview.fuel.cardTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No fuel data yet — it collects automatically on your next drive.
-          </p>
+          <p className="text-sm text-muted-foreground">{t.overview.fuel.noData}</p>
         </CardContent>
       </Card>
     );
 
   const eur100 = i.l_per_100km != null ? i.l_per_100km * i.fuel_price : null;
   const totalCost = i.fuel_total_l != null ? i.fuel_total_l * i.fuel_price : null;
+  // No magic default here on purpose: a fuel price that fails to parse must
+  // never silently save as some made-up number (it used to fall back to
+  // 1.5 EUR/L) — it's an editable economic assumption that then feeds
+  // cost-per-100km and total-cost above, so a fake value there is just as
+  // misleading as a fake sensor reading (Alejandro, 2026-08-21: nothing in
+  // the app should show a hardcoded stand-in for real data). Instead the
+  // Save button just stays disabled with an inline reason until the input
+  // is a real positive number.
+  const parsedPrice = parseFloat(price);
+  const isValidPrice = Number.isFinite(parsedPrice) && parsedPrice > 0;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5">
-          <Fuel className="h-4 w-4" aria-hidden="true" /> Fuel{hasConsumption ? ` — ${days}` : ""}
+          <Fuel className="h-4 w-4" aria-hidden="true" />{" "}
+          {hasConsumption ? t.overview.fuel.cardTitleWithRange(days) : t.overview.fuel.cardTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -47,30 +59,27 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
           // level (PID 012F), zero answers ever. PSA keeps tank level in the
           // BSI body computer, which is not reachable over standard OBD2 or
           // this dongle's UDS path (see UDS_INVESTIGATION_LOG.md).
-          <p className="text-xs text-muted-foreground">
-            This car does not report its tank level over standard OBD2, so there is no fuel gauge here.
-            Consumption below comes from the engine and works normally.
-          </p>
+          <p className="text-xs text-muted-foreground">{t.overview.fuel.noGaugeExplainer}</p>
         )}
 
         {hasConsumption ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
-              <p className="text-xs text-muted-foreground">Consumption</p>
+              <p className="text-xs text-muted-foreground">{t.overview.fuel.consumption}</p>
               <p className="font-mono text-xl font-semibold tabular-nums">
                 {i.l_per_100km != null ? i.l_per_100km.toFixed(1) : "—"}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">L/100km</span>
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Cost per 100 km</p>
+              <p className="text-xs text-muted-foreground">{t.overview.fuel.costPer100km}</p>
               <p className="font-mono text-xl font-semibold tabular-nums">
                 {eur100 != null ? eur100.toFixed(2) : "—"}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">EUR</span>
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Fuel used (~)</p>
+              <p className="text-xs text-muted-foreground">{t.overview.fuel.fuelUsed}</p>
               <p className="font-mono text-xl font-semibold tabular-nums">
                 {i.fuel_total_l != null ? i.fuel_total_l.toFixed(1) : "—"}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">
@@ -79,7 +88,7 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Distance (~)</p>
+              <p className="text-xs text-muted-foreground">{t.overview.fuel.distance}</p>
               <p className="font-mono text-xl font-semibold tabular-nums">
                 {i.km_total != null ? i.km_total.toFixed(0) : "—"}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">km</span>
@@ -87,36 +96,36 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Consumption stats collect automatically on your next drive.
-          </p>
+          <p className="text-sm text-muted-foreground">{t.overview.fuel.noConsumptionYet}</p>
         )}
 
         {hasConsumption && (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <label htmlFor="fuel-price">Fuel price:</label>
+            <label htmlFor="fuel-price">{t.overview.fuel.priceLabel}</label>
             <input
               id="fuel-price"
               inputMode="decimal"
-              className="h-7 w-16 rounded-md border border-border bg-card px-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-invalid={!isValidPrice}
+              className="h-7 w-16 rounded-md border border-border bg-card px-2 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary aria-[invalid=true]:border-destructive"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
             <span>EUR/L</span>
             <button
               className="rounded text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              disabled={setFuelPrice.isPending}
+              disabled={setFuelPrice.isPending || !isValidPrice}
               onClick={() =>
                 setFuelPrice.mutate(
-                  { price: parseFloat(price) || 1.5 },
+                  { price: parsedPrice },
                   { onSuccess: () => flashSaved("saved") },
                 )
               }
             >
-              {setFuelPrice.isPending ? "saving…" : savedLabel === "saved" ? "saved" : "save"}
+              {setFuelPrice.isPending ? t.overview.fuel.saving : savedLabel === "saved" ? t.overview.fuel.saved : t.overview.fuel.save}
             </button>
-            {setFuelPrice.isError && <span className="text-destructive">Could not save. Try again.</span>}
-            <span className="ml-2">Includes idling. ECU-reported, ±5–10%.</span>
+            {!isValidPrice && <span className="text-destructive">{t.overview.fuel.invalidPrice}</span>}
+            {isValidPrice && setFuelPrice.isError && <span className="text-destructive">{t.overview.fuel.saveFailed}</span>}
+            <span className="ml-2">{t.overview.fuel.estimateNote}</span>
           </div>
         )}
       </CardContent>
