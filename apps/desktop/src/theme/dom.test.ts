@@ -16,9 +16,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 describe("DOM_TOKENS", () => {
   it("names every custom property index.css actually declares", () => {
     const css = readFileSync(join(__dirname, "../index.css"), "utf8");
-    const declared = new Set(
-      [...css.matchAll(/^\s*(--[a-z-]+):\s*(?:oklch|[\d.]+rem)/gm)].map((m) => m[1]),
-    );
+    // Only the `:root { ... }` blocks declare tokens — the `@theme inline`
+    // block maps them into Tailwind under different names and must not be
+    // scanned here. Scoping to :root (instead of filtering by value shape,
+    // e.g. oklch-only) means a future token with a digit in its name or a
+    // non-oklch value still gets caught rather than silently skipped.
+    const rootBlocks = [...css.matchAll(/^:root\s*\{([^}]*)\}/gm)].map((m) => m[1]).join("\n");
+    const declared = new Set([...rootBlocks.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
     expect(declared.size).toBeGreaterThan(0); // sanity: the regex actually found index.css's tokens
 
     const documented = new Set<string>(Object.values(DOM_TOKENS));
