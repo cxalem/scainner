@@ -1,5 +1,7 @@
 import { AlertTriangle } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { backdropVariants, modalPanelVariants } from "@/motion";
 
 // The one confirmation pattern every write action goes through. This is part
 // 1 of the write-caps hard rule (confirmation + logged before/after +
@@ -37,41 +39,50 @@ export function ConfirmWrite({
   onCancel: () => void;
 }) {
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm"
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      initial="hidden"
+      animate="visible"
+      variants={backdropVariants}
     >
-      <Card className="m-auto w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" /> {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 text-sm">
-          <p>
-            <span className="font-medium">{module}: </span>
-            {whatChanges}
-          </p>
-          <div className="rounded-md border border-border bg-muted/40 p-3">
-            <p className="mb-1 font-medium">Can this be undone?</p>
-            <p className="text-muted-foreground">{reversal}</p>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            The state before and after this change is saved to the write history.
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="destructive" onClick={onConfirm} disabled={busy}>
-              {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
-            </Button>
-            <Button variant="ghost" onClick={onCancel} disabled={busy}>
-              Cancel
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      <motion.div
+        className="m-auto w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+        variants={modalPanelVariants}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" /> {title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            <p>
+              <span className="font-medium">{module}: </span>
+              {whatChanges}
+            </p>
+            <div className="rounded-md border border-border bg-muted/40 p-3">
+              <p className="mb-1 font-medium">Can this be undone?</p>
+              <p className="text-muted-foreground">{reversal}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The state before and after this change is saved to the write history.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="destructive" onClick={onConfirm} disabled={busy}>
+                {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
+              </Button>
+              <Button variant="ghost" onClick={onCancel} disabled={busy}>
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

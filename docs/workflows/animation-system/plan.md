@@ -4,7 +4,62 @@ Written directly, gated on ws/effect-architecture merging and ws/monorepo
 landing first — same overlap-risk reasoning as every other plan written
 this session. Both of those touch most of src/; adding a third
 sweeping change (every appear/transition in the app) at the same time
-guarantees conflicts, not saves time.
+guarantees conflicts, not saves time. Both merged 2026-08-20, unblocking
+this.
+
+## Status (2026-08-21): first PR ships items 1 and 5 of the map below
+
+Alejandro named two concrete instances of the gap directly: DiscoveryFlow's
+sensor table appearing and shoving the "Go to dashboard" button down with
+no transition, and modals opening with a hard cut. Those are map items 1
+and 5 — this first PR ships exactly those two, not the full map. Items 2-4
+(tab switches, mutation results, list population) are real and still
+open, sequenced next.
+
+**Library decision, resolved: framer-motion.** The tradeoff this plan
+flagged as unresolved is decided — staggered field-by-field reveals and
+animating a sibling's reposition when a new element mounts nearby both
+need real JS sequencing or FLIP-style layout tracking that plain CSS
+doesn't give you without a lot of hand-built plumbing. Real bundle cost
+accepted, same tradeoff shape as the Effect migration's own accepted
+cost. `reducedMotion="user"` on a root `MotionConfig` in main.tsx covers
+every `motion.*` component's reduced-motion handling from one place.
+
+New `apps/desktop/src/motion/index.ts` is the shared vocabulary the
+Design direction section below asked for: `backdropVariants`/
+`modalPanelVariants` (modals), `appearVariants` (a block of content
+appearing in place), `staggerContainer`/`staggerItem` (sequential
+reveals). Applied to `ConfirmWrite.tsx`, `DtcDetailModal.tsx`, and
+`DiscoveryFlow.tsx`.
+
+**One real bug found and fixed during this pass, worth recording because
+it's a real framer-motion gotcha, not a one-off mistake:** the first cut
+put a bare `layout` prop on DiscoveryFlow's outer content column, so its
+own sibling (the Go-to-dashboard button) would slide into place instead
+of jumping when the sensor table mounted above it. Alejandro caught the
+actual effect live: "everything's moving up it's deformed... the two
+sections above the discovery of the sensors get deformed too." `layout`
+(not `layout="position"`) makes framer-motion track the element's full
+box — position AND size — so when the column's height changed, it
+scaled/stretched the box (and everything inside it not independently
+tracked) to interpolate the size change, visibly warping content that
+never should have moved at all. Fixed by removing `layout` from the
+container entirely and using `layout="position"` (position only, never
+scale) on only the specific elements that need to slide: the info card,
+the sensor table, the button. Worth remembering for every future
+`layout` usage in this app: default to `layout="position"`, reach for
+bare `layout` only when a size change genuinely needs to animate too.
+
+Verified live twice (visual/animation work is the documented exception
+to "verify with a test" in engineering.md rule 1): first pass caught the
+deform bug directly from Alejandro's own live testing; second pass after
+the fix watched the same discovering → scanning → results sequence
+end to end with no distortion at any captured frame, opened
+`DtcDetailModal` mid-fade, no console errors. tsc clean, forced
+`turbo run test` still green (no logic changed here — presentation
+only, no new tests added for the same reason rule 11 gives UI rendering
+tests low priority: nothing in this change is a pure function worth
+covering, and this app has no component-test harness yet).
 
 ## The actual gap, checked directly, not assumed
 
