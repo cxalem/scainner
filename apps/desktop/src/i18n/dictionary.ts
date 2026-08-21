@@ -228,6 +228,30 @@ export type Dictionary = {
       status: { reserve: string; low: string; full: string; good: string };
     };
   };
+  discoveryFlow: {
+    newVehicle: string;
+    step: {
+      discoveringTitle: string;
+      discoveringSubtitle: string;
+      scanningTitle: string;
+      scanningSubtitle: string;
+      resultsTitle: string;
+      resultsSubtitle: string;
+    };
+    readingAriaLabel: string;
+    row: {
+      vehicle: string;
+      unrecognizedBrand: string;
+      vin: string;
+      protocol: string;
+      elmVersion: string;
+      sensorsFound: string;
+      faultCodes: string;
+      faultCodesClean: string;
+      faultCodesFound: (n: number) => string;
+    };
+    goToDashboard: string;
+  };
   live: {
     title: string;
     modeGauges: string;
