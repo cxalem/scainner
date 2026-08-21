@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
-import { CONNECT_PHRASES, type ConnStatus } from "@scainner/core";
+import type { ConnStatus } from "@scainner/core";
 import { useLocale, useT, type Locale } from "@/i18n";
 
 export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
@@ -40,7 +40,7 @@ export function Shell({
   const { locale, setLocale } = useLocale();
   const connected = conn.state === "connected";
   const connecting = conn.state === "connecting";
-  const connectLabel = useCyclingLabel(CONNECT_PHRASES, connecting, 700);
+  const connectLabel = useCyclingLabel(t.shell.connectPhrases, connecting, 700);
   // No "disconnecting" ConnStatus state exists on the backend, so this is
   // local, sync-tracked purely to give Disconnect the pending feedback it
   // has none of today (interaction-audit.md worst offender list).

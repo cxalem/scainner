@@ -55,6 +55,9 @@ export type Dictionary = {
     disconnect: string;
     disconnecting: string;
     language: string;
+    // Shared by Shell's own Connect button and ConnectGate (the pre-first-
+    // connect screen) — same cycling label, two call sites.
+    connectPhrases: [string, string];
   };
   diagnose: {
     title: string;
@@ -223,6 +226,59 @@ export type Dictionary = {
       estimateNote: string;
       tankAriaLabel: (pct: string, status: string) => string;
       status: { reserve: string; low: string; full: string; good: string };
+    };
+  };
+  live: {
+    title: string;
+    modeGauges: string;
+    modeAllSensors: string;
+    notConnectedTitle: string;
+    notConnectedExplainer: string;
+    recordingNote: string;
+    allSensors: {
+      readButton: string;
+      readingPhrases: [string, string];
+      filterAriaLabel: string;
+      filterPlaceholder: string;
+      readAt: (time: string, count: number) => string;
+      emptyTitle: string;
+      emptyExplainer: string;
+      pid: string;
+      sensor: string;
+      value: string;
+    };
+  };
+  history: {
+    title: string;
+    trend: {
+      sensorAriaLabel: string;
+      loading: string;
+      samples: (n: number) => string;
+      couldNotLoad: string;
+      noDataForRange: string;
+      voltageReferenceNote: string;
+    };
+    sensorRanges: {
+      cardTitle: string;
+      last7Days: string;
+      allTime: string;
+      noDataYet: string;
+      sensor: string;
+      min: string;
+      avg: string;
+      max: string;
+      samples: string;
+    };
+    sessions: {
+      cardTitle: string;
+      cardTitleWithCount: (n: number) => string;
+      noSessionsYet: string;
+      startedUtc: string;
+      duration: string;
+      maxSpeed: string;
+      maxCoolant: string;
+      minVolts: string;
+      readings: string;
     };
   };
 };

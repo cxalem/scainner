@@ -71,6 +71,7 @@ export const RANGES = [
 
 export const hex4 = (n: number) => n.toString(16).toUpperCase().padStart(4, "0");
 
-// No backend progress event for a full sensor sweep — a timed phrase list
-// on the frontend, same reasoning as connection.ts's CONNECT_PHRASES.
-export const ALL_SENSORS_PHRASES = ["Interrogating ECU…", "Sweeping sensor PIDs…"] as const;
+// The "Interrogating ECU…" / "Sweeping sensor PIDs…" cycling phrases for a
+// full sensor sweep (no backend progress event exists for it) now live in
+// the i18n dictionary (t.live.allSensors.readingPhrases) — they're UI
+// chrome, not car-domain reference data, so they moved out of this file.

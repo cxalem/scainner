@@ -18,5 +18,8 @@ export type Live = Record<string, number>;
 
 // No backend progress event for connect — this is a timed phrase list on
 // the frontend, a deliberate scope cut (decisions-plan.md: "Keep the
-// no-Rust non-goal").
+// no-Rust non-goal"). English default kept here for any consumer without
+// i18n (e.g. a future mobile client); the desktop app's own locale-aware
+// copy lives in its i18n dictionary (t.shell.connectPhrases) and no longer
+// reads this constant directly.
 export const CONNECT_PHRASES = ["Waking the dongle…", "Negotiating protocol…"] as const;
