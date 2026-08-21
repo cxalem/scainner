@@ -69,12 +69,6 @@ export const en: Dictionary = {
       notInLibrary: "Not in the offline library",
       voltageLinked: "voltage-linked",
       voltageLinkedTooltip: "Likely a voltage side effect — see the note above",
-      severity: {
-        high: "High severity",
-        medium: "Medium severity",
-        low: "Low severity",
-        unknown: "Not in the offline library",
-      },
     },
     statusLabels: { stored: "Stored", pending: "Pending", permanent: "Permanent" },
     detailsFor: (code) => `Details for ${code}`,
@@ -117,7 +111,6 @@ export const en: Dictionary = {
       regenerateAiDeepDive: "Regenerate AI deep-dive",
       setApiKeyHint: "Set your Anthropic API key in the AI diagnosis card below to enable per-code analysis.",
       generated: (date) => `generated ${date}`,
-      severity: { low: "low urgency", medium: "attention", high: "serious" },
     },
     aiReport: {
       cardTitle: "AI diagnosis",

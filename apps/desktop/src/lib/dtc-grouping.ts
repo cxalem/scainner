@@ -2,19 +2,22 @@
 // system, and detecting the one clustering hint this app makes (low-voltage
 // side effects). No React, no Tauri, no state — see docs/workflows/diagnose-ux
 // for why this shape (plan.md) and what it replaces (research.md).
-import { decodeDtc, dtcInfo, type DtcInfo } from "@/lib/dtc";
+//
+// Severity is deliberately GONE from this module (2026-08-21, owner call):
+// the old worst-first ordering ranked codes by a hand-authored severity
+// guess in the curated library — an editorial judgment the app cannot
+// confirm (the OBD standard defines what codes MEAN, not how serious they
+// are; seriousness depends on context a static table can't see — the live
+// counter-example was an injector-circuit code labeled "grave" on a car
+// running fine). The facts the car itself reports (stored/pending/
+// permanent, MIL state) remain the only severity signals shown anywhere.
+// Ordering is now neutral: code order within a group, alphabetical system
+// order, "Other" last.
+import { decodeDtc } from "@/lib/dtc";
 
 export type DtcGroup = {
   system: string;
   codes: string[];
-  worstSeverity: DtcInfo["severity"] | "unknown";
-};
-
-const SEVERITY_RANK: Record<DtcInfo["severity"] | "unknown", number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-  unknown: 3,
 };
 
 // Malformed codes (fail decodeDtc) get their own "Other" group rather than
@@ -22,13 +25,9 @@ const SEVERITY_RANK: Record<DtcInfo["severity"] | "unknown", number> = {
 // asked about (plan.md's "honest absence" rule).
 const OTHER_SYSTEM = "Other";
 
-function severityOf(code: string): DtcInfo["severity"] | "unknown" {
-  return dtcInfo(code)?.severity ?? "unknown";
-}
-
 /** Groups a status's codes (stored/pending/permanent, one call per status)
- * by decodeDtc's system field, sorted by severity (worst first) within each
- * group. Group order: worst-present-severity first, "Other" always last. */
+ * by decodeDtc's system field. Codes sort neutrally (by code) within each
+ * group; groups sort alphabetically, "Other" always last. */
 export function groupBySystem(codes: string[]): DtcGroup[] {
   const bySystem = new Map<string, string[]>();
   for (const code of codes) {
@@ -40,18 +39,13 @@ export function groupBySystem(codes: string[]): DtcGroup[] {
 
   const groups: DtcGroup[] = [];
   for (const [system, groupCodes] of bySystem) {
-    const sorted = [...groupCodes].sort((a, b) => SEVERITY_RANK[severityOf(a)] - SEVERITY_RANK[severityOf(b)]);
-    const worstSeverity = sorted.reduce<DtcInfo["severity"] | "unknown">(
-      (worst, code) => (SEVERITY_RANK[severityOf(code)] < SEVERITY_RANK[worst] ? severityOf(code) : worst),
-      "unknown"
-    );
-    groups.push({ system, codes: sorted, worstSeverity });
+    groups.push({ system, codes: [...groupCodes].sort() });
   }
 
   return groups.sort((a, b) => {
     if (a.system === OTHER_SYSTEM) return 1;
     if (b.system === OTHER_SYSTEM) return -1;
-    return SEVERITY_RANK[a.worstSeverity] - SEVERITY_RANK[b.worstSeverity];
+    return a.system.localeCompare(b.system);
   });
 }
 
