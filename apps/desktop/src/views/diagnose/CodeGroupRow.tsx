@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { dtcInfo, type DtcInfo } from "@/lib/dtc";
+import { dtcInfo, localizedSystem, type DtcInfo } from "@/lib/dtc";
 import type { DtcGroup } from "@/lib/dtc-grouping";
+import { useLocale, useT } from "@/i18n";
 
 // A group auto-expands at or under this size; past it, it starts collapsed
 // to a header with a count. See plan.md for why 6 (roughly a card's height
@@ -17,13 +18,6 @@ const SEVERITY_DOT: Record<DtcInfo["severity"] | "unknown", string> = {
   unknown: "bg-muted-foreground",
 };
 
-const SEVERITY_LABEL: Record<DtcInfo["severity"] | "unknown", string> = {
-  high: "High severity",
-  medium: "Medium severity",
-  low: "Low severity",
-  unknown: "Not in the offline library",
-};
-
 export function CodeGroupRow({
   group,
   affected,
@@ -33,8 +27,16 @@ export function CodeGroupRow({
   affected: ReadonlySet<string>;
   onSelect: (code: string) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const collapsesByDefault = group.codes.length > COLLAPSE_THRESHOLD;
   const [expanded, setExpanded] = useState(!collapsesByDefault);
+  const SEVERITY_LABEL: Record<DtcInfo["severity"] | "unknown", string> = {
+    high: t.diagnose.groups.severity.high,
+    medium: t.diagnose.groups.severity.medium,
+    low: t.diagnose.groups.severity.low,
+    unknown: t.diagnose.groups.severity.unknown,
+  };
 
   return (
     <div className="flex flex-col gap-1">
@@ -66,13 +68,11 @@ export function CodeGroupRow({
         ) : (
           <span className={cn("h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[group.worstSeverity])} aria-hidden="true" />
         )}
-        <span>{group.system}</span>
-        <span className="text-muted-foreground">
-          ({group.codes.length} code{group.codes.length === 1 ? "" : "s"})
-        </span>
+        <span>{localizedSystem(group.system, locale)}</span>
+        <span className="text-muted-foreground">{t.diagnose.groups.codeCount(group.codes.length)}</span>
         {collapsesByDefault && (
           <span className="ml-auto shrink-0 text-xs font-normal text-primary">
-            {expanded ? "Hide details" : "Show details"}
+            {expanded ? t.diagnose.groups.hideDetails : t.diagnose.groups.showDetails}
           </span>
         )}
       </button>
@@ -80,7 +80,7 @@ export function CodeGroupRow({
       {expanded && (
         <ul className="ml-5 flex flex-col gap-1">
           {group.codes.map((code) => {
-            const info = dtcInfo(code);
+            const info = dtcInfo(code, locale);
             const severity = info?.severity ?? "unknown";
             return (
               <li key={code}>
@@ -88,15 +88,18 @@ export function CodeGroupRow({
                   type="button"
                   onClick={() => onSelect(code)}
                   className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-sm hover:bg-muted focus-visible:outline-2"
-                  aria-label={`Details for ${code}`}
+                  aria-label={t.diagnose.detailsFor(code)}
                   title={SEVERITY_LABEL[severity]}
                 >
                   <span className={cn("h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[severity])} aria-hidden="true" />
                   <span className="font-mono">{code}</span>
-                  <span className="truncate text-muted-foreground">{info?.title ?? "Not in the offline library"}</span>
+                  <span className="truncate text-muted-foreground">{info?.title ?? t.diagnose.groups.notInLibrary}</span>
                   {affected.has(code) && (
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground" title="Likely a voltage side effect — see the note above">
-                      ⚡ voltage-linked
+                    <span
+                      className="ml-auto shrink-0 text-xs text-muted-foreground"
+                      title={t.diagnose.groups.voltageLinkedTooltip}
+                    >
+                      ⚡ {t.diagnose.groups.voltageLinked}
                     </span>
                   )}
                 </button>

@@ -1,13 +1,15 @@
 {
   "stream": "i18n",
-  "stage": "plan",
-  "state": "plan written, awaiting user gate (BACKLOG stream F's own rule) before Phase 1 build",
-  "updated": "2026-08-21T14:15:00Z",
-  "branch": null,
+  "stage": "phase-1-built",
+  "state": "Phase 1 built and verified (infra + Shell + Diagnose fully translated), PR opening now. Phases 2-5 not started.",
+  "updated": "2026-08-21T14:35:00Z",
+  "branch": "ws/i18n",
   "notes": [
-    "research.md re-verified 2026-08-21 after Effect/monorepo restructuring: all findings still hold, only lib/meta.ts renamed to shared/domain/gauges.ts.",
-    "plan.md: typed dictionary (en.ts/es.ts + useT), locale toggle in Shell.tsx sidebar now, backend/Rust strings deferred to Phase 5.",
-    "Open question for the user: decimal-comma number formatting for Spanish (14,1 V vs 14.1 V) — a real visible UX choice, not decided in the plan.",
-    "No other stream currently touching views — clear to start Phase 1 once gated."
+    "Typed dictionary (en.ts/es.ts, ~90 keys), useT()/useLocale() hooks, locale toggle in Shell.tsx sidebar, format.ts (Intl.NumberFormat, comma decimals in Spanish).",
+    "Shell.tsx + Diagnose.tsx + all its views/diagnose/* components + WriteHistory.tsx + ConfirmWrite.tsx fully translated.",
+    "Deliberate Phase 3 boundary held throughout: lib/dtc.ts content (titles/meanings/causes/symptoms, decodeDtc's system/origin/subsystem strings) and shared/domain/gauges.ts labels stay English — every site is comment-flagged 'Phase 3' in the code.",
+    "Verified live: locale auto-detected from browser, toggle switches both directions cleanly, comma-decimal voltage confirmed (13,1 V), modal renders correctly in Spanish including the System:/Area: labels, no console errors.",
+    "42/42 tests pass on a forced run (4 new: format.test.ts x3, i18n/index.test.ts x4 covering detectLocale), tsc clean, production build succeeds (+4.7KB gzip, no new dependency).",
+    "Next: Phase 2 (remaining 5 views + shared components), Phase 3 (DTC/gauges content, needs human review pass), Phase 4 (AI report language), Phase 5 (backend/Rust strings)."
   ]
 }

@@ -124,28 +124,42 @@ export function Segmented<T extends string>({
 }
 
 // ---------- Badge ----------
+// Dot + plain text, no filled pill — replaces the soft-tinted-pill look
+// (bg-primary/15 text-primary, rounded-full) that read as generic/AI-
+// templated (Alejandro, 2026-08-21: "I don't really like this look, like
+// really AI generated"). Matches the severity-dot language
+// CodeGroupRow.tsx already used for individual codes — this makes that
+// the one consistent status idiom everywhere instead of two different
+// ones. Compared live against an outlined-chip and a solid-fill
+// alternative on the actual 80-code Diagnose scan; this read as the
+// clearest and the only one that stayed calm at high badge density (the
+// readiness-monitor row, a dozen-plus badges at once).
 type BadgeVariant = "default" | "ok" | "warn" | "error" | "muted";
 export function Badge({
   className,
   variant = "default",
+  children,
   ...props
 }: React.HTMLAttributes<HTMLSpanElement> & { variant?: BadgeVariant }) {
-  const variants: Record<BadgeVariant, string> = {
-    default: "bg-primary/15 text-primary",
-    ok: "bg-primary/15 text-primary",
-    warn: "bg-warn/20 text-warn",
-    error: "bg-destructive/15 text-destructive",
-    muted: "bg-muted text-muted-foreground",
+  const dot: Record<BadgeVariant, string> = {
+    default: "bg-primary",
+    ok: "bg-primary",
+    warn: "bg-warn",
+    error: "bg-destructive",
+    muted: "bg-muted-foreground",
+  };
+  const text: Record<BadgeVariant, string> = {
+    default: "text-foreground",
+    ok: "text-foreground",
+    warn: "text-warn",
+    error: "text-destructive",
+    muted: "text-muted-foreground",
   };
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        variants[variant],
-        className
-      )}
-      {...props}
-    />
+    <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium", text[variant], className)} {...props}>
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dot[variant])} aria-hidden="true" />
+      {children}
+    </span>
   );
 }
 

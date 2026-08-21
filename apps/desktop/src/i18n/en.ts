@@ -1,0 +1,158 @@
+import type { Dictionary } from "./dictionary";
+
+export const en: Dictionary = {
+  common: {
+    cancel: "Cancel",
+    retry: "Retry",
+    close: "Close",
+    copy: "Copy",
+    copied: "Copied",
+    save: "Save",
+  },
+  shell: {
+    appName: "Scainner",
+    demoData: "Demo data",
+    demoDataTooltip: "No Tauri backend detected — showing simulated data for UI preview",
+    nav: {
+      overview: "Overview",
+      live: "Live",
+      history: "History",
+      diagnose: "Diagnose",
+      lab: "Lab",
+      vehicle: "Vehicle",
+    },
+    status: {
+      connected: "Connected",
+      connecting: "Connecting…",
+      disconnected: "Disconnected",
+      recording: "Recording",
+      linkUp: "Link up",
+      wakingDongle: "Waking the dongle",
+      ignitionThenConnect: "Ignition on, then connect",
+    },
+    connect: "Connect",
+    disconnect: "Disconnect",
+    disconnecting: "Disconnecting…",
+    language: "Language",
+  },
+  diagnose: {
+    title: "Diagnose",
+    console: {
+      cardTitle: "Fault codes",
+      scan: "Scan for codes",
+      scanning: "Scanning…",
+      clearCodes: "Clear codes…",
+      noScanYet: "No scan yet.",
+      clickToScan: 'Click "Scan for codes" to check this vehicle.',
+      milOn: (n) => `CHECK ENGINE ON · ${n} codes`,
+      milOff: "MIL off",
+      clickCodeHint: "Click any code for details, its history, and an AI deep-dive.",
+      noFaultCodesTitle: "No fault codes",
+      noFaultCodesExplainer: "This vehicle has no stored, pending, or permanent codes right now.",
+      clearedVerified: (before) =>
+        `Cleared and verified: ${before === 0 ? "no" : before} code${before === 1 ? "" : "s"} before, none remaining.`,
+      clearedButCameBack: (after) =>
+        `Cleared, but ${after} code${after === 1 ? "" : "s"} came straight back. ${
+          after === 1 ? "That is an active fault" : "Those are active faults"
+        }, not leftovers, and worth investigating.`,
+      resetNote:
+        "No ignition cycle is needed for the check-engine light. It goes off with the clear. Two things reset with it: readiness monitors re-run over your next few drives (relevant before a technical or emissions inspection, ITV in Spain), and permanent codes (if any) erase themselves only after the car self-verifies the fault is gone.",
+      scanningPhrases: ["Reading trouble codes…", "Checking readiness monitors…", "Pulling freeze frame data…"],
+    },
+    groups: {
+      codeCount: (n) => `(${n} code${n === 1 ? "" : "s"})`,
+      showDetails: "Show details",
+      hideDetails: "Hide details",
+      notInLibrary: "Not in the offline library",
+      voltageLinked: "voltage-linked",
+      voltageLinkedTooltip: "Likely a voltage side effect — see the note above",
+      severity: {
+        high: "High severity",
+        medium: "Medium severity",
+        low: "Low severity",
+        unknown: "Not in the offline library",
+      },
+    },
+    statusLabels: { stored: "Stored", pending: "Pending", permanent: "Permanent" },
+    detailsFor: (code) => `Details for ${code}`,
+    historyMore: (n) => `+${n} more`,
+    voltageClusterSuffix: "Every code is still shown on its own, click any of them for details.",
+    freezeFrame: {
+      title: "Freeze frame",
+      causedBy: (code) => `caused by ${code}`,
+    },
+    readiness: {
+      cardTitle: "Readiness monitors",
+      runScanToCheck: "Run a scan to check readiness monitors.",
+      ready: "ready",
+      notReady: "not ready",
+      allComplete: "All monitors complete. This is what a technical or emissions inspection checks (ITV in Spain).",
+      someIncomplete:
+        "Some monitors incomplete (normal after clearing codes or a battery disconnect — they re-run over a few drives).",
+    },
+    historyAndReports: {
+      heading: "History & reports",
+      subheading: "Past scans and writes — separate from the live workspace above.",
+    },
+    scanHistory: {
+      cardTitle: "Scan history",
+      couldNotLoad: "Could not load scan history.",
+      noScansYet: "No scans recorded yet — run one while connected.",
+      clean: "clean",
+    },
+    detailModal: {
+      notInLibrary: "Not in the built-in library — structural decode and AI analysis below",
+      close: "Close",
+      codeAnatomy: "Code anatomy",
+      system: (value) => `System: ${value}`,
+      area: (value) => `Area: ${value}`,
+      whenItHappened: "When it happened",
+      notRecorded: "Not in any recorded scan (seen live only).",
+      commonCauses: "Common causes (most likely first)",
+      typicalSymptoms: "Typical symptoms",
+      aiDeepDive: "AI deep-dive for this code",
+      regenerateAiDeepDive: "Regenerate AI deep-dive",
+      setApiKeyHint: "Set your Anthropic API key in the AI diagnosis card below to enable per-code analysis.",
+      generated: (date) => `generated ${date}`,
+      severity: { low: "low urgency", medium: "attention", high: "serious" },
+    },
+    aiReport: {
+      cardTitle: "AI diagnosis",
+      needsKeyExplainer:
+        "Analyzes the scan history, freeze frames, and sensor trends above with Claude and writes a diagnosis report. Needs your own Anthropic API key — it is stored only on this machine and used only when you generate a report.",
+      apiKeyPlaceholder: "sk-ant-…",
+      apiKeyAriaLabel: "Anthropic API key",
+      saveKey: "Save key",
+      changeKey: "Change key…",
+      generateReport: "Generate report",
+      regenerateReport: "Regenerate report",
+      runScanFirst: "Run at least one scan first — the report analyzes real recorded data.",
+      sendsDataNote: "Generating sends this car's diagnostic briefing (identity, codes, sensor stats) to the Anthropic API.",
+    },
+    writeHistory: {
+      cardTitle: "Write history",
+      couldNotLoad: "Could not load write history.",
+      noWritesYet: "No writes recorded yet. Every change this app sends to the car is listed here, with the state read before and after.",
+      outcome: { cleared: "cleared", faultsRemain: "faults remain", refused: "module refused", failed: "failed" },
+      action: { clearDtcs: "Fault code clear" },
+      failedWith: (err) => `failed: ${err}`,
+      failed: "failed",
+      codesBeforeUnread: (before) => `${before} code${before === 1 ? "" : "s"} before, result not read`,
+      codesBeforeAfter: (before, after) => `${before} code${before === 1 ? "" : "s"} before, ${after} after`,
+    },
+    confirmClear: {
+      title: "Clear fault codes?",
+      module: "Engine (OBD)",
+      whatChanges:
+        "This erases the stored and pending fault codes and resets the readiness monitors. Permanent codes, if any, only erase themselves after the car verifies the fault is gone. The scan above is already saved to history.",
+      reversal:
+        "No. Erased codes cannot be put back. This is still safe to do: the codes stay saved in scan history and in the write history below, and a fault that is still present will report itself again on its own.",
+      confirmLabel: "Yes, clear",
+      busyLabel: "Clearing…",
+    },
+  },
+  confirmWrite: {
+    canThisBeUndone: "Can this be undone?",
+    savedToHistory: "The state before and after this change is saved to the write history.",
+  },
+};

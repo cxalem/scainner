@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
-import { MONITOR_LABELS } from "@/shared/domain/gauges";
+import { monitorLabel } from "@/shared/domain/gauges";
 import type { DtcResult, ObdClearOutcome } from "@scainner/core";
 import { WriteHistory } from "@/components/WriteHistory";
 import { useDtcHistory } from "@/features/diagnose/queries";
@@ -9,6 +9,8 @@ import { CodeBadge } from "@/views/diagnose/CodeBadge";
 import { ScanConsole } from "@/views/diagnose/ScanConsole";
 import { DtcDetailModal } from "@/views/diagnose/DtcDetailModal";
 import { AiReportCard } from "@/views/diagnose/AiReportCard";
+import { useLocale, useT } from "@/i18n";
+import { formatVoltage } from "@/lib/format";
 
 // Scan History rows are compact, historical entries (unlike ScanConsole's
 // scrollable workspace, which is the deep-dive surface) — past this many
@@ -17,6 +19,8 @@ import { AiReportCard } from "@/views/diagnose/AiReportCard";
 const HISTORY_ROW_CODE_LIMIT = 8;
 
 export function Diagnose({ connected }: { connected: boolean }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [scan, setScan] = useState<DtcResult | null>(null);
   const [readiness, setReadiness] = useState<Record<string, boolean> | null>(null);
   const [detailCode, setDetailCode] = useState<string | null>(null);
@@ -35,7 +39,7 @@ export function Diagnose({ connected }: { connected: boolean }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold tracking-tight">Diagnose</h1>
+      <h1 className="text-lg font-semibold tracking-tight">{t.diagnose.title}</h1>
 
       <ScanConsole
         connected={connected}
@@ -48,30 +52,25 @@ export function Diagnose({ connected }: { connected: boolean }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Readiness monitors
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" /> {t.diagnose.readiness.cardTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {readiness === null ? (
-            <p className="text-sm text-muted-foreground">Run a scan to check readiness monitors.</p>
+            <p className="text-sm text-muted-foreground">{t.diagnose.readiness.runScanToCheck}</p>
           ) : (
             <div className="animate-fade-slide-in">
               <div className="flex flex-wrap gap-2">
                 {Object.entries(readiness).map(([monitor, ready]) => (
                   <Badge key={monitor} variant={ready ? "ok" : "warn"}>
-                    {MONITOR_LABELS[monitor] ?? monitor}: {ready ? "ready" : "not ready"}
+                    {monitorLabel(monitor, locale)}: {ready ? t.diagnose.readiness.ready : t.diagnose.readiness.notReady}
                   </Badge>
                 ))}
               </div>
               {Object.values(readiness).every(Boolean) ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  All monitors complete. This is what a technical or emissions inspection checks (ITV in Spain).
-                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{t.diagnose.readiness.allComplete}</p>
               ) : (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Some monitors incomplete (normal after clearing codes or a battery disconnect — they re-run over a
-                  few drives).
-                </p>
+                <p className="mt-2 text-sm text-muted-foreground">{t.diagnose.readiness.someIncomplete}</p>
               )}
             </div>
           )}
@@ -86,13 +85,15 @@ export function Diagnose({ connected }: { connected: boolean }) {
           says so plainly instead of leaving five cards to read as one
           undifferentiated list. */}
       <div className="mt-2 flex flex-col gap-0.5 border-t border-border pt-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">History &amp; reports</h2>
-        <p className="text-xs text-muted-foreground">Past scans and writes — separate from the live workspace above.</p>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t.diagnose.historyAndReports.heading}
+        </h2>
+        <p className="text-xs text-muted-foreground">{t.diagnose.historyAndReports.subheading}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Scan history</CardTitle>
+          <CardTitle>{t.diagnose.scanHistory.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           {historyQuery.isPending ? (
@@ -103,13 +104,13 @@ export function Diagnose({ connected }: { connected: boolean }) {
             </div>
           ) : historyQuery.isError ? (
             <div className="flex items-center gap-2 text-sm text-destructive">
-              <span>Could not load scan history.</span>
+              <span>{t.diagnose.scanHistory.couldNotLoad}</span>
               <Button variant="outline" onClick={() => historyQuery.refetch()}>
-                Retry
+                {t.common.retry}
               </Button>
             </div>
           ) : history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No scans recorded yet — run one while connected.</p>
+            <p className="text-sm text-muted-foreground">{t.diagnose.scanHistory.noScansYet}</p>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
               {history.map((scan) => {
@@ -124,17 +125,17 @@ export function Diagnose({ connected }: { connected: boolean }) {
                     <span className="font-mono text-xs text-muted-foreground">{scan.ts} UTC</span>
                     <span className="flex flex-wrap items-center gap-2">
                       {codes.length === 0 ? (
-                        <Badge variant="ok">clean</Badge>
+                        <Badge variant="ok">{t.diagnose.scanHistory.clean}</Badge>
                       ) : (
                         <>
                           {shown.map((code) => (
                             <CodeBadge key={code} code={code} onSelect={setDetailCode} />
                           ))}
-                          {hiddenCount > 0 && <Badge variant="muted">+{hiddenCount} more</Badge>}
+                          {hiddenCount > 0 && <Badge variant="muted">{t.diagnose.historyMore(hiddenCount)}</Badge>}
                         </>
                       )}
                       {scan.voltage != null && (
-                        <span className="font-mono text-xs text-muted-foreground">{scan.voltage.toFixed(1)}V</span>
+                        <span className="font-mono text-xs text-muted-foreground">{formatVoltage(scan.voltage, locale)}</span>
                       )}
                     </span>
                   </li>

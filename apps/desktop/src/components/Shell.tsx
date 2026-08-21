@@ -5,6 +5,7 @@ import {
   ChartLine,
   FlaskConical,
   Gauge,
+  Languages,
   LayoutDashboard,
   Plug,
   PlugZap,
@@ -14,17 +15,9 @@ import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
 import { CONNECT_PHRASES, type ConnStatus } from "@scainner/core";
+import { useLocale, useT, type Locale } from "@/i18n";
 
 export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
-
-const NAV: { key: ViewKey; label: string; icon: typeof Activity; advanced?: boolean }[] = [
-  { key: "overview", label: "Overview", icon: LayoutDashboard },
-  { key: "live", label: "Live", icon: Activity },
-  { key: "history", label: "History", icon: ChartLine },
-  { key: "diagnose", label: "Diagnose", icon: Stethoscope },
-  { key: "lab", label: "Lab", icon: FlaskConical, advanced: true },
-  { key: "vehicle", label: "Vehicle", icon: Car, advanced: true },
-];
 
 export function Shell({
   view,
@@ -43,6 +36,8 @@ export function Shell({
   onDisconnect: () => Promise<unknown>;
   children: ReactNode;
 }) {
+  const t = useT();
+  const { locale, setLocale } = useLocale();
   const connected = conn.state === "connected";
   const connecting = conn.state === "connecting";
   const connectLabel = useCyclingLabel(CONNECT_PHRASES, connecting, 700);
@@ -58,6 +53,15 @@ export function Shell({
       setDisconnecting(false);
     }
   };
+
+  const NAV: { key: ViewKey; label: string; icon: typeof Activity; advanced?: boolean }[] = [
+    { key: "overview", label: t.shell.nav.overview, icon: LayoutDashboard },
+    { key: "live", label: t.shell.nav.live, icon: Activity },
+    { key: "history", label: t.shell.nav.history, icon: ChartLine },
+    { key: "diagnose", label: t.shell.nav.diagnose, icon: Stethoscope },
+    { key: "lab", label: t.shell.nav.lab, icon: FlaskConical, advanced: true },
+    { key: "vehicle", label: t.shell.nav.vehicle, icon: Car, advanced: true },
+  ];
   const primary = NAV.filter((n) => !n.advanced);
   const advanced = NAV.filter((n) => n.advanced);
 
@@ -87,13 +91,13 @@ export function Shell({
       <aside className="flex w-60 shrink-0 flex-col border-r border-border p-3">
         <div className="mb-4 flex items-center gap-2 px-2 pt-1">
           <Gauge className="h-5 w-5 text-primary" aria-hidden="true" />
-          <span className="text-sm font-semibold tracking-tight">Scainner</span>
+          <span className="text-sm font-semibold tracking-tight">{t.shell.appName}</span>
           {MOCK_MODE && (
             <span
               className="ml-auto rounded-full bg-warn/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warn"
-              title="No Tauri backend detected — showing simulated data for UI preview"
+              title={t.shell.demoDataTooltip}
             >
-              Demo data
+              {t.shell.demoData}
             </span>
           )}
         </div>
@@ -104,7 +108,30 @@ export function Shell({
           {advanced.map(item)}
         </nav>
 
-        <div className="mt-auto rounded-lg border border-border bg-card p-3">
+        {/* Locale toggle: lives here rather than a Settings view (there
+            isn't one yet) — see docs/workflows/i18n/plan.md. Cheap to move
+            once a real Settings view exists. */}
+        <div className="mt-2 flex items-center gap-1.5 px-2">
+          <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div role="group" aria-label={t.shell.language} className="flex items-center gap-1">
+            {(["en", "es"] as Locale[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setLocale(option)}
+                aria-pressed={locale === option}
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 text-xs font-medium uppercase transition-colors",
+                  locale === option ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-2 rounded-lg border border-border bg-card p-3">
           <div className="mb-2 flex items-center gap-2">
             <span
               aria-hidden="true"
@@ -115,16 +142,16 @@ export function Shell({
             />
             <div className="min-w-0">
               <p className="truncate text-xs font-medium">
-                {connected ? "Connected" : connecting ? "Connecting…" : "Disconnected"}
+                {connected ? t.shell.status.connected : connecting ? t.shell.status.connecting : t.shell.status.disconnected}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {connected && recording
-                  ? "Recording"
+                  ? t.shell.status.recording
                   : connected
-                    ? conn.elm_version ?? "Link up"
+                    ? conn.elm_version ?? t.shell.status.linkUp
                     : connecting
-                      ? "Waking the dongle"
-                      : "Ignition on, then connect"}
+                      ? t.shell.status.wakingDongle
+                      : t.shell.status.ignitionThenConnect}
               </p>
             </div>
           </div>
@@ -140,7 +167,7 @@ export function Shell({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               )}
             >
-              <Plug className="h-3.5 w-3.5" aria-hidden="true" /> {disconnecting ? "Disconnecting…" : "Disconnect"}
+              <Plug className="h-3.5 w-3.5" aria-hidden="true" /> {disconnecting ? t.shell.disconnecting : t.shell.disconnect}
             </button>
           ) : (
             <button
@@ -155,7 +182,7 @@ export function Shell({
               )}
             >
               <PlugZap className="h-3.5 w-3.5" aria-hidden="true" />
-              {connecting ? connectLabel : "Connect"}
+              {connecting ? connectLabel : t.shell.connect}
             </button>
           )}
           {conn.detail && conn.state === "disconnected" && (

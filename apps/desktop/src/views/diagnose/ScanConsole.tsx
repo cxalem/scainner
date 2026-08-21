@@ -8,11 +8,8 @@ import { detectVoltageCluster } from "@/lib/dtc-grouping";
 import { CodeStatusSection } from "@/views/diagnose/CodeStatusSection";
 import { VoltageClusterNote } from "@/views/diagnose/VoltageClusterNote";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
-
-// Cycled while a scan is running — same "long wait reads as moving forward"
-// idiom useCyclingLabel already established elsewhere in this app, not a new
-// pattern. Order roughly matches what the backend command actually does.
-const SCANNING_PHRASES = ["Reading trouble codes…", "Checking readiness monitors…", "Pulling freeze frame data…"];
+import { useLocale, useT } from "@/i18n";
+import { formatVoltage } from "@/lib/format";
 
 // A workspace box, not a card that grows: connect → scan → read the codes →
 // clear → rescan → drive → rescan is the app's core loop (Alejandro,
@@ -44,13 +41,15 @@ export function ScanConsole({
   onClearSuccess: (outcome: ObdClearOutcome) => void;
   onSelect: (code: string) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearedBanner, setClearedBanner] = useState<{ before: number; after: number } | null>(null);
 
   const scanMutation = useScanDtcs();
   const clearMutation = useClearDtcs();
   const error = scanMutation.error ?? clearMutation.error;
-  const cyclingLabel = useCyclingLabel(SCANNING_PHRASES, scanMutation.isPending);
+  const cyclingLabel = useCyclingLabel(t.diagnose.console.scanningPhrases, scanMutation.isPending);
 
   const totalCodes = scan ? scan.stored.length + scan.pending.length + scan.permanent.length : 0;
   const voltageAffected = new Set(scan ? (detectVoltageCluster(scan)?.affected ?? []) : []);
@@ -85,17 +84,17 @@ export function ScanConsole({
     <Card>
       <CardHeader className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle>Fault codes</CardTitle>
+          <CardTitle>{t.diagnose.console.cardTitle}</CardTitle>
           <div className="flex items-center gap-2">
             <Button onClick={doScan} disabled={!connected || scanMutation.isPending}>
               <RefreshCw className={"h-4 w-4" + (scanMutation.isPending ? " animate-spin" : "")} aria-hidden="true" />
-              {scanMutation.isPending ? "Scanning…" : "Scan for codes"}
+              {scanMutation.isPending ? t.diagnose.console.scanning : t.diagnose.console.scan}
             </Button>
             {/* Stays mounted while ConfirmWrite is up — hiding it shifted
                 the toolbar behind the modal (no layout shifts). */}
             {scan && totalCodes > 0 && (
               <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={confirmClear}>
-                Clear codes…
+                {t.diagnose.console.clearCodes}
               </Button>
             )}
           </div>
@@ -103,6 +102,8 @@ export function ScanConsole({
 
         {error && (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {/* Backend error text — untranslated in Phase 1, see plan.md's
+                Phase 5 (Rust/backend strings) */}
             {String(error instanceof Error ? error.message : error)}
           </div>
         )}
@@ -113,24 +114,18 @@ export function ScanConsole({
               {clearedBanner.after === 0 ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Cleared and verified: {clearedBanner.before || "no"} code
-                  {clearedBanner.before === 1 ? "" : "s"} before, none remaining.
+                  {t.diagnose.console.clearedVerified(clearedBanner.before)}
                 </>
               ) : (
                 <>
                   <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-                  Cleared, but {clearedBanner.after} code{clearedBanner.after === 1 ? "" : "s"} came straight back.
-                  {clearedBanner.after === 1 ? " That is an active fault" : " Those are active faults"}, not
-                  leftovers, and worth investigating.
+                  {t.diagnose.console.clearedButCameBack(clearedBanner.after)}
                 </>
               )}
             </p>
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              No ignition cycle is needed for the check-engine light. It goes off with the clear. Two things reset
-              with it: readiness monitors re-run over your next few drives (relevant before a technical or emissions
-              inspection, ITV in Spain), and permanent
-              codes (if any) erase themselves only after the car self-verifies the fault is gone.
+              {t.diagnose.console.resetNote}
             </p>
           </div>
         )}
@@ -150,8 +145,8 @@ export function ScanConsole({
             </div>
           ) : !scan ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center">
-              <p className="text-sm text-muted-foreground">No scan yet.</p>
-              <p className="text-sm text-muted-foreground">Click "Scan for codes" to check this vehicle.</p>
+              <p className="text-sm text-muted-foreground">{t.diagnose.console.noScanYet}</p>
+              <p className="text-sm text-muted-foreground">{t.diagnose.console.clickToScan}</p>
             </div>
           ) : (
             <div className="animate-fade-slide-in flex flex-1 flex-col gap-3 overflow-hidden">
@@ -164,40 +159,59 @@ export function ScanConsole({
                   never does. */}
               <div className="flex items-center gap-2">
                 {scan.mil_on ? (
-                  <Badge variant="error">CHECK ENGINE ON · {scan.dtc_count} codes</Badge>
+                  <Badge variant="error">{t.diagnose.console.milOn(scan.dtc_count)}</Badge>
                 ) : (
-                  <Badge variant="ok">
-                    <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" /> MIL off
-                  </Badge>
+                  // Badge's own dot already carries the "ok" signal — no
+                  // need for a second checkmark icon on top of it.
+                  <Badge variant="ok">{t.diagnose.console.milOff}</Badge>
                 )}
-                {scan.voltage != null && <Badge variant="muted">{scan.voltage.toFixed(1)} V</Badge>}
+                {scan.voltage != null && <Badge variant="muted">{formatVoltage(scan.voltage, locale)}</Badge>}
               </div>
               <VoltageClusterNote scan={scan} />
               {scan.freeze && <FreezeFrame data={scan.freeze as Record<string, unknown>} />}
 
-              {/* overflow-y-scroll (not -auto): a small scan that fits
-                  without scrolling and a large one that needs to scroll
-                  would otherwise render at different widths — same gutter
-                  fix as Shell.tsx's outer scroll area, just local here. */}
-              <div className="flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
-                <CodeStatusSection label="Stored" codes={scan.stored} affected={voltageAffected} onSelect={onSelect} />
-                <CodeStatusSection
-                  label="Pending"
-                  codes={scan.pending}
-                  affected={voltageAffected}
-                  onSelect={onSelect}
-                />
-                <CodeStatusSection
-                  label="Permanent"
-                  codes={scan.permanent}
-                  affected={voltageAffected}
-                  onSelect={onSelect}
-                />
-                {totalCodes === 0 && <p className="text-sm text-muted-foreground">No codes on this scan.</p>}
-                <p className="text-xs text-muted-foreground">
-                  Click any code for details, its history, and an AI deep-dive.
-                </p>
-              </div>
+              {totalCodes === 0 ? (
+                // A real empty state, not a stray line of text inside an
+                // otherwise-empty 26rem box — this is what it looked like
+                // right after a successful clear (Alejandro, 2026-08-21:
+                // "the space looks empty, looks weird... we need
+                // information for the empty state"). Centered like the
+                // idle/scanning states above, and this is a GOOD outcome
+                // (a clean car), so it reads as confirmation, not as
+                // something broken.
+                <div className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center">
+                  <CheckCircle2 className="mb-1 h-6 w-6 text-primary" aria-hidden="true" />
+                  <p className="text-sm font-medium">{t.diagnose.console.noFaultCodesTitle}</p>
+                  <p className="text-sm text-muted-foreground">{t.diagnose.console.noFaultCodesExplainer}</p>
+                </div>
+              ) : (
+                // overflow-y-scroll (not -auto): a small scan that fits
+                // without scrolling and a large one that needs to scroll
+                // would otherwise render at different widths — same
+                // gutter fix as Shell.tsx's outer scroll area, just local
+                // here.
+                <div className="flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
+                  <CodeStatusSection
+                    label={t.diagnose.statusLabels.stored}
+                    codes={scan.stored}
+                    affected={voltageAffected}
+                    onSelect={onSelect}
+                  />
+                  <CodeStatusSection
+                    label={t.diagnose.statusLabels.pending}
+                    codes={scan.pending}
+                    affected={voltageAffected}
+                    onSelect={onSelect}
+                  />
+                  <CodeStatusSection
+                    label={t.diagnose.statusLabels.permanent}
+                    codes={scan.permanent}
+                    affected={voltageAffected}
+                    onSelect={onSelect}
+                  />
+                  <p className="text-xs text-muted-foreground">{t.diagnose.console.clickCodeHint}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -205,12 +219,12 @@ export function ScanConsole({
 
       {confirmClear && (
         <ConfirmWrite
-          title="Clear fault codes?"
-          module="Engine (OBD)"
-          whatChanges="This erases the stored and pending fault codes and resets the readiness monitors. Permanent codes, if any, only erase themselves after the car verifies the fault is gone. The scan above is already saved to history."
-          reversal="No. Erased codes cannot be put back. This is still safe to do: the codes stay saved in scan history and in the write history below, and a fault that is still present will report itself again on its own."
-          confirmLabel="Yes, clear"
-          busyLabel="Clearing…"
+          title={t.diagnose.confirmClear.title}
+          module={t.diagnose.confirmClear.module}
+          whatChanges={t.diagnose.confirmClear.whatChanges}
+          reversal={t.diagnose.confirmClear.reversal}
+          confirmLabel={t.diagnose.confirmClear.confirmLabel}
+          busyLabel={t.diagnose.confirmClear.busyLabel}
           busy={clearMutation.isPending}
           onConfirm={doClear}
           onCancel={() => setConfirmClear(false)}

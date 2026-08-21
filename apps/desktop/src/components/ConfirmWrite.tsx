@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { backdropVariants, modalPanelVariants } from "@/motion";
+import { useT } from "@/i18n";
 
 // The one confirmation pattern every write action goes through. This is part
 // 1 of the write-caps hard rule (confirmation + logged before/after +
@@ -38,6 +39,7 @@ export function ConfirmWrite({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   return (
     <motion.div
       className="fixed inset-0 z-50 flex overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm"
@@ -66,18 +68,16 @@ export function ConfirmWrite({
               {whatChanges}
             </p>
             <div className="rounded-md border border-border bg-muted/40 p-3">
-              <p className="mb-1 font-medium">Can this be undone?</p>
+              <p className="mb-1 font-medium">{t.confirmWrite.canThisBeUndone}</p>
               <p className="text-muted-foreground">{reversal}</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              The state before and after this change is saved to the write history.
-            </p>
+            <p className="text-xs text-muted-foreground">{t.confirmWrite.savedToHistory}</p>
             <div className="flex items-center gap-2">
               <Button variant="destructive" onClick={onConfirm} disabled={busy}>
                 {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
               </Button>
               <Button variant="ghost" onClick={onCancel} disabled={busy}>
-                Cancel
+                {t.common.cancel}
               </Button>
             </div>
           </CardContent>

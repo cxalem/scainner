@@ -2,6 +2,14 @@
 // frame, History's stat table and range picker, Live's gauge grid) — none
 // of it is a Tauri response type, so it has no Schema.Class and no single
 // owning feature (research.md section 3).
+//
+// i18n: GAUGES/MONITOR_LABELS below stay English — they're the stable
+// default and the shape most existing call sites destructure `.label`
+// from directly. `gaugeLabel`/`monitorLabel` are the locale-aware lookups
+// (same pattern as lib/dtc.ts's localizedSystem/etc): consult these at
+// display time instead of reading `.label`/`MONITOR_LABELS[key]` directly.
+import { GAUGE_LABELS_ES, MONITOR_LABELS_ES } from "./gauges.es";
+import type { Locale } from "@/i18n";
 
 export const GAUGES: { key: string; label: string; unit: string; fmt?: (v: number) => string }[] = [
   { key: "rpm", label: "RPM", unit: "rpm", fmt: (v) => v.toFixed(0) },
@@ -35,6 +43,24 @@ export const STAT_LABELS: Record<string, string> = Object.fromEntries([
   ...GAUGES.map((g) => [g.key, `${g.label} (${g.unit})`]),
   ["voltage", "Battery (V)"],
 ]);
+
+export function gaugeLabel(key: string, locale: Locale): string {
+  if (locale === "es" && GAUGE_LABELS_ES[key]) return GAUGE_LABELS_ES[key];
+  return GAUGES.find((g) => g.key === key)?.label ?? key;
+}
+
+export function monitorLabel(key: string, locale: Locale): string {
+  if (locale === "es" && MONITOR_LABELS_ES[key]) return MONITOR_LABELS_ES[key];
+  return MONITOR_LABELS[key] ?? key;
+}
+
+// Locale-aware version of STAT_LABELS (used by History's stat table) —
+// "Refrigerante (°C)" instead of "Coolant (°C)".
+export function statLabel(key: string, locale: Locale): string {
+  const gauge = GAUGES.find((g) => g.key === key);
+  if (!gauge) return key === "voltage" ? (locale === "es" ? "Batería (V)" : "Battery (V)") : key;
+  return `${gaugeLabel(key, locale)} (${gauge.unit})`;
+}
 
 export const RANGES = [
   { label: "1h", hours: 1 },
