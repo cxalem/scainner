@@ -5,6 +5,7 @@ import { MotionConfig } from "framer-motion";
 import App from "./App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { queryClient } from "./lib/query";
+import { I18nProvider } from "./i18n";
 import "./index.css";
 
 // Deliberately NO dark-mode handling: the app is single-theme (light) by
@@ -18,15 +19,17 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        {/* reducedMotion="user": every motion.* component app-wide respects
-            prefers-reduced-motion automatically from here, one place — not
-            a motion-reduce: class repeated on every animated element the
-            way the CSS-only transitions elsewhere in the app still are. */}
-        <MotionConfig reducedMotion="user">
-          <App />
-        </MotionConfig>
-      </QueryClientProvider>
+      <I18nProvider>
+        <QueryClientProvider client={queryClient}>
+          {/* reducedMotion="user": every motion.* component app-wide respects
+              prefers-reduced-motion automatically from here, one place — not
+              a motion-reduce: class repeated on every animated element the
+              way the CSS-only transitions elsewhere in the app still are. */}
+          <MotionConfig reducedMotion="user">
+            <App />
+          </MotionConfig>
+        </QueryClientProvider>
+      </I18nProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 );
