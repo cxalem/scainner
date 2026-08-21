@@ -1,0 +1,356 @@
+{
+  "VR7": {
+    "key": "citroen",
+    "name": "CITROËN",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0 (expected, Citroën not sold in US). Two source lineages (search summary + Wikibooks) agree VR7 is Citroën's newer Stellantis-era code."
+  },
+  "VF7": {
+    "key": "citroen",
+    "name": "CITROËN",
+    "confidence": "high",
+    "source": "NHTSA: Count 0 (expected). Confirmed convergently by dot.report, Wikibooks, and an independent WMI CSV. Long-established classic Citroën code."
+  },
+  "VR1": {
+    "key": "ds",
+    "name": "DS",
+    "confidence": "medium-high",
+    "source": "NHTSA: Count 0 (expected, DS not sold in US). Two independent source lineages (search summary + Wikibooks) agree."
+  },
+  "VR3": {
+    "key": "peugeot",
+    "name": "PEUGEOT",
+    "confidence": "medium-high",
+    "source": "NHTSA: Count 0 for VR3 specifically (only VF3 is registered for Peugeot). Two sources agree VR3 is a newer Stellantis-era code alongside VF3."
+  },
+  "VF3": {
+    "key": "peugeot",
+    "name": "PEUGEOT",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: DecodeWMI(VF3) and GetWMIsForManufacturer(Peugeot) both return AUTOMOBILES PEUGEOT."
+  },
+  "W0L": {
+    "key": "opel",
+    "name": "OPEL",
+    "confidence": "high",
+    "source": "NHTSA confirms W0L = Adam Opel AG directly, with sibling codes W08/W04/W06 under the same entity. Wikibooks' claim that W0L is shared with Vauxhall is plausible but likely an oversimplification (see wmi-audit.md) - not relied on here, this entry is Opel-only."
+  },
+  "ZFA": {
+    "key": "fiat",
+    "name": "FIAT",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: DecodeWMI(ZFA) -> FCA ITALY S.P.A., Make FIAT."
+  },
+  "ZAR": {
+    "key": "alfa-romeo",
+    "name": "ALFA ROMEO",
+    "confidence": "high",
+    "source": "NHTSA confirms directly via DecodeWMI and GetWMIsForManufacturer: ALFA ROMEO S.P.A."
+  },
+  "VF1": {
+    "key": "renault",
+    "name": "RENAULT",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Make EAGLE, RENAULT; Manufacturer RENAULT GROUP."
+  },
+  "UU1": {
+    "key": "dacia",
+    "name": "DACIA",
+    "confidence": "high",
+    "source": "NHTSA: no direct hit (expected, not sold in US). Corroborated by Wikibooks, an independent WMI CSV, and a real decoded example VIN (UU1K5220962751578 -> Dacia)."
+  },
+  "WVW": {
+    "key": "volkswagen",
+    "name": "VOLKSWAGEN",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volkswagen, Passenger Car, present in Volkswagen's registered manufacturer list."
+  },
+  "WV1": {
+    "key": "volkswagen",
+    "name": "VOLKSWAGEN",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volkswagen, Truck type, Volkswagen Group of America Inc."
+  },
+  "WV2": {
+    "key": "volkswagen",
+    "name": "VOLKSWAGEN",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volkswagen, MPV."
+  },
+  "WAU": {
+    "key": "audi",
+    "name": "AUDI",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Audi AG, Germany."
+  },
+  "TRU": {
+    "key": "audi",
+    "name": "AUDI",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Audi AG, registered under Hungary (Győr plant, where TT/A3 are historically built)."
+  },
+  "VSS": {
+    "key": "seat",
+    "name": "SEAT",
+    "confidence": "medium-high",
+    "source": "NHTSA: no hit (expected, not sold in US). Wikibooks lists VSS as SEAT/Cupra shared; an older independent WMI CSV lists SEAT only. Shared-with-Cupra claim is plausible (same Martorell plant) but not authoritatively confirmed."
+  },
+  "TMB": {
+    "key": "skoda",
+    "name": "ŠKODA",
+    "confidence": "high",
+    "source": "NHTSA: no hit (expected, not sold in US). Corroborated by Wikibooks, an independent CSV, dot.report, and Škoda's own official brand-story site (T=Czech Republic, M=Mladá Boleslav, B=Škoda)."
+  },
+  "WBA": {
+    "key": "bmw",
+    "name": "BMW",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: BMW AG, Germany, Passenger Car."
+  },
+  "WBS": {
+    "key": "bmw",
+    "name": "BMW",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: BMW M GMBH, Germany (BMW's M-division-specific code)."
+  },
+  "WBY": {
+    "key": "bmw",
+    "name": "BMW",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: BMW AG, Germany (BMW's i-series/electric code)."
+  },
+  "WDB": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany."
+  },
+  "WDD": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany."
+  },
+  "W1K": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany, Passenger Car."
+  },
+  "W1N": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz AG, Germany, MPV/SUV line."
+  },
+  "WP0": {
+    "key": "porsche",
+    "name": "PORSCHE",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Dr. Ing. h.c.F. Porsche AG, Germany. Porsche's entire NHTSA-registered list is exactly {WP0, WP1}."
+  },
+  "WP1": {
+    "key": "porsche",
+    "name": "PORSCHE",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: same entity as WP0, Germany, MPV (Cayenne/Macan)."
+  },
+  "JTD": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Toyota Motor Corporation, Make TOYOTA, Passenger Car."
+  },
+  "JTE": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "confidence": "high",
+    "source": "NHTSA confirms: Toyota Motor Corporation, but Make field is TOYOTA, LEXUS, SUBARU (Subaru builds some Toyota-platform MPVs on this WMI). Not exclusive, still correctly attributed to Toyota."
+  },
+  "SB1": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "confidence": "high",
+    "source": "NHTSA confirms: Toyota Motor Corporation, UK. DateAvailableToPublic 2025-11-13 - a recently-registered UK-market code, older VIN decoders may not recognize it yet."
+  },
+  "VNK": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Toyota Motor Manufacturing France S.A.S., Passenger Car (French Yaris plant)."
+  },
+  "JHM": {
+    "key": "honda",
+    "name": "HONDA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Honda Motor Co., Ltd., Passenger Car."
+  },
+  "SHH": {
+    "key": "honda",
+    "name": "HONDA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Honda of the U.K. Mfg., Ltd. (Swindon plant)."
+  },
+  "SHS": {
+    "key": "honda",
+    "name": "HONDA",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed sibling of SHH - Honda UK (Swindon), MPV vehicle type where SHH is Passenger Car. Same manufacturer, different vehicle class, was missing despite SHH being present."
+  },
+  "JN1": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "confidence": "high",
+    "source": "NHTSA confirms: Nissan Motor Company Ltd, but Make field is NISSAN, INFINITI, DATSUN. Not exclusive, still correctly attributed to Nissan."
+  },
+  "SJN": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0, not in the live registry. Two independent secondary sources agree SJN = Nissan Motor Manufacturing UK Ltd (Sunderland). NHTSA does separately confirm sibling code SJK for Nissan UK, which lends indirect credibility."
+  },
+  "SJK": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "confidence": "medium-high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed sibling of SJN (Nissan UK, Sunderland plant) - if SJN turns out unreliable, SJK is the NHTSA-backed alternative for the same plant."
+  },
+  "VSK": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0. Two-plus secondary sources agree VSK = Nissan Motor Ibérica S.A. (Spain), used roughly 1993-1999, later also on Spain-built Navara D40. Possibly a stale legacy code."
+  },
+  "JM1": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mazda Motor Corporation, Passenger Car."
+  },
+  "KMH": {
+    "key": "hyundai",
+    "name": "HYUNDAI",
+    "confidence": "high",
+    "source": "NHTSA confirms: Hyundai Motor Co, but Make field is HYUNDAI, GENESIS (Hyundai's luxury spinoff). Not exclusive, still correctly attributed."
+  },
+  "TMA": {
+    "key": "hyundai",
+    "name": "HYUNDAI",
+    "confidence": "medium-high",
+    "source": "NHTSA: Count 0, not in Hyundai's 15-row NHTSA list. Two independently-named sources agree TMA = Czech-built Hyundai (Nošovice plant)."
+  },
+  "KNA": {
+    "key": "kia",
+    "name": "KIA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Kia Corporation, Passenger Car."
+  },
+  "KNE": {
+    "key": "kia",
+    "name": "KIA",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0, absent from Kia's 9-row NHTSA list. One named source (vinspecify.com) says KNE = Korea-built Kia SUVs (Niro, Soul). Not independently corroborated by a second named source."
+  },
+  "U5Y": {
+    "key": "kia",
+    "name": "KIA",
+    "confidence": "medium",
+    "source": "NHTSA confirms it exists, but as HYUNDAI-KIA AMERICA TECHNICAL CENTER INC (HATCI), Make HYUNDAI, KIA - a joint Hyundai/Kia R&D-entity code, not Kia-exclusive. Labeling it Kia is directionally fine but technically incomplete."
+  },
+  "JS2": {
+    "key": "suzuki",
+    "name": "SUZUKI",
+    "confidence": "high",
+    "source": "Replaces JSA, removed 2026-08-21 after wmi-audit.md caught a real error: NHTSA confirms JSA is a motorcycle WMI (Suzuki Motor of America, shared with Kawasaki), not a car code. JS2 is Suzuki's actual passenger-car/truck code, NHTSA-confirmed plain SUZUKI."
+  },
+  "LB3": {
+    "key": "geely",
+    "name": "GEELY",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0 for LB3 (GetWMIsForManufacturer(Geely) only returns LB2, a motorcycle code under a different entity). Several decoder-site sources support LB3 = core Geely models (Coolray, Emgrand, Atlas Pro), but Wikibooks directly contradicts the LB3-vs-L6T sub-brand split (disagreeing on where Geometry and mainline Geely sit) - genuinely unresolved per wmi-audit.md. Deliberately not adding L6T: it is at least partly Zeekr's (NHTSA-confirmed, Zeekr registered its own US entity under L6T in Nov 2024), and a wrong badge is worse than no badge."
+  },
+  "LGX": {
+    "key": "byd",
+    "name": "BYD",
+    "confidence": "high",
+    "source": "NHTSA confirms directly via DecodeWMI and GetWMIsForManufacturer: BYD Auto Co., Ltd. Also corroborated by Wikibooks and an independent CSV - the strongest-sourced Chinese-brand code in the table."
+  },
+  "LVV": {
+    "key": "chery",
+    "name": "CHERY",
+    "confidence": "medium-high",
+    "source": "NHTSA: no hit (expected, not sold in US). Converges across Wikibooks, an independent CSV, and a China-vehicle-history site, all agreeing LVV = Chery (Wuhu plant)."
+  },
+  "WF0": {
+    "key": "ford",
+    "name": "FORD",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Ford Werke AG, Germany, Passenger Car."
+  },
+  "VS6": {
+    "key": "ford",
+    "name": "FORD",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0, absent from Ford's full 78-row NHTSA list. Two-plus independent sources agree VS6 = Ford's Almussafes/Valencia, Spain plant, no contradicting source found."
+  },
+  "YV1": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volvo Car Corporation, Sweden, Passenger Car."
+  },
+  "YV4": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volvo Car Corporation, Sweden, MPV/SUV line (e.g. XC90)."
+  },
+  "LVY": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Volvo China-built code (Daqing Volvo Car Manufacturing) - directly analogous to Tesla's Berlin code. Volvo previously had zero China-market coverage despite significant China-built export volumes (S60, S90)."
+  },
+  "5YJ": {
+    "key": "tesla",
+    "name": "TESLA",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Tesla, Inc., USA, Passenger Car."
+  },
+  "XP7": {
+    "key": "tesla",
+    "name": "TESLA",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0, absent from Tesla's 4-row NHTSA list (5YJ, SFZ, 7G2, 7SA). Five separate independent sources consistently identify XP7 as Tesla Gigafactory Berlin."
+  },
+  "7G2": {
+    "key": "tesla",
+    "name": "TESLA",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Tesla Gigafactory Texas code, Truck vehicle type (likely Cybertruck). Prior table had no Austin production represented at all."
+  },
+  "7SA": {
+    "key": "tesla",
+    "name": "TESLA",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Tesla Gigafactory Texas code, MPV vehicle type (likely Model Y). Prior table had no Austin production represented at all."
+  },
+  "SAL": {
+    "key": "land-rover",
+    "name": "LAND ROVER",
+    "confidence": "high",
+    "source": "NHTSA confirms the code exists, but its CommonName is jointly Jaguar Land Rover, not split by brand. Secondary sources confirm SAL = Land Rover specifically within JLR's range - a real, well-documented convention just not NHTSA-native."
+  },
+  "SAJ": {
+    "key": "jaguar",
+    "name": "JAGUAR",
+    "confidence": "high",
+    "source": "Same as SAL - NHTSA CommonName is jointly Jaguar Land Rover, secondary sources confirm SAJ = Jaguar specifically."
+  },
+  "WA1": {
+    "key": "audi",
+    "name": "AUDI",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Audi AG, Germany, dedicated SUV/MPV-line code alongside WAU/TRU (passenger car) - covers Audi's Q-series SUVs."
+  }
+}
