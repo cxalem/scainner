@@ -57,4 +57,7 @@ already cost real debugging time at least once.
     reading the code. UI component rendering/interaction tests are lower
     priority than these three — the app has no component-test harness
     yet, don't build one speculatively, wait until a stream actually
-    needs it.
+    needs it. When reporting "tests pass," confirm the run actually
+    executed and wasn't a Turborepo cache replay (`--force`, or run the
+    package's own test command directly) — a cached-success report reads
+    identical to a real one and defeats the whole point of this rule.
