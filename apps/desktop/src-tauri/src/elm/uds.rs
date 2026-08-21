@@ -238,12 +238,18 @@ fn custom_modules(db: &Db) -> Vec<UdsModule> {
 /// lands in `writes_log`, success or failure (the write safety rail). A
 /// failed before-read aborts WITHOUT clearing: a write whose prior state
 /// could not be captured would break the audit trail, so it must not happen.
-pub fn clear_module(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<ClearOutcome, String> {
+pub fn clear_module(
+    drv: &mut ElmDriver,
+    db: &Db,
+    module: &str,
+    ctx: super::supervisor::ConnCtx,
+) -> Result<ClearOutcome, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
     setup(drv, &m).map_err(|e| e.to_string())?;
     let params = serde_json::json!({ "service": "14", "group": "FFFFFF" });
     let codes_json = |v: &Vec<String>| serde_json::json!(v);
+    let conn_id = Some(ctx.connection_id);
     let before = match read_dtcs(drv) {
         Ok(b) => b,
         Err(e) => {
@@ -254,7 +260,7 @@ pub fn clear_module(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<ClearO
     let accepted = match clear_dtcs(drv) {
         Ok(ok) => ok,
         Err(e) => {
-            db.log_write(&m.label, "clear_faults", &params, Some(&codes_json(&before)), None, "error", Some(&e.to_string()));
+            db.log_write(conn_id, ctx.vehicle_id, &m.label, "clear_faults", &params, Some(&codes_json(&before)), None, "error", Some(&e.to_string()));
             teardown(drv);
             return Err(e.to_string());
         }
@@ -263,6 +269,8 @@ pub fn clear_module(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<ClearO
         Ok(a) => a,
         Err(e) => {
             db.log_write(
+                conn_id,
+                ctx.vehicle_id,
                 &m.label,
                 "clear_faults",
                 &params,
@@ -283,7 +291,7 @@ pub fn clear_module(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<ClearO
     } else {
         "faults_remain"
     };
-    db.log_write(&m.label, "clear_faults", &params, Some(&codes_json(&before)), Some(&codes_json(&after)), outcome, None);
+    db.log_write(conn_id, ctx.vehicle_id, &m.label, "clear_faults", &params, Some(&codes_json(&before)), Some(&codes_json(&after)), outcome, None);
     Ok(ClearOutcome { before, accepted, after })
 }
 
@@ -386,7 +394,7 @@ pub fn scan_range(
 }
 
 /// Poll all enabled user-defined UDS probes once; record + return values.
-pub fn poll_probes(drv: &mut ElmDriver, db: &Db, session_id: i64) -> HashMap<String, f64> {
+pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx) -> HashMap<String, f64> {
     let mut out = HashMap::new();
     let probes: Vec<_> = db.list_probes().into_iter().filter(|p| p.enabled).collect();
     if probes.is_empty() {
@@ -406,7 +414,7 @@ pub fn poll_probes(drv: &mut ElmDriver, db: &Db, session_id: i64) -> HashMap<Str
             if let Ok(Some(data)) = read_did(drv, p.did) {
                 if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
                     let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
-                    db.insert_reading(session_id, &key, v);
+                    db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
                     out.insert(key, v);
                 }
             }

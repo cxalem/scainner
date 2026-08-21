@@ -166,7 +166,12 @@ export const en: Dictionary = {
     noDataYetExplainer: "Connect and drive — the report builds itself from recorded sessions.",
     unknownVehicle: "Connected, but this vehicle couldn't be identified",
     unknownVehicleExplainer:
-      "We're recording everything live (check Live and Diagnose), but this car didn't answer the VIN request — common on older vehicles. No history report until it can be identified.",
+      "We're recording everything live (check Live and Diagnose), but this car didn't answer the VIN request — common on older vehicles. Give it a name to start building its history.",
+    nameVehicleLabel: "Vehicle name",
+    nameVehiclePlaceholder: "e.g. The old Peugeot",
+    nameVehicleAction: "Name this car",
+    namingVehicle: "Saving…",
+    nameVehicleFailed: "Could not save the name. Try again.",
     couldNotLoadReport: "Could not load this car's report.",
     stats: { sessions: "Sessions", engineTime: "Engine time", readings: "Readings", scansClean: "Scans clean" },
     health: {

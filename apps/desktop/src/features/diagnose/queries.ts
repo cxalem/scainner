@@ -10,12 +10,13 @@ import { DeviceService } from "@scainner/core";
 const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
 
-// limit is hardcoded (never varies in the UI), so it stays out of the key —
-// matches the key plan.md names verbatim: ["dtc_history"].
-export function useDtcHistory() {
+// limit is hardcoded (never varies in the UI); vehicleId scopes the history
+// to the connected car — null means "the current unidentified connection's
+// scans" (schema v2), never everything in the database.
+export function useDtcHistory(vehicleId: number | null) {
   return useQuery({
-    queryKey: ["dtc_history"],
-    queryFn: () => run((device) => device.dtcHistory(20)),
+    queryKey: ["dtc_history", vehicleId],
+    queryFn: () => run((device) => device.dtcHistory(vehicleId, 20)),
   });
 }
 

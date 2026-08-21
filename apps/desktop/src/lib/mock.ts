@@ -123,7 +123,9 @@ function buildCarReport(): CarReport {
   const stats7d = statsAll.map((s) => ({ ...s, n: Math.round(s.n * 0.06) }));
 
   return {
+    vehicle_id: 1,
     vin: MOCK_VIN,
+    display_name: null,
     insights: {
       window_hours: 24 * 7,
       engine_hours: 6.2,
@@ -294,7 +296,17 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       connState = { state: "connecting" };
       emit("conn-status", connState);
       await delay(900);
-      connState = { state: "connected", elm_version: "STN2100 · demo data" };
+      // First demo connect reports vehicle_is_new (schema v2), so the
+      // discovery flow runs in the browser preview too.
+      const isNew = !discovered;
+      connState = {
+        state: "connected",
+        elm_version: "STN2100 · demo data",
+        vin: MOCK_VIN,
+        vehicle_id: 1,
+        display_name: null,
+        vehicle_is_new: isNew,
+      };
       emit("conn-status", connState);
       startLiveTicking();
       discovered = true;
@@ -306,10 +318,28 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       emit("conn-status", connState);
       return undefined as T;
     }
-    case "report_cars":
-      return (discovered ? [[MOCK_VIN, 47]] : []) as T;
-    case "car_report":
+    case "list_vehicles":
+      return (discovered ? [{ id: 1, vin: MOCK_VIN, display_name: null, connections: 47 }] : []) as T;
+    case "vehicle_report":
       return buildCarReport() as T;
+    case "vehicle_info":
+      return (discovered
+        ? {
+            id: 1,
+            vin: MOCK_VIN,
+            display_name: null,
+            make: "Citroën",
+            model: "C4 III",
+            year: 2023,
+            trim: null,
+            fuel_price: fuelPrice,
+            created_at: "2026-08-14 12:39:33",
+            first_connected_at: "2026-08-14 12:39:33",
+          }
+        : null) as T;
+    case "set_vehicle_name":
+    case "name_current_vehicle":
+      return 1 as T;
     case "set_fuel_price":
       fuelPrice = Number(args?.price) || fuelPrice;
       return undefined as T;
@@ -394,16 +424,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       return ["fuel_level"] as T;
     case "history":
       return buildHistory(String(args?.key ?? "voltage"), Number(args?.sinceHours ?? 24)) as T;
-    case "car_info":
-      return (discovered
-        ? [
-            ["vin", MOCK_VIN],
-            ["make", "Citroën"],
-            ["model", "C4 III"],
-            ["year", "2023"],
-            ["fuel_price", String(fuelPrice)],
-          ]
-        : []) as T;
     case "db_path":
       return "~/Library/Application Support/com.cxalem.scainner/scainner.sqlite3 (demo mode — no real file)" as T;
     case "read_ecu_info":

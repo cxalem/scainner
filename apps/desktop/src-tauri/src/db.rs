@@ -1,6 +1,19 @@
 //! SQLite storage. The database IS the product: every reading lands here so
 //! any tool (including an AI session running sqlite3) can query the car's
 //! full recorded history.
+//!
+//! Schema v2 (2026-08-21, docs/workflows/data-core/plan.md): a vehicle is a
+//! real entity with its own id — VIN is a nullable attribute, not the key
+//! (proven necessary by a real ~2000 Peugeot whose ECU never answers Mode
+//! 09). Every recorded fact carries `vehicle_id` + `connection_id` FKs; a
+//! fact recorded while the vehicle is unidentified carries NULL honestly and
+//! can be claimed when the user names the car. Column shapes mirror the
+//! target Postgres/Supabase schema (`org_id`/`owner_user_id` reserved,
+//! always NULL locally) so multi-tenant doesn't need a second rethink.
+//!
+//! v1 -> v2 is a CLEAN SLATE, not a migration: the owner's explicit call
+//! ("local data is disposable test data") — on first open with the old
+//! schema present, the old tables are dropped and v2 is created fresh.
 
 use rusqlite::{params, Connection};
 use serde::Serialize;
@@ -8,6 +21,8 @@ use std::path::Path;
 use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
+
+const SCHEMA_VERSION: i64 = 2;
 
 #[derive(Serialize, Clone)]
 pub struct DtcScan {
@@ -62,6 +77,31 @@ pub struct WriteLogRow {
     pub error: Option<String>,
 }
 
+/// The vehicle entity — schema v2's core. `vin` nullable on purpose:
+/// pre-Mode-09 ECUs are real; `display_name` is the human identity then.
+#[derive(Serialize, Clone)]
+pub struct Vehicle {
+    pub id: i64,
+    pub vin: Option<String>,
+    pub display_name: Option<String>,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub year: Option<i64>,
+    pub trim: Option<String>,
+    pub fuel_price: f64,
+    pub created_at: String,
+    pub first_connected_at: Option<String>,
+}
+
+/// One row of the vehicle picker: identity + how many connections recorded.
+#[derive(Serialize, Clone)]
+pub struct VehicleListRow {
+    pub id: i64,
+    pub vin: Option<String>,
+    pub display_name: Option<String>,
+    pub connections: i64,
+}
+
 #[derive(Serialize)]
 pub struct SessionSummary {
     pub id: i64,
@@ -107,7 +147,9 @@ pub struct Insights {
 
 #[derive(Serialize)]
 pub struct CarReport {
-    pub vin: String,
+    pub vehicle_id: i64,
+    pub vin: Option<String>,
+    pub display_name: Option<String>,
     pub session_count: i64,
     pub engine_minutes: f64,
     pub total_readings: i64,
@@ -138,62 +180,106 @@ pub struct HistoryPoint {
 }
 
 impl Db {
-    /// Opens (creating if needed) the SQLite database and brings its schema
-    /// up to date.
+    /// Opens (creating if needed) the SQLite database at schema v2.
     ///
-    /// Migrations here are deliberately the simplest thing that works for a
-    /// single-file personal database: idempotent `CREATE TABLE IF NOT
-    /// EXISTS` for new tables, and `ALTER TABLE ... ADD COLUMN` (with the
-    /// error discarded via `let _ =`, since "column already exists" is the
-    /// expected outcome on every run after the first) for new columns on
-    /// existing tables. No migration framework, no down-migrations — there's
-    /// one deployment target (the user's own machine) and schema changes are
-    /// additive by design (see `readings`/`dtc_scans`/`sessions` below).
+    /// Versioning via `PRAGMA user_version`: 0 means either a brand-new
+    /// file or the old un-versioned v1 schema — in both cases any v1
+    /// tables are dropped (clean-slate policy, see module docs) and v2 is
+    /// created fresh. Future schema changes bump SCHEMA_VERSION and add a
+    /// stepwise upgrade here (v2 data will NOT be disposable).
     pub fn open(path: &Path) -> rusqlite::Result<Self> {
         let conn = Connection::open(path)?;
+        conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        if version < SCHEMA_VERSION {
+            // v1 (or partial) — drop everything the old shape ever created.
+            conn.execute_batch(
+                r#"
+                DROP TABLE IF EXISTS readings;
+                DROP TABLE IF EXISTS sessions;
+                DROP TABLE IF EXISTS dtc_scans;
+                DROP TABLE IF EXISTS car_info;
+                DROP TABLE IF EXISTS uds_probes;
+                DROP TABLE IF EXISTS uds_modules;
+                DROP TABLE IF EXISTS writes_log;
+                "#,
+            )?;
+        }
         conn.execute_batch(
             r#"
-            PRAGMA journal_mode = WAL;
-            CREATE TABLE IF NOT EXISTS sessions (
+            CREATE TABLE IF NOT EXISTS vehicles (
                 id INTEGER PRIMARY KEY,
-                started_at TEXT NOT NULL,
-                ended_at TEXT,
-                elm_version TEXT
+                vin TEXT UNIQUE,
+                display_name TEXT,
+                make TEXT,
+                model TEXT,
+                year INTEGER,
+                trim TEXT,
+                fuel_price REAL NOT NULL DEFAULT 1.50,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                first_connected_at TEXT,
+                org_id TEXT,           -- reserved: Supabase org uuid, never set locally
+                owner_user_id TEXT     -- reserved: Supabase auth.users uuid, never set locally
+            );
+            CREATE TABLE IF NOT EXISTS connections (
+                id INTEGER PRIMARY KEY,
+                vehicle_id INTEGER REFERENCES vehicles(id),
+                device_kind TEXT,
+                elm_version TEXT,
+                protocol TEXT,
+                started_at TEXT NOT NULL DEFAULT (datetime('now')),
+                ended_at TEXT
             );
             CREATE TABLE IF NOT EXISTS readings (
                 id INTEGER PRIMARY KEY,
-                session_id INTEGER NOT NULL REFERENCES sessions(id),
-                ts TEXT NOT NULL,
+                connection_id INTEGER NOT NULL REFERENCES connections(id),
+                vehicle_id INTEGER REFERENCES vehicles(id),
+                ts TEXT NOT NULL DEFAULT (datetime('now')),
                 key TEXT NOT NULL,
                 value REAL NOT NULL
             );
-            CREATE INDEX IF NOT EXISTS idx_readings_key_ts ON readings(key, ts);
-            CREATE TABLE IF NOT EXISTS dtc_scans (
+            CREATE INDEX IF NOT EXISTS idx_readings_vehicle_key_ts ON readings(vehicle_id, key, ts);
+            CREATE INDEX IF NOT EXISTS idx_readings_connection ON readings(connection_id);
+            CREATE TABLE IF NOT EXISTS dtc_scan_events (
                 id INTEGER PRIMARY KEY,
-                ts TEXT NOT NULL,
+                connection_id INTEGER REFERENCES connections(id),
+                vehicle_id INTEGER REFERENCES vehicles(id),
+                ts TEXT NOT NULL DEFAULT (datetime('now')),
                 mil_on INTEGER NOT NULL,
-                stored_json TEXT NOT NULL,
-                pending_json TEXT NOT NULL,
-                permanent_json TEXT NOT NULL,
-                voltage REAL
+                voltage REAL,
+                freeze_json TEXT
             );
-            CREATE TABLE IF NOT EXISTS car_info (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+            CREATE TABLE IF NOT EXISTS dtc_codes (
+                id INTEGER PRIMARY KEY,
+                scan_event_id INTEGER NOT NULL REFERENCES dtc_scan_events(id),
+                vehicle_id INTEGER REFERENCES vehicles(id),
+                code TEXT NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('stored','pending','permanent'))
             );
-            "#,
-        )?;
-        // Migration: freeze_json on dtc_scans (added wave 2).
-        let _ = conn.execute("ALTER TABLE dtc_scans ADD COLUMN freeze_json TEXT", []);
-        // Migration (wave 3): sessions carry the VIN so reports group by car.
-        let _ = conn.execute("ALTER TABLE sessions ADD COLUMN vin TEXT", []);
-        // UDS probes (wave 3): user-defined manufacturer-specific reads that the
-        // supervisor polls and records like any other sensor.
-        conn.execute_batch(
-            r#"
+            CREATE INDEX IF NOT EXISTS idx_dtc_codes_event ON dtc_codes(scan_event_id);
+            CREATE TABLE IF NOT EXISTS writes_log (
+                id INTEGER PRIMARY KEY,
+                connection_id INTEGER REFERENCES connections(id),
+                vehicle_id INTEGER REFERENCES vehicles(id),
+                ts TEXT NOT NULL DEFAULT (datetime('now')),
+                module TEXT NOT NULL,
+                action TEXT NOT NULL,
+                params_json TEXT NOT NULL DEFAULT '{}',
+                before_json TEXT,
+                after_json TEXT,
+                outcome TEXT NOT NULL,
+                error TEXT
+            );
+            CREATE TABLE IF NOT EXISTS uds_modules (
+                id INTEGER PRIMARY KEY,
+                key TEXT NOT NULL UNIQUE,
+                label TEXT NOT NULL,
+                req TEXT NOT NULL,
+                resp TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS uds_probes (
                 id INTEGER PRIMARY KEY,
+                vehicle_id INTEGER REFERENCES vehicles(id),
                 module TEXT NOT NULL,
                 did INTEGER NOT NULL,
                 label TEXT NOT NULL,
@@ -204,75 +290,198 @@ impl Db {
                 bias REAL NOT NULL DEFAULT 0.0,
                 enabled INTEGER NOT NULL DEFAULT 1
             );
-            "#,
-        )?;
-        // Write audit trail (write-caps increment 1): every write the app
-        // sends to the car inserts a row here, success or failure, with the
-        // state read before and after. This is the persisted half of the
-        // stream's hard rule (confirmation + logged before/after +
-        // documented reversal path).
-        conn.execute_batch(
-            r#"
-            CREATE TABLE IF NOT EXISTS writes_log (
+            -- Auto-discovery shape (product-plan.md): no writer yet, the
+            -- discovery-engine stream is later — tables exist so the shape
+            -- is locked and other streams can build against it.
+            CREATE TABLE IF NOT EXISTS discovered_modules (
                 id INTEGER PRIMARY KEY,
-                ts TEXT NOT NULL,
-                module TEXT NOT NULL,
-                action TEXT NOT NULL,
-                params_json TEXT NOT NULL DEFAULT '{}',
-                before_json TEXT,
-                after_json TEXT,
-                outcome TEXT NOT NULL,
-                error TEXT
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                module_address TEXT NOT NULL,
+                module_name TEXT,
+                discovered_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS discovered_dids (
+                id INTEGER PRIMARY KEY,
+                module_id INTEGER NOT NULL REFERENCES discovered_modules(id),
+                did INTEGER NOT NULL,
+                raw_sample TEXT,
+                byte_length INTEGER,
+                label TEXT,
+                confidence TEXT CHECK (confidence IN ('confirmed','ai_guess','unlabeled')),
+                first_seen_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            -- Parts catalog (owner-requested 2026-08-21): cross-brand part
+            -- sharing (Stellantis: one part, fitment rows for both a Peugeot
+            -- and a Citroën) is just multiple fitment rows on one part. No
+            -- UI yet — shape locked now, first consumer is a later stream.
+            CREATE TABLE IF NOT EXISTS parts (
+                id INTEGER PRIMARY KEY,
+                oem_ref TEXT,
+                name TEXT NOT NULL,
+                category TEXT,
+                notes TEXT
+            );
+            CREATE TABLE IF NOT EXISTS part_fitments (
+                id INTEGER PRIMARY KEY,
+                part_id INTEGER NOT NULL REFERENCES parts(id),
+                make TEXT NOT NULL,
+                model TEXT,
+                year_from INTEGER,
+                year_to INTEGER,
+                engine_code TEXT
+            );
+            CREATE TABLE IF NOT EXISTS vehicle_parts (
+                id INTEGER PRIMARY KEY,
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                part_id INTEGER NOT NULL REFERENCES parts(id),
+                installed_at TEXT,
+                notes TEXT
+            );
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             "#,
         )?;
-        // Custom UDS modules (any brand beyond the built-in PSA four): a
-        // name plus two CAN IDs, added through the UI. This is what makes
-        // the UDS Lab work on non-PSA cars — see elm/uds.rs.
-        conn.execute_batch(
-            r#"
-            CREATE TABLE IF NOT EXISTS uds_modules (
-                id INTEGER PRIMARY KEY,
-                key TEXT NOT NULL UNIQUE,
-                label TEXT NOT NULL,
-                req TEXT NOT NULL,
-                resp TEXT NOT NULL
-            );
-            "#,
-        )?;
+        conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
         Ok(Self(Mutex::new(conn)))
     }
 
-    pub fn start_session(&self, elm_version: &str) -> i64 {
+    // ---------- vehicles ----------
+
+    /// Get-or-create the vehicle for a successfully-read VIN, stamping
+    /// `first_connected_at` on creation. Returns (vehicle_id, created).
+    pub fn ensure_vehicle(&self, vin: &str) -> (i64, bool) {
+        let conn = self.0.lock().unwrap();
+        if let Ok(id) = conn.query_row("SELECT id FROM vehicles WHERE vin = ?1", params![vin], |r| r.get(0)) {
+            return (id, false);
+        }
+        conn.execute(
+            "INSERT INTO vehicles (vin, first_connected_at) VALUES (?1, datetime('now'))",
+            params![vin],
+        )
+        .ok();
+        (conn.last_insert_rowid(), true)
+    }
+
+    /// A VIN-less vehicle, identified only by the user's chosen name — the
+    /// "name this car" path for ECUs that never answer Mode 09.
+    pub fn create_vehicle_named(&self, name: &str) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO sessions (started_at, elm_version) VALUES (datetime('now'), ?1)",
-            params![elm_version],
+            "INSERT INTO vehicles (display_name, first_connected_at) VALUES (?1, datetime('now'))",
+            params![name],
         )
         .ok();
         conn.last_insert_rowid()
     }
 
-    pub fn end_session(&self, id: i64) {
+    pub fn set_vehicle_name(&self, vehicle_id: i64, name: &str) {
         let conn = self.0.lock().unwrap();
-        conn.execute(
-            "UPDATE sessions SET ended_at = datetime('now') WHERE id = ?1",
-            params![id],
-        )
-        .ok();
+        conn.execute("UPDATE vehicles SET display_name = ?2 WHERE id = ?1", params![vehicle_id, name]).ok();
     }
 
-    pub fn insert_reading(&self, session_id: i64, key: &str, value: f64) {
+    pub fn set_fuel_price(&self, vehicle_id: i64, price: f64) {
+        let conn = self.0.lock().unwrap();
+        conn.execute("UPDATE vehicles SET fuel_price = ?2 WHERE id = ?1", params![vehicle_id, price]).ok();
+    }
+
+    pub fn vehicle(&self, vehicle_id: i64) -> Option<Vehicle> {
+        let conn = self.0.lock().unwrap();
+        conn.query_row(
+            "SELECT id, vin, display_name, make, model, year, trim, fuel_price, created_at, first_connected_at
+             FROM vehicles WHERE id = ?1",
+            params![vehicle_id],
+            |r| {
+                Ok(Vehicle {
+                    id: r.get(0)?,
+                    vin: r.get(1)?,
+                    display_name: r.get(2)?,
+                    make: r.get(3)?,
+                    model: r.get(4)?,
+                    year: r.get(5)?,
+                    trim: r.get(6)?,
+                    fuel_price: r.get(7)?,
+                    created_at: r.get(8)?,
+                    first_connected_at: r.get(9)?,
+                })
+            },
+        )
+        .ok()
+    }
+
+    pub fn list_vehicles(&self) -> Vec<VehicleListRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT v.id, v.vin, v.display_name, COUNT(c.id)
+                 FROM vehicles v LEFT JOIN connections c ON c.vehicle_id = v.id
+                 GROUP BY v.id ORDER BY COUNT(c.id) DESC, v.id",
+            )
+            .unwrap();
+        stmt.query_map([], |r| {
+            Ok(VehicleListRow { id: r.get(0)?, vin: r.get(1)?, display_name: r.get(2)?, connections: r.get(3)? })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
+    }
+
+    // ---------- connections ----------
+
+    pub fn start_connection(&self, elm_version: &str, device_kind: &str) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO readings (session_id, ts, key, value) VALUES (?1, datetime('now'), ?2, ?3)",
-            params![session_id, key, value],
+            "INSERT INTO connections (elm_version, device_kind) VALUES (?1, ?2)",
+            params![elm_version, device_kind],
+        )
+        .ok();
+        conn.last_insert_rowid()
+    }
+
+    pub fn end_connection(&self, id: i64) {
+        let conn = self.0.lock().unwrap();
+        conn.execute("UPDATE connections SET ended_at = datetime('now') WHERE id = ?1", params![id]).ok();
+    }
+
+    pub fn set_connection_protocol(&self, id: i64, protocol: &str) {
+        let conn = self.0.lock().unwrap();
+        conn.execute("UPDATE connections SET protocol = ?2 WHERE id = ?1", params![id, protocol]).ok();
+    }
+
+    /// Link a connection to its vehicle, back-stamping everything the
+    /// connection already recorded while unidentified — this is what makes
+    /// the "name this car" flow claim the live data recorded before naming.
+    pub fn link_connection_vehicle(&self, connection_id: i64, vehicle_id: i64) {
+        let conn = self.0.lock().unwrap();
+        conn.execute("UPDATE connections SET vehicle_id = ?2 WHERE id = ?1", params![connection_id, vehicle_id]).ok();
+        conn.execute("UPDATE readings SET vehicle_id = ?2 WHERE connection_id = ?1", params![connection_id, vehicle_id]).ok();
+        conn.execute("UPDATE dtc_scan_events SET vehicle_id = ?2 WHERE connection_id = ?1", params![connection_id, vehicle_id]).ok();
+        conn.execute(
+            "UPDATE dtc_codes SET vehicle_id = ?2
+             WHERE scan_event_id IN (SELECT id FROM dtc_scan_events WHERE connection_id = ?1)",
+            params![connection_id, vehicle_id],
+        )
+        .ok();
+        conn.execute("UPDATE writes_log SET vehicle_id = ?2 WHERE connection_id = ?1", params![connection_id, vehicle_id]).ok();
+    }
+
+    // ---------- recorded facts ----------
+
+    pub fn insert_reading(&self, connection_id: i64, vehicle_id: Option<i64>, key: &str, value: f64) {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "INSERT INTO readings (connection_id, vehicle_id, key, value) VALUES (?1, ?2, ?3, ?4)",
+            params![connection_id, vehicle_id, key, value],
         )
         .ok();
     }
 
     pub fn insert_dtc_scan(
         &self,
+        connection_id: Option<i64>,
+        vehicle_id: Option<i64>,
         mil_on: bool,
         stored: &[String],
         pending: &[String],
@@ -282,26 +491,35 @@ impl Db {
     ) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO dtc_scans (ts, mil_on, stored_json, pending_json, permanent_json, voltage, freeze_json)
-             VALUES (datetime('now'), ?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                mil_on,
-                serde_json::to_string(stored).unwrap(),
-                serde_json::to_string(pending).unwrap(),
-                serde_json::to_string(permanent).unwrap(),
-                voltage,
-                freeze.map(|f| f.to_string())
-            ],
+            "INSERT INTO dtc_scan_events (connection_id, vehicle_id, mil_on, voltage, freeze_json)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![connection_id, vehicle_id, mil_on, voltage, freeze.map(|f| f.to_string())],
         )
         .ok();
-        conn.last_insert_rowid()
+        let event_id = conn.last_insert_rowid();
+        let insert = |codes: &[String], status: &str| {
+            for code in codes {
+                conn.execute(
+                    "INSERT INTO dtc_codes (scan_event_id, vehicle_id, code, status) VALUES (?1, ?2, ?3, ?4)",
+                    params![event_id, vehicle_id, code, status],
+                )
+                .ok();
+            }
+        };
+        insert(stored, "stored");
+        insert(pending, "pending");
+        insert(permanent, "permanent");
+        event_id
     }
 
     /// Append one row to the write audit trail. Called from every write
     /// handler, on success AND on failure — the trail is only trustworthy
     /// if nothing can touch the car without landing here.
+    #[allow(clippy::too_many_arguments)]
     pub fn log_write(
         &self,
+        connection_id: Option<i64>,
+        vehicle_id: Option<i64>,
         module: &str,
         action: &str,
         params: &serde_json::Value,
@@ -312,9 +530,11 @@ impl Db {
     ) -> i64 {
         let conn = self.0.lock().unwrap();
         let res = conn.execute(
-            "INSERT INTO writes_log (ts, module, action, params_json, before_json, after_json, outcome, error)
-             VALUES (datetime('now'), ?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO writes_log (connection_id, vehicle_id, module, action, params_json, before_json, after_json, outcome, error)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
+                connection_id,
+                vehicle_id,
                 module,
                 action,
                 params.to_string(),
@@ -361,26 +581,44 @@ impl Db {
         .collect()
     }
 
-    pub fn dtc_history(&self, limit: i64) -> Vec<DtcScan> {
+    /// Scan history for one vehicle — or, with `None`, the scans of
+    /// still-unidentified connections (vehicle_id IS NULL): "what this
+    /// unnamed car scanned," never "everything in the database."
+    pub fn dtc_history(&self, vehicle_id: Option<i64>, limit: i64) -> Vec<DtcScan> {
+        self.dtc_history_where(
+            match vehicle_id {
+                Some(id) => format!("WHERE e.vehicle_id = {id}"),
+                None => "WHERE e.vehicle_id IS NULL".to_string(),
+            },
+            limit,
+        )
+    }
+
+    /// Every scan regardless of vehicle — export/AI-briefing use only.
+    pub fn dtc_history_all(&self, limit: i64) -> Vec<DtcScan> {
+        self.dtc_history_where(String::new(), limit)
+    }
+
+    fn dtc_history_where(&self, where_clause: String, limit: i64) -> Vec<DtcScan> {
         let conn = self.0.lock().unwrap();
-        let mut stmt = conn
-            .prepare(
-                "SELECT id, ts, mil_on, stored_json, pending_json, permanent_json, voltage, freeze_json
-                 FROM dtc_scans ORDER BY id DESC LIMIT ?1",
-            )
-            .unwrap();
+        let sql = format!(
+            "SELECT e.id, e.ts, e.mil_on, e.voltage, e.freeze_json,
+                    (SELECT json_group_array(code) FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status='stored'),
+                    (SELECT json_group_array(code) FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status='pending'),
+                    (SELECT json_group_array(code) FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status='permanent')
+             FROM dtc_scan_events e {where_clause} ORDER BY e.id DESC LIMIT ?1"
+        );
+        let mut stmt = conn.prepare(&sql).unwrap();
         stmt.query_map(params![limit], |r| {
             Ok(DtcScan {
                 id: r.get(0)?,
                 ts: r.get(1)?,
                 mil_on: r.get(2)?,
-                stored: serde_json::from_str(&r.get::<_, String>(3)?).unwrap_or_default(),
-                pending: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or_default(),
-                permanent: serde_json::from_str(&r.get::<_, String>(5)?).unwrap_or_default(),
-                voltage: r.get(6)?,
-                freeze: r
-                    .get::<_, Option<String>>(7)?
-                    .and_then(|s| serde_json::from_str(&s).ok()),
+                voltage: r.get(3)?,
+                freeze: r.get::<_, Option<String>>(4)?.and_then(|s| serde_json::from_str(&s).ok()),
+                stored: serde_json::from_str(&r.get::<_, String>(5)?).unwrap_or_default(),
+                pending: serde_json::from_str(&r.get::<_, String>(6)?).unwrap_or_default(),
+                permanent: serde_json::from_str(&r.get::<_, String>(7)?).unwrap_or_default(),
             })
         })
         .unwrap()
@@ -410,6 +648,8 @@ impl Db {
         .filter_map(Result::ok)
         .collect()
     }
+
+    // ---------- uds probes / modules ----------
 
     pub fn list_probes(&self) -> Vec<UdsProbe> {
         let conn = self.0.lock().unwrap();
@@ -485,53 +725,51 @@ impl Db {
         conn.execute("DELETE FROM uds_modules WHERE key = ?1", params![key]).ok();
     }
 
-    pub fn set_session_vin(&self, id: i64, vin: &str) {
+    // ---------- app settings (app-level, not car-level) ----------
+
+    pub fn setting_get(&self, key: &str) -> Option<String> {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE sessions SET vin = ?2 WHERE id = ?1", params![id, vin]).ok();
+        conn.query_row("SELECT value FROM app_settings WHERE key = ?1", params![key], |r| r.get(0))
+            .ok()
     }
 
-    /// Distinct cars seen. NULL-vin sessions (VIN never successfully read —
-    /// either genuinely pre-VIN-migration, from 2026-08-14, or a car whose
-    /// ECU doesn't answer Mode 09 at all, like a real ~2000 Peugeot found
-    /// live 2026-08-21) get their own literal "unknown" bucket, never
-    /// folded into whichever real car happens to be car_info's cached
-    /// value. The old behavior did that — every NULL-vin session counted
-    /// as "the default car," which meant a second real car's sessions
-    /// silently inflated the first car's session count in this exact
-    /// list, the same root bug car_report() above just got fixed for.
-    /// This is the honest, not the complete, fix: sessions genuinely can't
-    /// group under "unknown" across separate real cars either — that
-    /// needs the VIN-less-identity design work already flagged in
-    /// vision.md, not a query change.
-    pub fn report_cars(&self) -> Vec<(String, i64)> {
+    pub fn setting_set(&self, key: &str, value: &str) {
         let conn = self.0.lock().unwrap();
-        let mut stmt = conn
-            .prepare("SELECT COALESCE(vin, 'unknown'), COUNT(*) FROM sessions GROUP BY COALESCE(vin, 'unknown') ORDER BY 2 DESC")
-            .unwrap();
-        stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
-            .unwrap()
-            .filter_map(Result::ok)
-            .collect()
+        conn.execute(
+            "INSERT INTO app_settings (key, value, updated_at) VALUES (?1, ?2, datetime('now'))
+             ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = datetime('now')",
+            params![key, value],
+        )
+        .ok();
     }
 
-    pub fn car_report(&self, vin: &str) -> CarReport {
+    // ---------- per-vehicle report ----------
+
+    pub fn vehicle_report(&self, vehicle_id: i64) -> CarReport {
         let conn = self.0.lock().unwrap();
+        let (vin, display_name, fuel_price): (Option<String>, Option<String>, f64) = conn
+            .query_row(
+                "SELECT vin, display_name, fuel_price FROM vehicles WHERE id = ?1",
+                params![vehicle_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap_or((None, None, 1.50));
         let mut sessions = Vec::new();
         {
             let mut stmt = conn
                 .prepare(
-                    "SELECT s.id, s.started_at, s.ended_at,
-                        (SELECT COUNT(*) FROM readings r WHERE r.session_id = s.id),
-                        (SELECT MAX(value) FROM readings r WHERE r.session_id = s.id AND key='speed'),
-                        (SELECT MAX(value) FROM readings r WHERE r.session_id = s.id AND key='coolant'),
-                        (SELECT MIN(value) FROM readings r WHERE r.session_id = s.id AND key='voltage'),
-                        CAST((julianday(COALESCE(s.ended_at, s.started_at)) - julianday(s.started_at)) * 1440 AS REAL)
-                     FROM sessions s WHERE s.vin = ?1
-                     ORDER BY s.id DESC LIMIT 30",
+                    "SELECT c.id, c.started_at, c.ended_at,
+                        (SELECT COUNT(*) FROM readings r WHERE r.connection_id = c.id),
+                        (SELECT MAX(value) FROM readings r WHERE r.connection_id = c.id AND key='speed'),
+                        (SELECT MAX(value) FROM readings r WHERE r.connection_id = c.id AND key='coolant'),
+                        (SELECT MIN(value) FROM readings r WHERE r.connection_id = c.id AND key='voltage'),
+                        CAST((julianday(COALESCE(c.ended_at, c.started_at)) - julianday(c.started_at)) * 1440 AS REAL)
+                     FROM connections c WHERE c.vehicle_id = ?1
+                     ORDER BY c.id DESC LIMIT 30",
                 )
                 .unwrap();
             let rows = stmt
-                .query_map(params![vin], |r| {
+                .query_map(params![vehicle_id], |r| {
                     Ok(SessionSummary {
                         id: r.get(0)?,
                         started_at: r.get(1)?,
@@ -551,30 +789,27 @@ impl Db {
                 "SELECT COUNT(*),
                     COALESCE(SUM((julianday(COALESCE(ended_at, started_at)) - julianday(started_at)) * 1440), 0),
                     MIN(started_at), MAX(started_at)
-                 FROM sessions WHERE vin = ?1",
-                params![vin],
+                 FROM connections WHERE vehicle_id = ?1",
+                params![vehicle_id],
                 |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
             )
             .unwrap_or((0, 0.0, None, None));
         let total_readings: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM readings r JOIN sessions s ON r.session_id = s.id WHERE s.vin = ?1",
-                params![vin],
+                "SELECT COUNT(*) FROM readings WHERE vehicle_id = ?1",
+                params![vehicle_id],
                 |r| r.get(0),
             )
             .unwrap_or(0);
-        // KNOWN GAP, not this fix's scope: dtc_scans has no vin or
-        // session_id column at all (unlike readings/sessions above, which
-        // this same pass just stopped cross-attributing between cars) —
-        // it's global by construction, not by a fixable query bug. Every
-        // car's scans_total/scans_clean here is really "every car's scans,
-        // combined," same as Diagnose's Scan History card. Real schema
-        // work needed (a session_id FK on dtc_scans) before this can be
-        // scoped per car — flagged, not silently left wrong.
+        // Per-vehicle at last — dtc_scan_events carries vehicle_id now (the
+        // old dtc_scans table had no link at all and this pair was global).
         let (scans_total, scans_clean): (i64, i64) = conn
             .query_row(
-                "SELECT COUNT(*), SUM(CASE WHEN stored_json='[]' AND pending_json='[]' THEN 1 ELSE 0 END) FROM dtc_scans",
-                [],
+                "SELECT COUNT(*),
+                        SUM(CASE WHEN NOT EXISTS (SELECT 1 FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status IN ('stored','pending'))
+                            THEN 1 ELSE 0 END)
+                 FROM dtc_scan_events e WHERE e.vehicle_id = ?1",
+                params![vehicle_id],
                 |r| Ok((r.get(0)?, r.get::<_, Option<i64>>(1)?.unwrap_or(0))),
             )
             .unwrap_or((0, 0));
@@ -582,14 +817,13 @@ impl Db {
         {
             let mut stmt = conn
                 .prepare(
-                    "SELECT date(r.ts), ROUND(MIN(r.value),2), ROUND(AVG(r.value),2), ROUND(MAX(r.value),2)
-                     FROM readings r JOIN sessions s ON r.session_id = s.id
-                     WHERE r.key='voltage' AND s.vin = ?1
-                     GROUP BY date(r.ts) ORDER BY 1 DESC LIMIT 30",
+                    "SELECT date(ts), ROUND(MIN(value),2), ROUND(AVG(value),2), ROUND(MAX(value),2)
+                     FROM readings WHERE key='voltage' AND vehicle_id = ?1
+                     GROUP BY date(ts) ORDER BY 1 DESC LIMIT 30",
                 )
                 .unwrap();
             let rows = stmt
-                .query_map(params![vin], |r| {
+                .query_map(params![vehicle_id], |r| {
                     Ok(DailyVoltage { day: r.get(0)?, min: r.get(1)?, avg: r.get(2)?, max: r.get(3)? })
                 })
                 .unwrap();
@@ -599,14 +833,14 @@ impl Db {
         let stats = |hours: f64| -> Vec<KeyStats> {
             let mut stmt = conn
                 .prepare(
-                    "SELECT r.key, COUNT(*), MIN(r.value), AVG(r.value), MAX(r.value)
-                     FROM readings r JOIN sessions s ON r.session_id = s.id
-                     WHERE s.vin = ?1 AND r.ts >= datetime('now', '-' || ?2 || ' hours')
-                     GROUP BY r.key ORDER BY r.key",
+                    "SELECT key, COUNT(*), MIN(value), AVG(value), MAX(value)
+                     FROM readings
+                     WHERE vehicle_id = ?1 AND ts >= datetime('now', '-' || ?2 || ' hours')
+                     GROUP BY key ORDER BY key",
                 )
                 .unwrap();
             let rows = stmt
-                .query_map(params![vin, hours], |r| {
+                .query_map(params![vehicle_id, hours], |r| {
                     Ok(KeyStats { key: r.get(0)?, n: r.get(1)?, min: r.get(2)?, avg: r.get(3)?, max: r.get(4)? })
                 })
                 .unwrap();
@@ -621,12 +855,12 @@ impl Db {
             set.iter().find(|s| s.key == key).map(|s| (s.min, s.avg, s.max, s.n))
         };
         let source = if stats_7d.is_empty() { &stats_all } else { &stats_7d };
-        // Engine hours inside the window ≈ sum of sessions started in it.
+        // Engine hours inside the window ≈ sum of connections started in it.
         let engine_minutes_window: f64 = conn
             .query_row(
                 "SELECT COALESCE(SUM((julianday(COALESCE(ended_at, started_at)) - julianday(started_at)) * 1440), 0)
-                 FROM sessions WHERE vin = ?1 AND started_at >= datetime('now', '-' || ?2 || ' hours')",
-                params![vin, window_hours],
+                 FROM connections WHERE vehicle_id = ?1 AND started_at >= datetime('now', '-' || ?2 || ' hours')",
+                params![vehicle_id, window_hours],
                 |r| r.get(0),
             )
             .unwrap_or(0.0);
@@ -641,39 +875,15 @@ impl Db {
         };
         let fuel_total_l = fuel_lph_avg.map(|f| f * engine_hours);
         let km_total = speed_avg.map(|s| s * engine_hours);
-        let fuel_price: f64 = conn
-            .query_row("SELECT value FROM car_info WHERE key='fuel_price'", [], |r| r.get::<_, String>(0))
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(1.50);
         let coolant = pick(source, "coolant");
         let map_s = pick(source, "map");
         let volt = pick(source, "voltage");
-        // Every COALESCE(s.vin, ?1) = ?1 in this function used to match ANY
-        // session with a NULL vin — not just "no other car specified,"
-        // literally every VIN-less session regardless of which car's
-        // report was being queried, since COALESCE(NULL, ?1) trivially
-        // equals ?1 for whatever ?1 happens to be. Caught live 2026-08-21:
-        // a real ~1999-2000 Peugeot's sessions (VIN unreadable, see
-        // supervisor.rs's connect-time retry/log) leaked straight into the
-        // CITROËN's report — its corrupted 49.8% fuel_level reading (from
-        // the same-night payload_bytes bug, since fixed) showed up as the
-        // Citroën's own fuel gauge. Strict `s.vin = ?1` everywhere in this
-        // function fixes it: a car's report only ever includes sessions
-        // that actually carry that exact VIN. Trade-off, accepted
-        // knowingly: the handful of pre-VIN-migration sessions from
-        // 2026-08-14 (back when the vin column didn't exist yet) no longer
-        // roll up into any car's report either, since their vin genuinely
-        // is NULL — their raw readings/sessions rows are untouched, just
-        // not counted. Real fix for VIN-less cars getting their own
-        // identity is a separate, already-flagged design item
-        // (vision.md), not a query tweak.
         let fuel_level_pct: Option<f64> = conn
             .query_row(
-                "SELECT r.value FROM readings r JOIN sessions s ON r.session_id = s.id
-                 WHERE r.key='fuel_level' AND s.vin = ?1
-                 ORDER BY r.ts DESC LIMIT 1",
-                params![vin],
+                "SELECT value FROM readings
+                 WHERE key='fuel_level' AND vehicle_id = ?1
+                 ORDER BY ts DESC LIMIT 1",
+                params![vehicle_id],
                 |r| r.get(0),
             )
             .ok();
@@ -697,7 +907,9 @@ impl Db {
         };
 
         CarReport {
-            vin: vin.to_string(),
+            vehicle_id,
+            vin,
+            display_name,
             session_count,
             engine_minutes,
             total_readings,
@@ -713,48 +925,18 @@ impl Db {
         }
     }
 
+    // ---------- misc ----------
+
     pub fn reading_keys(&self) -> Vec<String> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn.prepare("SELECT DISTINCT key FROM readings ORDER BY key").unwrap();
         stmt.query_map([], |r| r.get(0)).unwrap().filter_map(Result::ok).collect()
     }
 
-    pub fn session_count(&self) -> i64 {
+    pub fn connection_count(&self) -> i64 {
         let conn = self.0.lock().unwrap();
-        conn.query_row("SELECT COUNT(*) FROM sessions", [], |r| r.get(0))
+        conn.query_row("SELECT COUNT(*) FROM connections", [], |r| r.get(0))
             .unwrap_or(0)
-    }
-
-    pub fn set_car_info(&self, key: &str, value: &str) {
-        let conn = self.0.lock().unwrap();
-        conn.execute(
-            "INSERT INTO car_info (key, value, updated_at) VALUES (?1, ?2, datetime('now'))
-             ON CONFLICT(key) DO UPDATE SET value = ?2, updated_at = datetime('now')",
-            params![key, value],
-        )
-        .ok();
-    }
-
-    /// Single-key lookup into the same table `car_info`/`set_car_info` use.
-    /// Also doubles as small persistent local-setup state (e.g. the
-    /// connection ladder's learned starting point) — not just car facts —
-    /// since it's the only generic key/value store in the schema and
-    /// there's no value in a second one for a single flag.
-    pub fn car_info_get(&self, key: &str) -> Option<String> {
-        let conn = self.0.lock().unwrap();
-        conn.query_row("SELECT value FROM car_info WHERE key = ?1", params![key], |r| r.get(0))
-            .ok()
-    }
-
-    pub fn car_info(&self) -> Vec<(String, String)> {
-        let conn = self.0.lock().unwrap();
-        let mut stmt = conn
-            .prepare("SELECT key, value FROM car_info ORDER BY key")
-            .unwrap();
-        stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
-            .unwrap()
-            .filter_map(Result::ok)
-            .collect()
     }
 
     pub fn history(&self, key: &str, since_hours: f64) -> Vec<HistoryPoint> {
@@ -776,27 +958,27 @@ impl Db {
 
     /// Everything in a date range as one JSON blob — the export button.
     pub fn export_json(&self, since_hours: f64) -> String {
-        let readings: Vec<(String, String, f64)> = {
+        let readings: Vec<(String, String, f64, Option<i64>)> = {
             let conn = self.0.lock().unwrap();
             let mut stmt = conn
                 .prepare(
-                    "SELECT ts, key, value FROM readings
+                    "SELECT ts, key, value, vehicle_id FROM readings
                      WHERE ts >= datetime('now', '-' || ?1 || ' hours') ORDER BY ts",
                 )
                 .unwrap();
             stmt.query_map(params![since_hours], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
             })
             .unwrap()
             .filter_map(Result::ok)
             .collect()
         };
-        let scans = self.dtc_history(100);
-        let info = self.car_info();
+        let scans = self.dtc_history_all(100);
+        let vehicles = self.list_vehicles();
         serde_json::json!({
-            "car_info": info.into_iter().collect::<std::collections::BTreeMap<_, _>>(),
+            "vehicles": vehicles,
             "dtc_scans": scans,
-            "readings": readings.iter().map(|(ts, k, v)| serde_json::json!({"ts": ts, "key": k, "value": v})).collect::<Vec<_>>(),
+            "readings": readings.iter().map(|(ts, k, v, vid)| serde_json::json!({"ts": ts, "key": k, "value": v, "vehicle_id": vid})).collect::<Vec<_>>(),
         })
         .to_string()
     }
@@ -816,6 +998,8 @@ mod tests {
     fn writes_log_round_trip() {
         let db = test_db();
         let id = db.log_write(
+            None,
+            None,
             "engine",
             "clear_faults",
             &serde_json::json!({"group": "FFFFFF"}),
@@ -840,6 +1024,8 @@ mod tests {
     fn writes_log_records_failures_too() {
         let db = test_db();
         db.log_write(
+            None,
+            None,
             "abs",
             "clear_faults",
             &serde_json::json!({}),
@@ -859,10 +1045,101 @@ mod tests {
     fn writes_log_newest_first_and_limited() {
         let db = test_db();
         for i in 0..5 {
-            db.log_write("engine", &format!("action_{i}"), &serde_json::json!({}), None, None, "cleared", None);
+            db.log_write(None, None, "engine", &format!("action_{i}"), &serde_json::json!({}), None, None, "cleared", None);
         }
         let rows = db.writes_log(3);
         assert_eq!(rows.len(), 3);
         assert_eq!(rows[0].action, "action_4");
+    }
+
+    #[test]
+    fn ensure_vehicle_is_get_or_create() {
+        let db = test_db();
+        let (id1, created1) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (id2, created2) = db.ensure_vehicle("VR7BAHNSANE014974");
+        assert!(created1);
+        assert!(!created2);
+        assert_eq!(id1, id2);
+        let (id3, created3) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+        assert!(created3);
+        assert_ne!(id1, id3);
+    }
+
+    #[test]
+    fn readings_are_scoped_per_vehicle() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+        let c1 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.link_connection_vehicle(c1, citroen);
+        let c2 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.link_connection_vehicle(c2, peugeot);
+        db.insert_reading(c1, Some(citroen), "fuel_level", 80.0);
+        db.insert_reading(c2, Some(peugeot), "fuel_level", 49.8);
+        // The exact live bug from 2026-08-21: the Peugeot's fuel level must
+        // NEVER show up in the Citroën's report, and vice versa.
+        let citroen_report = db.vehicle_report(citroen);
+        let peugeot_report = db.vehicle_report(peugeot);
+        assert_eq!(citroen_report.insights.fuel_level_pct, Some(80.0));
+        assert_eq!(peugeot_report.insights.fuel_level_pct, Some(49.8));
+        assert_eq!(citroen_report.total_readings, 1);
+        assert_eq!(peugeot_report.total_readings, 1);
+    }
+
+    #[test]
+    fn unidentified_connection_stays_unattributed_until_named() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let c_known = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.link_connection_vehicle(c_known, citroen);
+        db.insert_reading(c_known, Some(citroen), "rpm", 800.0);
+        // A VIN-less car connects: readings recorded with NULL vehicle_id.
+        let c_unknown = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.insert_reading(c_unknown, None, "rpm", 900.0);
+        db.insert_dtc_scan(Some(c_unknown), None, true, &["P0204".into()], &[], &[], Some(13.5), None);
+        // Nothing leaks into the Citroën.
+        let report = db.vehicle_report(citroen);
+        assert_eq!(report.total_readings, 1);
+        assert_eq!(report.scans_total, 0);
+        // Unidentified scan history is its own bucket, not the Citroën's.
+        assert_eq!(db.dtc_history(Some(citroen), 10).len(), 0);
+        assert_eq!(db.dtc_history(None, 10).len(), 1);
+        // The user names the car -> everything already recorded is claimed.
+        let peugeot = db.create_vehicle_named("Peugeot viejo");
+        db.link_connection_vehicle(c_unknown, peugeot);
+        let named_report = db.vehicle_report(peugeot);
+        assert_eq!(named_report.total_readings, 1);
+        assert_eq!(named_report.scans_total, 1);
+        assert_eq!(named_report.display_name.as_deref(), Some("Peugeot viejo"));
+        assert_eq!(db.dtc_history(Some(peugeot), 10).len(), 1);
+        assert_eq!(db.dtc_history(None, 10).len(), 0);
+    }
+
+    #[test]
+    fn scans_clean_counts_per_vehicle() {
+        let db = test_db();
+        let (v, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let c = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.link_connection_vehicle(c, v);
+        db.insert_dtc_scan(Some(c), Some(v), false, &[], &[], &[], Some(13.1), None);
+        db.insert_dtc_scan(Some(c), Some(v), true, &["P0420".into()], &[], &[], Some(13.0), None);
+        let report = db.vehicle_report(v);
+        assert_eq!(report.scans_total, 2);
+        assert_eq!(report.scans_clean, 1);
+        // Round-trips through the per-code table back into arrays.
+        let history = db.dtc_history(Some(v), 10);
+        assert_eq!(history.len(), 2);
+        assert_eq!(history[0].stored, vec!["P0420".to_string()]);
+        assert!(history[1].stored.is_empty());
+    }
+
+    #[test]
+    fn fuel_price_is_per_vehicle() {
+        let db = test_db();
+        let (a, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (b, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+        db.set_fuel_price(a, 1.62);
+        assert_eq!(db.vehicle_report(a).insights.fuel_price, 1.62);
+        assert_eq!(db.vehicle_report(b).insights.fuel_price, 1.50); // default untouched
     }
 }

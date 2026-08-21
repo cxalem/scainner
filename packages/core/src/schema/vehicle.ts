@@ -50,7 +50,12 @@ export class DailyVoltage extends Schema.Class<DailyVoltage>("DailyVoltage")({
 }) {}
 
 export class CarReport extends Schema.Class<CarReport>("CarReport")({
-  vin: Schema.String,
+  // Schema v2 (docs/workflows/data-core/plan.md): the vehicle entity's id is
+  // the key; vin is a nullable attribute (a real ~2000 Peugeot's ECU never
+  // answers Mode 09) and display_name is the human identity for VIN-less cars.
+  vehicle_id: Schema.Number,
+  vin: Schema.NullOr(Schema.String),
+  display_name: Schema.NullOr(Schema.String),
   insights: Insights,
   session_count: Schema.Number,
   engine_minutes: Schema.Number,
@@ -63,6 +68,28 @@ export class CarReport extends Schema.Class<CarReport>("CarReport")({
   stats_7d: Schema.Array(KeyStat),
   stats_all: Schema.Array(KeyStat),
   daily_voltage: Schema.Array(DailyVoltage),
+}) {}
+
+/// One row of the vehicle picker (`list_vehicles`).
+export class VehicleListRow extends Schema.Class<VehicleListRow>("VehicleListRow")({
+  id: Schema.Number,
+  vin: Schema.NullOr(Schema.String),
+  display_name: Schema.NullOr(Schema.String),
+  connections: Schema.Number,
+}) {}
+
+/// The full vehicles row (`vehicle_info`) — Vehicle.tsx's identity card.
+export class VehicleInfo extends Schema.Class<VehicleInfo>("VehicleInfo")({
+  id: Schema.Number,
+  vin: Schema.NullOr(Schema.String),
+  display_name: Schema.NullOr(Schema.String),
+  make: Schema.NullOr(Schema.String),
+  model: Schema.NullOr(Schema.String),
+  year: Schema.NullOr(Schema.Number),
+  trim: Schema.NullOr(Schema.String),
+  fuel_price: Schema.Number,
+  created_at: Schema.String,
+  first_connected_at: Schema.NullOr(Schema.String),
 }) {}
 
 export class EcuInfo extends Schema.Class<EcuInfo>("EcuInfo")({

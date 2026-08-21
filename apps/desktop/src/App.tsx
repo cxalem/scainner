@@ -33,20 +33,13 @@ export default function App() {
   const [live, setLive] = useState<LiveMap>({});
   const staleTimer = useRef<number | null>(null);
 
-  // Snapshot of VINs already known when the app started — NOT re-fetched
-  // after connecting, so it stays a stable "have we seen this car before"
-  // comparison for the session. A VIN missing from this set on connect
-  // triggers the one-time discovery flow instead of dropping straight into
-  // the dashboard.
-  const [knownVins, setKnownVins] = useState<Set<string> | null>(null);
+  // Schema v2: the backend resolves the connected vehicle's identity itself
+  // and reports it on ConnStatus (vehicle_id/vin/display_name/
+  // vehicle_is_new). The old knownVins snapshot + car_info round trip are
+  // gone — vehicle_is_new IS the "have we seen this car before" answer,
+  // straight from the vehicles table, computed in the same transaction that
+  // created (or found) the row. See docs/workflows/data-core/plan.md.
   const [discoverVin, setDiscoverVin] = useState<string | null>(null);
-  // The currently-connected car's VIN, known as early as car_info resolves
-  // (same handler as discoverVin below) — passed down to Overview so its
-  // emblem shows the right brand from Overview's very first render instead
-  // of a brief generic badge while Overview's own, slower report_cars fetch
-  // catches up. Kept separate from discoverVin, which only ever holds a
-  // *new* car's VIN and is cleared once the discovery overlay finishes.
-  const [currentVin, setCurrentVin] = useState<string | null>(null);
   // Sticky on purpose — once true it stays true for the rest of the app
   // session, even across later disconnects. Gates the blank ConnectGate
   // screen, not the Shell's own per-view "disconnected" states.
@@ -64,9 +57,6 @@ export default function App() {
     runPromise(Effect.flatMap(DeviceService, (device) => device.connStatus()))
       .then(setConn)
       .catch(() => {});
-    runPromise(Effect.flatMap(DeviceService, (device) => device.reportCars()))
-      .then((cars) => setKnownVins(new Set(cars.map(([v]) => v))))
-      .catch(() => setKnownVins(new Set()));
     const un1 = listen<ConnStatus>("conn-status", (e) => {
       setConn(e.payload);
       // A new session can add data behind any view, and a blanket
@@ -88,35 +78,19 @@ export default function App() {
     };
   }, [queryClient]);
 
-  // Reads conn.vin directly — the backend's OWN resolved VIN for THIS
-  // connection (or null if it genuinely couldn't read one), sent as part of
-  // the same conn-status event that flips state to "connected". Used to
-  // read this back via a separate car_info round trip, which is exactly
-  // the bug caught live 2026-08-21 on a real ~2000 Peugeot: car_info's vin
-  // is a cache that only updates on a successful read, so a car whose ECU
-  // doesn't answer the VIN query at all (common on pre-Mode-09 vehicles,
-  // not just a transient failure) silently inherited whichever car
-  // connected last — wrong brand emblem, wrong Overview report, and the
-  // discovery/sensor-sweep flow never triggering because nothing looked
-  // "new". conn.vin has no such cache: null here means null downstream,
-  // and Overview/VehicleScene render an honest unknown-vehicle state
-  // instead of guessing.
-  //
   // hasConnectedOnce is deliberately set in the SAME effect that decides
   // whether the discovery overlay mounts, not a separate conn.state effect
   // — batching both setStates in one render is what keeps Shell and
   // DiscoveryFlow mounting together, so the overlay covers the dashboard's
   // very first frame instead of flashing it uncovered first.
   useEffect(() => {
-    if (conn.state !== "connected" || knownVins === null) return;
-    const vin = conn.vin ?? null;
-    setCurrentVin(vin);
-    if (vin && !knownVins.has(vin)) {
-      setKnownVins((prev) => new Set(prev ?? []).add(vin));
-      setDiscoverVin(vin);
-    }
+    if (conn.state !== "connected") return;
+    if (conn.vehicle_is_new && conn.vin) setDiscoverVin(conn.vin);
     setHasConnectedOnce(true);
-  }, [conn.state, conn.vin, knownVins]);
+  }, [conn.state, conn.vehicle_is_new, conn.vin]);
+
+  const currentVin = conn.vin ?? null;
+  const currentVehicleId = conn.vehicle_id ?? null;
 
   const connected = conn.state === "connected";
   const recording = connected && Object.keys(live).length > 0;
@@ -146,14 +120,14 @@ export default function App() {
         onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))}
         onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
       >
-        {view === "overview" && <Overview connState={conn.state} vin={currentVin} />}
+        {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} />}
-        {view === "history" && <History connState={conn.state} vin={currentVin} />}
-        {view === "diagnose" && <Diagnose connected={connected} />}
+        {view === "history" && <History connState={conn.state} vehicleId={currentVehicleId} />}
+        {view === "diagnose" && <Diagnose connected={connected} vehicleId={currentVehicleId} />}
         {view === "lab" && <Lab connected={connected} />}
         {view === "vehicle" && (
           <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
-            <Vehicle connected={connected} />
+            <Vehicle connected={connected} vehicleId={currentVehicleId} />
           </Suspense>
         )}
       </Shell>
@@ -169,8 +143,8 @@ export default function App() {
               // Replaces the old refreshKey counter (plan.md rule 3):
               // Overview mounted before this car existed, so its own
               // queries wouldn't otherwise know to refetch.
-              queryClient.invalidateQueries({ queryKey: ["report_cars"] });
-              queryClient.invalidateQueries({ queryKey: ["car_report"] });
+              queryClient.invalidateQueries({ queryKey: ["list_vehicles"] });
+              queryClient.invalidateQueries({ queryKey: ["vehicle_report"] });
             }}
           />
         </Suspense>

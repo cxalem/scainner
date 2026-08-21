@@ -6,7 +6,7 @@ import { useSetFuelPrice } from "@/features/vehicle/queries";
 import { FuelLevelGauge } from "@/views/overview/FuelLevelGauge";
 import { useT } from "@/i18n";
 
-export function FuelCard({ insights: i }: { insights: Insights }) {
+export function FuelCard({ vehicleId, insights: i }: { vehicleId: number; insights: Insights }) {
   const t = useT();
   const [price, setPrice] = useState(String(i.fuel_price));
   const setFuelPrice = useSetFuelPrice();
@@ -116,7 +116,7 @@ export function FuelCard({ insights: i }: { insights: Insights }) {
               disabled={setFuelPrice.isPending || !isValidPrice}
               onClick={() =>
                 setFuelPrice.mutate(
-                  { price: parsedPrice },
+                  { vehicleId, price: parsedPrice },
                   { onSuccess: () => flashSaved("saved") },
                 )
               }
