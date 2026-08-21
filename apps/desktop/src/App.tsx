@@ -8,6 +8,7 @@ import { Shell, type ViewKey } from "@/components/Shell";
 import { ConnectGate } from "@/components/ConnectGate";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { hasOnboarded, markOnboarded } from "@/lib/onboarding";
+import { startSyncLoop } from "@/lib/sync";
 import { Overview } from "@/views/Overview";
 import { Live } from "@/views/Live";
 import { History } from "@/views/History";
@@ -54,6 +55,9 @@ export default function App() {
     // still looking at the connect gate, so first connect doesn't pay the
     // chunk load inside the gate→overlay transition.
     void import("@/components/DiscoveryFlow");
+    // Cloud sync (lib/sync.ts): idempotent to call, no-op in browser
+    // preview, quietly does nothing until a user signs in.
+    startSyncLoop();
     runPromise(Effect.flatMap(DeviceService, (device) => device.connStatus()))
       .then(setConn)
       .catch(() => {});

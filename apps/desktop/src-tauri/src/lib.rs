@@ -274,6 +274,25 @@ fn db_path(app: tauri::AppHandle) -> String {
     data_db_path(&app).display().to_string()
 }
 
+/// One batch of unsynced (or idempotently re-syncable) rows for the cloud
+/// sync engine (src/lib/sync.ts) — see db::SyncBatch's doc comment.
+#[tauri::command]
+fn sync_batch(state: tauri::State<AppState>, after_reading_id: i64, limit: i64) -> db::SyncBatch {
+    state.db.sync_batch(after_reading_id, limit.clamp(1, 20_000))
+}
+
+/// App-level settings kv (sync watermark etc.) — deliberately generic, the
+/// same table the connection ladder's learned level already uses.
+#[tauri::command]
+fn app_setting_get(state: tauri::State<AppState>, key: String) -> Option<String> {
+    state.db.setting_get(&key)
+}
+
+#[tauri::command]
+fn app_setting_set(state: tauri::State<AppState>, key: String, value: String) {
+    state.db.setting_set(&key, &value);
+}
+
 /// Markdown briefing about the car, ready to paste into any AI chat.
 #[tauri::command]
 fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, since_hours: f64) -> String {
@@ -378,6 +397,9 @@ pub fn run() {
             history,
             export_json,
             db_path,
+            sync_batch,
+            app_setting_get,
+            app_setting_set,
             ai_context,
             all_sensors,
             uds_modules,

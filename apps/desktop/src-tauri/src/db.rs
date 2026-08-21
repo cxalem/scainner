@@ -22,7 +22,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 
 #[derive(Serialize, Clone)]
 pub struct DtcScan {
@@ -179,6 +179,91 @@ pub struct HistoryPoint {
     pub value: f64,
 }
 
+// ---------- cloud sync feed (docs/workflows/data-core/plan.md) ----------
+// The frontend sync engine pulls one of these, pushes it to Supabase under
+// the signed-in user's JWT, then advances the reading watermark. Only rows
+// with a resolved vehicle are included: the cloud's RLS policies reject
+// facts whose vehicle is NULL by design ("unassigned facts are invisible"),
+// so unidentified connections sync after the user names the car (naming
+// back-stamps vehicle_id, and the frontend resets the watermark).
+
+#[derive(Serialize)]
+pub struct SyncVehicle {
+    pub cloud_id: String,
+    pub vin: Option<String>,
+    pub display_name: Option<String>,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub year: Option<i64>,
+    pub trim: Option<String>,
+    pub fuel_price: f64,
+}
+
+#[derive(Serialize)]
+pub struct SyncConnection {
+    pub cloud_id: String,
+    pub vehicle_cloud_id: String,
+    pub device_kind: Option<String>,
+    pub elm_version: Option<String>,
+    pub protocol: Option<String>,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SyncCode {
+    pub code: String,
+    pub status: String,
+}
+
+#[derive(Serialize)]
+pub struct SyncScanEvent {
+    pub cloud_id: String,
+    pub connection_cloud_id: Option<String>,
+    pub vehicle_cloud_id: String,
+    pub ts: String,
+    pub mil_on: bool,
+    pub voltage: Option<f64>,
+    pub freeze_json: Option<String>,
+    pub codes: Vec<SyncCode>,
+}
+
+#[derive(Serialize)]
+pub struct SyncWrite {
+    pub cloud_id: String,
+    pub connection_cloud_id: Option<String>,
+    pub vehicle_cloud_id: String,
+    pub ts: String,
+    pub module: String,
+    pub action: String,
+    pub params_json: String,
+    pub before_json: Option<String>,
+    pub after_json: Option<String>,
+    pub outcome: String,
+    pub error: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SyncReading {
+    pub local_id: i64,
+    pub connection_cloud_id: String,
+    pub vehicle_cloud_id: String,
+    pub ts: String,
+    pub key: String,
+    pub value: f64,
+}
+
+#[derive(Serialize)]
+pub struct SyncBatch {
+    pub vehicles: Vec<SyncVehicle>,
+    pub connections: Vec<SyncConnection>,
+    pub scan_events: Vec<SyncScanEvent>,
+    pub writes: Vec<SyncWrite>,
+    pub readings: Vec<SyncReading>,
+    /// Highest readings.id included — the next watermark on success.
+    pub last_reading_id: i64,
+}
+
 impl Db {
     /// Opens (creating if needed) the SQLite database at schema v2.
     ///
@@ -191,8 +276,11 @@ impl Db {
         let conn = Connection::open(path)?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if version < SCHEMA_VERSION {
+        if version < 2 {
             // v1 (or partial) — drop everything the old shape ever created.
+            // Clean-slate applies to the pre-v2 shape ONLY (the owner's
+            // "disposable test data" call was about v1); v2+ data survives
+            // every later version bump via additive migrations below.
             conn.execute_batch(
                 r#"
                 DROP TABLE IF EXISTS readings;
@@ -344,8 +432,42 @@ impl Db {
             );
             "#,
         )?;
+        // v3 (cloud sync): client-generated uuids on every syncable row —
+        // these become the Postgres primary keys, so pushes are idempotent.
+        // ALTER + separate unique index because SQLite can't add a UNIQUE
+        // column via ALTER; errors discarded once the column exists.
+        let _ = conn.execute("ALTER TABLE vehicles ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE connections ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE dtc_scan_events ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE writes_log ADD COLUMN cloud_id TEXT", []);
+        conn.execute_batch(
+            r#"
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicles_cloud ON vehicles(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_connections_cloud ON connections(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_scan_events_cloud ON dtc_scan_events(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_writes_cloud ON writes_log(cloud_id);
+            "#,
+        )?;
+        // Backfill rows created on v2 before cloud_id existed.
+        for table in ["vehicles", "connections", "dtc_scan_events", "writes_log"] {
+            let ids: Vec<i64> = {
+                let mut stmt = conn.prepare(&format!("SELECT id FROM {table} WHERE cloud_id IS NULL"))?;
+                let rows = stmt.query_map([], |r| r.get(0))?;
+                rows.filter_map(Result::ok).collect()
+            };
+            for id in ids {
+                conn.execute(
+                    &format!("UPDATE {table} SET cloud_id = ?1 WHERE id = ?2"),
+                    params![uuid::Uuid::new_v4().to_string(), id],
+                )?;
+            }
+        }
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
         Ok(Self(Mutex::new(conn)))
+    }
+
+    fn new_cloud_id() -> String {
+        uuid::Uuid::new_v4().to_string()
     }
 
     // ---------- vehicles ----------
@@ -358,8 +480,8 @@ impl Db {
             return (id, false);
         }
         conn.execute(
-            "INSERT INTO vehicles (vin, first_connected_at) VALUES (?1, datetime('now'))",
-            params![vin],
+            "INSERT INTO vehicles (vin, first_connected_at, cloud_id) VALUES (?1, datetime('now'), ?2)",
+            params![vin, Self::new_cloud_id()],
         )
         .ok();
         (conn.last_insert_rowid(), true)
@@ -370,8 +492,8 @@ impl Db {
     pub fn create_vehicle_named(&self, name: &str) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO vehicles (display_name, first_connected_at) VALUES (?1, datetime('now'))",
-            params![name],
+            "INSERT INTO vehicles (display_name, first_connected_at, cloud_id) VALUES (?1, datetime('now'), ?2)",
+            params![name, Self::new_cloud_id()],
         )
         .ok();
         conn.last_insert_rowid()
@@ -433,8 +555,8 @@ impl Db {
     pub fn start_connection(&self, elm_version: &str, device_kind: &str) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO connections (elm_version, device_kind) VALUES (?1, ?2)",
-            params![elm_version, device_kind],
+            "INSERT INTO connections (elm_version, device_kind, cloud_id) VALUES (?1, ?2, ?3)",
+            params![elm_version, device_kind, Self::new_cloud_id()],
         )
         .ok();
         conn.last_insert_rowid()
@@ -491,9 +613,9 @@ impl Db {
     ) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO dtc_scan_events (connection_id, vehicle_id, mil_on, voltage, freeze_json)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![connection_id, vehicle_id, mil_on, voltage, freeze.map(|f| f.to_string())],
+            "INSERT INTO dtc_scan_events (connection_id, vehicle_id, mil_on, voltage, freeze_json, cloud_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![connection_id, vehicle_id, mil_on, voltage, freeze.map(|f| f.to_string()), Self::new_cloud_id()],
         )
         .ok();
         let event_id = conn.last_insert_rowid();
@@ -530,8 +652,8 @@ impl Db {
     ) -> i64 {
         let conn = self.0.lock().unwrap();
         let res = conn.execute(
-            "INSERT INTO writes_log (connection_id, vehicle_id, module, action, params_json, before_json, after_json, outcome, error)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT INTO writes_log (connection_id, vehicle_id, module, action, params_json, before_json, after_json, outcome, error, cloud_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
                 connection_id,
                 vehicle_id,
@@ -541,7 +663,8 @@ impl Db {
                 before.map(|v| v.to_string()),
                 after.map(|v| v.to_string()),
                 outcome,
-                error
+                error,
+                Self::new_cloud_id()
             ],
         );
         if let Err(e) = &res {
@@ -925,6 +1048,150 @@ impl Db {
         }
     }
 
+    // ---------- cloud sync feed ----------
+
+    pub fn sync_batch(&self, after_reading_id: i64, limit: i64) -> SyncBatch {
+        let conn = self.0.lock().unwrap();
+        let vehicles = {
+            let mut stmt = conn
+                .prepare("SELECT cloud_id, vin, display_name, make, model, year, trim, fuel_price FROM vehicles WHERE cloud_id IS NOT NULL")
+                .unwrap();
+            let rows = stmt.query_map([], |r| {
+                Ok(SyncVehicle {
+                    cloud_id: r.get(0)?,
+                    vin: r.get(1)?,
+                    display_name: r.get(2)?,
+                    make: r.get(3)?,
+                    model: r.get(4)?,
+                    year: r.get(5)?,
+                    trim: r.get(6)?,
+                    fuel_price: r.get(7)?,
+                })
+            });
+            rows.unwrap().filter_map(Result::ok).collect()
+        };
+        let connections = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT c.cloud_id, v.cloud_id, c.device_kind, c.elm_version, c.protocol, c.started_at, c.ended_at
+                     FROM connections c JOIN vehicles v ON v.id = c.vehicle_id
+                     WHERE c.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
+                )
+                .unwrap();
+            let rows = stmt.query_map([], |r| {
+                Ok(SyncConnection {
+                    cloud_id: r.get(0)?,
+                    vehicle_cloud_id: r.get(1)?,
+                    device_kind: r.get(2)?,
+                    elm_version: r.get(3)?,
+                    protocol: r.get(4)?,
+                    started_at: r.get(5)?,
+                    ended_at: r.get(6)?,
+                })
+            });
+            rows.unwrap().filter_map(Result::ok).collect()
+        };
+        let mut scan_events: Vec<SyncScanEvent> = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT e.id, e.cloud_id, c.cloud_id, v.cloud_id, e.ts, e.mil_on, e.voltage, e.freeze_json
+                     FROM dtc_scan_events e
+                     JOIN vehicles v ON v.id = e.vehicle_id
+                     LEFT JOIN connections c ON c.id = e.connection_id
+                     WHERE e.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
+                )
+                .unwrap();
+            let rows = stmt.query_map([], |r| {
+                Ok((
+                    r.get::<_, i64>(0)?,
+                    SyncScanEvent {
+                        cloud_id: r.get(1)?,
+                        connection_cloud_id: r.get(2)?,
+                        vehicle_cloud_id: r.get(3)?,
+                        ts: r.get(4)?,
+                        mil_on: r.get(5)?,
+                        voltage: r.get(6)?,
+                        freeze_json: r.get(7)?,
+                        codes: Vec::new(),
+                    },
+                ))
+            });
+            let pairs: Vec<(i64, SyncScanEvent)> = rows.unwrap().filter_map(Result::ok).collect();
+            pairs
+                .into_iter()
+                .map(|(event_id, mut ev)| {
+                    let mut stmt = conn
+                        .prepare("SELECT code, status FROM dtc_codes WHERE scan_event_id = ?1")
+                        .unwrap();
+                    let codes = stmt
+                        .query_map(params![event_id], |r| Ok(SyncCode { code: r.get(0)?, status: r.get(1)? }))
+                        .unwrap()
+                        .filter_map(Result::ok)
+                        .collect();
+                    ev.codes = codes;
+                    ev
+                })
+                .collect()
+        };
+        scan_events.sort_by(|a, b| a.ts.cmp(&b.ts));
+        let writes = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT w.cloud_id, c.cloud_id, v.cloud_id, w.ts, w.module, w.action, w.params_json, w.before_json, w.after_json, w.outcome, w.error
+                     FROM writes_log w
+                     JOIN vehicles v ON v.id = w.vehicle_id
+                     LEFT JOIN connections c ON c.id = w.connection_id
+                     WHERE w.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
+                )
+                .unwrap();
+            let rows = stmt.query_map([], |r| {
+                Ok(SyncWrite {
+                    cloud_id: r.get(0)?,
+                    connection_cloud_id: r.get(1)?,
+                    vehicle_cloud_id: r.get(2)?,
+                    ts: r.get(3)?,
+                    module: r.get(4)?,
+                    action: r.get(5)?,
+                    params_json: r.get(6)?,
+                    before_json: r.get(7)?,
+                    after_json: r.get(8)?,
+                    outcome: r.get(9)?,
+                    error: r.get(10)?,
+                })
+            });
+            rows.unwrap().filter_map(Result::ok).collect()
+        };
+        let mut last_reading_id = after_reading_id;
+        let readings = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT r.id, c.cloud_id, v.cloud_id, r.ts, r.key, r.value
+                     FROM readings r
+                     JOIN connections c ON c.id = r.connection_id
+                     JOIN vehicles v ON v.id = r.vehicle_id
+                     WHERE r.id > ?1 AND c.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL
+                     ORDER BY r.id LIMIT ?2",
+                )
+                .unwrap();
+            let rows = stmt.query_map(params![after_reading_id, limit], |r| {
+                Ok(SyncReading {
+                    local_id: r.get(0)?,
+                    connection_cloud_id: r.get(1)?,
+                    vehicle_cloud_id: r.get(2)?,
+                    ts: r.get(3)?,
+                    key: r.get(4)?,
+                    value: r.get(5)?,
+                })
+            });
+            let list: Vec<SyncReading> = rows.unwrap().filter_map(Result::ok).collect();
+            if let Some(max) = list.iter().map(|r| r.local_id).max() {
+                last_reading_id = max;
+            }
+            list
+        };
+        SyncBatch { vehicles, connections, scan_events, writes, readings, last_reading_id }
+    }
+
     // ---------- misc ----------
 
     pub fn reading_keys(&self) -> Vec<String> {
@@ -1131,6 +1398,36 @@ mod tests {
         assert_eq!(history.len(), 2);
         assert_eq!(history[0].stored, vec!["P0420".to_string()]);
         assert!(history[1].stored.is_empty());
+    }
+
+    #[test]
+    fn sync_batch_only_ships_identified_rows_and_advances_watermark() {
+        let db = test_db();
+        let (v, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let c = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.link_connection_vehicle(c, v);
+        db.insert_reading(c, Some(v), "rpm", 800.0);
+        db.insert_reading(c, Some(v), "rpm", 810.0);
+        db.insert_dtc_scan(Some(c), Some(v), true, &["P0420".into()], &[], &[], Some(13.1), None);
+        // An unidentified connection: its rows must NOT ship (the cloud's
+        // RLS rejects NULL-vehicle facts by design).
+        let c2 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
+        db.insert_reading(c2, None, "rpm", 900.0);
+        let batch = db.sync_batch(0, 100);
+        assert_eq!(batch.vehicles.len(), 1);
+        assert_eq!(batch.connections.len(), 1);
+        assert_eq!(batch.readings.len(), 2);
+        assert_eq!(batch.scan_events.len(), 1);
+        assert_eq!(batch.scan_events[0].codes.len(), 1);
+        assert!(batch.last_reading_id >= 2);
+        // Idempotent watermark: nothing new past the watermark.
+        let empty = db.sync_batch(batch.last_reading_id, 100);
+        assert!(empty.readings.is_empty());
+        assert_eq!(empty.last_reading_id, batch.last_reading_id);
+        // Every shipped row carries a cloud id.
+        assert!(!batch.vehicles[0].cloud_id.is_empty());
+        assert!(!batch.connections[0].cloud_id.is_empty());
+        assert!(!batch.scan_events[0].cloud_id.is_empty());
     }
 
     #[test]
