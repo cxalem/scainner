@@ -108,86 +108,96 @@ export function Shell({
           {advanced.map(item)}
         </nav>
 
-        {/* Locale toggle: lives here rather than a Settings view (there
-            isn't one yet) — see docs/workflows/i18n/plan.md. Cheap to move
-            once a real Settings view exists. */}
-        <div className="mt-2 flex items-center gap-1.5 px-2">
-          <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <div role="group" aria-label={t.shell.language} className="flex items-center gap-1">
-            {(["en", "es"] as Locale[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setLocale(option)}
-                aria-pressed={locale === option}
-                className={cn(
-                  "rounded-md px-1.5 py-0.5 text-xs font-medium uppercase transition-colors",
-                  locale === option ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-2 rounded-lg border border-border bg-card p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className={cn(
-                "h-2 w-2 shrink-0 rounded-full",
-                connected ? "bg-primary" : connecting ? "animate-pulse bg-warn" : "bg-muted-foreground/40"
-              )}
-            />
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium">
-                {connected ? t.shell.status.connected : connecting ? t.shell.status.connecting : t.shell.status.disconnected}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {connected && recording
-                  ? t.shell.status.recording
-                  : connected
-                    ? conn.elm_version ?? t.shell.status.linkUp
-                    : connecting
-                      ? t.shell.status.wakingDongle
-                      : t.shell.status.ignitionThenConnect}
-              </p>
+        {/* mt-auto on this wrapper, not the connection card alone — adding
+            the locale toggle above the card had bumped the card's own
+            mt-auto to mt-2, which un-pinned it from the sidebar's bottom
+            (Alejandro, 2026-08-21: "the connection disconnect part is now
+            not at the bottom... it should be there"). Grouping both under
+            one mt-auto keeps the toggle directly above the card, and pins
+            the pair together at the bottom, same as before the toggle
+            existed. */}
+        <div className="mt-auto flex flex-col gap-2">
+          {/* Locale toggle: lives here rather than a Settings view (there
+              isn't one yet) — see docs/workflows/i18n/plan.md. Cheap to
+              move once a real Settings view exists. */}
+          <div className="flex items-center gap-1.5 px-2">
+            <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <div role="group" aria-label={t.shell.language} className="flex items-center gap-1">
+              {(["en", "es"] as Locale[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setLocale(option)}
+                  aria-pressed={locale === option}
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-xs font-medium uppercase transition-colors",
+                    locale === option ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
             </div>
           </div>
-          {connected ? (
-            <button
-              onClick={doDisconnect}
-              disabled={disconnecting}
-              className={cn(
-                "flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-border text-xs font-medium",
-                "transition-[color,background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]",
-                "disabled:pointer-events-none disabled:opacity-50",
-                "motion-reduce:transition-none motion-reduce:active:scale-100",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              )}
-            >
-              <Plug className="h-3.5 w-3.5" aria-hidden="true" /> {disconnecting ? t.shell.disconnecting : t.shell.disconnect}
-            </button>
-          ) : (
-            <button
-              onClick={onConnect}
-              disabled={connecting}
-              className={cn(
-                "flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-primary text-xs font-medium text-primary-foreground",
-                "transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]",
-                "disabled:opacity-50 disabled:pointer-events-none",
-                "motion-reduce:transition-none motion-reduce:active:scale-100",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              )}
-            >
-              <PlugZap className="h-3.5 w-3.5" aria-hidden="true" />
-              {connecting ? connectLabel : t.shell.connect}
-            </button>
-          )}
-          {conn.detail && conn.state === "disconnected" && (
-            <p className="mt-2 text-xs leading-snug text-destructive">{conn.detail}</p>
-          )}
+
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "h-2 w-2 shrink-0 rounded-full",
+                  connected ? "bg-primary" : connecting ? "animate-pulse bg-warn" : "bg-muted-foreground/40"
+                )}
+              />
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium">
+                  {connected ? t.shell.status.connected : connecting ? t.shell.status.connecting : t.shell.status.disconnected}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {connected && recording
+                    ? t.shell.status.recording
+                    : connected
+                      ? conn.elm_version ?? t.shell.status.linkUp
+                      : connecting
+                        ? t.shell.status.wakingDongle
+                        : t.shell.status.ignitionThenConnect}
+                </p>
+              </div>
+            </div>
+            {connected ? (
+              <button
+                onClick={doDisconnect}
+                disabled={disconnecting}
+                className={cn(
+                  "flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-border text-xs font-medium",
+                  "transition-[color,background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]",
+                  "disabled:pointer-events-none disabled:opacity-50",
+                  "motion-reduce:transition-none motion-reduce:active:scale-100",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                )}
+              >
+                <Plug className="h-3.5 w-3.5" aria-hidden="true" /> {disconnecting ? t.shell.disconnecting : t.shell.disconnect}
+              </button>
+            ) : (
+              <button
+                onClick={onConnect}
+                disabled={connecting}
+                className={cn(
+                  "flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-primary text-xs font-medium text-primary-foreground",
+                  "transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]",
+                  "disabled:opacity-50 disabled:pointer-events-none",
+                  "motion-reduce:transition-none motion-reduce:active:scale-100",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                )}
+              >
+                <PlugZap className="h-3.5 w-3.5" aria-hidden="true" />
+                {connecting ? connectLabel : t.shell.connect}
+              </button>
+            )}
+            {conn.detail && conn.state === "disconnected" && (
+              <p className="mt-2 text-xs leading-snug text-destructive">{conn.detail}</p>
+            )}
+          </div>
         </div>
       </aside>
 
