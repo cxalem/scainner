@@ -44,3 +44,42 @@ body {
   @apply bg-background text-foreground antialiased;
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
 }
+
+/* Diagnose's Fault codes panel: a scan-line sweeping the width of its track
+   ("actively scanning this car", not a generic spinner) and a fade/slide-in
+   for when scan results land in place, both hand-rolled CSS like the rest
+   of the app's motion (no animation library yet — that's the separate,
+   not-yet-built animation-system stream). Both respect
+   prefers-reduced-motion, same convention as every other motion in ui.tsx. */
+@keyframes scan-sweep {
+  0% {
+    left: 0%;
+  }
+  50% {
+    left: 66%;
+  }
+  100% {
+    left: 0%;
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in {
+  animation: fade-slide-in 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-slide-in {
+    animation: none;
+  }
+}

@@ -7,10 +7,7 @@ import { ConfirmWrite } from "@/components/ConfirmWrite";
 import { WriteHistory } from "@/components/WriteHistory";
 import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/features/diagnose/queries";
 import { CodeBadge } from "@/views/diagnose/CodeBadge";
-import { CodeStatusSection } from "@/views/diagnose/CodeStatusSection";
-import { VoltageClusterNote } from "@/views/diagnose/VoltageClusterNote";
-import { detectVoltageCluster } from "@/lib/dtc-grouping";
-import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
+import { FaultCodesPanel } from "@/views/diagnose/FaultCodesPanel";
 import { DtcDetailModal } from "@/views/diagnose/DtcDetailModal";
 import { AiReportCard } from "@/views/diagnose/AiReportCard";
 
@@ -58,7 +55,6 @@ export function Diagnose({ connected }: { connected: boolean }) {
   };
 
   const totalCodes = scan ? scan.stored.length + scan.pending.length + scan.permanent.length : 0;
-  const voltageAffected = new Set(scan ? detectVoltageCluster(scan)?.affected ?? [] : []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -126,66 +122,40 @@ export function Diagnose({ connected }: { connected: boolean }) {
         </div>
       )}
 
-      {scan && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Latest scan</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              {scan.mil_on ? (
-                <Badge variant="error">CHECK ENGINE ON · {scan.dtc_count} codes</Badge>
-              ) : (
-                <Badge variant="ok">
-                  <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" /> MIL off
-                </Badge>
-              )}
-              {scan.voltage != null && <Badge variant="muted">{scan.voltage.toFixed(1)} V</Badge>}
-            </div>
-            <VoltageClusterNote scan={scan} />
-            <CodeStatusSection label="Stored" codes={scan.stored} affected={voltageAffected} onSelect={setDetailCode} />
-            <CodeStatusSection label="Pending" codes={scan.pending} affected={voltageAffected} onSelect={setDetailCode} />
-            <CodeStatusSection
-              label="Permanent"
-              codes={scan.permanent}
-              affected={voltageAffected}
-              onSelect={setDetailCode}
-            />
-            {totalCodes === 0 && <p className="text-sm text-muted-foreground">No codes on this scan.</p>}
-            <p className="text-xs text-muted-foreground">Click any code for details, its history, and an AI deep-dive.</p>
-            {scan.freeze && <FreezeFrame data={scan.freeze as Record<string, unknown>} />}
-          </CardContent>
-        </Card>
-      )}
+      <FaultCodesPanel scanning={scanMutation.isPending} scan={scan} onSelect={setDetailCode} />
 
-      {readiness && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Pre-ITV readiness
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(readiness).map(([monitor, ready]) => (
-                <Badge key={monitor} variant={ready ? "ok" : "warn"}>
-                  {MONITOR_LABELS[monitor] ?? monitor}: {ready ? "ready" : "not ready"}
-                </Badge>
-              ))}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Pre-ITV readiness
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {readiness === null ? (
+            <p className="text-sm text-muted-foreground">Run a scan to check readiness monitors.</p>
+          ) : (
+            <div className="animate-fade-slide-in">
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(readiness).map(([monitor, ready]) => (
+                  <Badge key={monitor} variant={ready ? "ok" : "warn"}>
+                    {MONITOR_LABELS[monitor] ?? monitor}: {ready ? "ready" : "not ready"}
+                  </Badge>
+                ))}
+              </div>
+              {Object.values(readiness).every(Boolean) ? (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  All monitors complete — emissions-wise you would pass ITV today.
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Some monitors incomplete (normal after clearing codes or a battery disconnect — they re-run over a
+                  few drives).
+                </p>
+              )}
             </div>
-            {Object.values(readiness).every(Boolean) ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                All monitors complete — emissions-wise you would pass ITV today.
-              </p>
-            ) : (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Some monitors incomplete (normal after clearing codes or a battery disconnect — they re-run over a few
-                drives).
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
