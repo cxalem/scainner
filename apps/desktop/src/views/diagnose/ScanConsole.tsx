@@ -153,11 +153,14 @@ export function ScanConsole({
               <p className="text-sm text-muted-foreground">Click "Scan for codes" to check this vehicle.</p>
             </div>
           ) : (
-            // overflow-y-scroll (not -auto): a small scan that fits without
-            // scrolling and a large one that needs to scroll would
-            // otherwise render at different widths — same gutter fix as
-            // Shell.tsx's outer scroll area, just local to this console.
-            <div className="animate-fade-slide-in flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
+            <div className="animate-fade-slide-in flex flex-1 flex-col gap-3 overflow-hidden">
+              {/* Pinned, never scrolls away — freeze frame was landing at
+                  the bottom of the code list before this, invisible behind
+                  however many codes came before it (Alejandro, 2026-08-21:
+                  "that information remains hidden... important information
+                  should be visible"). Only the code groups below scroll;
+                  the state summary of the car at the moment of the scan
+                  never does. */}
               <div className="flex items-center gap-2">
                 {scan.mil_on ? (
                   <Badge variant="error">CHECK ENGINE ON · {scan.dtc_count} codes</Badge>
@@ -169,24 +172,31 @@ export function ScanConsole({
                 {scan.voltage != null && <Badge variant="muted">{scan.voltage.toFixed(1)} V</Badge>}
               </div>
               <VoltageClusterNote scan={scan} />
-              <CodeStatusSection label="Stored" codes={scan.stored} affected={voltageAffected} onSelect={onSelect} />
-              <CodeStatusSection
-                label="Pending"
-                codes={scan.pending}
-                affected={voltageAffected}
-                onSelect={onSelect}
-              />
-              <CodeStatusSection
-                label="Permanent"
-                codes={scan.permanent}
-                affected={voltageAffected}
-                onSelect={onSelect}
-              />
-              {totalCodes === 0 && <p className="text-sm text-muted-foreground">No codes on this scan.</p>}
-              <p className="text-xs text-muted-foreground">
-                Click any code for details, its history, and an AI deep-dive.
-              </p>
               {scan.freeze && <FreezeFrame data={scan.freeze as Record<string, unknown>} />}
+
+              {/* overflow-y-scroll (not -auto): a small scan that fits
+                  without scrolling and a large one that needs to scroll
+                  would otherwise render at different widths — same gutter
+                  fix as Shell.tsx's outer scroll area, just local here. */}
+              <div className="flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
+                <CodeStatusSection label="Stored" codes={scan.stored} affected={voltageAffected} onSelect={onSelect} />
+                <CodeStatusSection
+                  label="Pending"
+                  codes={scan.pending}
+                  affected={voltageAffected}
+                  onSelect={onSelect}
+                />
+                <CodeStatusSection
+                  label="Permanent"
+                  codes={scan.permanent}
+                  affected={voltageAffected}
+                  onSelect={onSelect}
+                />
+                {totalCodes === 0 && <p className="text-sm text-muted-foreground">No codes on this scan.</p>}
+                <p className="text-xs text-muted-foreground">
+                  Click any code for details, its history, and an AI deep-dive.
+                </p>
+              </div>
             </div>
           )}
         </div>

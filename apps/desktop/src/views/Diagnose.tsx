@@ -78,6 +78,18 @@ export function Diagnose({ connected }: { connected: boolean }) {
         </CardContent>
       </Card>
 
+      {/* Everything above is the live workspace (scan → review → clean →
+          rescan, the loop most people open this app to do — Alejandro,
+          2026-08-21: "we need to make this tool specifically for that").
+          Everything below is the archive: past scans and writes, not
+          something you act on while working a car right now. The divider
+          says so plainly instead of leaving five cards to read as one
+          undifferentiated list. */}
+      <div className="mt-2 flex flex-col gap-0.5 border-t border-border pt-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">History &amp; reports</h2>
+        <p className="text-xs text-muted-foreground">Past scans and writes — separate from the live workspace above.</p>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Scan history</CardTitle>
