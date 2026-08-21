@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useCyclingLabel } from "@/components/ui";
 import type { DtcResult, DtcScanRow } from "@scainner/core";
 import { AI_PHASES, generateCodeReport, getApiKey, getCodeReports, type SavedReport } from "@/lib/ai";
 import { decodeDtc, dtcInfo } from "@/lib/dtc";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
+import { backdropVariants, modalPanelVariants } from "@/motion";
 
 // Per-code detail: everything the app knows about one DTC, from high level
 // down — plain-language meaning + severity (curated library), the code's
@@ -67,14 +69,18 @@ export function DtcDetailModal({
   const sevLabel = info ? { low: "low urgency", medium: "attention", high: "serious" }[info.severity] : null;
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/30 p-4 sm:p-8"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`Details for ${code}`}
+      initial="hidden"
+      animate="visible"
+      variants={backdropVariants}
     >
-      <Card className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+      <motion.div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()} variants={modalPanelVariants}>
+      <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
             <CardTitle className="flex flex-wrap items-center gap-2">
@@ -169,6 +175,7 @@ export function DtcDetailModal({
           </div>
         </CardContent>
       </Card>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

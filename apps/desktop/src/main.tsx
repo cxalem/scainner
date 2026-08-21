@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import App from "./App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { queryClient } from "./lib/query";
@@ -18,7 +19,13 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <App />
+        {/* reducedMotion="user": every motion.* component app-wide respects
+            prefers-reduced-motion automatically from here, one place — not
+            a motion-reduce: class repeated on every animated element the
+            way the CSS-only transitions elsewhere in the app still are. */}
+        <MotionConfig reducedMotion="user">
+          <App />
+        </MotionConfig>
       </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>,
