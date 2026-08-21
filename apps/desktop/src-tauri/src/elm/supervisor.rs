@@ -201,6 +201,28 @@ fn run_loop(
             vehicle_is_new,
         });
 
+        // Adaptive polling: ask the ECU once which mode-01 PIDs it supports
+        // and poll only those. The old Peugeot answers 5 of the poll set's
+        // 12 — before this, the other 7 burned a NO DATA timeout on EVERY
+        // sweep (multi-second sweeps, sluggish live data, requests queuing
+        // behind dead reads). Empty result = bitmap read failed = poll
+        // everything, the pre-existing behavior.
+        let supported_pids = obd::supported_pids(&mut drv);
+        if supported_pids.is_empty() {
+            log::warn!("supported-PID bitmap unavailable — polling the full set");
+        } else {
+            let polled: Vec<&str> = parser::PIDS
+                .iter()
+                .filter(|p| {
+                    u8::from_str_radix(&p.pid[2..], 16)
+                        .map(|n| supported_pids.contains(&n))
+                        .unwrap_or(true)
+                })
+                .map(|p| p.key)
+                .collect();
+            log::info!("ECU supports {} PIDs; polling: {}", supported_pids.len(), polled.join(", "));
+        }
+
         let mut consecutive_failures = 0u32;
         let mut tick: u64 = 0;
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
@@ -259,6 +281,12 @@ fn run_loop(
 
             let mut values: HashMap<String, f64> = HashMap::new();
             for pid in parser::PIDS {
+                if !supported_pids.is_empty() {
+                    let n = u8::from_str_radix(&pid.pid[2..], 16).unwrap_or(0);
+                    if !supported_pids.contains(&n) {
+                        continue;
+                    }
+                }
                 service_requests!();
                 match drv.cmd(pid.pid, Duration::from_secs(3)) {
                     Ok(raw) => {

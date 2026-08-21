@@ -49,10 +49,23 @@ def main():
         cmd(c)
 
     print("== phase 1: bus check + supported-PID bitmap ==", flush=True)
-    raw = cmd("0100", 12.0)  # first command performs the fast init (SEARCHING...)
-    b = hexbytes(raw)
+    # First command performs the K-line init. Fast init (SP5) can fail
+    # transiently right after a Bluetooth re-pair, so retry it once, then
+    # fall back to full auto-search (SP0) before concluding the bus is
+    # dead (= ignition off).
+    b = []
+    for attempt, proto in (("fast-init", None), ("fast-init retry", "ATSP5"), ("auto-search", "ATSP0")):
+        if proto:
+            cmd(proto)
+        raw = cmd("0100", 15.0)
+        b = hexbytes(raw)
+        if 0x41 in b:
+            print(f"(bus answered on {attempt})", flush=True)
+            break
+        print(f"({attempt}: no answer — {raw.strip()!r})", flush=True)
+        time.sleep(1)
     if 0x41 not in b:
-        print(f"!! bus did not answer 0100 — ignition on? raw: {raw.strip()!r}", flush=True)
+        print("!! bus never answered 0100 — is the ignition ON (position 2)?", flush=True)
         sys.exit(2)
     i = b.index(0x41)
     bits = b[i + 2 : i + 6]
