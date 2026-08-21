@@ -4,12 +4,14 @@ import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import type { UdsHit } from "@scainner/core";
+import { useT } from "@/i18n";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 /// Reads a single UDS data identifier (service 22) on the selected module.
 export function DidReader({ module, connected }: { module: string; connected: boolean }) {
+  const t = useT();
   const [did, setDid] = useState("F190");
   const [result, setResult] = useState<UdsHit | null | "nothing">(null);
   const [busy, setBusy] = useState(false);
@@ -31,22 +33,22 @@ export function DidReader({ module, connected }: { module: string; connected: bo
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Read one DID</CardTitle>
+        <CardTitle>{t.lab.didReader.cardTitle}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm">22</span>
           <input
-            aria-label="DID (hex)"
+            aria-label={t.lab.didReader.didAriaLabel}
             className={inputCls + " w-24"}
             value={did}
             onChange={(e) => setDid(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
           />
           <Button onClick={read} disabled={!connected || busy}>
-            {busy ? "Reading…" : "Read"}
+            {busy ? t.lab.didReader.reading : t.lab.didReader.read}
           </Button>
         </div>
-        {result === "nothing" && <p className="text-sm text-muted-foreground">No answer (DID not supported or refused).</p>}
+        {result === "nothing" && <p className="text-sm text-muted-foreground">{t.lab.didReader.noAnswer}</p>}
         {result && result !== "nothing" && (
           <div className="rounded bg-muted p-2 font-mono text-xs">
             <div>{result.hex}</div>

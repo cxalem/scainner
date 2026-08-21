@@ -7,6 +7,7 @@ export const en: Dictionary = {
     close: "Close",
     copy: "Copy",
     copied: "Copied",
+    copying: "Copying…",
     save: "Save",
   },
   shell: {
@@ -220,6 +221,113 @@ export const en: Dictionary = {
       estimateNote: "Includes idling. ECU-reported, ±5–10%.",
       tankAriaLabel: (pct, status) => `Fuel tank ${pct} percent, ${status}`,
       status: { reserve: "Reserve", low: "Low", full: "Full", good: "Good" },
+    },
+  },
+  lab: {
+    title: "Lab",
+    moduleAriaLabel: "Module",
+    customSuffix: " · custom",
+    explainer:
+      "Manufacturer-specific reads (UDS service 22) to modules beyond standard OBD. The only thing here that can change the car is the fault clear in Module faults, and it runs behind a confirmation and lands in the write history. Identified values become recorded probes. The four built-in modules use PSA/Citroën/Peugeot addresses. On any other brand, add your own module below with your ECU's CAN IDs.",
+    didReader: {
+      cardTitle: "Read one DID",
+      didAriaLabel: "DID (hex)",
+      reading: "Reading…",
+      read: "Read",
+      noAnswer: "No answer (DID not supported or refused).",
+    },
+    moduleFaults: {
+      cardTitle: "Module faults",
+      explainerBefore: "Faults stored on the selected module itself. Codes starting with ",
+      explainerAfter:
+        ' are communication faults, and scans routinely leave these behind (the module goes quiet while answering us, and its neighbours log "lost contact"). They are harmless and expected.',
+      reading: "Reading…",
+      readFaults: "Read faults",
+      clearing: "Clearing…",
+      clearFaults: (n) => `Clear ${n} fault${n === 1 ? "" : "s"}…`,
+      noFaultsStored: "No faults stored on this module.",
+      confirm: {
+        title: "Clear module faults?",
+        whatChanges:
+          "This erases every fault code stored on this module. The app reads the module again right after, so the result is verified, and the write is saved to the write history in Diagnose.",
+        reversal:
+          "No. Erased codes cannot be put back. This is still safe to do: the codes just read are saved in the write history, and a fault that is still present will report itself again on its own.",
+        confirmLabel: "Yes, clear",
+      },
+      refused: "The module refused the clear command. Nothing was changed.",
+      clearedVerified: (before) =>
+        `Cleared and verified: ${before === 0 ? "no faults" : before === 1 ? "1 fault" : `${before} faults`} before, none remaining.`,
+      clearedButCameBack: (before, after) =>
+        `Cleared ${before}, but ${after} came straight back. Those are active faults, not leftovers, and worth investigating.`,
+      was: (codes) => `was: ${codes}`,
+      stillPresent: (codes) => `still: ${codes}`,
+      dashboardLightNote:
+        "If a dashboard light is still on: it lives on modules this dongle can't reach (BSI/cluster) and clears by itself after an ignition cycle. Engine off, wait a minute, start again. No further action needed.",
+    },
+    moduleManager: {
+      cardTitle: "Modules",
+      addModule: "Add module",
+      couldNotLoad: "Could not load modules.",
+      builtin: "built-in",
+      custom: "custom",
+      addExplainer:
+        "Find your car's UDS request/response CAN IDs (car-hacking forums, community projects for your brand — see the README) and add them here. Same read-only rules apply.",
+      fieldName: "Name",
+      fieldNamePlaceholder: "e.g. TCM",
+      fieldKey: "Key (unique)",
+      fieldReq: "Request CAN ID (hex)",
+      fieldResp: "Response CAN ID (hex)",
+      saving: "Saving…",
+      save: "Save",
+      removing: "removing…",
+      remove: "remove",
+    },
+    probeManager: {
+      newProbeTitle: (did, module) => `New probe from DID ${did} on ${module}`,
+      saving: "Saving…",
+      saveProbe: "Save probe",
+      recordedCardTitle: "Recorded probes (polled every ~30 s while connected)",
+      couldNotLoad: "Could not load probes.",
+      noneYet: "None yet — scan, find something interesting, make it a probe.",
+      disable: "disable",
+      enable: "enable",
+      delete: "delete",
+    },
+    rangeScanner: {
+      cardTitle: "Scan a DID range",
+      fromAriaLabel: "From DID (hex)",
+      toAriaLabel: "To DID (hex)",
+      to: "to",
+      scanning: "Scanning…",
+      scanningWithCount: (n) => `Scanning… (${n} found)`,
+      scan: "Scan",
+      scanningChunk: (from, to, hitsSoFar) => `scanning ${from}–${to}… (${hitsSoFar} hits so far)`,
+      scanDone: (n) =>
+        `done — ${n} DIDs answered. Heads-up: scans can leave temporary "lost communication" warnings on the dashboard; an ignition cycle clears them (see Module faults below).`,
+      checkingProgress: (did, current, total) => `checking ${did}… ${current}/${total} in this chunk`,
+      noAnswersYetNote: " — no answers yet; some modules stay silent for a whole range, that's normal",
+      probeAction: "→ probe",
+    },
+  },
+  vehicle: {
+    title: "Vehicle",
+    identity: {
+      cardTitle: "Identity",
+      couldNotLoad: "Could not load vehicle identity.",
+      nothingReadYet: "Nothing read yet — connect and read the ECU.",
+      reading: "Reading…",
+      readFromEcu: "Read from ECU",
+    },
+    data: {
+      cardTitle: "Data",
+      storedLocally: "Everything is stored locally in SQLite. Point any tool (or an AI session) at:",
+      couldNotReadDbPath: "Could not read the database path.",
+      copyAiBriefing: "Copy AI briefing",
+      copiedAiBriefing: "Copied — paste it to any AI",
+      copyRawJson24h: "Raw JSON, 24h",
+      copyRawJson30d: "Raw JSON, 30d",
+      briefingExplainer:
+        "The AI briefing is a readable markdown summary — car identity, recent scans with freeze frames, and sensor stats — sized to paste straight into a chat.",
     },
   },
   discoveryFlow: {

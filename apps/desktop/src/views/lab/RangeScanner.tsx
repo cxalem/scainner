@@ -6,6 +6,7 @@ import { DeviceService } from "@scainner/core";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { hex4 } from "@/shared/domain/gauges";
 import type { UdsHit } from "@scainner/core";
+import { useT } from "@/i18n";
 
 const inputCls =
   "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
@@ -28,6 +29,7 @@ export function RangeScanner({
   connected: boolean;
   onProbeCandidate: (hit: UdsHit) => void;
 }) {
+  const t = useT();
   const [scanFrom, setScanFrom] = useState("D000");
   const [scanTo, setScanTo] = useState("D3FF");
   const [hits, setHits] = useState<UdsHit[]>([]);
@@ -55,14 +57,12 @@ export function RangeScanner({
       const all: UdsHit[] = [];
       for (let start = from; start <= to; start += SCAN_CHUNK) {
         const end = Math.min(start + SCAN_CHUNK - 1, to);
-        setProgress(`scanning ${hex4(start)}–${hex4(end)}… (${all.length} hits so far)`);
+        setProgress(t.lab.rangeScanner.scanningChunk(hex4(start), hex4(end), all.length));
         const chunk = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsScan(module, start, end)));
         all.push(...chunk);
         setHits([...all]);
       }
-      setProgress(
-        `done — ${all.length} DIDs answered. Heads-up: scans can leave temporary "lost communication" warnings on the dashboard; an ignition cycle clears them (see Module faults below).`
-      );
+      setProgress(t.lab.rangeScanner.scanDone(all.length));
     } catch (e) {
       // A cancel surfaces here too (backend returns it as an error carrying
       // the partial count) — hits already pushed from completed chunks stay
@@ -78,32 +78,36 @@ export function RangeScanner({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scan a DID range</CardTitle>
+        <CardTitle>{t.lab.rangeScanner.cardTitle}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <input
-            aria-label="From DID (hex)"
+            aria-label={t.lab.rangeScanner.fromAriaLabel}
             className={inputCls + " w-24"}
             value={scanFrom}
             onChange={(e) => setScanFrom(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
           />
-          <span className="text-sm text-muted-foreground">to</span>
+          <span className="text-sm text-muted-foreground">{t.lab.rangeScanner.to}</span>
           <input
-            aria-label="To DID (hex)"
+            aria-label={t.lab.rangeScanner.toAriaLabel}
             className={inputCls + " w-24"}
             value={scanTo}
             onChange={(e) => setScanTo(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
           />
           <Button onClick={scan} disabled={!connected || busy}>
-            {busy ? (liveProgress ? `Scanning… (${liveProgress.hits} found)` : "Scanning…") : "Scan"}
+            {busy
+              ? liveProgress
+                ? t.lab.rangeScanner.scanningWithCount(liveProgress.hits)
+                : t.lab.rangeScanner.scanning
+              : t.lab.rangeScanner.scan}
           </Button>
           {busy && (
             <Button
               variant="outline"
               onClick={() => runPromise(Effect.flatMap(DeviceService, (device) => device.udsCancelScan()))}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
           )}
           {!liveProgress && progress && <span className="text-xs text-muted-foreground">{progress}</span>}
@@ -122,10 +126,8 @@ export function RangeScanner({
               />
             </div>
             <span className="font-mono text-xs text-muted-foreground">
-              checking {liveProgress.did}… {liveProgress.current}/{liveProgress.total} in this chunk
-              {liveProgress.current > 0 && liveProgress.hits === 0
-                ? " — no answers yet; some modules stay silent for a whole range, that's normal"
-                : ""}
+              {t.lab.rangeScanner.checkingProgress(liveProgress.did, liveProgress.current, liveProgress.total)}
+              {liveProgress.current > 0 && liveProgress.hits === 0 ? t.lab.rangeScanner.noAnswersYetNote : ""}
             </span>
           </div>
         )}
@@ -143,7 +145,7 @@ export function RangeScanner({
                         className="rounded text-primary hover:underline transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         onClick={() => onProbeCandidate(h)}
                       >
-                        → probe
+                        {t.lab.rangeScanner.probeAction}
                       </button>
                     </td>
                   </tr>

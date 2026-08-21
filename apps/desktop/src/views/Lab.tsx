@@ -6,6 +6,7 @@ import { ModuleFaults } from "@/views/lab/ModuleFaults";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
 import { ProbeManager } from "@/views/lab/ProbeManager";
 import { RangeScanner } from "@/views/lab/RangeScanner";
+import { useT } from "@/i18n";
 
 /// Manufacturer-specific diagnostics (UDS beyond standard OBD2). Reads plus
 /// one write: the fault clear in ModuleFaults, which runs on the write
@@ -13,6 +14,7 @@ import { RangeScanner } from "@/views/lab/RangeScanner";
 /// This component just owns the module selection shared across every card;
 /// each card is its own focused component under `views/lab/`.
 export function Lab({ connected }: { connected: boolean }) {
+  const t = useT();
   const modulesQuery = useUdsModules();
   const modules = modulesQuery.data ?? [];
   const [mod, setMod] = useState("engine");
@@ -23,17 +25,17 @@ export function Lab({ connected }: { connected: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold tracking-tight">Lab</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t.lab.title}</h1>
         <div className="flex items-center gap-2">
           <select
-            aria-label="Module"
+            aria-label={t.lab.moduleAriaLabel}
             className="h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             value={mod}
             onChange={(e) => setMod(e.target.value)}
           >
             {modules.map((m) => (
               <option key={m.key} value={m.key}>
-                {m.label} ({m.req}→{m.resp}){m.builtin ? "" : " · custom"}
+                {m.label} ({m.req}→{m.resp}){m.builtin ? "" : t.lab.customSuffix}
               </option>
             ))}
           </select>
@@ -42,12 +44,7 @@ export function Lab({ connected }: { connected: boolean }) {
           )}
         </div>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Manufacturer-specific reads (UDS service 22) to modules beyond standard OBD. The only thing here that can
-        change the car is the fault clear in Module faults, and it runs behind a confirmation and lands in the write
-        history. Identified values become recorded probes. The four built-in modules use PSA/Citroën/Peugeot
-        addresses. On any other brand, add your own module below with your ECU's CAN IDs.
-      </p>
+      <p className="text-sm text-muted-foreground">{t.lab.explainer}</p>
 
       <ModuleManager />
       <DidReader module={mod} connected={connected} />

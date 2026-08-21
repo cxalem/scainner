@@ -7,6 +7,7 @@ export const es: Dictionary = {
     close: "Cerrar",
     copy: "Copiar",
     copied: "Copiado",
+    copying: "Copiando…",
     save: "Guardar",
   },
   shell: {
@@ -228,6 +229,113 @@ export const es: Dictionary = {
       estimateNote: "Incluye el ralentí. Datos de la ECU, ±5-10%.",
       tankAriaLabel: (pct, status) => `Depósito de combustible al ${pct} por ciento, ${status}`,
       status: { reserve: "Reserva", low: "Bajo", full: "Lleno", good: "Bien" },
+    },
+  },
+  lab: {
+    title: "Laboratorio",
+    moduleAriaLabel: "Módulo",
+    customSuffix: " · personalizado",
+    explainer:
+      "Lecturas específicas del fabricante (servicio UDS 22) a módulos más allá del OBD estándar. Lo único que puede cambiar el coche aquí es el borrado de averías en Averías del módulo, y pasa por una confirmación y queda en el historial de escrituras. Los valores identificados se convierten en sondas guardadas. Los cuatro módulos integrados usan direcciones PSA/Citroën/Peugeot. En cualquier otra marca, añade tu propio módulo abajo con los CAN ID de tu ECU.",
+    didReader: {
+      cardTitle: "Leer un DID",
+      didAriaLabel: "DID (hex)",
+      reading: "Leyendo…",
+      read: "Leer",
+      noAnswer: "Sin respuesta (DID no admitido o rechazado).",
+    },
+    moduleFaults: {
+      cardTitle: "Averías del módulo",
+      explainerBefore: "Averías guardadas en el propio módulo seleccionado. Los códigos que empiezan por ",
+      explainerAfter:
+        ' son fallos de comunicación, y los escaneos suelen dejarlos ahí (el módulo se queda callado mientras nos responde, y sus vecinos registran "se perdió el contacto"). Son inofensivos y esperables.',
+      reading: "Leyendo…",
+      readFaults: "Leer averías",
+      clearing: "Borrando…",
+      clearFaults: (n) => `Borrar ${n} avería${n === 1 ? "" : "s"}…`,
+      noFaultsStored: "No hay averías guardadas en este módulo.",
+      confirm: {
+        title: "¿Borrar averías del módulo?",
+        whatChanges:
+          "Esto borra todos los códigos de avería guardados en este módulo. La app vuelve a leer el módulo justo después, así que el resultado queda verificado, y la escritura se guarda en el historial de escrituras en Diagnóstico.",
+        reversal:
+          "No. Los códigos borrados no se pueden recuperar. Aun así es seguro hacerlo: los códigos recién leídos quedan guardados en el historial de escrituras, y una avería que siga presente se volverá a reportar por sí sola.",
+        confirmLabel: "Sí, borrar",
+      },
+      refused: "El módulo rechazó el comando de borrado. No se cambió nada.",
+      clearedVerified: (before) =>
+        `Borrado y verificado: ${before === 0 ? "ninguna avería" : before === 1 ? "1 avería" : `${before} averías`} antes, ninguna queda.`,
+      clearedButCameBack: (before, after) =>
+        `Se borraron ${before}, pero ${after} volvieron enseguida. Son averías activas, no residuos, y merece la pena investigarlas.`,
+      was: (codes) => `antes: ${codes}`,
+      stillPresent: (codes) => `sigue: ${codes}`,
+      dashboardLightNote:
+        "Si un testigo del salpicadero sigue encendido: vive en módulos que este dongle no puede alcanzar (BSI/cuadro) y se apaga solo tras un ciclo de contacto. Motor apagado, espera un minuto, arranca de nuevo. No hace falta nada más.",
+    },
+    moduleManager: {
+      cardTitle: "Módulos",
+      addModule: "Añadir módulo",
+      couldNotLoad: "No se pudieron cargar los módulos.",
+      builtin: "integrado",
+      custom: "personalizado",
+      addExplainer:
+        "Busca los CAN ID de petición/respuesta UDS de tu coche (foros de car-hacking, proyectos de comunidad para tu marca; consulta el README) y añádelos aquí. Se aplican las mismas reglas de solo lectura.",
+      fieldName: "Nombre",
+      fieldNamePlaceholder: "p. ej. TCM",
+      fieldKey: "Clave (única)",
+      fieldReq: "CAN ID de petición (hex)",
+      fieldResp: "CAN ID de respuesta (hex)",
+      saving: "Guardando…",
+      save: "Guardar",
+      removing: "eliminando…",
+      remove: "eliminar",
+    },
+    probeManager: {
+      newProbeTitle: (did, module) => `Sonda nueva del DID ${did} en ${module}`,
+      saving: "Guardando…",
+      saveProbe: "Guardar sonda",
+      recordedCardTitle: "Sondas guardadas (leídas cada ~30 s mientras estás conectado)",
+      couldNotLoad: "No se pudieron cargar las sondas.",
+      noneYet: "Todavía ninguna: escanea, encuentra algo interesante, conviértelo en sonda.",
+      disable: "desactivar",
+      enable: "activar",
+      delete: "eliminar",
+    },
+    rangeScanner: {
+      cardTitle: "Escanear un rango de DID",
+      fromAriaLabel: "Desde DID (hex)",
+      toAriaLabel: "Hasta DID (hex)",
+      to: "hasta",
+      scanning: "Escaneando…",
+      scanningWithCount: (n) => `Escaneando… (${n} encontrados)`,
+      scan: "Escanear",
+      scanningChunk: (from, to, hitsSoFar) => `escaneando ${from}–${to}… (${hitsSoFar} encontrados hasta ahora)`,
+      scanDone: (n) =>
+        `listo: ${n} DID respondieron. Aviso: los escaneos pueden dejar avisos temporales de "pérdida de comunicación" en el salpicadero; un ciclo de contacto los borra (ver Averías del módulo más abajo).`,
+      checkingProgress: (did, current, total) => `comprobando ${did}… ${current}/${total} en este bloque`,
+      noAnswersYetNote: " — todavía sin respuestas; algunos módulos se quedan callados en todo un rango, es normal",
+      probeAction: "→ sonda",
+    },
+  },
+  vehicle: {
+    title: "Vehículo",
+    identity: {
+      cardTitle: "Identidad",
+      couldNotLoad: "No se pudo cargar la identidad del vehículo.",
+      nothingReadYet: "Todavía no se ha leído nada: conecta y lee la ECU.",
+      reading: "Leyendo…",
+      readFromEcu: "Leer de la ECU",
+    },
+    data: {
+      cardTitle: "Datos",
+      storedLocally: "Todo se guarda localmente en SQLite. Apunta cualquier herramienta (o una sesión de IA) a:",
+      couldNotReadDbPath: "No se pudo leer la ruta de la base de datos.",
+      copyAiBriefing: "Copiar resumen para IA",
+      copiedAiBriefing: "Copiado: pégalo en cualquier IA",
+      copyRawJson24h: "JSON en bruto, 24h",
+      copyRawJson30d: "JSON en bruto, 30d",
+      briefingExplainer:
+        "El resumen para IA es un markdown legible con la identidad del coche, los escaneos recientes con sus freeze frames y las estadísticas de sensores, pensado para pegarlo directamente en un chat.",
     },
   },
   discoveryFlow: {
