@@ -570,7 +570,20 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
             let _ = tx.send(obd::readiness(drv));
         }
         Request::AllSensors(tx) => {
-            let _ = tx.send(obd::read_all_sensors(drv));
+            // Persist the sweep, not just display it: the full-catalog
+            // sweep is exactly the "which sensors does THIS car actually
+            // answer" map, and before this it evaporated with the UI. As
+            // plain readings rows it lands per-vehicle, feeds the reports,
+            // and rides the cloud sync like everything else. The map
+            // itself is then just DISTINCT keys for the vehicle joined
+            // against parser.rs's static FULL_PIDS catalog.
+            let res = obd::read_all_sensors(drv).map(|list| {
+                for s in &list {
+                    db.insert_reading(ctx.connection_id, ctx.vehicle_id, &s.key, s.value);
+                }
+                list
+            });
+            let _ = tx.send(res);
         }
         Request::UdsRead { module, did, tx } => {
             let _ = tx.send(uds::read_one(drv, db, &module, did));
