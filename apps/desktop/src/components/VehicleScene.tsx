@@ -36,13 +36,16 @@ import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.j
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import { brandFromVin } from "@/lib/brand";
+import { STUDIO_LIGHTING, VEHICLE_MATERIALS } from "@/theme";
 import { EMBLEMS, NameplateEmblem } from "./emblems";
 import { EmblemStarfield } from "./EmblemStarfield";
 
 export type SceneStatus = "disconnected" | "connecting" | "connected";
 
-const DEFAULT_TINT = "#e3e5e8"; // near-white — shows the texture close to its native grayscale until a real color is picked
-const PULSE_COLOR = "#2b2f36";
+// Sourced from ../theme/rendering.ts (VEHICLE_MATERIALS) — see that file's
+// header for why 3D-layer color constants live there instead of index.css.
+const DEFAULT_TINT = VEHICLE_MATERIALS.defaultTint; // near-white — shows the texture close to its native grayscale until a real color is picked
+const PULSE_COLOR = VEHICLE_MATERIALS.pulseColor;
 
 const MODEL_URL = "/models/citroen-c4.obj";
 const TEXTURE_URL = "/models/citroen-c4-diffuse-gray.jpg";
@@ -424,7 +427,7 @@ function buildStudioEnvScene(): THREE.Scene {
   // environment was void. A medium-gray backdrop gives every reflection
   // ray something plausible to hit; the panels still dominate as the
   // bright/tinted light sources.
-  scene.background = new THREE.Color(0.32, 0.34, 0.37);
+  scene.background = new THREE.Color(...STUDIO_LIGHTING.backdrop);
   const addPanel = (
     position: [number, number, number],
     rotation: [number, number, number],
@@ -440,10 +443,10 @@ function buildStudioEnvScene(): THREE.Scene {
     mesh.scale.set(...scale);
     scene.add(mesh);
   };
-  addPanel([0, 5, -2], [0, 0, 0], [8, 4, 1], new THREE.Color(2.4, 2.4, 2.4));
-  addPanel([5, 2, 3], [0, -Math.PI / 2.5, 0], [4, 3, 1], new THREE.Color(1.3, 1.5, 1.8));
-  addPanel([-5, 1.5, 3], [0, Math.PI / 2.5, 0], [4, 3, 1], new THREE.Color(1.8, 1.5, 1.2));
-  addPanel([0, -3, 0], [-Math.PI / 2, 0, 0], [10, 10, 1], new THREE.Color("#3a3a3a"));
+  addPanel([0, 5, -2], [0, 0, 0], [8, 4, 1], new THREE.Color(...STUDIO_LIGHTING.overheadPanel));
+  addPanel([5, 2, 3], [0, -Math.PI / 2.5, 0], [4, 3, 1], new THREE.Color(...STUDIO_LIGHTING.coolPanel));
+  addPanel([-5, 1.5, 3], [0, Math.PI / 2.5, 0], [4, 3, 1], new THREE.Color(...STUDIO_LIGHTING.warmPanel));
+  addPanel([0, -3, 0], [-Math.PI / 2, 0, 0], [10, 10, 1], new THREE.Color(STUDIO_LIGHTING.floorPanel));
   return scene;
 }
 
@@ -668,7 +671,7 @@ function LightDecal({
       map: tex,
       transparent: true,
       emissiveMap: tex,
-      emissive: "#ffffff",
+      emissive: VEHICLE_MATERIALS.carModelNeutral, // white multiply base — the decal's own texture supplies the real lamp color/glow
       emissiveIntensity,
       roughness: 0.35,
       side: THREE.DoubleSide,
@@ -695,7 +698,7 @@ export function StlCarModel({ status, reduced }: { status: SceneStatus; reduced:
         // Averaged from the hood-panel closeup and side-view door panel —
         // both landed within a few RGB values of each other (~#8f939c and
         // ~#a0a0a2), a real silver-gray metallic, not a guess.
-        color: "#989ba1",
+        color: VEHICLE_MATERIALS.stlBodyPaint,
         metalness: 0.35,
         roughness: 0.4,
         clearcoat: 0.55,
@@ -711,7 +714,7 @@ export function StlCarModel({ status, reduced }: { status: SceneStatus; reduced:
         // in shadow) — the isolated windshield closeup reads much lighter
         // (~#8d969c) because it's backlit through the panel in that shot,
         // which doesn't represent how the glass looks opaque on the car.
-        color: "#17191c",
+        color: VEHICLE_MATERIALS.stlGlass,
         metalness: 0.05,
         roughness: 0.08,
         clearcoat: 0.6,
@@ -809,7 +812,7 @@ function tuneGlbMaterial(mat: THREE.MeshPhysicalMaterial, atlas: THREE.Texture) 
   switch (mat.name) {
     case "Neutral Silver Automotive Paint":
       mat.map = null;
-      mat.color.setRGB(0.68, 0.7, 0.72); // neutral silver, from the generator's own untextured "neutral clean" variant
+      mat.color.setRGB(...VEHICLE_MATERIALS.glbPaint); // neutral silver, from the generator's own untextured "neutral clean" variant
       mat.metalness = 0.15;
       mat.roughness = 0.3;
       mat.clearcoat = 0.8;
@@ -821,7 +824,7 @@ function tuneGlbMaterial(mat: THREE.MeshPhysicalMaterial, atlas: THREE.Texture) 
       // behind the glass to see: dark seats/dash showing through tinted
       // glass is what makes it read as glass instead of painted panel.
       mat.map = null;
-      mat.color.setRGB(0.25, 0.28, 0.32);
+      mat.color.setRGB(...VEHICLE_MATERIALS.glbGlass);
       mat.transparent = true;
       mat.opacity = 0.58; // tinted enough that the placeholder interior reads as dark shapes, not gray blobs
       mat.depthWrite = false; // standard for alpha glass — avoids self-occlusion artifacts among the window panes
@@ -833,21 +836,21 @@ function tuneGlbMaterial(mat: THREE.MeshPhysicalMaterial, atlas: THREE.Texture) 
       break;
     case "Black Exterior Plastic":
       mat.map = null;
-      mat.color.setRGB(0.08, 0.08, 0.09);
+      mat.color.setRGB(...VEHICLE_MATERIALS.glbPlastic);
       mat.roughness = 0.6;
       mat.side = THREE.DoubleSide; // same inside-out-cluster guard as the lamps (grille inserts)
       break;
     case "Tire Rubber":
       // Real tread photo from the atlas; the multiply color keeps it near-black.
       mat.map = atlas;
-      mat.color.setRGB(0.85, 0.85, 0.85);
+      mat.color.setRGB(...VEHICLE_MATERIALS.glbTire);
       mat.metalness = 0;
       mat.roughness = 0.9;
       break;
     case "High-Fidelity Alloy and Chrome":
       // Real alloy-spoke photo from the atlas.
       mat.map = atlas;
-      mat.color.setRGB(1, 1, 1);
+      mat.color.setRGB(...VEHICLE_MATERIALS.glbAlloyChrome);
       mat.metalness = 0.5;
       mat.roughness = 0.35;
       mat.envMapIntensity = WHEEL_METAL_ENV_INTENSITY;
@@ -859,9 +862,9 @@ function tuneGlbMaterial(mat: THREE.MeshPhysicalMaterial, atlas: THREE.Texture) 
       // pixels that are genuinely bright in the source (the LEDs
       // themselves) glow — the dark housing around them stays dark.
       mat.map = atlas;
-      mat.color.setRGB(1, 1, 1);
+      mat.color.setRGB(...VEHICLE_MATERIALS.glbLampLens);
       mat.emissiveMap = atlas;
-      mat.emissive.setRGB(1, 1, 1);
+      mat.emissive.setRGB(...VEHICLE_MATERIALS.glbLampLens);
       mat.emissiveIntensity = 0.5;
       mat.roughness = 0.15;
       mat.clearcoat = 1;
@@ -1032,7 +1035,7 @@ export function CarModel({ status, color, reduced }: { status: SceneStatus; colo
   const glassMat = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        color: "#0d1116",
+        color: VEHICLE_MATERIALS.carModelGlass,
         metalness: 0.05,
         roughness: 0.08,
         clearcoat: 0.6,
@@ -1049,11 +1052,24 @@ export function CarModel({ status, color, reduced }: { status: SceneStatus; colo
   // never tints them, differing only in how each responds to light — rim
   // bright and metallic, tire dark and matte.
   const rimMat = useMemo(
-    () => new THREE.MeshPhysicalMaterial({ map: baseTex, color: "#ffffff", metalness: 0.7, roughness: 0.35, envMapIntensity: 0.9 }),
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        map: baseTex,
+        color: VEHICLE_MATERIALS.carModelNeutral,
+        metalness: 0.7,
+        roughness: 0.35,
+        envMapIntensity: 0.9,
+      }),
     [baseTex],
   );
   const tireMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ map: baseTex, color: "#ffffff", metalness: 0, roughness: 0.95 }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        map: baseTex,
+        color: VEHICLE_MATERIALS.carModelNeutral,
+        metalness: 0,
+        roughness: 0.95,
+      }),
     [baseTex],
   );
 
@@ -1068,9 +1084,9 @@ export function CarModel({ status, color, reduced }: { status: SceneStatus; colo
     () =>
       new THREE.MeshStandardMaterial({
         map: baseTex,
-        color: "#ffffff",
+        color: VEHICLE_MATERIALS.carModelNeutral,
         emissiveMap: baseTex,
-        emissive: "#ff2a2a",
+        emissive: VEHICLE_MATERIALS.tailEmissive,
         emissiveIntensity: 1.1,
         roughness: 0.3,
         metalness: 0,
@@ -1081,9 +1097,9 @@ export function CarModel({ status, color, reduced }: { status: SceneStatus; colo
     () =>
       new THREE.MeshStandardMaterial({
         map: baseTex,
-        color: "#ffffff",
+        color: VEHICLE_MATERIALS.carModelNeutral,
         emissiveMap: baseTex,
-        emissive: "#eaf1ff",
+        emissive: VEHICLE_MATERIALS.headEmissive,
         emissiveIntensity: 0.7,
         roughness: 0.25,
         metalness: 0.1,
@@ -1280,7 +1296,7 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
             just "visible." This is most of what reads as premium in the
             Faraday case photos: a crisp edge highlight against a dark body,
             not the flat/broad fill lighting a plain 3-light rig gives you. */}
-        <directionalLight position={[-2, 1.5, -4]} intensity={0.9} color="#dfe8ff" />
+        <directionalLight position={[-2, 1.5, -4]} intensity={0.9} color={STUDIO_LIGHTING.rimLight} />
         <StudioEnvironment />
         {/* Brand emblem is the active model (scalable to any connected
             car); GlbCarModel above is the bespoke C4 — swap back here if

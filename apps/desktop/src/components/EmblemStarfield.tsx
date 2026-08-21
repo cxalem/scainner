@@ -7,8 +7,9 @@
 // (softer, since this sits behind a chrome badge rather than plain text),
 // and run far slower — this is ambient dust, not a hyperspace effect.
 import { useEffect, useRef } from "react";
+import { PARTICLE_PALETTE } from "@/theme";
 
-const PALETTE = ["#fff6e6", "#f0e6d2", "#c9b995"];
+const PALETTE = PARTICLE_PALETTE.dust;
 const COLOR_WEIGHTS = [0.3, 0.4, 0.3];
 const SIZE_WEIGHTS = [0.62, 0.24, 0.09, 0.05]; // fraction of particles at each size below
 const SIZES = [1, 1.6, 2.3, 3];
@@ -74,8 +75,8 @@ export function EmblemStarfield({ total = 70 }: { total?: number }) {
     let raf = 0;
     function draw() {
       const g = ctx!.createLinearGradient(0, 0, width, height);
-      g.addColorStop(0, "#181614");
-      g.addColorStop(1, "#221f1b");
+      g.addColorStop(0, PARTICLE_PALETTE.backgroundGradient[0]);
+      g.addColorStop(1, PARTICLE_PALETTE.backgroundGradient[1]);
       ctx!.fillStyle = g;
       ctx!.fillRect(0, 0, width, height);
 
