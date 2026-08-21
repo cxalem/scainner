@@ -410,4 +410,10 @@ export const en: Dictionary = {
       readings: "Readings",
     },
   },
+  updater: {
+    available: (version) => `Version ${version} is available.`,
+    install: "Install and restart",
+    installing: "Installing…",
+    failed: "Could not install the update. Try again later.",
+  },
 };

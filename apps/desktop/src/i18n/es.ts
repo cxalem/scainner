@@ -418,4 +418,10 @@ export const es: Dictionary = {
       readings: "Lecturas",
     },
   },
+  updater: {
+    available: (version) => `Hay disponible la versión ${version}.`,
+    install: "Instalar y reiniciar",
+    installing: "Instalando…",
+    failed: "No se pudo instalar la actualización. Inténtalo más tarde.",
+  },
 };

@@ -28,4 +28,10 @@ libc = "0.2.189"
 tauri-plugin-notification = "2.3.3"
 log = "0.4.33"
 env_logger = "0.11.11"
+# The auto-updater (product-plan.md's 2026-08-21 decision: ship over GitHub
+# Releases, not a self-hosted server). tauri-plugin-process supplies the
+# relaunch() the frontend calls after a downloaded update installs — without
+# it the user would have to quit and reopen the app by hand.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 

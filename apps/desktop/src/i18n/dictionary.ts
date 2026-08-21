@@ -403,4 +403,10 @@ export type Dictionary = {
       readings: string;
     };
   };
+  updater: {
+    available: (version: string) => string;
+    install: string;
+    installing: string;
+    failed: string;
+  };
 };
