@@ -6,6 +6,8 @@ import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
 import { Shell, type ViewKey } from "@/components/Shell";
 import { ConnectGate } from "@/components/ConnectGate";
+import { OnboardingGate } from "@/components/OnboardingGate";
+import { hasOnboarded, markOnboarded } from "@/lib/onboarding";
 import { Overview } from "@/views/Overview";
 import { Live } from "@/views/Live";
 import { History } from "@/views/History";
@@ -49,6 +51,10 @@ export default function App() {
   // session, even across later disconnects. Gates the blank ConnectGate
   // screen, not the Shell's own per-view "disconnected" states.
   const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
+  // Persisted (lib/onboarding.ts), unlike hasConnectedOnce above — the
+  // language-confirm screen should show once ever on this install, not
+  // once per app session.
+  const [onboarded, setOnboarded] = useState(() => hasOnboarded());
 
   useEffect(() => {
     // Warm the DiscoveryFlow chunk (it drags in three.js) while the user is
@@ -114,6 +120,17 @@ export default function App() {
 
   const connected = conn.state === "connected";
   const recording = connected && Object.keys(live).length > 0;
+
+  if (!onboarded) {
+    return (
+      <OnboardingGate
+        onDone={() => {
+          markOnboarded();
+          setOnboarded(true);
+        }}
+      />
+    );
+  }
 
   if (!hasConnectedOnce) {
     return <ConnectGate conn={conn} onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))} />;
