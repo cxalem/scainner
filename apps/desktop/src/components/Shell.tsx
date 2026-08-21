@@ -164,7 +164,14 @@ export function Shell({
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 overflow-y-auto">
+      {/* overflow-y-scroll (not -auto): every page renders through here, so
+          this is the "content shifts left all over the place" bug
+          (Alejandro, 2026-08-21) — auto only reserves the scrollbar gutter
+          once a page's content actually overflows the viewport, so the
+          instant it does everything shifts. Same fix DiscoveryFlow.tsx
+          already applied to its own scroll area, just at the app-wide
+          level this time. */}
+      <main className="min-w-0 flex-1 overflow-y-scroll">
         <div className="mx-auto max-w-4xl p-6">{children}</div>
       </main>
     </div>

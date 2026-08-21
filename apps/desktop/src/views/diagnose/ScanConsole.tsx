@@ -153,7 +153,11 @@ export function ScanConsole({
               <p className="text-sm text-muted-foreground">Click "Scan for codes" to check this vehicle.</p>
             </div>
           ) : (
-            <div className="animate-fade-slide-in flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
+            // overflow-y-scroll (not -auto): a small scan that fits without
+            // scrolling and a large one that needs to scroll would
+            // otherwise render at different widths — same gutter fix as
+            // Shell.tsx's outer scroll area, just local to this console.
+            <div className="animate-fade-slide-in flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
               <div className="flex items-center gap-2">
                 {scan.mil_on ? (
                   <Badge variant="error">CHECK ENGINE ON · {scan.dtc_count} codes</Badge>

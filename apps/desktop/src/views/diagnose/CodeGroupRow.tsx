@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { dtcInfo, type DtcInfo } from "@/lib/dtc";
 import type { DtcGroup } from "@/lib/dtc-grouping";
@@ -42,18 +42,27 @@ export function CodeGroupRow({
         type="button"
         onClick={() => collapsesByDefault && setExpanded((v) => !v)}
         className={cn(
-          "flex items-center gap-1.5 text-left text-sm font-medium",
-          collapsesByDefault ? "cursor-pointer hover:text-foreground" : "cursor-default"
+          "flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors",
+          collapsesByDefault
+            ? "cursor-pointer border border-border bg-muted/40 hover:border-primary/40 hover:bg-muted focus-visible:outline-2"
+            : "cursor-default"
         )}
         aria-expanded={expanded}
         disabled={!collapsesByDefault}
       >
         {collapsesByDefault ? (
-          expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          )
+          // One icon that rotates, not two swapped icons — reads as "this
+          // opens" rather than two unrelated static states. Boxed header +
+          // hover border + trailing label (below): collapsed groups were
+          // effectively invisible before this, easy to miss the codes
+          // inside entirely (Alejandro, 2026-08-21).
+          <ChevronRight
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none",
+              expanded && "rotate-90"
+            )}
+            aria-hidden="true"
+          />
         ) : (
           <span className={cn("h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[group.worstSeverity])} aria-hidden="true" />
         )}
@@ -61,6 +70,11 @@ export function CodeGroupRow({
         <span className="text-muted-foreground">
           ({group.codes.length} code{group.codes.length === 1 ? "" : "s"})
         </span>
+        {collapsesByDefault && (
+          <span className="ml-auto shrink-0 text-xs font-normal text-primary">
+            {expanded ? "Hide details" : "Show details"}
+          </span>
+        )}
       </button>
 
       {expanded && (
