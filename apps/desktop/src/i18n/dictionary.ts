@@ -5,15 +5,22 @@
 // framework: exactly two locales, no plural-grammar need beyond the
 // hand-written ternaries already in the code.
 //
-// Scope boundary (plan.md Phase 1 vs Phase 3): this covers UI chrome only
-// — buttons, headings, banners, short labels. Anything sourced from
-// lib/dtc.ts's content (a fault code's title/meaning/causes/symptoms, the
-// structural system/origin/subsystem names from decodeDtc(), the
-// voltage-cluster note sentence from detectVoltageCluster()) stays English
-// until Phase 3 — those are curated automotive content, not interface
-// copy, and a wrong translation there is bad real-world advice, not a
-// cosmetic miss. Grep for "Phase 3" in the components to find every
-// deliberate boundary.
+// This covers UI chrome — buttons, headings, banners, short labels.
+// DTC content (a fault code's title/meaning/causes/symptoms, the
+// structural system/origin/subsystem names, sensor/monitor labels) is
+// translated separately, in lib/dtc-codes.es.ts and
+// shared/domain/gauges.es.ts — that's curated automotive content, not
+// interface copy, so it gets its own locale-keyed data files (same
+// key-safety pattern as this dictionary) instead of living in here.
+// Content translated there is an AI-assisted first draft; per
+// docs/workflows/i18n/plan.md it still wants a native-speaker review pass
+// on the automotive terminology before it's fully trusted, same caution
+// as any technical translation, not a defect specific to this app.
+//
+// The one thing still deliberately untranslated: detectVoltageCluster()'s
+// generated note sentence (lib/dtc-grouping.ts) — its exact English text
+// is asserted by dtc-grouping.test.ts, so translating it needs the same
+// display-layer-only treatment as decodeDtc's strings, not done yet.
 export type Dictionary = {
   common: {
     cancel: string;
@@ -61,7 +68,8 @@ export type Dictionary = {
       milOn: (n: number) => string;
       milOff: string;
       clickCodeHint: string;
-      noCodesOnScan: string;
+      noFaultCodesTitle: string;
+      noFaultCodesExplainer: string;
       // Whole sentences, not fragments glued together — word order
       // differs across languages, so each locale owns the full sentence
       // rather than the component concatenating locale-specific pieces.

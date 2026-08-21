@@ -47,7 +47,8 @@ export const es: Dictionary = {
       milOn: (n) => `TESTIGO DE AVERÍA ENCENDIDO · ${n} códigos`,
       milOff: "Testigo apagado",
       clickCodeHint: "Pulsa cualquier código para ver detalles, su historial y un análisis con IA.",
-      noCodesOnScan: "Sin códigos en este escaneo.",
+      noFaultCodesTitle: "Sin códigos de avería",
+      noFaultCodesExplainer: "Este vehículo no tiene códigos almacenados, pendientes ni permanentes ahora mismo.",
       clearedVerified: (before) =>
         `Borrado y verificado: ${before === 0 ? "sin códigos" : `${before} código${before === 1 ? "" : "s"}`} antes, ninguno restante.`,
       clearedButCameBack: (after) =>

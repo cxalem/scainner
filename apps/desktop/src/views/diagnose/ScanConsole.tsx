@@ -170,32 +170,48 @@ export function ScanConsole({
               <VoltageClusterNote scan={scan} />
               {scan.freeze && <FreezeFrame data={scan.freeze as Record<string, unknown>} />}
 
-              {/* overflow-y-scroll (not -auto): a small scan that fits
-                  without scrolling and a large one that needs to scroll
-                  would otherwise render at different widths — same gutter
-                  fix as Shell.tsx's outer scroll area, just local here. */}
-              <div className="flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
-                <CodeStatusSection
-                  label={t.diagnose.statusLabels.stored}
-                  codes={scan.stored}
-                  affected={voltageAffected}
-                  onSelect={onSelect}
-                />
-                <CodeStatusSection
-                  label={t.diagnose.statusLabels.pending}
-                  codes={scan.pending}
-                  affected={voltageAffected}
-                  onSelect={onSelect}
-                />
-                <CodeStatusSection
-                  label={t.diagnose.statusLabels.permanent}
-                  codes={scan.permanent}
-                  affected={voltageAffected}
-                  onSelect={onSelect}
-                />
-                {totalCodes === 0 && <p className="text-sm text-muted-foreground">{t.diagnose.console.noCodesOnScan}</p>}
-                <p className="text-xs text-muted-foreground">{t.diagnose.console.clickCodeHint}</p>
-              </div>
+              {totalCodes === 0 ? (
+                // A real empty state, not a stray line of text inside an
+                // otherwise-empty 26rem box — this is what it looked like
+                // right after a successful clear (Alejandro, 2026-08-21:
+                // "the space looks empty, looks weird... we need
+                // information for the empty state"). Centered like the
+                // idle/scanning states above, and this is a GOOD outcome
+                // (a clean car), so it reads as confirmation, not as
+                // something broken.
+                <div className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center">
+                  <CheckCircle2 className="mb-1 h-6 w-6 text-primary" aria-hidden="true" />
+                  <p className="text-sm font-medium">{t.diagnose.console.noFaultCodesTitle}</p>
+                  <p className="text-sm text-muted-foreground">{t.diagnose.console.noFaultCodesExplainer}</p>
+                </div>
+              ) : (
+                // overflow-y-scroll (not -auto): a small scan that fits
+                // without scrolling and a large one that needs to scroll
+                // would otherwise render at different widths — same
+                // gutter fix as Shell.tsx's outer scroll area, just local
+                // here.
+                <div className="flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
+                  <CodeStatusSection
+                    label={t.diagnose.statusLabels.stored}
+                    codes={scan.stored}
+                    affected={voltageAffected}
+                    onSelect={onSelect}
+                  />
+                  <CodeStatusSection
+                    label={t.diagnose.statusLabels.pending}
+                    codes={scan.pending}
+                    affected={voltageAffected}
+                    onSelect={onSelect}
+                  />
+                  <CodeStatusSection
+                    label={t.diagnose.statusLabels.permanent}
+                    codes={scan.permanent}
+                    affected={voltageAffected}
+                    onSelect={onSelect}
+                  />
+                  <p className="text-xs text-muted-foreground">{t.diagnose.console.clickCodeHint}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

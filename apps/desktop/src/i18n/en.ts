@@ -47,7 +47,8 @@ export const en: Dictionary = {
       milOn: (n) => `CHECK ENGINE ON · ${n} codes`,
       milOff: "MIL off",
       clickCodeHint: "Click any code for details, its history, and an AI deep-dive.",
-      noCodesOnScan: "No codes on this scan.",
+      noFaultCodesTitle: "No fault codes",
+      noFaultCodesExplainer: "This vehicle has no stored, pending, or permanent codes right now.",
       clearedVerified: (before) =>
         `Cleared and verified: ${before === 0 ? "no" : before} code${before === 1 ? "" : "s"} before, none remaining.`,
       clearedButCameBack: (after) =>
