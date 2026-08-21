@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, Skeleton } from "@/components/ui";
 import { GAUGES, RANGES, gaugeLabel, statLabel } from "@/shared/domain/gauges";
-import { useCarReport, useReportCars } from "@/features/vehicle/queries";
+import { useVehicleReport, useVehicles } from "@/features/vehicle/queries";
 import { useHistoryPoints, useReadingKeys } from "@/features/history/queries";
 import { useLocale, useT } from "@/i18n";
 
@@ -96,27 +96,22 @@ function TrendChart() {
   );
 }
 
-export function History({ connState = "disconnected", vin: connectedVin = null }: { connState?: string; vin?: string | null }) {
+export function History({ connState = "disconnected", vehicleId: connectedVehicleId = null }: { connState?: string; vehicleId?: number | null }) {
   const t = useT();
   const { locale } = useLocale();
   const [statWindow, setStatWindow] = useState<"7d" | "all">("7d");
-  const carsQuery = useReportCars();
-  // Always defaulted to "whichever car has the most recorded history" with
-  // zero awareness of what's actually connected right now — didn't even
-  // receive connState/vin as props before. Caught live 2026-08-21: a real
-  // ~2000 Peugeot connected and recorded real sessions, but History kept
-  // showing the Citroën's report the entire time, same bug class as
-  // Overview.tsx had (see that file's history). Falling back to the
-  // busiest car is still the right call when nothing is connected right
-  // now (browsing past history) — just not while actively connected with
-  // an identity that couldn't be determined, same guard Overview uses.
-  const firstVin = connState === "connected" ? connectedVin : (connectedVin ?? carsQuery.data?.[0]?.[0] ?? null);
-  const reportQuery = useCarReport(firstVin);
+  const vehiclesQuery = useVehicles();
+  // While connected: strictly the connected vehicle (null = unidentified,
+  // show nothing rather than another car's history — the live 2026-08-21
+  // bug class). While browsing disconnected: default to the busiest car.
+  const vehicleId =
+    connState === "connected" ? connectedVehicleId : (connectedVehicleId ?? vehiclesQuery.data?.[0]?.id ?? null);
+  const reportQuery = useVehicleReport(vehicleId);
   const report = reportQuery.data ?? null;
-  // A disabled query (no car yet, so useCarReport(null) never runs) still
-  // reports isPending — gate on firstVin so an empty DB shows the real
-  // empty-state copy instead of skeletons that never resolve.
-  const reportLoading = carsQuery.isPending || (firstVin !== null && reportQuery.isPending);
+  // A disabled query (no vehicle, so useVehicleReport(null) never runs)
+  // still reports isPending — gate on vehicleId so an empty DB shows the
+  // real empty-state copy instead of skeletons that never resolve.
+  const reportLoading = vehiclesQuery.isPending || (vehicleId !== null && reportQuery.isPending);
 
   const stats = report ? (statWindow === "7d" ? report.stats_7d : report.stats_all) : [];
 

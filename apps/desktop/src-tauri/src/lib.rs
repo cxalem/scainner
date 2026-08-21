@@ -95,9 +95,7 @@ fn conn_status(state: tauri::State<AppState>) -> ConnStatus {
         .map(|s| lock_or_recover(&s.status).clone())
         .unwrap_or(ConnStatus {
             state: "disconnected".into(),
-            elm_version: None,
-            detail: None,
-            vin: None,
+            ..Default::default()
         })
 }
 
@@ -202,18 +200,36 @@ fn reading_keys(state: tauri::State<AppState>) -> Vec<String> {
 }
 
 #[tauri::command]
-fn report_cars(state: tauri::State<AppState>) -> Vec<(String, i64)> {
-    state.db.report_cars()
+fn list_vehicles(state: tauri::State<AppState>) -> Vec<db::VehicleListRow> {
+    state.db.list_vehicles()
 }
 
 #[tauri::command]
-fn car_report(state: tauri::State<AppState>, vin: String) -> db::CarReport {
-    state.db.car_report(&vin)
+fn vehicle_report(state: tauri::State<AppState>, vehicle_id: i64) -> db::CarReport {
+    state.db.vehicle_report(vehicle_id)
 }
 
 #[tauri::command]
-fn set_fuel_price(state: tauri::State<AppState>, price: f64) {
-    state.db.set_car_info("fuel_price", &format!("{price}"));
+fn vehicle_info(state: tauri::State<AppState>, vehicle_id: i64) -> Option<db::Vehicle> {
+    state.db.vehicle(vehicle_id)
+}
+
+#[tauri::command]
+fn set_vehicle_name(state: tauri::State<AppState>, vehicle_id: i64, name: String) {
+    state.db.set_vehicle_name(vehicle_id, name.trim());
+}
+
+/// The "name this car" flow for a live, VIN-less connection — routed through
+/// the supervisor so the connection loop can adopt the new identity and
+/// re-emit conn-status (see Request::NameVehicle).
+#[tauri::command]
+fn name_current_vehicle(state: tauri::State<AppState>, name: String) -> Result<i64, String> {
+    ask(&state, |tx| Request::NameVehicle { name, tx })
+}
+
+#[tauri::command]
+fn set_fuel_price(state: tauri::State<AppState>, vehicle_id: i64, price: f64) {
+    state.db.set_fuel_price(vehicle_id, price);
 }
 
 #[tauri::command]
@@ -236,14 +252,11 @@ fn toggle_probe(state: tauri::State<AppState>, id: i64, enabled: bool) {
     state.db.toggle_probe(id, enabled)
 }
 
+/// Scan history for one vehicle; `None` means "the current unidentified
+/// connection's scans" (vehicle_id IS NULL rows), never "everything."
 #[tauri::command]
-fn dtc_history(state: tauri::State<AppState>, limit: i64) -> Vec<db::DtcScan> {
-    state.db.dtc_history(limit)
-}
-
-#[tauri::command]
-fn car_info(state: tauri::State<AppState>) -> Vec<(String, String)> {
-    state.db.car_info()
+fn dtc_history(state: tauri::State<AppState>, vehicle_id: Option<i64>, limit: i64) -> Vec<db::DtcScan> {
+    state.db.dtc_history(vehicle_id, limit)
 }
 
 #[tauri::command]
@@ -264,23 +277,29 @@ fn db_path(app: tauri::AppHandle) -> String {
 /// Markdown briefing about the car, ready to paste into any AI chat.
 #[tauri::command]
 fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, since_hours: f64) -> String {
-    let info = state.db.car_info();
-    let scans = state.db.dtc_history(5);
+    let vehicles = state.db.list_vehicles();
+    let scans = state.db.dtc_history_all(5);
     let stats = state.db.key_stats(since_hours);
-    let sessions = state.db.session_count();
+    let sessions = state.db.connection_count();
     let days = since_hours / 24.0;
 
-    let mut md = String::from("# Car diagnostic briefing (Scainner export)\n\n## Vehicle\n\n");
+    let mut md = String::from("# Car diagnostic briefing (Scainner export)\n\n## Vehicles\n\n");
     // Deliberately no hardcoded car description here — Scainner works on any
     // car (see README "Bring your own car"), so the briefing only claims what
-    // was actually read from the connected ECU.
-    if info.is_empty() {
-        md.push_str("(ECU not read yet — connect and use \"Read from ECU\" in the Vehicle tab.)\n");
+    // was actually read from (or the user named for) each connected vehicle.
+    if vehicles.is_empty() {
+        md.push_str("(No vehicle recorded yet — connect to a car first.)\n");
     }
-    for (k, v) in &info {
-        md.push_str(&format!("- {k}: `{v}`\n"));
+    for v in &vehicles {
+        let identity = match (&v.display_name, &v.vin) {
+            (Some(name), Some(vin)) => format!("{name} (VIN {vin})"),
+            (Some(name), None) => format!("{name} (no VIN — ECU predates Mode 09 or never answered)"),
+            (None, Some(vin)) => format!("VIN {vin}"),
+            (None, None) => "unnamed vehicle".to_string(),
+        };
+        md.push_str(&format!("- #{}: {} — {} connection(s)\n", v.id, identity, v.connections));
     }
-    md.push_str(&format!("- Recorded sessions total: {sessions}\n\n"));
+    md.push_str(&format!("- Recorded connections total: {sessions}\n\n"));
 
     md.push_str("## Latest DTC scans (newest first)\n\n");
     if scans.is_empty() {
@@ -311,7 +330,7 @@ fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, since_hours:
         ));
     }
     md.push_str(&format!(
-        "\nRaw SQLite (full history): `{}` — tables: sessions, readings(ts,key,value), dtc_scans, car_info.\n",
+        "\nRaw SQLite (full history): `{}` — tables: vehicles, connections, readings(ts,key,value,vehicle_id), dtc_scan_events, dtc_codes.\n",
         data_db_path(&app).display()
     ));
     md
@@ -356,7 +375,6 @@ pub fn run() {
             read_ecu_info,
             readiness,
             dtc_history,
-            car_info,
             history,
             export_json,
             db_path,
@@ -373,8 +391,11 @@ pub fn run() {
             writes_log,
             list_probes,
             reading_keys,
-            report_cars,
-            car_report,
+            list_vehicles,
+            vehicle_report,
+            vehicle_info,
+            set_vehicle_name,
+            name_current_vehicle,
             set_fuel_price,
             add_probe,
             delete_probe,

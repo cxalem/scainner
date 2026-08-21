@@ -172,7 +172,12 @@ export const es: Dictionary = {
     noDataYetExplainer: "Conecta y conduce: el informe se genera solo a partir de las sesiones registradas.",
     unknownVehicle: "Conectado, pero no se pudo identificar este vehículo",
     unknownVehicleExplainer:
-      "Lo estamos grabando todo en directo (mira En vivo y Diagnóstico), pero este coche no respondió a la solicitud del VIN, algo habitual en vehículos antiguos. No hay informe de historial hasta que se pueda identificar.",
+      "Lo estamos grabando todo en directo (mira En vivo y Diagnóstico), pero este coche no respondió a la solicitud del VIN, algo habitual en vehículos antiguos. Ponle un nombre para empezar a construir su historial.",
+    nameVehicleLabel: "Nombre del vehículo",
+    nameVehiclePlaceholder: "p. ej. El Peugeot viejo",
+    nameVehicleAction: "Ponle nombre",
+    namingVehicle: "Guardando…",
+    nameVehicleFailed: "No se pudo guardar el nombre. Inténtalo de nuevo.",
     couldNotLoadReport: "No se pudo cargar el informe de este coche.",
     stats: { sessions: "Sesiones", engineTime: "Tiempo de motor", readings: "Lecturas", scansClean: "Escaneos limpios" },
     health: {

@@ -12,7 +12,7 @@
 import { Context, Effect, type ParseResult } from "effect";
 import type { InvokeError } from "../errors";
 import type { ConnStatus } from "../schema/connection";
-import type { CarReport, EcuInfo } from "../schema/vehicle";
+import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/vehicle";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
 import type { ClearOutcome, UdsHit, UdsModule, UdsProbe } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
@@ -25,15 +25,20 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly connStatus: () => Effect.Effect<ConnStatus, InvokeError | ParseResult.ParseError>;
     readonly connect: () => Effect.Effect<void, InvokeError>;
     readonly disconnect: () => Effect.Effect<void, InvokeError>;
-    // vehicle / report
-    readonly reportCars: () => Effect.Effect<[string, number][], InvokeError>;
-    readonly carReport: (vin: string) => Effect.Effect<CarReport, InvokeError | ParseResult.ParseError>;
-    readonly carInfo: () => Effect.Effect<[string, string][], InvokeError>;
+    // vehicle / report (schema v2: keyed by vehicle id, never by VIN string)
+    readonly listVehicles: () => Effect.Effect<VehicleListRow[], InvokeError | ParseResult.ParseError>;
+    readonly vehicleReport: (vehicleId: number) => Effect.Effect<CarReport, InvokeError | ParseResult.ParseError>;
+    readonly vehicleInfo: (vehicleId: number) => Effect.Effect<VehicleInfo | null, InvokeError | ParseResult.ParseError>;
+    readonly setVehicleName: (vehicleId: number, name: string) => Effect.Effect<void, InvokeError>;
+    /// The "name this car" flow for a live VIN-less connection; resolves to
+    /// the new vehicle id (the supervisor re-emits conn-status itself).
+    readonly nameCurrentVehicle: (name: string) => Effect.Effect<number, InvokeError>;
     readonly readEcuInfo: () => Effect.Effect<EcuInfo, InvokeError | ParseResult.ParseError>;
     readonly dbPath: () => Effect.Effect<string, InvokeError>;
-    readonly setFuelPrice: (price: number) => Effect.Effect<void, InvokeError>;
-    // dtc
-    readonly dtcHistory: (limit: number) => Effect.Effect<DtcScanRow[], InvokeError | ParseResult.ParseError>;
+    readonly setFuelPrice: (vehicleId: number, price: number) => Effect.Effect<void, InvokeError>;
+    // dtc — vehicleId null means "the current unidentified connection's
+    // scans," never "everything in the database."
+    readonly dtcHistory: (vehicleId: number | null, limit: number) => Effect.Effect<DtcScanRow[], InvokeError | ParseResult.ParseError>;
     readonly scanDtcs: () => Effect.Effect<DtcResult, InvokeError | ParseResult.ParseError>;
     readonly readiness: () => Effect.Effect<Record<string, boolean>, InvokeError>;
     readonly clearDtcs: () => Effect.Effect<ObdClearOutcome, InvokeError | ParseResult.ParseError>;

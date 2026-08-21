@@ -18,14 +18,16 @@ import { formatVoltage } from "@/lib/format";
 // which is what was actually overflowing the card at 80+ codes.
 const HISTORY_ROW_CODE_LIMIT = 8;
 
-export function Diagnose({ connected }: { connected: boolean }) {
+export function Diagnose({ connected, vehicleId = null }: { connected: boolean; vehicleId?: number | null }) {
   const t = useT();
   const { locale } = useLocale();
   const [scan, setScan] = useState<DtcResult | null>(null);
   const [readiness, setReadiness] = useState<Record<string, boolean> | null>(null);
   const [detailCode, setDetailCode] = useState<string | null>(null);
 
-  const historyQuery = useDtcHistory();
+  // Scoped to the connected vehicle (schema v2) — null means the current
+  // unidentified connection's own scans, never every car's combined.
+  const historyQuery = useDtcHistory(vehicleId);
   const history = historyQuery.data ?? [];
 
   const handleScanSuccess = (scanResult: DtcResult, readinessResult: Record<string, boolean> | null) => {

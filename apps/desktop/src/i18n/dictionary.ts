@@ -178,6 +178,13 @@ export type Dictionary = {
     noDataYetExplainer: string;
     unknownVehicle: string;
     unknownVehicleExplainer: string;
+    // The "name this car" flow: a VIN-less vehicle (pre-Mode-09 ECU) gets
+    // its identity from the user instead — see data-core plan.md.
+    nameVehicleLabel: string;
+    nameVehiclePlaceholder: string;
+    nameVehicleAction: string;
+    namingVehicle: string;
+    nameVehicleFailed: string;
     couldNotLoadReport: string;
     stats: { sessions: string; engineTime: string; readings: string; scansClean: string };
     health: {

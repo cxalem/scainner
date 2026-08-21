@@ -4,13 +4,30 @@ import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
 import { Bot, Car, Copy, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useTransientLabel } from "@/components/ui";
-import { useCarInfo, useDbPath, useReadEcuInfo } from "@/features/vehicle/queries";
+import { useDbPath, useReadEcuInfo, useVehicleInfo } from "@/features/vehicle/queries";
 import { useT } from "@/i18n";
 
-export function Vehicle({ connected }: { connected: boolean }) {
+export function Vehicle({ connected, vehicleId = null }: { connected: boolean; vehicleId?: number | null }) {
   const t = useT();
-  const infoQuery = useCarInfo();
-  const info = Object.fromEntries(infoQuery.data ?? []);
+  // The vehicles row (schema v2) — a real entity, not the old global
+  // car_info key-value cache that could keep a previous car's identity.
+  const infoQuery = useVehicleInfo(vehicleId);
+  const vehicle = infoQuery.data ?? null;
+  const info: Record<string, string> = vehicle
+    ? (Object.fromEntries(
+        Object.entries({
+          name: vehicle.display_name,
+          vin: vehicle.vin,
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year != null ? String(vehicle.year) : null,
+          fuel_price: String(vehicle.fuel_price),
+          first_connected: vehicle.first_connected_at,
+        }).filter(([, v]) => v != null),
+      ) as Record<string, string>)
+    : {};
+  // A disabled query (vehicleId null) reports isPending forever — gate it.
+  const infoLoading = vehicleId !== null && infoQuery.isPending;
   const dbPathQuery = useDbPath();
   const readEcu = useReadEcuInfo();
 
@@ -66,7 +83,7 @@ export function Vehicle({ connected }: { connected: boolean }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2 text-sm">
-          {infoQuery.isPending ? (
+          {infoLoading ? (
             <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-full" />

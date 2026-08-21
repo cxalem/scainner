@@ -12,7 +12,7 @@ import {
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, CardSkeleton, Skeleton } from "@/components/ui";
 import type { SceneStatus } from "@/components/VehicleScene";
 import { decodeModelYear } from "@/lib/vin";
-import { useCarReport, useReportCars } from "@/features/vehicle/queries";
+import { useNameCurrentVehicle, useVehicleReport, useVehicles } from "@/features/vehicle/queries";
 import { buildVerdicts } from "@/views/overview/buildVerdicts";
 import { FuelCard } from "@/views/overview/FuelCard";
 import { useT } from "@/i18n";
@@ -27,72 +27,63 @@ const VehicleScene = lazy(() =>
 // Same reasoning, for recharts (see src/components/charts.tsx).
 const BatteryChart = lazy(() => import("@/components/charts").then((m) => ({ default: m.BatteryChart })));
 
+/** The vehicle picker label: name first (the identity for VIN-less cars),
+ * VIN as the fallback for unnamed-but-VIN'd ones. */
+function vehicleLabel(v: { vin: string | null; display_name: string | null }): string {
+  return v.display_name ?? v.vin ?? "—";
+}
+
 export function Overview({
   connState = "disconnected",
+  vehicleId: connectedVehicleId = null,
   vin: connectedVin = null,
 }: {
   connState?: string;
-  /** The currently-connected car's VIN, from App — known earlier than
-   * Overview's own report_cars fetch below, so the emblem shows the right
-   * brand on Overview's first render instead of flashing a generic badge
-   * while report_cars catches up (App resolves this in the same handler
-   * that drives connState in the first place). */
+  /** The currently-connected vehicle's id, straight from ConnStatus (schema
+   * v2) — the backend resolved it in the connect handshake, or reports null
+   * for a genuinely unidentified vehicle. Never derived from a cache. */
+  vehicleId?: number | null;
+  /** Same source, for the brand emblem (VehicleScene decodes make from it). */
   vin?: string | null;
 }) {
   const t = useT();
-  const carsQuery = useReportCars();
-  const cars = carsQuery.data ?? [];
-  const [vin, setVin] = useState<string | null>(connectedVin);
+  const vehiclesQuery = useVehicles();
+  const vehicles = vehiclesQuery.data ?? [];
+  const [vehicleId, setVehicleId] = useState<number | null>(connectedVehicleId);
+  const [draftName, setDraftName] = useState("");
+  const nameVehicle = useNameCurrentVehicle();
   const sceneStatus: SceneStatus =
     connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
 
-  // Adopt App's faster-known VIN the moment it changes (a new connect), but
-  // only ever move forward from it — report_cars below or the car picker
-  // can still take vin in a different direction afterward (a different car
-  // selected from the dropdown), this just seeds the very first paint.
+  // Adopt the connected vehicle the moment the backend resolves it; while
+  // connected with an UNIDENTIFIED vehicle, force null so the honest
+  // unknown-vehicle state renders instead of a previously-viewed car (the
+  // live bug from 2026-08-21, now enforced at the id level).
   useEffect(() => {
-    if (connectedVin) setVin(connectedVin);
-  }, [connectedVin]);
+    if (connState === "connected") setVehicleId(connectedVehicleId);
+  }, [connState, connectedVehicleId]);
 
-  // A fresh connection whose VIN genuinely couldn't be read (App.tsx's
-  // conn.vin is null — e.g. an older, pre-Mode-09 ECU, not just a
-  // transient failure) must not keep showing whatever car was on screen
-  // before. Without this, `vin` state below stays stuck on a PREVIOUS
-  // car's VIN (from an earlier connect, or the cars[0] fallback further
-  // down) and silently renders as if it were the one connected right now
-  // — exactly the bug caught live 2026-08-21 on a real ~2000 Peugeot: the
-  // Citroën's emblem and report stayed on screen the whole time it was
-  // connected. Explicitly clearing `vin` here is what lets the "unknown
-  // vehicle" branch below render honestly instead.
+  // Browsing while disconnected: default to the most-connected vehicle.
   useEffect(() => {
-    if (connState === "connected" && !connectedVin) setVin(null);
-  }, [connState, connectedVin]);
-
-  // Runs whenever the cars list resolves (fresh mount, or a background
-  // revalidation after connect/discovery invalidates it) and picks the
-  // first car when nothing more specific is known yet — but only when
-  // nothing is actively connected right now. While genuinely connected
-  // with an unknown VIN, falling back to some other car's history here
-  // would repeat the exact same bug the effect above just guarded
-  // against, just from a different trigger (this one firing on mount
-  // before the connect effect above has run yet).
-  useEffect(() => {
-    if (cars.length > 0 && !connectedVin && connState !== "connected") setVin(cars[0][0]);
+    if (vehicles.length > 0 && connState !== "connected" && vehicleId == null) setVehicleId(vehicles[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carsQuery.data, connectedVin, connState]);
+  }, [vehiclesQuery.data, connState, vehicleId]);
 
-  const effectiveVin = vin ?? connectedVin;
-  const reportQuery = useCarReport(effectiveVin);
+  const reportQuery = useVehicleReport(vehicleId);
+  const selected = vehicles.find((v) => v.id === vehicleId);
+  // Emblem source: live connection's VIN wins; a picked vehicle's stored VIN
+  // otherwise. Both real, neither a guess — null renders the generic badge.
+  const sceneVin = connState === "connected" ? connectedVin : (selected?.vin ?? null);
 
   const scene = (
     <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
-      <VehicleScene status={sceneStatus} vin={effectiveVin} />
+      <VehicleScene status={sceneStatus} vin={sceneVin} />
     </Suspense>
   );
 
-  // Still discovering whether any car exists at all — distinct from "no car
-  // found" (research.md section 2: these two used to render identically).
-  if (carsQuery.isPending) {
+  // Still discovering whether any vehicle exists at all — distinct from "no
+  // car found" (research.md section 2: these two used to render identically).
+  if (vehiclesQuery.isPending) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
@@ -107,10 +98,10 @@ export function Overview({
     );
   }
 
-  // The cars list itself failed. Without this branch a failed fetch would
-  // fall through to the "No data yet" copy below, which plan.md rule 6
-  // reserves for a successful fetch that found nothing.
-  if (carsQuery.isError && !effectiveVin) {
+  // The vehicles list itself failed. Without this branch a failed fetch
+  // would fall through to the "No data yet" copy below, which plan.md rule
+  // 6 reserves for a successful fetch that found nothing.
+  if (vehiclesQuery.isError && vehicleId == null) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
@@ -119,7 +110,7 @@ export function Overview({
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
             <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
             <p className="font-medium">{t.overview.couldNotLoadCars}</p>
-            <Button variant="outline" onClick={() => carsQuery.refetch()}>
+            <Button variant="outline" onClick={() => vehiclesQuery.refetch()}>
               {t.common.retry}
             </Button>
           </CardContent>
@@ -128,30 +119,46 @@ export function Overview({
     );
   }
 
-  // Connected right now, but this vehicle's VIN genuinely couldn't be read
-  // (App.tsx's conn.vin is null — see its doc comment) — distinct from "no
-  // car has ever been recorded" below, and checked first so it takes
-  // priority. Honest, not a guess: no brand emblem (VehicleScene already
-  // falls back to a generic nameplate for a null vin), no report from some
-  // OTHER car standing in for this one.
-  if (connState === "connected" && !effectiveVin) {
+  // Connected right now, but this vehicle couldn't be identified (no VIN —
+  // e.g. a pre-Mode-09 ECU, a real case, not hypothetical). Honest state
+  // plus the way out: name the car, which creates its vehicle row and
+  // claims everything this connection already recorded (schema v2's
+  // NameVehicle flow — the supervisor re-emits conn-status with the new
+  // identity, so this branch unmounts by itself once naming lands).
+  if (connState === "connected" && vehicleId == null) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
         {scene}
         <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <ShieldQuestion className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
             <p className="font-medium">{t.overview.unknownVehicle}</p>
             <p className="max-w-sm text-sm text-muted-foreground">{t.overview.unknownVehicleExplainer}</p>
+            <div className="flex items-center gap-2">
+              <input
+                aria-label={t.overview.nameVehicleLabel}
+                className="h-9 w-56 rounded-md border border-border bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                placeholder={t.overview.nameVehiclePlaceholder}
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+              />
+              <Button
+                onClick={() => nameVehicle.mutate({ name: draftName })}
+                disabled={draftName.trim().length === 0 || nameVehicle.isPending}
+              >
+                {nameVehicle.isPending ? t.overview.namingVehicle : t.overview.nameVehicleAction}
+              </Button>
+            </div>
+            {nameVehicle.isError && <p className="text-sm text-destructive">{t.overview.nameVehicleFailed}</p>}
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Confirmed empty: the cars fetch succeeded and found none.
-  if (!effectiveVin) {
+  // Confirmed empty: the vehicles fetch succeeded and found none.
+  if (vehicleId == null) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
@@ -208,29 +215,29 @@ export function Overview({
   const verdicts = buildVerdicts(report, t);
   // Model year only — see src/lib/vin.ts for why the full model/trim isn't
   // here too, that needs a per-brand table this app doesn't have.
-  const modelYear = decodeModelYear(report.vin);
+  const modelYear = decodeModelYear(report.vin ?? undefined);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {cars.length > 1 ? (
+        {vehicles.length > 1 ? (
           <select
             aria-label={t.overview.carAriaLabel}
             className="h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            value={vin ?? ""}
-            onChange={(e) => setVin(e.target.value)}
+            value={vehicleId}
+            onChange={(e) => setVehicleId(Number(e.target.value))}
           >
-            {cars.map(([v, n]) => (
-              <option key={v} value={v}>
-                {t.overview.carOption(v, n)}
+            {vehicles.map((v) => (
+              <option key={v.id} value={v.id}>
+                {t.overview.carOption(vehicleLabel(v), v.connections)}
               </option>
             ))}
           </select>
         ) : (
           <span className="font-mono text-xs text-muted-foreground">
             {modelYear ? `${modelYear} · ` : ""}
-            VIN {report.vin}
+            {report.display_name ?? (report.vin ? `VIN ${report.vin}` : "")}
           </span>
         )}
       </div>
@@ -289,7 +296,7 @@ export function Overview({
         </CardContent>
       </Card>
 
-      <FuelCard insights={report.insights} />
+      <FuelCard vehicleId={report.vehicle_id} insights={report.insights} />
 
       <Card>
         <CardHeader>

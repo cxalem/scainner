@@ -25,18 +25,29 @@ pub struct ConnStatus {
     pub state: String, // "disconnected" | "connecting" | "connected"
     pub elm_version: Option<String>,
     pub detail: Option<String>,
-    // The CURRENT connection's own VIN, or None if it couldn't be read this
-    // time — deliberately separate from car_info's cached `vin` row, which
-    // only updates on a successful read and therefore still holds whatever
-    // car connected last. Reading that cache as "the live car" is exactly
-    // the bug caught 2026-08-21: a failed VIN read on a real Peugeot left
-    // the app silently showing the previous car's (Citroën's) identity —
-    // brand emblem, Overview's report, everything — with nothing on screen
-    // indicating it was wrong. The frontend must key off THIS field for
-    // "what's connected right now," never the cache, and render an honest
-    // unknown-vehicle state when it's None rather than falling back to
-    // whatever car_info happens to hold.
+    // The CURRENT connection's own resolved identity — never a cache of a
+    // previous car (the exact bug caught live 2026-08-21: a failed VIN read
+    // on a real Peugeot left the app silently showing the Citroën's
+    // identity everywhere). `vin`/`vehicle_id` are None when this
+    // connection's vehicle couldn't be identified — the frontend renders an
+    // honest unknown-vehicle state then, with a "name this car" action that
+    // creates a VIN-less vehicles row (schema v2, db.rs). `vehicle_is_new`
+    // is true when THIS connect created the vehicles row — it replaces the
+    // frontend's old knownVins-snapshot comparison for triggering the
+    // first-connect discovery flow.
     pub vin: Option<String>,
+    pub vehicle_id: Option<i64>,
+    pub display_name: Option<String>,
+    pub vehicle_is_new: bool,
+}
+
+/// The live connection's identity context, threaded into every handler that
+/// records facts — schema v2's rule: every recorded fact carries
+/// `connection_id` and (when identified) `vehicle_id`.
+#[derive(Clone, Copy)]
+pub struct ConnCtx {
+    pub connection_id: i64,
+    pub vehicle_id: Option<i64>,
 }
 
 pub enum Request {
@@ -49,6 +60,10 @@ pub enum Request {
     UdsScan { module: String, from: u16, to: u16, tx: Sender<Result<Vec<uds::UdsHit>, String>> },
     UdsClear { module: String, tx: Sender<Result<uds::ClearOutcome, String>> },
     UdsModuleDtcs { module: String, tx: Sender<Result<Vec<String>, String>> },
+    /// The "name this car" flow for VIN-less vehicles: creates the vehicles
+    /// row, links the live connection, back-stamps everything it already
+    /// recorded, and re-emits conn-status with the new identity.
+    NameVehicle { name: String, tx: Sender<Result<i64, String>> },
     Stop,
 }
 
@@ -130,36 +145,22 @@ fn run_loop(
         };
         // Wake the ECU / detect protocol.
         let _ = drv.cmd("0100", Duration::from_secs(20));
-        let session_id = db.start_session(&version);
-        // Stamp the VIN so reports group sessions by car. This is the one
-        // query that decides whether the app recognizes "a new car just
-        // connected" at all (App.tsx compares this against knownVins to
-        // decide whether to run the discovery/sensor-sweep flow) — getting
-        // it wrong doesn't just mean a missing VIN, it means the whole
-        // session silently gets attributed to whatever car was connected
-        // last. Retried up to 3 times: the very first query right after the
-        // 0100 wake-up is the one most likely to land before the bus has
-        // fully settled, especially on a car this driver hasn't been tuned
-        // against before (caught live on a real Peugeot, 2026-08-21 — the
-        // single-attempt version above left car_info.vin stuck on a
-        // different, previously-connected car's VIN for the whole session,
-        // silently: no log, no error, nothing visibly wrong except every
-        // downstream thing that reads it — the brand emblem, Overview's
-        // report, the discovery flow that never ran — being quietly wrong).
+        let connection_id = db.start_connection(&version, "vgate_icar_pro");
+        // Resolve this connection's vehicle. The VIN read decides whether
+        // the app recognizes what's connected at all — retried up to 3
+        // times (the first query right after the 0100 wake-up is the one
+        // most likely to land before the bus settles), logged loudly on
+        // failure. A car whose ECU never answers Mode 09 (real case: a
+        // ~2000 Peugeot, 2026-08-21) stays unidentified: the connection
+        // records with NULL vehicle_id until the user names the car
+        // (Request::NameVehicle below) — never silently attributed to a
+        // previously-connected vehicle.
         let mut resolved_vin: Option<String> = None;
         for attempt in 1..=3 {
             match obd::query(&mut drv, "0902", "49 02 01", 15) {
                 Ok(vin_payload) => {
                     let vin = parser::decode_vin(&vin_payload);
                     if vin.len() == 17 {
-                        db.set_session_vin(session_id, &vin);
-                        // Still updates the "last known car" cache on
-                        // success — legitimately useful elsewhere (e.g. the
-                        // Overview car picker's default before anything is
-                        // connected). Just never trusted, on its own, as
-                        // proof of what's connected *right now* — see
-                        // ConnStatus.vin's doc comment.
-                        db.set_car_info("vin", &vin);
                         resolved_vin = Some(vin);
                         break;
                     }
@@ -175,16 +176,29 @@ fn run_loop(
                 std::thread::sleep(Duration::from_millis(300));
             }
         }
-        if resolved_vin.is_none() {
-            log::warn!(
-                "VIN read failed after 3 attempts — reporting this connection as an unknown vehicle rather than falling back to car_info's cached (possibly stale) vin"
-            );
-        }
+        let (vehicle_id, display_name, vehicle_is_new) = match &resolved_vin {
+            Some(vin) => {
+                let (id, created) = db.ensure_vehicle(vin);
+                db.link_connection_vehicle(connection_id, id);
+                let name = db.vehicle(id).and_then(|v| v.display_name);
+                (Some(id), name, created)
+            }
+            None => {
+                log::warn!(
+                    "VIN read failed after 3 attempts — this connection records as an unidentified vehicle until the user names it"
+                );
+                (None, None, false)
+            }
+        };
+        let mut ctx = ConnCtx { connection_id, vehicle_id };
         set_status(&app, &status, ConnStatus {
             state: "connected".into(),
             elm_version: Some(version.clone()),
             detail: None,
-            vin: resolved_vin,
+            vin: resolved_vin.clone(),
+            vehicle_id,
+            display_name,
+            vehicle_is_new,
         });
 
         let mut consecutive_failures = 0u32;
@@ -198,11 +212,37 @@ fn run_loop(
             while let Ok(req) = rx.try_recv() {
                 match req {
                     Request::Stop => {
-                        db.end_session(session_id);
+                        db.end_connection(ctx.connection_id);
                         set_status(&app, &status, ConnStatus { state: "disconnected".into(), ..Default::default() });
                         return;
                     }
-                    req => handle_request(req, &mut drv, &db, &cancel_scan, &app),
+                    // Handled inline, not in handle_request: naming mutates
+                    // the loop's own identity ctx and re-emits conn-status,
+                    // both of which live here.
+                    Request::NameVehicle { name, tx } => {
+                        let trimmed = name.trim();
+                        if trimmed.is_empty() {
+                            let _ = tx.send(Err("name is empty".into()));
+                        } else if ctx.vehicle_id.is_some() {
+                            let _ = tx.send(Err("this connection already has an identified vehicle".into()));
+                        } else {
+                            let id = db.create_vehicle_named(trimmed);
+                            db.link_connection_vehicle(ctx.connection_id, id);
+                            ctx.vehicle_id = Some(id);
+                            set_status(&app, &status, ConnStatus {
+                                state: "connected".into(),
+                                elm_version: Some(version.clone()),
+                                detail: None,
+                                vin: None,
+                                vehicle_id: Some(id),
+                                display_name: Some(trimmed.to_string()),
+                                // Naming IS this vehicle's first appearance.
+                                vehicle_is_new: true,
+                            });
+                            let _ = tx.send(Ok(id));
+                        }
+                    }
+                    req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx),
                 }
             }
 
@@ -214,7 +254,7 @@ fn run_loop(
                         let payload = parser::payload_bytes(&lines, &format!("41 {}", &pid.pid[2..]));
                         if let Some(v) = (pid.decode)(&payload) {
                             values.insert(pid.key.to_string(), v);
-                            db.insert_reading(session_id, pid.key, v);
+                            db.insert_reading(ctx.connection_id, ctx.vehicle_id, pid.key, v);
                         }
                         consecutive_failures = 0;
                     }
@@ -222,7 +262,7 @@ fn run_loop(
                         consecutive_failures += 1;
                         if consecutive_failures > 8 {
                             // Link is gone — go back to reconnect phase.
-                            db.end_session(session_id);
+                            db.end_connection(ctx.connection_id);
                             continue 'outer;
                         }
                     }
@@ -236,7 +276,7 @@ fn run_loop(
                         .and_then(|l| parser::decode_voltage(l))
                     {
                         values.insert("voltage".into(), v);
-                        db.insert_reading(session_id, "voltage", v);
+                        db.insert_reading(ctx.connection_id, ctx.vehicle_id, "voltage", v);
                     }
                 }
             }
@@ -261,7 +301,7 @@ fn run_loop(
             }
             // User-defined UDS probes every ~120 ticks (~30-60 s).
             if tick > 0 && tick % 120 == 0 {
-                let uds_values = uds::poll_probes(&mut drv, &db, session_id);
+                let uds_values = uds::poll_probes(&mut drv, &db, ctx);
                 for (k, v) in uds_values {
                     values.insert(k, v);
                 }
@@ -318,7 +358,7 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
     let bt_addr = driver::bt_addr();
     let pin = std::env::var("SCAINNER_OBD_PIN").unwrap_or_else(|_| "1234".to_string());
     let start = db
-        .car_info_get("bt_connect_level")
+        .setting_get("bt_connect_level")
         .and_then(|v| v.parse::<u8>().ok())
         .filter(|&level| level <= 2)
         .unwrap_or(0);
@@ -366,7 +406,7 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                     std::thread::sleep(Duration::from_secs(1));
                 }
                 if alive {
-                    db.set_car_info("bt_connect_level", &attempt.to_string());
+                    db.setting_set("bt_connect_level", &attempt.to_string());
                     return Ok(d);
                 }
                 if attempt == 2 {
@@ -397,6 +437,7 @@ fn answer_disconnected(req: Request) {
         Request::UdsScan { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsClear { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsModuleDtcs { tx, .. } => { let _ = tx.send(Err(err)); }
+        Request::NameVehicle { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::Stop => {}
     }
 }
@@ -405,11 +446,20 @@ fn answer_disconnected(req: Request) {
 /// place that knows both "how to talk to the car" (via `drv`) and "what the
 /// UI asked for" (via `Request`) — everything past this point is either
 /// `obd::` (standard, any-car) or `uds::` (manufacturer-specific) logic.
-fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &AtomicBool, app: &tauri::AppHandle) {
+fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &AtomicBool, app: &tauri::AppHandle, ctx: ConnCtx) {
     match req {
         Request::ScanDtcs(tx) => {
             let res = obd::scan_dtcs(drv).map(|r| {
-                db.insert_dtc_scan(r.mil_on, &r.stored, &r.pending, &r.permanent, r.voltage, r.freeze.as_ref());
+                db.insert_dtc_scan(
+                    Some(ctx.connection_id),
+                    ctx.vehicle_id,
+                    r.mil_on,
+                    &r.stored,
+                    &r.pending,
+                    &r.permanent,
+                    r.voltage,
+                    r.freeze.as_ref(),
+                );
                 r
             });
             let _ = tx.send(res);
@@ -433,9 +483,20 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
                     // The post-clear scan lands in history like any other
                     // scan, same as the UI's old clear-then-rescan flow did.
                     let a = &outcome.after;
-                    db.insert_dtc_scan(a.mil_on, &a.stored, &a.pending, &a.permanent, a.voltage, a.freeze.as_ref());
+                    db.insert_dtc_scan(
+                        Some(ctx.connection_id),
+                        ctx.vehicle_id,
+                        a.mil_on,
+                        &a.stored,
+                        &a.pending,
+                        &a.permanent,
+                        a.voltage,
+                        a.freeze.as_ref(),
+                    );
                     let verdict = if a.stored.is_empty() && a.pending.is_empty() { "cleared" } else { "faults_remain" };
                     db.log_write(
+                        Some(ctx.connection_id),
+                        ctx.vehicle_id,
                         "Engine (OBD)",
                         "clear_dtcs",
                         &params,
@@ -450,11 +511,23 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
                     Err(format!("Could not read the current codes before clearing, so nothing was cleared: {e}"))
                 }
                 Err(obd::ClearError::ClearFailed { before, error }) => {
-                    db.log_write("Engine (OBD)", "clear_dtcs", &params, Some(&dtc_json(&before)), None, "error", Some(&error));
+                    db.log_write(
+                        Some(ctx.connection_id),
+                        ctx.vehicle_id,
+                        "Engine (OBD)",
+                        "clear_dtcs",
+                        &params,
+                        Some(&dtc_json(&before)),
+                        None,
+                        "error",
+                        Some(&error),
+                    );
                     Err(format!("The clear command failed: {error}"))
                 }
                 Err(obd::ClearError::VerifyFailed { before, error }) => {
                     db.log_write(
+                        Some(ctx.connection_id),
+                        ctx.vehicle_id,
                         "Engine (OBD)",
                         "clear_dtcs",
                         &params,
@@ -470,21 +543,13 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
         }
         Request::ReadEcuInfo(tx) => {
             let res = obd::read_ecu_info(drv).map(|info| {
-                // Same guard as the connect-time VIN stamp above: only
-                // overwrite the cache on an actually-valid 17-char VIN.
-                // This handler used to write info.vin unconditionally —
-                // on a car whose ECU doesn't answer Mode 09 at all (a real
-                // ~2000 Peugeot, 2026-08-21), clicking "Read from ECU" on
-                // the Vehicle tab clobbered car_info.vin with an empty
-                // string, silently destroying whatever car was cached
-                // there before. protocol/elm_version are always real
-                // values read straight from the adapter (never a VIN
-                // decode result), so they're safe to always record.
-                if info.vin.len() == 17 {
-                    db.set_car_info("vin", &info.vin);
-                }
-                db.set_car_info("protocol", &info.protocol);
-                db.set_car_info("elm_version", &info.elm_version);
+                // protocol/elm_version are real values read straight from
+                // the adapter — they belong to THIS connection now (schema
+                // v2), not to a global cache. The VIN in this response is
+                // display-only: the connect handshake already resolved the
+                // vehicle identity (or honestly didn't), and a manual
+                // "Read from ECU" click must not re-litigate it.
+                db.set_connection_protocol(ctx.connection_id, &info.protocol);
                 info
             });
             let _ = tx.send(res);
@@ -504,10 +569,15 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
             let _ = tx.send(result);
         }
         Request::UdsClear { module, tx } => {
-            let _ = tx.send(uds::clear_module(drv, db, &module));
+            let _ = tx.send(uds::clear_module(drv, db, &module, ctx));
         }
         Request::UdsModuleDtcs { module, tx } => {
             let _ = tx.send(uds::module_dtcs(drv, db, &module));
+        }
+        // Handled inline in the polling loop (needs the loop's own ctx and
+        // status); reaching here would be a dispatch bug, answer honestly.
+        Request::NameVehicle { tx, .. } => {
+            let _ = tx.send(Err("naming is handled by the connection loop".into()));
         }
         Request::Stop => {}
     }

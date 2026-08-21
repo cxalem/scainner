@@ -8,13 +8,17 @@ export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   state: Schema.String,
   elm_version: Schema.optional(Schema.NullOr(Schema.String)),
   detail: Schema.optional(Schema.NullOr(Schema.String)),
-  // The CURRENT connection's own VIN, or null if it couldn't be read this
-  // time — e.g. genuinely not implemented on an older, pre-Mode-09 ECU, not
-  // just a transient failure. Deliberately separate from car_info's cached
-  // vin (only updated on success, so it can hold a *previous* car's VIN) —
-  // this field is what the frontend must key "what's connected right now"
-  // off of, never the cache. Caught live 2026-08-21 on a real ~2000 Peugeot.
+  // The CURRENT connection's own resolved identity — never a cache of a
+  // previous car (the bug caught live 2026-08-21 on a real ~2000 Peugeot).
+  // vin/vehicle_id are null when this connection's vehicle couldn't be
+  // identified: the frontend renders an honest unknown-vehicle state with a
+  // "name this car" action. vehicle_is_new is true when THIS connect created
+  // the vehicles row — it replaces the old knownVins-snapshot comparison for
+  // triggering the first-connect discovery flow.
   vin: Schema.optional(Schema.NullOr(Schema.String)),
+  vehicle_id: Schema.optional(Schema.NullOr(Schema.Number)),
+  display_name: Schema.optional(Schema.NullOr(Schema.String)),
+  vehicle_is_new: Schema.optional(Schema.Boolean),
 }) {}
 
 // Live-event payload (from `listen("live-update", ...)`, not `invoke`) —
