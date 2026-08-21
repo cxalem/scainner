@@ -137,8 +137,24 @@ rather than picking from the section list below by feel.
       CarModel + repair script + model assets): keep one, delete the rest.
 
 ### D. Product/platform (src-tauri, packaging)
-- [ ] Windows/macOS installers via release.yml (pattern exists in
-      POS-Glop-Alt).
+- [x] macOS installer + auto-updater via release.yml (2026-08-21,
+      ws/updater): `tauri-plugin-updater` wired up (silent, offline-safe
+      check — see `components/UpdateBanner.tsx`), signing keypair
+      generated and registered as repo secrets, `.github/workflows/
+      release.yml` builds a universal (Apple Silicon + Intel) bundle on a
+      version-tag push and drafts a GitHub release (not auto-published —
+      a human still has to click Publish before it ships to real
+      installs). Windows installer explicitly not in this pass — see
+      backlog item 6 in the repo root `BACKLOG.md`, same macOS-only
+      scoping as before.
+- [ ] Apple notarization — today's builds are ad-hoc-signed only, so a
+      downloaded copy hits Gatekeeper's "unidentified developer" warning
+      on first launch (workaround: right-click → Open). Real notarization
+      needs a paid Apple Developer Program membership ($99/yr) and
+      Developer ID Application/Installer certs, neither of which exist
+      yet — flagged rather than silently assumed done. `release.yml`'s
+      own release notes already say this explicitly so it doesn't read
+      as a bug.
 - [ ] First-run experience: empty-DB states audited end to end.
 - [ ] App icon + name polish for distribution.
 
@@ -162,13 +178,17 @@ rather than picking from the section list below by feel.
       the views. Research can run in parallel; builds must be ordered.
 
 ### F. Internationalization (structural: touches every view)
-- [ ] i18n system with English + Spanish. First testers are Spanish
-      speakers in Spain, so Spanish is a launch requirement, not polish.
-      This restructures how all UI strings live. Run it through the FULL
-      pipeline (research: library choice for React+Tauri, string
-      extraction strategy, AI-report language; plan needs the user gate
-      before any build). Large file boundary: coordinate so no other
-      stream runs concurrently over the views.
+- [x] i18n system with English + Spanish (2026-08-21, ws/i18n +
+      ws/i18n-phase2, PRs #10-#12 merged): typed dictionary (`en.ts`/
+      `es.ts`, `tsc` fails on a key missing from either locale),
+      `useT()`/`useLocale()`, locale toggle in Shell's sidebar, every
+      view and shared component translated including the DTC library
+      content and AI-report language. Full status: `docs/workflows/i18n/
+      status.json`. Still open, not blocking: a native Spanish
+      speaker (ideally a mechanic) reviewing the automotive terminology
+      before it's fully trusted, and Phase 5 (backend/Rust strings —
+      OS notifications, PID label sourcing, raw error strings),
+      explicitly deferred per `docs/workflows/i18n/plan.md`.
 
 ### G. Write capabilities (product differentiator, safety-critical)
 - [ ] The product vision is read AND write: not just showing faults but

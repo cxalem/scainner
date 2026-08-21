@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import type { ConnStatus } from "@scainner/core";
 import { useLocale, useT, type Locale } from "@/i18n";
 
@@ -208,8 +209,11 @@ export function Shell({
           instant it does everything shifts. Same fix DiscoveryFlow.tsx
           already applied to its own scroll area, just at the app-wide
           level this time. */}
-      <main className="min-w-0 flex-1 overflow-y-scroll">
-        <div className="mx-auto max-w-4xl p-6">{children}</div>
+      <main className="flex min-w-0 flex-1 flex-col">
+        <UpdateBanner />
+        <div className="flex-1 overflow-y-scroll">
+          <div className="mx-auto max-w-4xl p-6">{children}</div>
+        </div>
       </main>
     </div>
   );

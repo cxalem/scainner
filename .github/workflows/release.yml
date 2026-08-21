@@ -1,0 +1,72 @@
+name: Release
+
+# Builds a signed macOS bundle (universal: Apple Silicon + Intel) and
+# publishes it as a DRAFT GitHub release whenever a version tag is pushed —
+# product-plan.md's 2026-08-21 decision: ship updates over GitHub Releases,
+# not a self-hosted server. Draft, not published, on purpose: creating the
+# release and shipping it to every installed copy's next update check are
+# two different moments. Nothing goes live until a human clicks "Publish
+# release" in the GitHub UI — `tauri-apps/plugin-updater`'s check() only
+# ever looks at /releases/latest, which GitHub never resolves to a draft.
+#
+# TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD are repo
+# secrets (Settings → Secrets and variables → Actions) — the private half
+# of the Ed25519 keypair whose public half is embedded in
+# apps/desktop/src-tauri/tauri.conf.json's plugins.updater.pubkey. This is
+# what lets every installed copy verify an update actually came from this
+# pipeline before installing it, independent of (and in addition to)
+# whatever GitHub's own release-asset hosting already protects.
+#
+# Windows/Linux builds are explicitly out of scope here — BACKLOG.md lists
+# that as its own deferred item (serial port + reconnect are macOS-specific
+# today), not something this workflow should quietly grow into.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and draft the release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Scainner ${{ github.ref_name }}"
+          releaseBody: |
+            See the commit history for what changed.
+
+            macOS is not Apple-notarized yet — first launch needs
+            right-click → Open (Gatekeeper will otherwise refuse an
+            "unidentified developer" build). This is a separate, currently
+            out-of-scope step from the update-signing this release already
+            has (see docs/BACKLOG.md).
+          releaseDraft: true
+          prerelease: false
+          args: --target universal-apple-darwin
