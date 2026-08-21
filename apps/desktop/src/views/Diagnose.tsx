@@ -7,7 +7,9 @@ import { ConfirmWrite } from "@/components/ConfirmWrite";
 import { WriteHistory } from "@/components/WriteHistory";
 import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/features/diagnose/queries";
 import { CodeBadge } from "@/views/diagnose/CodeBadge";
-import { CodeList } from "@/views/diagnose/CodeList";
+import { CodeStatusSection } from "@/views/diagnose/CodeStatusSection";
+import { VoltageClusterNote } from "@/views/diagnose/VoltageClusterNote";
+import { detectVoltageCluster } from "@/lib/dtc-grouping";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
 import { DtcDetailModal } from "@/views/diagnose/DtcDetailModal";
 import { AiReportCard } from "@/views/diagnose/AiReportCard";
@@ -56,6 +58,7 @@ export function Diagnose({ connected }: { connected: boolean }) {
   };
 
   const totalCodes = scan ? scan.stored.length + scan.pending.length + scan.permanent.length : 0;
+  const voltageAffected = new Set(scan ? detectVoltageCluster(scan)?.affected ?? [] : []);
 
   return (
     <div className="flex flex-col gap-4">
@@ -139,9 +142,16 @@ export function Diagnose({ connected }: { connected: boolean }) {
               )}
               {scan.voltage != null && <Badge variant="muted">{scan.voltage.toFixed(1)} V</Badge>}
             </div>
-            <CodeList label="Stored" codes={scan.stored} onSelect={setDetailCode} />
-            <CodeList label="Pending" codes={scan.pending} onSelect={setDetailCode} />
-            <CodeList label="Permanent" codes={scan.permanent} onSelect={setDetailCode} />
+            <VoltageClusterNote scan={scan} />
+            <CodeStatusSection label="Stored" codes={scan.stored} affected={voltageAffected} onSelect={setDetailCode} />
+            <CodeStatusSection label="Pending" codes={scan.pending} affected={voltageAffected} onSelect={setDetailCode} />
+            <CodeStatusSection
+              label="Permanent"
+              codes={scan.permanent}
+              affected={voltageAffected}
+              onSelect={setDetailCode}
+            />
+            {totalCodes === 0 && <p className="text-sm text-muted-foreground">No codes on this scan.</p>}
             <p className="text-xs text-muted-foreground">Click any code for details, its history, and an AI deep-dive.</p>
             {scan.freeze && <FreezeFrame data={scan.freeze as Record<string, unknown>} />}
           </CardContent>
