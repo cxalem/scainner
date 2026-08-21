@@ -25,6 +25,12 @@ API key. Detection order: stored preference → `navigator.language` →
 English default. Cheap to move into a real Settings view later; not
 worth blocking Spanish on a view that doesn't exist yet.
 
+**Number formatting: locale-aware (comma decimals in Spanish).**
+Confirmed with Alejandro 2026-08-21 — Spanish mode reads `14,1 V`, not
+`14.1 V`, via `Intl.NumberFormat`'s locale handling in `format.ts`
+(Phase 1). Not decorative, matches what a Spanish reader actually
+expects.
+
 **Backend/Rust strings: out of scope for this stream's first phases.**
 research.md found three real cases (duplicated/partial PID label lists,
 UDS module labels hardcoded in Rust, OS notification title/body composed
