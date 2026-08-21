@@ -119,13 +119,48 @@ fn run_loop(
         // Wake the ECU / detect protocol.
         let _ = drv.cmd("0100", Duration::from_secs(20));
         let session_id = db.start_session(&version);
-        // Stamp the VIN so reports group sessions by car.
-        if let Ok(vin_payload) = obd::query(&mut drv, "0902", "49 02 01", 15) {
-            let vin = parser::decode_vin(&vin_payload);
-            if vin.len() == 17 {
-                db.set_session_vin(session_id, &vin);
-                db.set_car_info("vin", &vin);
+        // Stamp the VIN so reports group sessions by car. This is the one
+        // query that decides whether the app recognizes "a new car just
+        // connected" at all (App.tsx compares this against knownVins to
+        // decide whether to run the discovery/sensor-sweep flow) — getting
+        // it wrong doesn't just mean a missing VIN, it means the whole
+        // session silently gets attributed to whatever car was connected
+        // last. Retried up to 3 times: the very first query right after the
+        // 0100 wake-up is the one most likely to land before the bus has
+        // fully settled, especially on a car this driver hasn't been tuned
+        // against before (caught live on a real Peugeot, 2026-08-21 — the
+        // single-attempt version above left car_info.vin stuck on a
+        // different, previously-connected car's VIN for the whole session,
+        // silently: no log, no error, nothing visibly wrong except every
+        // downstream thing that reads it — the brand emblem, Overview's
+        // report, the discovery flow that never ran — being quietly wrong).
+        let mut vin_ok = false;
+        for attempt in 1..=3 {
+            match obd::query(&mut drv, "0902", "49 02 01", 15) {
+                Ok(vin_payload) => {
+                    let vin = parser::decode_vin(&vin_payload);
+                    if vin.len() == 17 {
+                        db.set_session_vin(session_id, &vin);
+                        db.set_car_info("vin", &vin);
+                        vin_ok = true;
+                        break;
+                    }
+                    log::warn!(
+                        "VIN read attempt {attempt}/3: got {} bytes, decoded to {:?} (want 17 chars)",
+                        vin_payload.len(),
+                        vin
+                    );
+                }
+                Err(e) => log::warn!("VIN read attempt {attempt}/3 failed: {e}"),
             }
+            if attempt < 3 {
+                std::thread::sleep(Duration::from_millis(300));
+            }
+        }
+        if !vin_ok {
+            log::warn!(
+                "VIN read failed after 3 attempts — this session will be attributed to whatever car car_info's vin currently holds, which may be stale"
+            );
         }
         set_status(&app, &status, ConnStatus {
             state: "connected".into(),

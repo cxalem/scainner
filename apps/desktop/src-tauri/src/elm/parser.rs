@@ -38,17 +38,33 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
         }
         out.extend(bytes);
     }
-    // Drop everything before (and including) the expected positive-response prefix
+    // Drop everything before (and including) the expected positive-response prefix.
+    // If the prefix isn't found — a stale/mismatched response bleeding in from a
+    // previous command (driver.rs's cmd() has no input-buffer flush between
+    // commands, so a late reply can linger and get read as part of the next
+    // one), an error string, a different mode's leftover data, anything —
+    // this used to fall through and return `out` unfiltered, letting whatever
+    // garbage bytes happened to be present get decoded as if they were a real
+    // reading. Caught live on a real Peugeot (2026-08-21): throttle, fuel
+    // level, and MAP all reported suspiciously identical values for an entire
+    // session, traced to exactly this — the same stray byte pattern getting
+    // decoded under three different PID keys. Returning empty here instead
+    // means a mismatched response produces no reading at all for that tick
+    // (skipped, same as any other decode failure) rather than a wrong one
+    // silently recorded as real — "honest absence beats silent absence"
+    // (ScanConsole.tsx's empty-state rule), just at the data-integrity layer
+    // instead of the UI layer.
     let prefix: Vec<u8> = expect_prefix
         .split_whitespace()
         .filter_map(|t| u8::from_str_radix(t, 16).ok())
         .collect();
-    if !prefix.is_empty() {
-        if let Some(pos) = out.windows(prefix.len()).position(|w| w == prefix.as_slice()) {
-            return out[pos + prefix.len()..].to_vec();
-        }
+    if prefix.is_empty() {
+        return out;
     }
-    out
+    match out.windows(prefix.len()).position(|w| w == prefix.as_slice()) {
+        Some(pos) => out[pos + prefix.len()..].to_vec(),
+        None => Vec::new(),
+    }
 }
 
 /// Decode DTC bytes (pairs) from a mode 03/07/0A response payload.

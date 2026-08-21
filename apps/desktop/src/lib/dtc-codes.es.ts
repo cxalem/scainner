@@ -81,6 +81,13 @@ export const DTC_LIBRARY_ES: Record<DtcCode, DtcInfo> = {
     symptoms: ["Olor a combustible, tono negro en el escape", "Ajustes de combustible negativos por debajo del −10%", "Bujías engrasadas con el tiempo"],
     severity: "medium",
   },
+  P0204: {
+    title: "Circuito del inyector — cilindro 4",
+    meaning: "La ECU no puede accionar correctamente el inyector del cilindro 4: un fallo eléctrico (circuito abierto, cortocircuito o etapa de salida averiada) en ese circuito concreto, distinto de un código de fallo de encendido: esto va del cableado o la bobina, no del chorro ni del evento de combustión en sí.",
+    causes: ["Cableado o conector del inyector 4 dañado (corrosión, roce, roedores)", "Bobina o solenoide del inyector 4 averiado", "Fallo en la etapa de salida de la ECU (menos probable, revisa antes los demás inyectores)"],
+    symptoms: ["Ralentí irregular o un fallo que se nota en el cilindro 4", "Pérdida de potencia, sobre todo con carga", "Testigo de avería encendido, puede parpadear si es severo: revisa también los códigos de la familia P0300 si hay fallo de encendido guardado"],
+    severity: "high",
+  },
   P0300: {
     title: "Fallo de encendido aleatorio o en varios cilindros",
     meaning: "Se detectan fallos de encendido en varios cilindros: la combustión falla de forma intermitente y combustible sin quemar llega al catalizador.",

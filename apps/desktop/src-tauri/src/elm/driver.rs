@@ -116,6 +116,21 @@ impl ElmDriver {
 
     /// Send a command, read until the ELM `>` prompt or timeout.
     pub fn cmd(&mut self, c: &str, timeout: Duration) -> Result<String, ElmError> {
+        // Discard anything already sitting unread in the input buffer before
+        // writing — a previous command whose response arrived after this
+        // struct's own deadline gave up on it (still returned Ok/Err, but
+        // its late bytes never got read) leaves stale data in the OS's
+        // serial buffer; without this flush, those bytes get read as part
+        // of THIS command's response, misattributing one PID's leftover
+        // answer to a completely different one. Caught live on a real
+        // Peugeot (2026-08-21) — a slower-responding ECU than the Citroën
+        // this driver was built and tested against makes the timing window
+        // for this real, not just theoretical. See parser.rs's
+        // payload_bytes for the matching fix on the decode side (a response
+        // that doesn't match its expected prefix — including a stale one
+        // from a prior command — now yields no reading instead of a wrong
+        // one, rather than relying on this flush alone).
+        unsafe { libc::tcflush(self.fd, libc::TCIFLUSH) };
         let msg = format!("{c}\r");
         let bytes = msg.as_bytes();
         let mut written = 0usize;
