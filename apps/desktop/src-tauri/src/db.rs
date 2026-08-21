@@ -490,16 +490,25 @@ impl Db {
         conn.execute("UPDATE sessions SET vin = ?2 WHERE id = ?1", params![id, vin]).ok();
     }
 
-    /// Distinct cars seen (NULL-vin legacy sessions count as the default car).
+    /// Distinct cars seen. NULL-vin sessions (VIN never successfully read —
+    /// either genuinely pre-VIN-migration, from 2026-08-14, or a car whose
+    /// ECU doesn't answer Mode 09 at all, like a real ~2000 Peugeot found
+    /// live 2026-08-21) get their own literal "unknown" bucket, never
+    /// folded into whichever real car happens to be car_info's cached
+    /// value. The old behavior did that — every NULL-vin session counted
+    /// as "the default car," which meant a second real car's sessions
+    /// silently inflated the first car's session count in this exact
+    /// list, the same root bug car_report() above just got fixed for.
+    /// This is the honest, not the complete, fix: sessions genuinely can't
+    /// group under "unknown" across separate real cars either — that
+    /// needs the VIN-less-identity design work already flagged in
+    /// vision.md, not a query change.
     pub fn report_cars(&self) -> Vec<(String, i64)> {
         let conn = self.0.lock().unwrap();
-        let default_vin: String = conn
-            .query_row("SELECT value FROM car_info WHERE key='vin'", [], |r| r.get(0))
-            .unwrap_or_else(|_| "unknown".into());
         let mut stmt = conn
-            .prepare("SELECT COALESCE(vin, ?1), COUNT(*) FROM sessions GROUP BY COALESCE(vin, ?1) ORDER BY 2 DESC")
+            .prepare("SELECT COALESCE(vin, 'unknown'), COUNT(*) FROM sessions GROUP BY COALESCE(vin, 'unknown') ORDER BY 2 DESC")
             .unwrap();
-        stmt.query_map(params![default_vin], |r| Ok((r.get(0)?, r.get(1)?)))
+        stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
             .unwrap()
             .filter_map(Result::ok)
             .collect()
@@ -517,7 +526,7 @@ impl Db {
                         (SELECT MAX(value) FROM readings r WHERE r.session_id = s.id AND key='coolant'),
                         (SELECT MIN(value) FROM readings r WHERE r.session_id = s.id AND key='voltage'),
                         CAST((julianday(COALESCE(s.ended_at, s.started_at)) - julianday(s.started_at)) * 1440 AS REAL)
-                     FROM sessions s WHERE COALESCE(s.vin, ?1) = ?1
+                     FROM sessions s WHERE s.vin = ?1
                      ORDER BY s.id DESC LIMIT 30",
                 )
                 .unwrap();
@@ -542,18 +551,26 @@ impl Db {
                 "SELECT COUNT(*),
                     COALESCE(SUM((julianday(COALESCE(ended_at, started_at)) - julianday(started_at)) * 1440), 0),
                     MIN(started_at), MAX(started_at)
-                 FROM sessions WHERE COALESCE(vin, ?1) = ?1",
+                 FROM sessions WHERE vin = ?1",
                 params![vin],
                 |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
             )
             .unwrap_or((0, 0.0, None, None));
         let total_readings: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM readings r JOIN sessions s ON r.session_id = s.id WHERE COALESCE(s.vin, ?1) = ?1",
+                "SELECT COUNT(*) FROM readings r JOIN sessions s ON r.session_id = s.id WHERE s.vin = ?1",
                 params![vin],
                 |r| r.get(0),
             )
             .unwrap_or(0);
+        // KNOWN GAP, not this fix's scope: dtc_scans has no vin or
+        // session_id column at all (unlike readings/sessions above, which
+        // this same pass just stopped cross-attributing between cars) —
+        // it's global by construction, not by a fixable query bug. Every
+        // car's scans_total/scans_clean here is really "every car's scans,
+        // combined," same as Diagnose's Scan History card. Real schema
+        // work needed (a session_id FK on dtc_scans) before this can be
+        // scoped per car — flagged, not silently left wrong.
         let (scans_total, scans_clean): (i64, i64) = conn
             .query_row(
                 "SELECT COUNT(*), SUM(CASE WHEN stored_json='[]' AND pending_json='[]' THEN 1 ELSE 0 END) FROM dtc_scans",
@@ -567,7 +584,7 @@ impl Db {
                 .prepare(
                     "SELECT date(r.ts), ROUND(MIN(r.value),2), ROUND(AVG(r.value),2), ROUND(MAX(r.value),2)
                      FROM readings r JOIN sessions s ON r.session_id = s.id
-                     WHERE r.key='voltage' AND COALESCE(s.vin, ?1) = ?1
+                     WHERE r.key='voltage' AND s.vin = ?1
                      GROUP BY date(r.ts) ORDER BY 1 DESC LIMIT 30",
                 )
                 .unwrap();
@@ -584,7 +601,7 @@ impl Db {
                 .prepare(
                     "SELECT r.key, COUNT(*), MIN(r.value), AVG(r.value), MAX(r.value)
                      FROM readings r JOIN sessions s ON r.session_id = s.id
-                     WHERE COALESCE(s.vin, ?1) = ?1 AND r.ts >= datetime('now', '-' || ?2 || ' hours')
+                     WHERE s.vin = ?1 AND r.ts >= datetime('now', '-' || ?2 || ' hours')
                      GROUP BY r.key ORDER BY r.key",
                 )
                 .unwrap();
@@ -608,7 +625,7 @@ impl Db {
         let engine_minutes_window: f64 = conn
             .query_row(
                 "SELECT COALESCE(SUM((julianday(COALESCE(ended_at, started_at)) - julianday(started_at)) * 1440), 0)
-                 FROM sessions WHERE COALESCE(vin, ?1) = ?1 AND started_at >= datetime('now', '-' || ?2 || ' hours')",
+                 FROM sessions WHERE vin = ?1 AND started_at >= datetime('now', '-' || ?2 || ' hours')",
                 params![vin, window_hours],
                 |r| r.get(0),
             )
@@ -632,10 +649,29 @@ impl Db {
         let coolant = pick(source, "coolant");
         let map_s = pick(source, "map");
         let volt = pick(source, "voltage");
+        // Every COALESCE(s.vin, ?1) = ?1 in this function used to match ANY
+        // session with a NULL vin — not just "no other car specified,"
+        // literally every VIN-less session regardless of which car's
+        // report was being queried, since COALESCE(NULL, ?1) trivially
+        // equals ?1 for whatever ?1 happens to be. Caught live 2026-08-21:
+        // a real ~1999-2000 Peugeot's sessions (VIN unreadable, see
+        // supervisor.rs's connect-time retry/log) leaked straight into the
+        // CITROËN's report — its corrupted 49.8% fuel_level reading (from
+        // the same-night payload_bytes bug, since fixed) showed up as the
+        // Citroën's own fuel gauge. Strict `s.vin = ?1` everywhere in this
+        // function fixes it: a car's report only ever includes sessions
+        // that actually carry that exact VIN. Trade-off, accepted
+        // knowingly: the handful of pre-VIN-migration sessions from
+        // 2026-08-14 (back when the vin column didn't exist yet) no longer
+        // roll up into any car's report either, since their vin genuinely
+        // is NULL — their raw readings/sessions rows are untouched, just
+        // not counted. Real fix for VIN-less cars getting their own
+        // identity is a separate, already-flagged design item
+        // (vision.md), not a query tweak.
         let fuel_level_pct: Option<f64> = conn
             .query_row(
                 "SELECT r.value FROM readings r JOIN sessions s ON r.session_id = s.id
-                 WHERE r.key='fuel_level' AND COALESCE(s.vin, ?1) = ?1
+                 WHERE r.key='fuel_level' AND s.vin = ?1
                  ORDER BY r.ts DESC LIMIT 1",
                 params![vin],
                 |r| r.get(0),
