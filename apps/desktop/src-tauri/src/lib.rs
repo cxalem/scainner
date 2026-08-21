@@ -97,6 +97,7 @@ fn conn_status(state: tauri::State<AppState>) -> ConnStatus {
             state: "disconnected".into(),
             elm_version: None,
             detail: None,
+            vin: None,
         })
 }
 

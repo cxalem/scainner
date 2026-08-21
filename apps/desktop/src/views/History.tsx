@@ -96,12 +96,21 @@ function TrendChart() {
   );
 }
 
-export function History() {
+export function History({ connState = "disconnected", vin: connectedVin = null }: { connState?: string; vin?: string | null }) {
   const t = useT();
   const { locale } = useLocale();
   const [statWindow, setStatWindow] = useState<"7d" | "all">("7d");
   const carsQuery = useReportCars();
-  const firstVin = carsQuery.data?.[0]?.[0] ?? null;
+  // Always defaulted to "whichever car has the most recorded history" with
+  // zero awareness of what's actually connected right now — didn't even
+  // receive connState/vin as props before. Caught live 2026-08-21: a real
+  // ~2000 Peugeot connected and recorded real sessions, but History kept
+  // showing the Citroën's report the entire time, same bug class as
+  // Overview.tsx had (see that file's history). Falling back to the
+  // busiest car is still the right call when nothing is connected right
+  // now (browsing past history) — just not while actively connected with
+  // an identity that couldn't be determined, same guard Overview uses.
+  const firstVin = connState === "connected" ? connectedVin : (connectedVin ?? carsQuery.data?.[0]?.[0] ?? null);
   const reportQuery = useCarReport(firstVin);
   const report = reportQuery.data ?? null;
   // A disabled query (no car yet, so useCarReport(null) never runs) still

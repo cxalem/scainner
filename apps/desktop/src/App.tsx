@@ -88,35 +88,35 @@ export default function App() {
     };
   }, [queryClient]);
 
-  // Fires once per newly-seen VIN: the backend already stamps the VIN onto
-  // the session during its connect handshake, so by the time conn.state
-  // flips to "connected" it's readable straight back via car_info.
+  // Reads conn.vin directly — the backend's OWN resolved VIN for THIS
+  // connection (or null if it genuinely couldn't read one), sent as part of
+  // the same conn-status event that flips state to "connected". Used to
+  // read this back via a separate car_info round trip, which is exactly
+  // the bug caught live 2026-08-21 on a real ~2000 Peugeot: car_info's vin
+  // is a cache that only updates on a successful read, so a car whose ECU
+  // doesn't answer the VIN query at all (common on pre-Mode-09 vehicles,
+  // not just a transient failure) silently inherited whichever car
+  // connected last — wrong brand emblem, wrong Overview report, and the
+  // discovery/sensor-sweep flow never triggering because nothing looked
+  // "new". conn.vin has no such cache: null here means null downstream,
+  // and Overview/VehicleScene render an honest unknown-vehicle state
+  // instead of guessing.
   //
-  // hasConnectedOnce is deliberately set HERE, inside the same then-handler
-  // that decides whether the discovery overlay mounts — not in a separate
-  // conn.state effect. Setting it earlier revealed the dashboard for the
-  // few frames between "connected" and the car_info round-trip resolving,
-  // a visible flash before the overlay covered it. Batching both setStates
-  // in one handler makes Shell and DiscoveryFlow mount in the same render,
-  // so the overlay is there from the dashboard's very first frame.
+  // hasConnectedOnce is deliberately set in the SAME effect that decides
+  // whether the discovery overlay mounts, not a separate conn.state effect
+  // — batching both setStates in one render is what keeps Shell and
+  // DiscoveryFlow mounting together, so the overlay covers the dashboard's
+  // very first frame instead of flashing it uncovered first.
   useEffect(() => {
     if (conn.state !== "connected" || knownVins === null) return;
-    runPromise(Effect.flatMap(DeviceService, (device) => device.carInfo()))
-      .then((rows) => {
-        const vin = Object.fromEntries(rows).vin as string | undefined;
-        if (vin) setCurrentVin(vin);
-        if (vin && !knownVins.has(vin)) {
-          setKnownVins((prev) => new Set(prev ?? []).add(vin));
-          setDiscoverVin(vin);
-        }
-        setHasConnectedOnce(true);
-      })
-      .catch(() => setHasConnectedOnce(true)); // never strand the user on the gate
-    // Re-runs when knownVins settles (it loads async on mount, and a
-    // connect can beat it) and again when this effect adds the new VIN to
-    // it — that second run is a harmless no-op: the VIN is known by then,
-    // and setHasConnectedOnce(true) is idempotent.
-  }, [conn.state, knownVins]);
+    const vin = conn.vin ?? null;
+    setCurrentVin(vin);
+    if (vin && !knownVins.has(vin)) {
+      setKnownVins((prev) => new Set(prev ?? []).add(vin));
+      setDiscoverVin(vin);
+    }
+    setHasConnectedOnce(true);
+  }, [conn.state, conn.vin, knownVins]);
 
   const connected = conn.state === "connected";
   const recording = connected && Object.keys(live).length > 0;
@@ -148,7 +148,7 @@ export default function App() {
       >
         {view === "overview" && <Overview connState={conn.state} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} />}
-        {view === "history" && <History />}
+        {view === "history" && <History connState={conn.state} vin={currentVin} />}
         {view === "diagnose" && <Diagnose connected={connected} />}
         {view === "lab" && <Lab connected={connected} />}
         {view === "vehicle" && (

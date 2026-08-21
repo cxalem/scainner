@@ -176,6 +176,8 @@ export type Dictionary = {
     couldNotLoadCars: string;
     noDataYet: string;
     noDataYetExplainer: string;
+    unknownVehicle: string;
+    unknownVehicleExplainer: string;
     couldNotLoadReport: string;
     stats: { sessions: string; engineTime: string; readings: string; scansClean: string };
     health: {

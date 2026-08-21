@@ -170,6 +170,9 @@ export const es: Dictionary = {
     couldNotLoadCars: "No se pudo cargar la lista de coches.",
     noDataYet: "Aún no hay datos",
     noDataYetExplainer: "Conecta y conduce: el informe se genera solo a partir de las sesiones registradas.",
+    unknownVehicle: "Conectado, pero no se pudo identificar este vehículo",
+    unknownVehicleExplainer:
+      "Lo estamos grabando todo en directo (mira En vivo y Diagnóstico), pero este coche no respondió a la solicitud del VIN, algo habitual en vehículos antiguos. No hay informe de historial hasta que se pueda identificar.",
     couldNotLoadReport: "No se pudo cargar el informe de este coche.",
     stats: { sessions: "Sesiones", engineTime: "Tiempo de motor", readings: "Lecturas", scansClean: "Escaneos limpios" },
     health: {
