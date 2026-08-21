@@ -1,128 +1,49 @@
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Info, RefreshCw, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
 import { MONITOR_LABELS } from "@/shared/domain/gauges";
-import type { DtcResult } from "@scainner/core";
-import { ConfirmWrite } from "@/components/ConfirmWrite";
+import type { DtcResult, ObdClearOutcome } from "@scainner/core";
 import { WriteHistory } from "@/components/WriteHistory";
-import { useClearDtcs, useDtcHistory, useScanDtcs } from "@/features/diagnose/queries";
+import { useDtcHistory } from "@/features/diagnose/queries";
 import { CodeBadge } from "@/views/diagnose/CodeBadge";
-import { FaultCodesPanel } from "@/views/diagnose/FaultCodesPanel";
+import { ScanConsole } from "@/views/diagnose/ScanConsole";
 import { DtcDetailModal } from "@/views/diagnose/DtcDetailModal";
 import { AiReportCard } from "@/views/diagnose/AiReportCard";
+
+// Scan History rows are compact, historical entries (unlike ScanConsole's
+// scrollable workspace, which is the deep-dive surface) — past this many
+// codes a row switches to "+N more" instead of trying to fit every badge,
+// which is what was actually overflowing the card at 80+ codes.
+const HISTORY_ROW_CODE_LIMIT = 8;
 
 export function Diagnose({ connected }: { connected: boolean }) {
   const [scan, setScan] = useState<DtcResult | null>(null);
   const [readiness, setReadiness] = useState<Record<string, boolean> | null>(null);
   const [detailCode, setDetailCode] = useState<string | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
-  const [clearedBanner, setClearedBanner] = useState<{ before: number; after: number } | null>(null);
 
   const historyQuery = useDtcHistory();
   const history = historyQuery.data ?? [];
-  const scanMutation = useScanDtcs();
-  const clearMutation = useClearDtcs();
-  const error = scanMutation.error ?? clearMutation.error;
 
-  const doScan = () => {
-    scanMutation.mutate(undefined, {
-      onSuccess: ({ scan: scanResult, readiness: readinessResult }) => {
-        setScan(scanResult);
-        setReadiness(readinessResult);
-      },
-    });
+  const handleScanSuccess = (scanResult: DtcResult, readinessResult: Record<string, boolean> | null) => {
+    setScan(scanResult);
+    setReadiness(readinessResult);
   };
 
-  const doClear = () => {
-    // The backend does the whole verified write (scan, clear, scan again)
-    // and logs it to the write history; useClearDtcs sends `confirmed: true`
-    // or the command refuses — part of the write safety rail. It also
-    // invalidates the writes_log query key, so WriteHistory updates itself.
-    clearMutation.mutate(undefined, {
-      onSuccess: (outcome) => {
-        setScan(outcome.after);
-        setClearedBanner({
-          before: outcome.before.stored.length + outcome.before.pending.length,
-          after: outcome.after.stored.length + outcome.after.pending.length,
-        });
-      },
-      // Modal closes only once the mutation settles (success or error), not
-      // on click — the previous behavior closed it immediately, leaving a
-      // destructive, chained slow-hardware action with no visible owner
-      // while it ran (interaction-audit.md worst offender #1).
-      onSettled: () => setConfirmClear(false),
-    });
+  const handleClearSuccess = (outcome: ObdClearOutcome) => {
+    setScan(outcome.after);
   };
-
-  const totalCodes = scan ? scan.stored.length + scan.pending.length + scan.permanent.length : 0;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-semibold tracking-tight">Diagnose</h1>
 
-      <div className="flex items-center gap-2">
-        <Button onClick={doScan} disabled={!connected || scanMutation.isPending}>
-          <RefreshCw className={"h-4 w-4" + (scanMutation.isPending ? " animate-spin" : "")} aria-hidden="true" />
-          {scanMutation.isPending ? "Scanning…" : "Scan for codes"}
-        </Button>
-        {/* Stays mounted while the ConfirmWrite overlay is up: hiding it
-            shifted the toolbar behind the modal (no layout shifts), and
-            ModuleFaults already keeps its trigger visible. */}
-        {scan && totalCodes > 0 && (
-          <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={confirmClear}>
-            Clear codes…
-          </Button>
-        )}
-      </div>
-
-      {confirmClear && (
-        <ConfirmWrite
-          title="Clear fault codes?"
-          module="Engine (OBD)"
-          whatChanges="This erases the stored and pending fault codes and resets the readiness monitors. Permanent codes, if any, only erase themselves after the car verifies the fault is gone. The scan above is already saved to history."
-          reversal="No. Erased codes cannot be put back. This is still safe to do: the codes stay saved in scan history and in the write history below, and a fault that is still present will report itself again on its own."
-          confirmLabel="Yes, clear"
-          busyLabel="Clearing…"
-          busy={clearMutation.isPending}
-          onConfirm={doClear}
-          onCancel={() => setConfirmClear(false)}
-        />
-      )}
-
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {String(error instanceof Error ? error.message : error)}
-        </div>
-      )}
-
-      {clearedBanner && (
-        <div className="flex flex-col gap-1.5 rounded-md border border-border bg-muted/50 p-3 text-sm">
-          <p className="flex items-center gap-1.5 font-medium">
-            {clearedBanner.after === 0 ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                Cleared and verified: {clearedBanner.before || "no"} code
-                {clearedBanner.before === 1 ? "" : "s"} before, none remaining.
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-                Cleared, but {clearedBanner.after} code{clearedBanner.after === 1 ? "" : "s"} came straight back.
-                {clearedBanner.after === 1 ? " That is an active fault" : " Those are active faults"}, not leftovers,
-                and worth investigating.
-              </>
-            )}
-          </p>
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            No ignition cycle is needed for the check-engine light. It goes off with the clear. Two things reset with
-            it: readiness monitors re-run over your next few drives (relevant before an ITV), and permanent codes (if
-            any) erase themselves only after the car self-verifies the fault is gone.
-          </p>
-        </div>
-      )}
-
-      <FaultCodesPanel scanning={scanMutation.isPending} scan={scan} onSelect={setDetailCode} />
+      <ScanConsole
+        connected={connected}
+        scan={scan}
+        onScanSuccess={handleScanSuccess}
+        onClearSuccess={handleClearSuccess}
+        onSelect={setDetailCode}
+      />
 
       <Card>
         <CardHeader>
@@ -180,17 +101,25 @@ export function Diagnose({ connected }: { connected: boolean }) {
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
               {history.map((scan) => {
-                const codeCount = scan.stored.length + scan.pending.length + scan.permanent.length;
+                const codes = [...new Set([...scan.stored, ...scan.pending, ...scan.permanent])];
+                const shown = codes.slice(0, HISTORY_ROW_CODE_LIMIT);
+                const hiddenCount = codes.length - shown.length;
                 return (
-                  <li key={scan.id} className="flex items-center justify-between border-b border-border py-1.5 last:border-0">
+                  <li
+                    key={scan.id}
+                    className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-border py-1.5 last:border-0"
+                  >
                     <span className="font-mono text-xs text-muted-foreground">{scan.ts} UTC</span>
-                    <span className="flex items-center gap-2">
-                      {codeCount === 0 ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      {codes.length === 0 ? (
                         <Badge variant="ok">clean</Badge>
                       ) : (
-                        [...new Set([...scan.stored, ...scan.pending, ...scan.permanent])].map((code) => (
-                          <CodeBadge key={code} code={code} onSelect={setDetailCode} />
-                        ))
+                        <>
+                          {shown.map((code) => (
+                            <CodeBadge key={code} code={code} onSelect={setDetailCode} />
+                          ))}
+                          {hiddenCount > 0 && <Badge variant="muted">+{hiddenCount} more</Badge>}
+                        </>
                       )}
                       {scan.voltage != null && (
                         <span className="font-mono text-xs text-muted-foreground">{scan.voltage.toFixed(1)}V</span>
