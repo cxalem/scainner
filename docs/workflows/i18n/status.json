@@ -1,12 +1,13 @@
 {
   "stream": "i18n",
-  "stage": "research",
-  "state": "research complete, plan queued behind app-perf build",
-  "updated": "2026-08-20T19:20:00Z",
-  "branch": "ws/i18n",
+  "stage": "plan",
+  "state": "plan written, awaiting user gate (BACKLOG stream F's own rule) before Phase 1 build",
+  "updated": "2026-08-21T14:15:00Z",
+  "branch": null,
   "notes": [
-    "Recommendation: typed dictionary (en.ts/es.ts + useT hook), no framework; tsc enforces missing keys.",
-    "Hard cases found: DTC library content, AI prompt locale, Rust-side user-facing strings.",
-    "Builds after app-perf per sequencing decision."
+    "research.md re-verified 2026-08-21 after Effect/monorepo restructuring: all findings still hold, only lib/meta.ts renamed to shared/domain/gauges.ts.",
+    "plan.md: typed dictionary (en.ts/es.ts + useT), locale toggle in Shell.tsx sidebar now, backend/Rust strings deferred to Phase 5.",
+    "Open question for the user: decimal-comma number formatting for Spanish (14,1 V vs 14.1 V) — a real visible UX choice, not decided in the plan.",
+    "No other stream currently touching views — clear to start Phase 1 once gated."
   ]
 }
