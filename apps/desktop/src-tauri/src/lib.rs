@@ -38,22 +38,35 @@ fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     }
 }
 
-fn ask<T: Send + 'static>(
+/// Sends one request to the supervisor and awaits its reply OFF the main
+/// thread. This function (and every command built on it) used to be fully
+/// synchronous — and Tauri runs sync commands on the MAIN thread, so a
+/// dongle round-trip (a DTC scan, a UDS read, anything) blocked the entire
+/// IPC layer while it waited: every other command in flight (history
+/// refetches, connection status, all of it) queued behind it, which is
+/// exactly the app-wide "click something, everything hangs for a beat"
+/// jank reported live 2026-08-21. The send itself stays cheap and sync;
+/// only the blocking wait moves to a worker via spawn_blocking.
+async fn ask<T: Send + 'static>(
     state: &AppState,
     make: impl FnOnce(mpsc::Sender<Result<T, String>>) -> Request,
 ) -> Result<T, String> {
-    let guard = lock_or_recover(&state.supervisor);
-    let sup = guard.as_ref().ok_or("not connected")?;
-    let (tx, rx) = mpsc::channel();
-    sup.tx.send(make(tx)).map_err(|_| "supervisor gone")?;
-    drop(guard);
-    match rx.recv_timeout(ASK_TIMEOUT) {
+    let rx = {
+        let guard = lock_or_recover(&state.supervisor);
+        let sup = guard.as_ref().ok_or("not connected")?;
+        let (tx, rx) = mpsc::channel();
+        sup.tx.send(make(tx)).map_err(|_| "supervisor gone")?;
+        rx
+    };
+    tauri::async_runtime::spawn_blocking(move || match rx.recv_timeout(ASK_TIMEOUT) {
         Ok(r) => r,
         Err(_) => {
             log::warn!("request timed out after {ASK_TIMEOUT:?} waiting for supervisor reply");
             Err("timed out waiting for dongle".to_string())
         }
-    }
+    })
+    .await
+    .map_err(|e| format!("worker join error: {e}"))?
 }
 
 #[tauri::command]
@@ -100,8 +113,8 @@ fn conn_status(state: tauri::State<AppState>) -> ConnStatus {
 }
 
 #[tauri::command]
-fn scan_dtcs(state: tauri::State<AppState>) -> Result<DtcResult, String> {
-    ask(&state, Request::ScanDtcs)
+async fn scan_dtcs(state: tauri::State<'_, AppState>) -> Result<DtcResult, String> {
+    ask(&state, Request::ScanDtcs).await
 }
 
 /// Write safety rail, enforced at the command boundary: every command that
@@ -121,9 +134,9 @@ fn require_confirmed(confirmed: bool) -> Result<(), String> {
 /// again, and logs the whole thing to `writes_log`. Returns both scans so
 /// the UI can show an honest before/after.
 #[tauri::command]
-fn clear_dtcs(state: tauri::State<AppState>, confirmed: bool) -> Result<elm::obd::ObdClearOutcome, String> {
+async fn clear_dtcs(state: tauri::State<'_, AppState>, confirmed: bool) -> Result<elm::obd::ObdClearOutcome, String> {
     require_confirmed(confirmed)?;
-    ask(&state, Request::ClearDtcs)
+    ask(&state, Request::ClearDtcs).await
 }
 
 /// The write audit trail, newest first: everything the app has changed on
@@ -134,18 +147,18 @@ fn writes_log(state: tauri::State<AppState>, limit: i64) -> Vec<db::WriteLogRow>
 }
 
 #[tauri::command]
-fn read_ecu_info(state: tauri::State<AppState>) -> Result<EcuInfo, String> {
-    ask(&state, Request::ReadEcuInfo)
+async fn read_ecu_info(state: tauri::State<'_, AppState>) -> Result<EcuInfo, String> {
+    ask(&state, Request::ReadEcuInfo).await
 }
 
 #[tauri::command]
-fn readiness(state: tauri::State<AppState>) -> Result<HashMap<String, bool>, String> {
-    ask(&state, Request::Readiness)
+async fn readiness(state: tauri::State<'_, AppState>) -> Result<HashMap<String, bool>, String> {
+    ask(&state, Request::Readiness).await
 }
 
 #[tauri::command]
-fn all_sensors(state: tauri::State<AppState>) -> Result<Vec<SensorReading>, String> {
-    ask(&state, Request::AllSensors)
+async fn all_sensors(state: tauri::State<'_, AppState>) -> Result<Vec<SensorReading>, String> {
+    ask(&state, Request::AllSensors).await
 }
 
 #[tauri::command]
@@ -170,28 +183,28 @@ fn delete_uds_module(state: tauri::State<AppState>, key: String) {
 }
 
 #[tauri::command]
-fn uds_read(state: tauri::State<AppState>, module: String, did: u16) -> Result<Option<elm::uds::UdsHit>, String> {
-    ask(&state, |tx| Request::UdsRead { module, did, tx })
+async fn uds_read(state: tauri::State<'_, AppState>, module: String, did: u16) -> Result<Option<elm::uds::UdsHit>, String> {
+    ask(&state, |tx| Request::UdsRead { module, did, tx }).await
 }
 
 #[tauri::command]
-fn uds_scan(state: tauri::State<AppState>, module: String, from: u16, to: u16) -> Result<Vec<elm::uds::UdsHit>, String> {
-    ask(&state, |tx| Request::UdsScan { module, from, to, tx })
+async fn uds_scan(state: tauri::State<'_, AppState>, module: String, from: u16, to: u16) -> Result<Vec<elm::uds::UdsHit>, String> {
+    ask(&state, |tx| Request::UdsScan { module, from, to, tx }).await
 }
 
 /// Clears the fault memory on one module (ABS/engine). Standard, safe
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
 #[tauri::command]
-fn uds_clear(state: tauri::State<AppState>, module: String, confirmed: bool) -> Result<ClearOutcome, String> {
+async fn uds_clear(state: tauri::State<'_, AppState>, module: String, confirmed: bool) -> Result<ClearOutcome, String> {
     require_confirmed(confirmed)?;
-    ask(&state, |tx| Request::UdsClear { module, tx })
+    ask(&state, |tx| Request::UdsClear { module, tx }).await
 }
 
 /// Reads the fault codes currently stored on one module (UDS 19 02, read-only).
 #[tauri::command]
-fn uds_module_dtcs(state: tauri::State<AppState>, module: String) -> Result<Vec<String>, String> {
-    ask(&state, |tx| Request::UdsModuleDtcs { module, tx })
+async fn uds_module_dtcs(state: tauri::State<'_, AppState>, module: String) -> Result<Vec<String>, String> {
+    ask(&state, |tx| Request::UdsModuleDtcs { module, tx }).await
 }
 
 #[tauri::command]
@@ -223,8 +236,8 @@ fn set_vehicle_name(state: tauri::State<AppState>, vehicle_id: i64, name: String
 /// the supervisor so the connection loop can adopt the new identity and
 /// re-emit conn-status (see Request::NameVehicle).
 #[tauri::command]
-fn name_current_vehicle(state: tauri::State<AppState>, name: String) -> Result<i64, String> {
-    ask(&state, |tx| Request::NameVehicle { name, tx })
+async fn name_current_vehicle(state: tauri::State<'_, AppState>, name: String) -> Result<i64, String> {
+    ask(&state, |tx| Request::NameVehicle { name, tx }).await
 }
 
 #[tauri::command]
