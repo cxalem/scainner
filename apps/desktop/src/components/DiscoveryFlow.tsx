@@ -17,6 +17,7 @@ import type { SensorReading } from "@scainner/core";
 import { brandFromVin } from "@/lib/brand";
 import { decodeModelYear } from "@/lib/vin";
 import { appearVariants, fadeTransition, staggerContainer, staggerItem } from "@/motion";
+import { useT } from "@/i18n";
 
 type Step = "discovering" | "scanning" | "results";
 
@@ -28,10 +29,12 @@ function Row({
   label,
   value,
   pending,
+  readingAriaLabel,
 }: {
   label: string;
   value: string | null;
   pending: boolean;
+  readingAriaLabel: string;
 }) {
   return (
     <motion.div variants={staggerItem} className="flex items-center justify-between gap-3 text-sm">
@@ -45,7 +48,7 @@ function Row({
             exit={{ opacity: 0 }}
             transition={fadeTransition}
           >
-            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Reading…" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label={readingAriaLabel} />
           </motion.span>
         ) : (
           <motion.span
@@ -65,6 +68,7 @@ function Row({
 }
 
 export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void }) {
+  const t = useT();
   const [step, setStep] = useState<Step>("discovering");
   const [ecu, setEcu] = useState<EcuInfo | null>(null);
   const [sensors, setSensors] = useState<SensorReading[] | null>(null);
@@ -129,17 +133,17 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
 
         <div className="text-center">
           <Badge variant="muted" className="mb-2">
-            New vehicle
+            {t.discoveryFlow.newVehicle}
           </Badge>
           <h1 className="text-lg font-semibold tracking-tight" aria-live="polite">
-            {step === "discovering" && "Discovering your vehicle…"}
-            {step === "scanning" && "Reading every sensor it has…"}
-            {step === "results" && "Here's what we found"}
+            {step === "discovering" && t.discoveryFlow.step.discoveringTitle}
+            {step === "scanning" && t.discoveryFlow.step.scanningTitle}
+            {step === "results" && t.discoveryFlow.step.resultsTitle}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {step === "discovering" && "Confirming identity and protocol."}
-            {step === "scanning" && "This can take up to 20 seconds on real hardware."}
-            {step === "results" && "Recording starts automatically from here."}
+            {step === "discovering" && t.discoveryFlow.step.discoveringSubtitle}
+            {step === "scanning" && t.discoveryFlow.step.scanningSubtitle}
+            {step === "results" && t.discoveryFlow.step.resultsSubtitle}
           </p>
         </div>
 
@@ -171,22 +175,50 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
             <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
               <CardContent className="flex flex-col gap-2.5 pt-4">
                 <Row
-                  label="Vehicle"
-                  value={brand ? `${brand.name}${modelYear ? `, ${modelYear}` : ""}` : "Unrecognized brand"}
+                  label={t.discoveryFlow.row.vehicle}
+                  value={
+                    brand
+                      ? `${brand.name}${modelYear ? `, ${modelYear}` : ""}`
+                      : t.discoveryFlow.row.unrecognizedBrand
+                  }
                   pending={false}
+                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
                 />
-                <Row label="VIN" value={vin} pending={false} />
-                <Row label="Protocol" value={ecu?.protocol ?? null} pending={step === "discovering" && !ecu} />
-                <Row label="ELM version" value={ecu?.elm_version ?? null} pending={step === "discovering" && !ecu} />
                 <Row
-                  label="Sensors found"
+                  label={t.discoveryFlow.row.vin}
+                  value={vin}
+                  pending={false}
+                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
+                />
+                <Row
+                  label={t.discoveryFlow.row.protocol}
+                  value={ecu?.protocol ?? null}
+                  pending={step === "discovering" && !ecu}
+                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
+                />
+                <Row
+                  label={t.discoveryFlow.row.elmVersion}
+                  value={ecu?.elm_version ?? null}
+                  pending={step === "discovering" && !ecu}
+                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
+                />
+                <Row
+                  label={t.discoveryFlow.row.sensorsFound}
                   value={sensors ? String(sensors.length) : null}
                   pending={step !== "results" && sensors == null}
+                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
                 />
                 <Row
-                  label="Fault codes"
-                  value={scan ? (dtcCount === 0 ? "none — clean" : `${dtcCount} found`) : null}
+                  label={t.discoveryFlow.row.faultCodes}
+                  value={
+                    scan
+                      ? dtcCount === 0
+                        ? t.discoveryFlow.row.faultCodesClean
+                        : t.discoveryFlow.row.faultCodesFound(dtcCount!)
+                      : null
+                  }
                   pending={step !== "results" && scan == null}
+                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
                 />
               </CardContent>
             </motion.div>
@@ -234,7 +266,7 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
               className="self-center"
             >
               <Button onClick={onDone}>
-                Go to dashboard <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                {t.discoveryFlow.goToDashboard} <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </motion.div>
           )}

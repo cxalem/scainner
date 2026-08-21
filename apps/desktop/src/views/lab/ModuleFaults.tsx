@@ -7,6 +7,7 @@ import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
 import type { ClearOutcome } from "@scainner/core";
+import { useT } from "@/i18n";
 
 // Reads and clears fault codes stored on the module itself (as opposed to
 // the standard engine DTCs in Diagnose). Clearing is a real write, so it
@@ -16,6 +17,7 @@ import type { ClearOutcome } from "@scainner/core";
 // Diagnose). The clear is verified: read, clear, read again, so the result
 // is an honest before/after instead of a blind "done" button.
 export function ModuleFaults({ module, label, connected }: { module: string; label: string; connected: boolean }) {
+  const t = useT();
   const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,23 +60,23 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Module faults</CardTitle>
+        <CardTitle>{t.lab.moduleFaults.cardTitle}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-xs text-muted-foreground">
-          Faults stored on the selected module itself. Codes starting with <span className="font-mono">U</span> are
-          communication faults, and scans routinely leave these behind (the module goes quiet while answering us, and
-          its neighbours log "lost contact"). They are harmless and expected.
+          {t.lab.moduleFaults.explainerBefore}
+          <span className="font-mono">U</span>
+          {t.lab.moduleFaults.explainerAfter}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={readFaults} disabled={!connected || busy !== null}>
             <RefreshCw className={"h-4 w-4" + (busy === "read" ? " animate-spin" : "")} aria-hidden="true" />
-            {busy === "read" ? "Reading…" : "Read faults"}
+            {busy === "read" ? t.lab.moduleFaults.reading : t.lab.moduleFaults.readFaults}
           </Button>
           {faults && faults.length > 0 && (
             <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={busy !== null}>
-              {busy === "clear" ? "Clearing…" : `Clear ${faults.length} fault${faults.length === 1 ? "" : "s"}…`}
+              {busy === "clear" ? t.lab.moduleFaults.clearing : t.lab.moduleFaults.clearFaults(faults.length)}
             </Button>
           )}
         </div>
@@ -84,7 +86,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
             {faults.length === 0 ? (
               <p className="flex items-center gap-1.5 text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                No faults stored on this module.
+                {t.lab.moduleFaults.noFaultsStored}
               </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
@@ -100,12 +102,12 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
 
         {confirmClear && (
           <ConfirmWrite
-            title="Clear module faults?"
+            title={t.lab.moduleFaults.confirm.title}
             module={label}
-            whatChanges="This erases every fault code stored on this module. The app reads the module again right after, so the result is verified, and the write is saved to the write history in Diagnose."
-            reversal="No. Erased codes cannot be put back. This is still safe to do: the codes just read are saved in the write history, and a fault that is still present will report itself again on its own."
-            confirmLabel="Yes, clear"
-            busyLabel="Clearing…"
+            whatChanges={t.lab.moduleFaults.confirm.whatChanges}
+            reversal={t.lab.moduleFaults.confirm.reversal}
+            confirmLabel={t.lab.moduleFaults.confirm.confirmLabel}
+            busyLabel={t.lab.moduleFaults.clearing}
             busy={busy !== null}
             onConfirm={clear}
             onCancel={() => setConfirmClear(false)}
@@ -115,7 +117,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
         {outcome && !outcome.accepted && (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-            The module refused the clear command. Nothing was changed.
+            {t.lab.moduleFaults.refused}
           </p>
         )}
 
@@ -125,27 +127,28 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
               {outcome.after.length === 0 ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                  Cleared and verified: {outcome.before.length || "no"} fault
-                  {outcome.before.length === 1 ? "" : "s"} before, none remaining.
+                  {t.lab.moduleFaults.clearedVerified(outcome.before.length)}
                 </>
               ) : (
                 <>
                   <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-                  Cleared {outcome.before.length}, but {outcome.after.length} came straight back. Those are active
-                  faults, not leftovers, and worth investigating.
+                  {t.lab.moduleFaults.clearedButCameBack(outcome.before.length, outcome.after.length)}
                 </>
               )}
             </p>
             {outcome.before.length > 0 && (
-              <p className="font-mono text-xs text-muted-foreground">was: {outcome.before.join(", ")}</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {t.lab.moduleFaults.was(outcome.before.join(", "))}
+              </p>
             )}
             {outcome.after.length > 0 && (
-              <p className="font-mono text-xs text-muted-foreground">still: {outcome.after.join(", ")}</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {t.lab.moduleFaults.stillPresent(outcome.after.join(", "))}
+              </p>
             )}
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              If a dashboard light is still on: it lives on modules this dongle can't reach (BSI/cluster) and clears
-              by itself after an ignition cycle. Engine off, wait a minute, start again. No further action needed.
+              {t.lab.moduleFaults.dashboardLightNote}
             </p>
           </div>
         )}

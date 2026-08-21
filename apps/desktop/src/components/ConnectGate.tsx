@@ -9,23 +9,25 @@ import { Gauge, PlugZap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useCyclingLabel } from "@/components/ui";
-import { CONNECT_PHRASES, type ConnStatus } from "@scainner/core";
+import type { ConnStatus } from "@scainner/core";
+import { useT } from "@/i18n";
 
 export function ConnectGate({ conn, onConnect }: { conn: ConnStatus; onConnect: () => void }) {
+  const t = useT();
   const connecting = conn.state === "connecting";
-  const connectLabel = useCyclingLabel(CONNECT_PHRASES, connecting, 700);
+  const connectLabel = useCyclingLabel(t.shell.connectPhrases, connecting, 700);
 
   return (
     <div className="flex h-screen items-center justify-center bg-background text-foreground">
       {MOCK_MODE && (
         <span className="absolute right-4 top-4 rounded-full bg-warn/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warn">
-          Demo data
+          {t.shell.demoData}
         </span>
       )}
       <div className="flex flex-col items-center gap-6 text-center">
         <div className="flex items-center gap-2">
           <Gauge className="h-6 w-6 text-primary" aria-hidden="true" />
-          <span className="text-lg font-semibold tracking-tight">Scainner</span>
+          <span className="text-lg font-semibold tracking-tight">{t.shell.appName}</span>
         </div>
         <button
           onClick={onConnect}
@@ -39,9 +41,9 @@ export function ConnectGate({ conn, onConnect }: { conn: ConnStatus; onConnect: 
           )}
         >
           <PlugZap className="h-4 w-4" aria-hidden="true" />
-          {connecting ? connectLabel : "Connect"}
+          {connecting ? connectLabel : t.shell.connect}
         </button>
-        <p className="text-xs text-muted-foreground">Ignition on, then connect.</p>
+        <p className="text-xs text-muted-foreground">{t.shell.status.ignitionThenConnect}</p>
         {conn.detail && conn.state === "disconnected" && (
           <p className="max-w-xs text-xs leading-snug text-destructive">{conn.detail}</p>
         )}

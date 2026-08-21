@@ -28,6 +28,7 @@ export type Dictionary = {
     close: string;
     copy: string;
     copied: string;
+    copying: string;
     save: string;
   };
   shell: {
@@ -55,6 +56,9 @@ export type Dictionary = {
     disconnect: string;
     disconnecting: string;
     language: string;
+    // Shared by Shell's own Connect button and ConnectGate (the pre-first-
+    // connect screen) — same cycling label, two call sites.
+    connectPhrases: [string, string];
   };
   diagnose: {
     title: string;
@@ -223,6 +227,180 @@ export type Dictionary = {
       estimateNote: string;
       tankAriaLabel: (pct: string, status: string) => string;
       status: { reserve: string; low: string; full: string; good: string };
+    };
+  };
+  lab: {
+    title: string;
+    moduleAriaLabel: string;
+    customSuffix: string;
+    explainer: string;
+    didReader: {
+      cardTitle: string;
+      didAriaLabel: string;
+      reading: string;
+      read: string;
+      noAnswer: string;
+    };
+    moduleFaults: {
+      cardTitle: string;
+      explainerBefore: string;
+      explainerAfter: string;
+      reading: string;
+      readFaults: string;
+      clearing: string;
+      clearFaults: (n: number) => string;
+      noFaultsStored: string;
+      confirm: {
+        title: string;
+        whatChanges: string;
+        reversal: string;
+        confirmLabel: string;
+      };
+      refused: string;
+      clearedVerified: (before: number) => string;
+      clearedButCameBack: (before: number, after: number) => string;
+      was: (codes: string) => string;
+      stillPresent: (codes: string) => string;
+      dashboardLightNote: string;
+    };
+    moduleManager: {
+      cardTitle: string;
+      addModule: string;
+      couldNotLoad: string;
+      builtin: string;
+      custom: string;
+      addExplainer: string;
+      fieldName: string;
+      fieldNamePlaceholder: string;
+      fieldKey: string;
+      fieldReq: string;
+      fieldResp: string;
+      saving: string;
+      save: string;
+      removing: string;
+      remove: string;
+    };
+    probeManager: {
+      newProbeTitle: (did: string, module: string) => string;
+      saving: string;
+      saveProbe: string;
+      recordedCardTitle: string;
+      couldNotLoad: string;
+      noneYet: string;
+      disable: string;
+      enable: string;
+      delete: string;
+    };
+    rangeScanner: {
+      cardTitle: string;
+      fromAriaLabel: string;
+      toAriaLabel: string;
+      to: string;
+      scanning: string;
+      scanningWithCount: (n: number) => string;
+      scan: string;
+      scanningChunk: (from: string, to: string, hitsSoFar: number) => string;
+      scanDone: (n: number) => string;
+      checkingProgress: (did: string, current: number, total: number) => string;
+      noAnswersYetNote: string;
+      probeAction: string;
+    };
+  };
+  vehicle: {
+    title: string;
+    identity: {
+      cardTitle: string;
+      couldNotLoad: string;
+      nothingReadYet: string;
+      reading: string;
+      readFromEcu: string;
+    };
+    data: {
+      cardTitle: string;
+      storedLocally: string;
+      couldNotReadDbPath: string;
+      copyAiBriefing: string;
+      copiedAiBriefing: string;
+      copyRawJson24h: string;
+      copyRawJson30d: string;
+      briefingExplainer: string;
+    };
+  };
+  discoveryFlow: {
+    newVehicle: string;
+    step: {
+      discoveringTitle: string;
+      discoveringSubtitle: string;
+      scanningTitle: string;
+      scanningSubtitle: string;
+      resultsTitle: string;
+      resultsSubtitle: string;
+    };
+    readingAriaLabel: string;
+    row: {
+      vehicle: string;
+      unrecognizedBrand: string;
+      vin: string;
+      protocol: string;
+      elmVersion: string;
+      sensorsFound: string;
+      faultCodes: string;
+      faultCodesClean: string;
+      faultCodesFound: (n: number) => string;
+    };
+    goToDashboard: string;
+  };
+  live: {
+    title: string;
+    modeGauges: string;
+    modeAllSensors: string;
+    notConnectedTitle: string;
+    notConnectedExplainer: string;
+    recordingNote: string;
+    allSensors: {
+      readButton: string;
+      readingPhrases: [string, string];
+      filterAriaLabel: string;
+      filterPlaceholder: string;
+      readAt: (time: string, count: number) => string;
+      emptyTitle: string;
+      emptyExplainer: string;
+      pid: string;
+      sensor: string;
+      value: string;
+    };
+  };
+  history: {
+    title: string;
+    trend: {
+      sensorAriaLabel: string;
+      loading: string;
+      samples: (n: number) => string;
+      couldNotLoad: string;
+      noDataForRange: string;
+      voltageReferenceNote: string;
+    };
+    sensorRanges: {
+      cardTitle: string;
+      last7Days: string;
+      allTime: string;
+      noDataYet: string;
+      sensor: string;
+      min: string;
+      avg: string;
+      max: string;
+      samples: string;
+    };
+    sessions: {
+      cardTitle: string;
+      cardTitleWithCount: (n: number) => string;
+      noSessionsYet: string;
+      startedUtc: string;
+      duration: string;
+      maxSpeed: string;
+      maxCoolant: string;
+      minVolts: string;
+      readings: string;
     };
   };
 };

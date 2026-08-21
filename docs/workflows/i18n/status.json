@@ -1,15 +1,18 @@
 {
   "stream": "i18n",
-  "stage": "phase-1-built",
-  "state": "Phase 1 built and verified (infra + Shell + Diagnose fully translated), PR opening now. Phases 2-5 not started.",
-  "updated": "2026-08-21T14:35:00Z",
-  "branch": "ws/i18n",
+  "stage": "phase-2-complete",
+  "state": "Phases 1-4 built and verified. Every view and shared component is translated. Only Phase 5 (backend/Rust strings, explicitly deferred by plan.md) remains.",
+  "updated": "2026-08-21T16:10:00Z",
+  "branch": "ws/i18n-phase2",
   "notes": [
-    "Typed dictionary (en.ts/es.ts, ~90 keys), useT()/useLocale() hooks, locale toggle in Shell.tsx sidebar, format.ts (Intl.NumberFormat, comma decimals in Spanish).",
-    "Shell.tsx + Diagnose.tsx + all its views/diagnose/* components + WriteHistory.tsx + ConfirmWrite.tsx fully translated.",
-    "Deliberate Phase 3 boundary held throughout: lib/dtc.ts content (titles/meanings/causes/symptoms, decodeDtc's system/origin/subsystem strings) and shared/domain/gauges.ts labels stay English — every site is comment-flagged 'Phase 3' in the code.",
-    "Verified live: locale auto-detected from browser, toggle switches both directions cleanly, comma-decimal voltage confirmed (13,1 V), modal renders correctly in Spanish including the System:/Area: labels, no console errors.",
-    "42/42 tests pass on a forced run (4 new: format.test.ts x3, i18n/index.test.ts x4 covering detectLocale), tsc clean, production build succeeds (+4.7KB gzip, no new dependency).",
-    "Next: Phase 2 (remaining 5 views + shared components), Phase 3 (DTC/gauges content, needs human review pass), Phase 4 (AI report language), Phase 5 (backend/Rust strings)."
+    "Typed dictionary (en.ts/es.ts, 300+ keys), useT()/useLocale() hooks, locale toggle in Shell.tsx sidebar, format.ts (Intl.NumberFormat, comma decimals in Spanish).",
+    "Phase 1 (PR #10, merged): infra + Shell.tsx + Diagnose.tsx + views/diagnose/* + WriteHistory.tsx + ConfirmWrite.tsx.",
+    "Phase 3 (PR #10, merged): lib/dtc-codes.es.ts (29 DTC entries) + shared/domain/gauges.es.ts (gauge/monitor/stat labels), consulted via localizedSystem/Origin/Subsystem() and gaugeLabel()/monitorLabel()/statLabel() at display time — decodeDtc()'s own return values stay English on purpose (dtc-grouping.test.ts asserts them directly).",
+    "Phase 4 (PR #10, merged): ai.ts's withLanguage(), SavedReport.lang, AiReportCard/DtcDetailModal's validReport cache-invalidation-on-locale-switch pattern.",
+    "Phase 2 (PR #11 + #12, merged): Overview + FuelCard + FuelLevelGauge + buildVerdicts; Live + History (using the Phase 3 locale-aware label helpers); ConnectGate.tsx and Shell's connect-phrase cycling label (both missed by the original Phase 1 sweep, caught live); DiscoveryFlow.tsx (also missed by Phase 1, first-connect onboarding); Vehicle.tsx; Lab.tsx + all 5 sub-components (DidReader, ModuleFaults, ModuleManager, ProbeManager, RangeScanner) including the full ConfirmWrite clear flow and singular/plural outcome messages.",
+    "Along the way: fixed a real bug found during a full hardcoded-data audit (FuelCard silently saved 1.5 EUR/L on invalid price input instead of validating) and a Shell.tsx sidebar mt-auto regression (connect/disconnect card had come unpinned from the bottom).",
+    "Deliberately left untranslated: ProbeManager's PROBE_FIELDS (label/unit/offset/len/scale/bias — raw UdsProbe schema field names, not prose); raw backend car_info keys in Vehicle's Identity card (vin/make/model/year/fuel_price); AllSensorsTable's per-PID sensor.label and range-scanner cancel-error string (backend/Rust-sourced, Phase 5 territory).",
+    "Verified live throughout: every screen screenshotted in Spanish, plus real interactive flows (fuel price validation, module fault read/clear/confirm with before/after outcome text, DID range scan with live progress). tsc clean and full forced test suite green (42/42) after every commit.",
+    "Remaining: Phase 3's own stated follow-up (a native Spanish speaker, ideally a mechanic, should review the DTC/automotive terminology before it's fully trusted — flagged in code, not yet actioned). Phase 5 (OS notifications, UDS/PID label sourcing in Rust, raw Rust error strings reaching the UI) stays explicitly deferred per plan.md — not started, not requested."
   ]
 }
