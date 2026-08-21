@@ -29,7 +29,7 @@ const WORKSPACE_HEIGHT = "26rem";
 // error/cleared banners, the results workspace) so it reads as one
 // self-contained console instead of a toolbar plus a separate results card
 // plus banners scattered above it. `scan` is still controlled by the parent
-// (Diagnose.tsx) — Pre-ITV readiness and the AI report card need the same
+// (Diagnose.tsx) — Readiness monitors and the AI report card need the same
 // value — this component only reports results upward via callbacks.
 export function ScanConsole({
   connected,
@@ -128,7 +128,8 @@ export function ScanConsole({
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               No ignition cycle is needed for the check-engine light. It goes off with the clear. Two things reset
-              with it: readiness monitors re-run over your next few drives (relevant before an ITV), and permanent
+              with it: readiness monitors re-run over your next few drives (relevant before a technical or emissions
+              inspection, ITV in Spain), and permanent
               codes (if any) erase themselves only after the car self-verifies the fault is gone.
             </p>
           </div>

@@ -48,7 +48,7 @@ export function Diagnose({ connected }: { connected: boolean }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Pre-ITV readiness
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Readiness monitors
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -65,7 +65,7 @@ export function Diagnose({ connected }: { connected: boolean }) {
               </div>
               {Object.values(readiness).every(Boolean) ? (
                 <p className="mt-2 text-sm text-muted-foreground">
-                  All monitors complete — emissions-wise you would pass ITV today.
+                  All monitors complete. This is what a technical or emissions inspection checks (ITV in Spain).
                 </p>
               ) : (
                 <p className="mt-2 text-sm text-muted-foreground">
