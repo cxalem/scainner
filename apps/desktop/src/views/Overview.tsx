@@ -6,6 +6,7 @@ import {
   Database,
   HeartPulse,
   History,
+  ShieldQuestion,
   Timer,
 } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, CardSkeleton, Skeleton } from "@/components/ui";
@@ -53,14 +54,32 @@ export function Overview({
     if (connectedVin) setVin(connectedVin);
   }, [connectedVin]);
 
+  // A fresh connection whose VIN genuinely couldn't be read (App.tsx's
+  // conn.vin is null — e.g. an older, pre-Mode-09 ECU, not just a
+  // transient failure) must not keep showing whatever car was on screen
+  // before. Without this, `vin` state below stays stuck on a PREVIOUS
+  // car's VIN (from an earlier connect, or the cars[0] fallback further
+  // down) and silently renders as if it were the one connected right now
+  // — exactly the bug caught live 2026-08-21 on a real ~2000 Peugeot: the
+  // Citroën's emblem and report stayed on screen the whole time it was
+  // connected. Explicitly clearing `vin` here is what lets the "unknown
+  // vehicle" branch below render honestly instead.
+  useEffect(() => {
+    if (connState === "connected" && !connectedVin) setVin(null);
+  }, [connState, connectedVin]);
+
   // Runs whenever the cars list resolves (fresh mount, or a background
   // revalidation after connect/discovery invalidates it) and picks the
-  // first car when nothing more specific (App's connectedVin) is known yet
-  // — same behavior the old refreshKey-keyed effect had.
+  // first car when nothing more specific is known yet — but only when
+  // nothing is actively connected right now. While genuinely connected
+  // with an unknown VIN, falling back to some other car's history here
+  // would repeat the exact same bug the effect above just guarded
+  // against, just from a different trigger (this one firing on mount
+  // before the connect effect above has run yet).
   useEffect(() => {
-    if (cars.length > 0 && !connectedVin) setVin(cars[0][0]);
+    if (cars.length > 0 && !connectedVin && connState !== "connected") setVin(cars[0][0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carsQuery.data, connectedVin]);
+  }, [carsQuery.data, connectedVin, connState]);
 
   const effectiveVin = vin ?? connectedVin;
   const reportQuery = useCarReport(effectiveVin);
@@ -103,6 +122,28 @@ export function Overview({
             <Button variant="outline" onClick={() => carsQuery.refetch()}>
               {t.common.retry}
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Connected right now, but this vehicle's VIN genuinely couldn't be read
+  // (App.tsx's conn.vin is null — see its doc comment) — distinct from "no
+  // car has ever been recorded" below, and checked first so it takes
+  // priority. Honest, not a guess: no brand emblem (VehicleScene already
+  // falls back to a generic nameplate for a null vin), no report from some
+  // OTHER car standing in for this one.
+  if (connState === "connected" && !effectiveVin) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
+        {scene}
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <ShieldQuestion className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+            <p className="font-medium">{t.overview.unknownVehicle}</p>
+            <p className="max-w-sm text-sm text-muted-foreground">{t.overview.unknownVehicleExplainer}</p>
           </CardContent>
         </Card>
       </div>

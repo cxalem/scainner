@@ -25,6 +25,18 @@ pub struct ConnStatus {
     pub state: String, // "disconnected" | "connecting" | "connected"
     pub elm_version: Option<String>,
     pub detail: Option<String>,
+    // The CURRENT connection's own VIN, or None if it couldn't be read this
+    // time — deliberately separate from car_info's cached `vin` row, which
+    // only updates on a successful read and therefore still holds whatever
+    // car connected last. Reading that cache as "the live car" is exactly
+    // the bug caught 2026-08-21: a failed VIN read on a real Peugeot left
+    // the app silently showing the previous car's (Citroën's) identity —
+    // brand emblem, Overview's report, everything — with nothing on screen
+    // indicating it was wrong. The frontend must key off THIS field for
+    // "what's connected right now," never the cache, and render an honest
+    // unknown-vehicle state when it's None rather than falling back to
+    // whatever car_info happens to hold.
+    pub vin: Option<String>,
 }
 
 pub enum Request {
@@ -119,18 +131,60 @@ fn run_loop(
         // Wake the ECU / detect protocol.
         let _ = drv.cmd("0100", Duration::from_secs(20));
         let session_id = db.start_session(&version);
-        // Stamp the VIN so reports group sessions by car.
-        if let Ok(vin_payload) = obd::query(&mut drv, "0902", "49 02 01", 15) {
-            let vin = parser::decode_vin(&vin_payload);
-            if vin.len() == 17 {
-                db.set_session_vin(session_id, &vin);
-                db.set_car_info("vin", &vin);
+        // Stamp the VIN so reports group sessions by car. This is the one
+        // query that decides whether the app recognizes "a new car just
+        // connected" at all (App.tsx compares this against knownVins to
+        // decide whether to run the discovery/sensor-sweep flow) — getting
+        // it wrong doesn't just mean a missing VIN, it means the whole
+        // session silently gets attributed to whatever car was connected
+        // last. Retried up to 3 times: the very first query right after the
+        // 0100 wake-up is the one most likely to land before the bus has
+        // fully settled, especially on a car this driver hasn't been tuned
+        // against before (caught live on a real Peugeot, 2026-08-21 — the
+        // single-attempt version above left car_info.vin stuck on a
+        // different, previously-connected car's VIN for the whole session,
+        // silently: no log, no error, nothing visibly wrong except every
+        // downstream thing that reads it — the brand emblem, Overview's
+        // report, the discovery flow that never ran — being quietly wrong).
+        let mut resolved_vin: Option<String> = None;
+        for attempt in 1..=3 {
+            match obd::query(&mut drv, "0902", "49 02 01", 15) {
+                Ok(vin_payload) => {
+                    let vin = parser::decode_vin(&vin_payload);
+                    if vin.len() == 17 {
+                        db.set_session_vin(session_id, &vin);
+                        // Still updates the "last known car" cache on
+                        // success — legitimately useful elsewhere (e.g. the
+                        // Overview car picker's default before anything is
+                        // connected). Just never trusted, on its own, as
+                        // proof of what's connected *right now* — see
+                        // ConnStatus.vin's doc comment.
+                        db.set_car_info("vin", &vin);
+                        resolved_vin = Some(vin);
+                        break;
+                    }
+                    log::warn!(
+                        "VIN read attempt {attempt}/3: got {} bytes, decoded to {:?} (want 17 chars)",
+                        vin_payload.len(),
+                        vin
+                    );
+                }
+                Err(e) => log::warn!("VIN read attempt {attempt}/3 failed: {e}"),
             }
+            if attempt < 3 {
+                std::thread::sleep(Duration::from_millis(300));
+            }
+        }
+        if resolved_vin.is_none() {
+            log::warn!(
+                "VIN read failed after 3 attempts — reporting this connection as an unknown vehicle rather than falling back to car_info's cached (possibly stale) vin"
+            );
         }
         set_status(&app, &status, ConnStatus {
             state: "connected".into(),
             elm_version: Some(version.clone()),
             detail: None,
+            vin: resolved_vin,
         });
 
         let mut consecutive_failures = 0u32;
@@ -416,7 +470,19 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
         }
         Request::ReadEcuInfo(tx) => {
             let res = obd::read_ecu_info(drv).map(|info| {
-                db.set_car_info("vin", &info.vin);
+                // Same guard as the connect-time VIN stamp above: only
+                // overwrite the cache on an actually-valid 17-char VIN.
+                // This handler used to write info.vin unconditionally —
+                // on a car whose ECU doesn't answer Mode 09 at all (a real
+                // ~2000 Peugeot, 2026-08-21), clicking "Read from ECU" on
+                // the Vehicle tab clobbered car_info.vin with an empty
+                // string, silently destroying whatever car was cached
+                // there before. protocol/elm_version are always real
+                // values read straight from the adapter (never a VIN
+                // decode result), so they're safe to always record.
+                if info.vin.len() == 17 {
+                    db.set_car_info("vin", &info.vin);
+                }
                 db.set_car_info("protocol", &info.protocol);
                 db.set_car_info("elm_version", &info.elm_version);
                 info

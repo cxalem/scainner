@@ -133,9 +133,26 @@ pub fn read_ecu_info(drv: &mut ElmDriver) -> Result<EcuInfo, String> {
     let vin = parser::decode_vin(&vin_payload);
     let protocol_raw = drv.cmd("ATDPN", Duration::from_secs(3)).map_err(|e| e.to_string())?;
     let pn = parser::clean_response(&protocol_raw).first().cloned().unwrap_or_default();
+    // Full standard ELM327 protocol-number table (ATDPN's numeric reply,
+    // optionally 'A'-prefixed when auto-detected), not just the two CAN
+    // variants this was originally written and tested against. A ~2000
+    // Peugeot (2026-08-21) came back "protocol 5" — ISO 14230-4 KWP
+    // (fast init), a real, correct, pre-CAN K-line protocol, not garbage —
+    // it just fell through to the unfriendly numeric fallback because
+    // nothing this old had been connected before.
     let protocol = match pn.trim_start_matches('A') {
+        "1" => "SAE J1850 PWM".to_string(),
+        "2" => "SAE J1850 VPW".to_string(),
+        "3" => "ISO 9141-2".to_string(),
+        "4" => "ISO 14230-4 KWP (5-baud init)".to_string(),
+        "5" => "ISO 14230-4 KWP (fast init)".to_string(),
         "6" => "ISO 15765-4 CAN 11-bit 500k".to_string(),
         "7" => "ISO 15765-4 CAN 29-bit 500k".to_string(),
+        "8" => "ISO 15765-4 CAN 11-bit 250k".to_string(),
+        "9" => "ISO 15765-4 CAN 29-bit 250k".to_string(),
+        "A" => "SAE J1939 CAN 29-bit".to_string(),
+        "B" => "USER1 CAN 11-bit".to_string(),
+        "C" => "USER2 CAN 11-bit".to_string(),
         other => format!("protocol {other}"),
     };
     Ok(EcuInfo { vin, protocol, elm_version: "ELM327".into() })

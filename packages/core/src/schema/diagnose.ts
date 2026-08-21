@@ -17,6 +17,19 @@ const dtcResultFields = {
 export class DtcResult extends Schema.Class<DtcResult>("DtcResult")(dtcResultFields) {}
 export class DtcScanRow extends Schema.Class<DtcScanRow>("DtcScanRow")({
   ...dtcResultFields,
+  // Override: db::DtcScan (a historical row, src-tauri/src/db.rs) never
+  // had a dtc_count field — only the live obd::DtcResult struct does
+  // (src-tauri/src/elm/obd.rs). Spreading dtcResultFields as-is required
+  // it on every historical row too, so EVERY row failed to decode and
+  // dtcHistory()'s whole array decode failed with it — "Could not load
+  // scan history," always, for any real data. Went unnoticed because
+  // nothing had exercised this with actual historical scans present
+  // until real testing finally produced enough of them (2026-08-21) to
+  // hit the array-decode path at all. Diagnose.tsx never reads
+  // scan.dtc_count for a history row anyway (it derives a fresh count
+  // from stored/pending/permanent locally) — nothing downstream needed
+  // fixing beyond this schema.
+  dtc_count: Schema.optional(Schema.Number),
   id: Schema.Number,
   ts: Schema.String,
 }) {}

@@ -164,6 +164,9 @@ export const en: Dictionary = {
     couldNotLoadCars: "Could not load the car list.",
     noDataYet: "No data yet",
     noDataYetExplainer: "Connect and drive — the report builds itself from recorded sessions.",
+    unknownVehicle: "Connected, but this vehicle couldn't be identified",
+    unknownVehicleExplainer:
+      "We're recording everything live (check Live and Diagnose), but this car didn't answer the VIN request — common on older vehicles. No history report until it can be identified.",
     couldNotLoadReport: "Could not load this car's report.",
     stats: { sessions: "Sessions", engineTime: "Engine time", readings: "Readings", scansClean: "Scans clean" },
     health: {
