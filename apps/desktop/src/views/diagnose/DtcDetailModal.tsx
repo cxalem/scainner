@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useCyclingLabel } from "@/components/ui";
 import type { DtcResult, DtcScanRow } from "@scainner/core";
 import { AI_PHASES, generateCodeReport, getApiKey, getCodeReports, type SavedReport } from "@/lib/ai";
-import { decodeDtc, dtcInfo } from "@/lib/dtc";
+import { decodeDtc, dtcInfo, localizedOrigin, localizedSubsystem, localizedSystem } from "@/lib/dtc";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
 import { backdropVariants, modalPanelVariants } from "@/motion";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
 // Per-code detail: everything the app knows about one DTC, from high level
 // down — plain-language meaning + severity (curated library), the code's
@@ -27,12 +27,16 @@ export function DtcDetailModal({
   onClose: () => void;
 }) {
   const t = useT();
-  const info = dtcInfo(code);
+  const { locale } = useLocale();
+  const info = dtcInfo(code, locale);
   const structure = decodeDtc(code);
   const [report, setReport] = useState<SavedReport | null>(() => getCodeReports()[code] ?? null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasKey = !!getApiKey();
+  // Same stale-cache guard as AiReportCard.tsx — see lib/ai.ts's
+  // SavedReport.lang comment.
+  const validReport = report && report.lang === locale ? report : null;
   // Plain fetch outside `invoke`, no midpoint signal possible from the
   // Anthropic API — cycled phrases instead of a static label so a 10-60s
   // wait doesn't read as frozen (interaction-audit.md rule 3).
@@ -59,7 +63,9 @@ export function DtcDetailModal({
       const summary =
         occurrences.map((occ) => `- ${occ.ts} UTC — seen as ${occ.role}${occ.voltage != null ? ` (battery ${occ.voltage.toFixed(1)} V)` : ""}`).join("\n") +
         (freeze ? `\nFreeze frame at the moment it tripped: ${JSON.stringify(freeze)}` : "");
-      setReport(await generateCodeReport(code, summary || "(no recorded occurrences — code seen in a live scan only)"));
+      setReport(
+        await generateCodeReport(code, summary || "(no recorded occurrences — code seen in a live scan only)", locale),
+      );
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
     } finally {
@@ -108,19 +114,17 @@ export function DtcDetailModal({
           </button>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm">
-          {/* info.meaning stays English in Phase 1 — DTC_LIBRARY content. */}
           {info && <p>{info.meaning}</p>}
 
           {structure && (
             <div className="rounded-md border border-border bg-muted/40 p-3">
               <p className="mb-1 font-medium">{t.diagnose.detailModal.codeAnatomy}</p>
-              {/* structure.system/subsystem/origin VALUES stay English in
-                  Phase 1 — decodeDtc() output, same Phase 3 content
-                  boundary. Only the "System:"/"Area:" labels translate. */}
               <ul className="flex flex-col gap-0.5 text-muted-foreground">
-                <li>{t.diagnose.detailModal.system(structure.system)}</li>
-                {structure.subsystem && <li>{t.diagnose.detailModal.area(structure.subsystem)}</li>}
-                <li>{structure.origin}</li>
+                <li>{t.diagnose.detailModal.system(localizedSystem(structure.system, locale))}</li>
+                {structure.subsystem && (
+                  <li>{t.diagnose.detailModal.area(localizedSubsystem(structure.subsystem, locale))}</li>
+                )}
+                <li>{localizedOrigin(structure.origin, locale)}</li>
               </ul>
             </div>
           )}
@@ -145,8 +149,6 @@ export function DtcDetailModal({
 
           {info && (
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* info.causes/symptoms stay English in Phase 1 — DTC_LIBRARY
-                  content, Phase 3. Only the section headings translate. */}
               <div>
                 <p className="mb-1 font-medium">{t.diagnose.detailModal.commonCauses}</p>
                 <ol className="list-decimal pl-5 text-muted-foreground">
@@ -172,7 +174,7 @@ export function DtcDetailModal({
                 <Sparkles className={"h-4 w-4" + (generating ? " animate-pulse" : "")} aria-hidden="true" />
                 {generating
                   ? generatingLabel
-                  : report
+                  : validReport
                     ? t.diagnose.detailModal.regenerateAiDeepDive
                     : t.diagnose.detailModal.aiDeepDive}
               </Button>
@@ -181,10 +183,10 @@ export function DtcDetailModal({
             {error && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">{error}</div>
             )}
-            {report && (
+            {validReport && (
               <div className="rounded-md border border-border bg-muted/30 p-3">
-                <p className="mb-2 font-mono text-xs text-muted-foreground">{t.diagnose.detailModal.generated(report.ts)}</p>
-                <div className="whitespace-pre-wrap leading-relaxed">{report.md}</div>
+                <p className="mb-2 font-mono text-xs text-muted-foreground">{t.diagnose.detailModal.generated(validReport.ts)}</p>
+                <div className="whitespace-pre-wrap leading-relaxed">{validReport.md}</div>
               </div>
             )}
           </div>

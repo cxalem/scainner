@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { dtcInfo, type DtcInfo } from "@/lib/dtc";
+import { dtcInfo, localizedSystem, type DtcInfo } from "@/lib/dtc";
 import type { DtcGroup } from "@/lib/dtc-grouping";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
 // A group auto-expands at or under this size; past it, it starts collapsed
 // to a header with a count. See plan.md for why 6 (roughly a card's height
@@ -28,6 +28,7 @@ export function CodeGroupRow({
   onSelect: (code: string) => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const collapsesByDefault = group.codes.length > COLLAPSE_THRESHOLD;
   const [expanded, setExpanded] = useState(!collapsesByDefault);
   const SEVERITY_LABEL: Record<DtcInfo["severity"] | "unknown", string> = {
@@ -67,10 +68,7 @@ export function CodeGroupRow({
         ) : (
           <span className={cn("h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[group.worstSeverity])} aria-hidden="true" />
         )}
-        {/* group.system stays English in Phase 1 — sourced from
-            decodeDtc() in lib/dtc.ts, same Phase 3 content boundary as
-            the DTC library (see dictionary.ts's top comment). */}
-        <span>{group.system}</span>
+        <span>{localizedSystem(group.system, locale)}</span>
         <span className="text-muted-foreground">{t.diagnose.groups.codeCount(group.codes.length)}</span>
         {collapsesByDefault && (
           <span className="ml-auto shrink-0 text-xs font-normal text-primary">
@@ -82,7 +80,7 @@ export function CodeGroupRow({
       {expanded && (
         <ul className="ml-5 flex flex-col gap-1">
           {group.codes.map((code) => {
-            const info = dtcInfo(code);
+            const info = dtcInfo(code, locale);
             const severity = info?.severity ?? "unknown";
             return (
               <li key={code}>
@@ -95,8 +93,6 @@ export function CodeGroupRow({
                 >
                   <span className={cn("h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[severity])} aria-hidden="true" />
                   <span className="font-mono">{code}</span>
-                  {/* info?.title stays English in Phase 1 — DTC_LIBRARY
-                      content, Phase 3. */}
                   <span className="truncate text-muted-foreground">{info?.title ?? t.diagnose.groups.notInLibrary}</span>
                   {affected.has(code) && (
                     <span

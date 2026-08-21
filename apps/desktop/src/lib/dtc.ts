@@ -10,6 +10,18 @@
 //
 // No network, ships in-app. Severity is about drivability/consequences,
 // not repair cost.
+//
+// i18n note: `decodeDtc`'s return values stay English internally on
+// purpose — they're used as stable grouping keys by lib/dtc-grouping.ts,
+// and that file's tests assert against these exact strings. Translating
+// them for DISPLAY happens one layer up, via `localizedSystem`/
+// `localizedOrigin`/`localizedSubsystem` below, which map the existing
+// English strings to Spanish rather than changing what `decodeDtc` itself
+// returns or how grouping works. `dtcInfo`, by contrast, really does pick
+// a different data source per locale (DTC_LIBRARY vs DTC_LIBRARY_ES) since
+// its content isn't used as a grouping key anywhere.
+import { DTC_LIBRARY_ES } from "./dtc-codes.es";
+import type { Locale } from "@/i18n";
 
 export type DtcStructure = {
   system: string; // Powertrain / Chassis / Body / Network
@@ -24,6 +36,16 @@ export type DtcInfo = {
   symptoms: string[];
   severity: "low" | "medium" | "high";
 };
+
+// Every code DTC_LIBRARY curates — a union, not `string`, so dtc-codes.es.ts
+// typing its own library against `Record<DtcCode, DtcInfo>` fails `tsc` the
+// moment the two libraries' key sets drift, same key-safety pattern as
+// i18n/en.ts vs es.ts.
+export type DtcCode =
+  | "P0100" | "P0101" | "P0113" | "P0117" | "P0118" | "P0128" | "P0130" | "P0135"
+  | "P0171" | "P0172" | "P0300" | "P0301" | "P0302" | "P0303" | "P0325" | "P0335"
+  | "P0340" | "P0401" | "P0420" | "P0430" | "P0442" | "P0455" | "P0500" | "P0505"
+  | "P0562" | "P0563" | "P0700" | "U0100" | "U0121";
 
 const P_SUBSYSTEMS: Record<string, string> = {
   "0": "Fuel and air metering (auxiliary emission controls)",
@@ -55,7 +77,7 @@ export function decodeDtc(code: string): DtcStructure | null {
   };
 }
 
-export const DTC_LIBRARY: Record<string, DtcInfo> = {
+export const DTC_LIBRARY: Record<DtcCode, DtcInfo> = {
   P0100: { title: "MAF circuit malfunction", meaning: "The mass-airflow sensor's signal is out of range or missing, so the ECU can't measure how much air enters the engine.", causes: ["Disconnected/damaged MAF connector or wiring", "Dirty or failed MAF sensor", "Intake air leak near the sensor"], symptoms: ["Rough idle", "Hesitation on acceleration", "Higher fuel consumption"], severity: "medium" },
   P0101: { title: "MAF performance out of range", meaning: "The airflow reading disagrees with what the ECU expects for the current throttle/RPM — the sensor responds, but implausibly.", causes: ["Dirty MAF element", "Intake leak after the sensor", "Clogged air filter", "Aging MAF sensor"], symptoms: ["Uneven idle", "Reduced power", "Fuel trims drifting"], severity: "medium" },
   P0113: { title: "Intake air temp sensor high", meaning: "The intake-air temperature signal reads open-circuit (very cold/absent), so the ECU falls back to a default value.", causes: ["Unplugged/broken IAT connector", "Failed sensor", "Wiring open circuit"], symptoms: ["Often none day-to-day", "Slightly rich running, worse cold starts"], severity: "low" },
@@ -87,6 +109,55 @@ export const DTC_LIBRARY: Record<string, DtcInfo> = {
   U0121: { title: "Lost communication with ABS module", meaning: "The ABS module stopped answering on the network.", causes: ["ABS module power/ground fault", "CAN wiring", "Failed ABS module"], symptoms: ["ABS + traction lights on", "Speedometer issues on some cars"], severity: "high" },
 };
 
-export function dtcInfo(code: string): DtcInfo | null {
-  return DTC_LIBRARY[code.toUpperCase()] ?? null;
+const LIBRARY_BY_LOCALE: Record<Locale, Record<DtcCode, DtcInfo>> = {
+  en: DTC_LIBRARY,
+  es: DTC_LIBRARY_ES,
+};
+
+export function dtcInfo(code: string, locale: Locale = "en"): DtcInfo | null {
+  const upper = code.toUpperCase() as DtcCode;
+  return LIBRARY_BY_LOCALE[locale][upper] ?? null;
+}
+
+// Translates decodeDtc()'s English display strings for Spanish — see the
+// i18n note at the top of this file for why decodeDtc() itself doesn't
+// take a locale. Falls back to the English string on a missing mapping
+// (never crashes, never shows a blank) — a real safety net, not just
+// defensive-looking code, since new system/subsystem strings only ever
+// come from decodeDtc's own small fixed vocabulary above, not user input.
+const SYSTEM_ES: Record<string, string> = {
+  "Powertrain (engine, transmission, emissions)": "Motor y transmisión (motor, transmisión, emisiones)",
+  "Chassis (brakes, steering, suspension)": "Chasis (frenos, dirección, suspensión)",
+  "Body (airbags, lighting, comfort)": "Carrocería (airbags, iluminación, confort)",
+  "Network (module communication)": "Red (comunicación entre módulos)",
+  Other: "Otro",
+};
+
+const ORIGIN_ES: Record<string, string> = {
+  "SAE-standard code — same meaning on every brand": "Código estándar SAE: mismo significado en todas las marcas",
+  "Manufacturer-specific code — exact meaning defined by the carmaker":
+    "Código específico del fabricante: el significado exacto lo define la marca",
+};
+
+const SUBSYSTEM_ES: Record<string, string> = {
+  "Fuel and air metering (auxiliary emission controls)": "Medición de combustible y aire (controles auxiliares de emisiones)",
+  "Fuel and air metering": "Medición de combustible y aire",
+  "Fuel and air metering (injector circuit)": "Medición de combustible y aire (circuito de inyectores)",
+  "Ignition system or misfire": "Sistema de encendido o fallo de encendido",
+  "Auxiliary emission controls": "Controles auxiliares de emisiones",
+  "Vehicle speed control and idle control": "Control de velocidad del vehículo y de ralentí",
+  "Computer output circuits": "Circuitos de salida del ordenador",
+  Transmission: "Transmisión",
+};
+
+export function localizedSystem(system: string, locale: Locale): string {
+  return locale === "es" ? (SYSTEM_ES[system] ?? system) : system;
+}
+
+export function localizedOrigin(origin: string, locale: Locale): string {
+  return locale === "es" ? (ORIGIN_ES[origin] ?? origin) : origin;
+}
+
+export function localizedSubsystem(subsystem: string, locale: Locale): string {
+  return locale === "es" ? (SUBSYSTEM_ES[subsystem] ?? subsystem) : subsystem;
 }

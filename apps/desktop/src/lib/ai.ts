@@ -23,6 +23,21 @@
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
 import { AiService, DeviceService } from "@scainner/core";
+import type { Locale } from "@/i18n";
+
+// Phase 4 (docs/workflows/i18n/plan.md): the report itself, not just the
+// UI chrome around it, is what a Spanish-speaking mechanic or owner
+// actually needs in Spanish — arguably more than the button labels. Not a
+// translated prompt (the SYSTEM_PROMPT/CODE_SYSTEM_PROMPT text below stays
+// English, that's an instruction TO Claude, not content shown to the
+// user) — a language instruction appended to it, so Claude generates the
+// whole report in Spanish directly.
+const SPANISH_INSTRUCTION =
+  "\n\nWrite your entire response in Spanish (español). Translate the section headings naturally into Spanish too — keep the same markdown structure (##, numbered lists), just written in Spanish throughout.";
+
+function withLanguage(systemPrompt: string, locale: Locale): string {
+  return locale === "es" ? systemPrompt + SPANISH_INSTRUCTION : systemPrompt;
+}
 
 const KEY_STORAGE = "scainner.anthropic_api_key";
 const REPORT_STORAGE = "scainner.last_ai_report";
@@ -48,7 +63,11 @@ export function setApiKey(key: string) {
   else localStorage.removeItem(KEY_STORAGE);
 }
 
-export type SavedReport = { ts: string; md: string };
+// `lang` records which language the report was actually generated in, so
+// a cached report from before a locale switch never silently shows as if
+// it matched the current one — callers check `report.lang === locale`
+// before trusting a cached report (see AiReportCard.tsx/DtcDetailModal.tsx).
+export type SavedReport = { ts: string; md: string; lang: Locale };
 
 export function getLastReport(): SavedReport | null {
   try {
@@ -87,10 +106,10 @@ async function callClaude(system: string, userContent: string): Promise<string> 
   return runPromise(Effect.flatMap(AiService, (ai) => ai.complete({ apiKey: key, model: MODEL, system, userContent })));
 }
 
-export async function generateDiagnosisReport(): Promise<SavedReport> {
+export async function generateDiagnosisReport(locale: Locale): Promise<SavedReport> {
   const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
-  const md = await callClaude(SYSTEM_PROMPT, briefing);
-  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md };
+  const md = await callClaude(withLanguage(SYSTEM_PROMPT, locale), briefing);
+  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md, lang: locale };
   localStorage.setItem(REPORT_STORAGE, JSON.stringify(report));
   return report;
 }
@@ -131,13 +150,13 @@ export function getCodeReports(): CodeReports {
   }
 }
 
-export async function generateCodeReport(code: string, occurrenceSummary: string): Promise<SavedReport> {
+export async function generateCodeReport(code: string, occurrenceSummary: string, locale: Locale): Promise<SavedReport> {
   const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
   const md = await callClaude(
-    CODE_SYSTEM_PROMPT,
+    withLanguage(CODE_SYSTEM_PROMPT, locale),
     `${briefing}\n\n---\n\n# FOCUS CODE: ${code}\n\nRecorded occurrences of ${code} (from the scan history above):\n${occurrenceSummary}`,
   );
-  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md };
+  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md, lang: locale };
   const all = getCodeReports();
   all[code] = report;
   localStorage.setItem(CODE_REPORTS_STORAGE, JSON.stringify(all));

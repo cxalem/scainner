@@ -1,9 +1,10 @@
 import { Snowflake } from "lucide-react";
-import { GAUGES } from "@/shared/domain/gauges";
-import { useT } from "@/i18n";
+import { GAUGES, gaugeLabel } from "@/shared/domain/gauges";
+import { useLocale, useT } from "@/i18n";
 
 export function FreezeFrame({ data }: { data: Record<string, unknown> }) {
   const t = useT();
+  const { locale } = useLocale();
   const entries = Object.entries(data).filter(([entryKey]) => entryKey !== "trigger_dtc");
   return (
     <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
@@ -20,9 +21,7 @@ export function FreezeFrame({ data }: { data: Record<string, unknown> }) {
           const gauge = GAUGES.find((candidate) => candidate.key === entryKey);
           return (
             <div key={entryKey} className="flex justify-between gap-2">
-              {/* gauge.label stays English in Phase 1 — shared/domain/
-                  gauges.ts content, same Phase 3 boundary. */}
-              <span className="text-muted-foreground">{gauge?.label ?? entryKey}</span>
+              <span className="text-muted-foreground">{gauge ? gaugeLabel(entryKey, locale) : entryKey}</span>
               <span className="font-mono">
                 {typeof value === "number" ? (gauge?.fmt ? gauge.fmt(value) : value) : String(value)} {gauge?.unit ?? ""}
               </span>

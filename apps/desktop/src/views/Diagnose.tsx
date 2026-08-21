@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
-import { MONITOR_LABELS } from "@/shared/domain/gauges";
+import { monitorLabel } from "@/shared/domain/gauges";
 import type { DtcResult, ObdClearOutcome } from "@scainner/core";
 import { WriteHistory } from "@/components/WriteHistory";
 import { useDtcHistory } from "@/features/diagnose/queries";
@@ -62,11 +62,8 @@ export function Diagnose({ connected }: { connected: boolean }) {
             <div className="animate-fade-slide-in">
               <div className="flex flex-wrap gap-2">
                 {Object.entries(readiness).map(([monitor, ready]) => (
-                  // MONITOR_LABELS itself stays English in Phase 1 — content
-                  // sourced from shared/domain/gauges.ts, same Phase 3
-                  // boundary as lib/dtc.ts (see dictionary.ts's top comment).
                   <Badge key={monitor} variant={ready ? "ok" : "warn"}>
-                    {MONITOR_LABELS[monitor] ?? monitor}: {ready ? t.diagnose.readiness.ready : t.diagnose.readiness.notReady}
+                    {monitorLabel(monitor, locale)}: {ready ? t.diagnose.readiness.ready : t.diagnose.readiness.notReady}
                   </Badge>
                 ))}
               </div>
