@@ -10,11 +10,12 @@
 // file is a thin, validated lookup over that data (see docs/workflows/
 // car-data/plan.md). Each entry carries a `confidence` and `source` field
 // produced by the full-table audit (docs/workflows/3d-logos/wmi-audit.md):
-// "high" = NHTSA-confirmed directly (or an obvious sibling of one), "medium
-// -high"/"medium" = corroborated by two or more independent secondary
-// sources but not in NHTSA's registry (typical for non-US-market brands
-// and export-only plant codes), "low" = single-sourced or genuinely
-// unconfirmed. Nothing below medium confidence is currently in the table —
+// "high" = NHTSA-confirmed directly, an obvious sibling of one, or (for
+// brands NHTSA can't cover because they don't sell in the US, e.g. VF7,
+// UU1, TMB) strongly convergent across three-plus independent secondary
+// sources, "medium-high"/"medium" = corroborated by fewer or weaker
+// secondary sources, or NHTSA-confirmed but not brand-exclusive (U5Y),
+// "low" = single-sourced or genuinely unconfirmed. Nothing below medium confidence is currently in the table —
 // entries the audit flagged as wrong or unresolved (JSA, JMZ, VXK) were
 // already removed or swapped for a confirmed alternative.
 //

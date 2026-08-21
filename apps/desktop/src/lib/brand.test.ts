@@ -133,6 +133,17 @@ describe("parseWmiTable", () => {
     const rawKeys = Object.keys(raw).map((k) => k.toUpperCase());
     const parsedKeys = Object.keys(parsed);
     expect(parsedKeys.sort()).toEqual([...new Set(rawKeys)].sort());
+    // Every key must be a real, reachable WMI prefix: exactly 3 uppercase
+    // alphanumerics. parseWmiTable is deliberately tolerant of value-shape
+    // problems, but a malformed KEY (trailing space, wrong length,
+    // lowercase) would pass validation and then never match any VIN,
+    // silently killing that brand's badge - this assertion catches that
+    // typo class in the real data at test time. (Added in review
+    // 2026-08-21: a probe showed "VR7 ", "AB", "ABCD", and "" all pass
+    // parseWmiTable and become unreachable entries.)
+    for (const k of Object.keys(raw)) {
+      expect(k).toMatch(/^[A-Z0-9]{3}$/);
+    }
     for (const entry of Object.values(parsed) as BrandInfo[]) {
       expect(typeof entry.key).toBe("string");
       expect(typeof entry.name).toBe("string");
