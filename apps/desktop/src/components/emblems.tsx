@@ -13,22 +13,13 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { useLoader } from "@react-three/fiber";
+import { CHROME_MATERIAL, NAMEPLATE_TEXTURE } from "@/theme";
 
-export const EMBLEM_CHROME = {
-  color: "#f4f6f8",
-  metalness: 0.9,
-  // Tightened from 0.22 on real evidence, not a guess: the source GLB
-  // files' own "Polished_Metal" material specifies roughnessFactor 0.14
-  // (checked directly in each file's JSON before this change), and this
-  // shared material was duller than what those files were actually
-  // designed for. Still not razor-sharp — patterns/3d.md rule 2 still
-  // applies, a true mirror in a soft studio rig goes flat/dark, this is
-  // the floor before that starts happening.
-  roughness: 0.13,
-  clearcoat: 0.85,
-  clearcoatRoughness: 0.06,
-  envMapIntensity: 2.0,
-} as const;
+// Re-exported under its original name — sourced from ../theme/rendering.ts
+// (CHROME_MATERIAL) now, see that file for the full material-physics
+// reasoning. Kept as EMBLEM_CHROME here since docs (patterns/3d.md,
+// 3d-logos/*.md) reference it by this name.
+export const EMBLEM_CHROME = CHROME_MATERIAL;
 
 // Vertical center of the emblem — floats where the car's body used to be so
 // the existing camera framing and ContactShadows keep working unchanged.
@@ -108,9 +99,9 @@ export function NameplateEmblem({ name }: { name: string }) {
     canvas.width = 1024;
     canvas.height = 256;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff"; // multiplies to the chrome base color untouched
+    ctx.fillStyle = NAMEPLATE_TEXTURE.baseFill; // multiplies to the chrome base color untouched
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#181a1e";
+    ctx.fillStyle = NAMEPLATE_TEXTURE.textColor;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     let size = 150;
