@@ -2,26 +2,22 @@ import { describe, expect, it } from "vitest";
 import { detectVoltageCluster, groupBySystem } from "@/lib/dtc-grouping";
 
 describe("groupBySystem", () => {
-  it("groups a mixed-system code set by decodeDtc's system", () => {
+  it("groups a mixed-system code set by decodeDtc's system, alphabetically", () => {
     const groups = groupBySystem(["P0300", "C0035", "B0001", "U0100"]);
-    // P0300 and U0100 are both "high" severity — a tie, broken by which
-    // system appeared first in the input (stable sort), so Powertrain
-    // (from P0300, first in the list) leads Network (from U0100, last).
-    // C0035/B0001 aren't in DTC_LIBRARY, so Chassis/Body rank "unknown" last.
+    // Neutral ordering (severity ranking removed 2026-08-21, owner call —
+    // the app makes no seriousness claims): systems alphabetical.
     expect(groups.map((g) => g.system)).toEqual([
-      "Powertrain (engine, transmission, emissions)",
-      "Network (module communication)",
-      "Chassis (brakes, steering, suspension)",
       "Body (airbags, lighting, comfort)",
+      "Chassis (brakes, steering, suspension)",
+      "Network (module communication)",
+      "Powertrain (engine, transmission, emissions)",
     ]);
   });
 
-  it("sorts codes within a group by severity, worst first", () => {
-    // P0128 low, P0335 high, P0505 medium — same Powertrain system
-    const groups = groupBySystem(["P0128", "P0335", "P0505"]);
+  it("sorts codes within a group neutrally, by code", () => {
+    const groups = groupBySystem(["P0505", "P0128", "P0335"]);
     expect(groups).toHaveLength(1);
-    expect(groups[0].codes).toEqual(["P0335", "P0505", "P0128"]);
-    expect(groups[0].worstSeverity).toBe("high");
+    expect(groups[0].codes).toEqual(["P0128", "P0335", "P0505"]);
   });
 
   it("puts a malformed code in its own Other group instead of dropping it", () => {
@@ -31,8 +27,8 @@ describe("groupBySystem", () => {
     expect(other?.codes).toEqual(["NOTACODE"]);
   });
 
-  it("always sorts Other last, regardless of severity ordering", () => {
-    const groups = groupBySystem(["NOTACODE", "P0128"]); // P0128 is only "low"
+  it("always sorts Other last", () => {
+    const groups = groupBySystem(["NOTACODE", "P0128"]);
     expect(groups[groups.length - 1]?.system).toBe("Other");
   });
 

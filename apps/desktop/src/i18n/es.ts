@@ -73,12 +73,6 @@ export const es: Dictionary = {
       notInLibrary: "No está en la biblioteca sin conexión",
       voltageLinked: "relacionado con voltaje",
       voltageLinkedTooltip: "Probablemente un efecto secundario del voltaje: mira la nota de arriba",
-      severity: {
-        high: "Gravedad alta",
-        medium: "Gravedad media",
-        low: "Gravedad baja",
-        unknown: "No está en la biblioteca sin conexión",
-      },
     },
     statusLabels: { stored: "Almacenado", pending: "Pendiente", permanent: "Permanente" },
     detailsFor: (code) => `Detalles de ${code}`,
@@ -122,7 +116,6 @@ export const es: Dictionary = {
       regenerateAiDeepDive: "Regenerar análisis con IA",
       setApiKeyHint: "Configura tu clave de API de Anthropic en la tarjeta de diagnóstico con IA de abajo para habilitar el análisis por código.",
       generated: (date) => `generado ${date}`,
-      severity: { low: "urgencia baja", medium: "atención", high: "grave" },
     },
     aiReport: {
       cardTitle: "Diagnóstico con IA",

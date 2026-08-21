@@ -10,7 +10,7 @@ import { backdropVariants, modalPanelVariants } from "@/motion";
 import { useLocale, useT } from "@/i18n";
 
 // Per-code detail: everything the app knows about one DTC, from high level
-// down — plain-language meaning + severity (curated library), the code's
+// down — plain-language meaning (curated library), the code's
 // structural anatomy (works for ANY code), its full occurrence timeline
 // across scan history, the freeze frame if this code triggered one, ranked
 // common causes/symptoms, and a focused AI deep-dive for exactly this
@@ -73,8 +73,6 @@ export function DtcDetailModal({
     }
   };
 
-  const sevVariant = info?.severity === "high" ? "error" : info?.severity === "medium" ? "warn" : "muted";
-  const sevLabel = info ? t.diagnose.detailModal.severity[info.severity] : null;
   const roleLabel: Record<"stored" | "pending" | "permanent", string> = {
     stored: t.diagnose.statusLabels.stored,
     pending: t.diagnose.statusLabels.pending,
@@ -98,7 +96,6 @@ export function DtcDetailModal({
           <div>
             <CardTitle className="flex flex-wrap items-center gap-2">
               <span className="font-mono">{code}</span>
-              {sevLabel && <Badge variant={sevVariant}>{sevLabel}</Badge>}
             </CardTitle>
             {/* info?.title stays English in Phase 1 — DTC_LIBRARY content,
                 Phase 3. */}

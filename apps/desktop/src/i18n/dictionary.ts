@@ -90,7 +90,6 @@ export type Dictionary = {
       notInLibrary: string;
       voltageLinked: string;
       voltageLinkedTooltip: string;
-      severity: { high: string; medium: string; low: string; unknown: string };
     };
     statusLabels: { stored: string; pending: string; permanent: string };
     detailsFor: (code: string) => string;
@@ -132,7 +131,6 @@ export type Dictionary = {
       regenerateAiDeepDive: string;
       setApiKeyHint: string;
       generated: (date: string) => string;
-      severity: { low: string; medium: string; high: string };
     };
     aiReport: {
       cardTitle: string;
