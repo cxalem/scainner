@@ -1,5 +1,6 @@
 import { BatteryCharging, ClipboardList, Thermometer, Wind, Wrench } from "lucide-react";
 import type { CarReport } from "@scainner/core";
+import type { Dictionary } from "@/i18n";
 
 export type Verdict = {
   icon: typeof Wrench;
@@ -11,46 +12,48 @@ export type Verdict = {
 // Reads Overview's report data into the plain-language Health summary
 // cards. Pure function, no JSX, no hooks — a natural own-file split from
 // the components that render its output (research.md section 4).
-export function buildVerdicts(report: CarReport): Verdict[] {
+//
+// Takes `t` as a parameter rather than calling useT() itself, same as
+// components/WriteHistory.tsx's summary() — this needs to stay a plain,
+// testable function, not a component or a hook.
+export function buildVerdicts(report: CarReport, t: Dictionary): Verdict[] {
   const insights = report.insights;
+  const h = t.overview.health;
   const verdicts: Verdict[] = [];
 
   if (report.scans_total > 0) {
     const clean = report.scans_clean === report.scans_total;
     verdicts.push({
       icon: ClipboardList,
-      title: "Fault record",
+      title: h.faultRecordTitle,
       text: clean
-        ? `All ${report.scans_total} diagnostic scans came back clean — the car has no stored faults.`
-        : `${report.scans_total - report.scans_clean} of ${report.scans_total} scans found codes — check Diagnose.`,
+        ? h.faultRecordClean(report.scans_total)
+        : h.faultRecordSome(report.scans_total - report.scans_clean, report.scans_total),
       status: clean ? "good" : "watch",
     });
   }
 
   if (insights.ltft_avg != null) {
     const absLtft = Math.abs(insights.ltft_avg);
+    const ltftStr = insights.ltft_avg.toFixed(1);
     verdicts.push({
       icon: Wrench,
-      title: "Engine health",
-      text:
-        absLtft < 5
-          ? `Fuel trims are near zero (${insights.ltft_avg.toFixed(1)}%) — the engine is breathing and fueling exactly as designed.`
-          : absLtft < 10
-            ? `Fuel trims are slightly off (${insights.ltft_avg.toFixed(1)}%) — nothing urgent, but worth watching the trend.`
-            : `Fuel trims are far from zero (${insights.ltft_avg.toFixed(1)}%) — the engine is compensating for something (possible air leak or sensor drift). Worth investigating.`,
+      title: h.engineHealthTitle,
+      text: absLtft < 5 ? h.engineHealthGood(ltftStr) : absLtft < 10 ? h.engineHealthWatch(ltftStr) : h.engineHealthBad(ltftStr),
       status: absLtft < 5 ? "good" : absLtft < 10 ? "watch" : "bad",
     });
   }
 
   if (insights.coolant_max != null) {
+    const maxTempStr = insights.coolant_max.toFixed(0);
     verdicts.push({
       icon: Thermometer,
-      title: "Cooling system",
+      title: h.coolingTitle,
       text: !insights.coolant_reached_op
-        ? `The engine hasn't reached full temperature in this period (max ${insights.coolant_max.toFixed(0)}°C) — fine for short trips, but if it never reaches ~90°C on longer drives, the thermostat may be stuck open.`
+        ? h.coolingNeverReached(maxTempStr)
         : insights.coolant_max > 105
-          ? `Coolant peaked at ${insights.coolant_max.toFixed(0)}°C — hotter than it should ever get. Check coolant level.`
-          : `Reaches proper operating temperature and never overheats (max ${insights.coolant_max.toFixed(0)}°C). Thermostat and cooling system working as they should.`,
+          ? h.coolingOverheating(maxTempStr)
+          : h.coolingGood(maxTempStr),
       status: !insights.coolant_reached_op ? "watch" : insights.coolant_max > 105 ? "bad" : "good",
     });
   }
@@ -59,10 +62,10 @@ export function buildVerdicts(report: CarReport): Verdict[] {
     const low = insights.voltage_min < 11.5;
     verdicts.push({
       icon: BatteryCharging,
-      title: "Battery & charging",
+      title: h.batteryTitle,
       text: low
-        ? `Voltage dipped to ${insights.voltage_min.toFixed(1)}V — deep dips can be normal during stop-start restarts, but if this trends down over weeks the battery is aging.`
-        : `Charging system healthy. Lowest voltage seen: ${insights.voltage_min.toFixed(1)}V (normal stop-start behaviour), average ${insights.voltage_avg.toFixed(1)}V.`,
+        ? h.batteryLow(insights.voltage_min.toFixed(1))
+        : h.batteryGood(insights.voltage_min.toFixed(1), insights.voltage_avg.toFixed(1)),
       status: low ? "watch" : "good",
     });
   }
@@ -70,13 +73,11 @@ export function buildVerdicts(report: CarReport): Verdict[] {
   if (insights.boost_max_kpa != null && insights.baro_kpa != null) {
     const boost = insights.boost_max_kpa - insights.baro_kpa;
     if (boost > 20) {
+      const barStr = (boost / 100).toFixed(1);
       verdicts.push({
         icon: Wind,
-        title: "Turbo",
-        text:
-          boost > 80
-            ? `Turbo reached ${(boost / 100).toFixed(1)} bar of boost — delivering full pressure, no signs of leaks or wastegate issues.`
-            : `Turbo produced ${(boost / 100).toFixed(1)} bar of boost in this period — light driving; full-load health unknown until a harder run.`,
+        title: h.turboTitle,
+        text: boost > 80 ? h.turboFull(barStr) : h.turboLight(barStr),
         status: "good",
       });
     }

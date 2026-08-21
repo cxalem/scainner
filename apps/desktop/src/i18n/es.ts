@@ -161,4 +161,71 @@ export const es: Dictionary = {
     canThisBeUndone: "¿Se puede deshacer esto?",
     savedToHistory: "El estado antes y después de este cambio se guarda en el historial de cambios.",
   },
+  overview: {
+    title: "Resumen",
+    carAriaLabel: "Coche",
+    carOption: (vin, sessions) => `${vin} (${sessions} sesiones)`,
+    couldNotLoadCars: "No se pudo cargar la lista de coches.",
+    noDataYet: "Aún no hay datos",
+    noDataYetExplainer: "Conecta y conduce: el informe se genera solo a partir de las sesiones registradas.",
+    couldNotLoadReport: "No se pudo cargar el informe de este coche.",
+    stats: { sessions: "Sesiones", engineTime: "Tiempo de motor", readings: "Lecturas", scansClean: "Escaneos limpios" },
+    health: {
+      cardTitle: "Resumen de salud",
+      statusGood: "todo bien",
+      statusWatch: "vigilar",
+      statusBad: "atención",
+      notEnoughData: "Aún no hay datos suficientes. Conduce un poco con Scainner conectado.",
+      faultRecordTitle: "Registro de averías",
+      faultRecordClean: (total) => `Los ${total} escaneos de diagnóstico salieron limpios: el coche no tiene averías almacenadas.`,
+      faultRecordSome: (withCodes, total) => `${withCodes} de ${total} escaneos encontraron códigos: revisa Diagnóstico.`,
+      engineHealthTitle: "Salud del motor",
+      engineHealthGood: (ltft) =>
+        `Los ajustes de combustible están casi en cero (${ltft}%): el motor respira e inyecta exactamente como está diseñado.`,
+      engineHealthWatch: (ltft) =>
+        `Los ajustes de combustible están ligeramente desviados (${ltft}%): nada urgente, pero merece la pena vigilar la tendencia.`,
+      engineHealthBad: (ltft) =>
+        `Los ajustes de combustible están lejos de cero (${ltft}%): el motor está compensando algo (posible fuga de aire o deriva de sensor). Merece la pena investigarlo.`,
+      coolingTitle: "Sistema de refrigeración",
+      coolingNeverReached: (maxTemp) =>
+        `El motor no ha alcanzado la temperatura completa en este periodo (máx. ${maxTemp} °C): normal en trayectos cortos, pero si nunca llega a unos 90 °C en trayectos largos, el termostato podría estar atascado abierto.`,
+      coolingOverheating: (maxTemp) => `El refrigerante alcanzó ${maxTemp} °C: más caliente de lo que debería llegar nunca. Revisa el nivel de refrigerante.`,
+      coolingGood: (maxTemp) =>
+        `Alcanza la temperatura de funcionamiento adecuada y nunca se sobrecalienta (máx. ${maxTemp} °C). El termostato y el sistema de refrigeración funcionan como deben.`,
+      batteryTitle: "Batería y carga",
+      batteryLow: (minVoltage) =>
+        `El voltaje bajó a ${minVoltage} V: las caídas pronunciadas pueden ser normales en los reinicios stop-start, pero si la tendencia baja durante semanas, la batería se está agotando.`,
+      batteryGood: (minVoltage, avgVoltage) =>
+        `Sistema de carga saludable. Voltaje mínimo registrado: ${minVoltage} V (comportamiento normal en stop-start), media de ${avgVoltage} V.`,
+      turboTitle: "Turbo",
+      turboFull: (bar) => `El turbo alcanzó ${bar} bar de presión: entrega presión completa, sin señales de fugas ni problemas en la wastegate.`,
+      turboLight: (bar) => `El turbo produjo ${bar} bar de presión en este periodo: conducción suave, la salud a plena carga se desconoce hasta una prueba más exigente.`,
+    },
+    battery: {
+      cardTitle: "Batería: mínimo, media y máximo diario",
+      noData: "Aún no hay datos de voltaje.",
+    },
+    fuel: {
+      cardTitle: "Combustible",
+      cardTitleWithRange: (range) => `Combustible: ${range}`,
+      allTime: "todo el periodo",
+      lastNDays: (n) => `últimos ${n} días`,
+      noData: "Aún no hay datos de combustible: se recopilan automáticamente en tu próximo trayecto.",
+      noGaugeExplainer:
+        "Este coche no reporta el nivel del depósito por OBD2 estándar, así que aquí no hay indicador de combustible. El consumo de abajo viene del motor y funciona con normalidad.",
+      consumption: "Consumo",
+      costPer100km: "Coste por 100 km",
+      fuelUsed: "Combustible usado (~)",
+      distance: "Distancia (~)",
+      noConsumptionYet: "Las estadísticas de consumo se recopilan automáticamente en tu próximo trayecto.",
+      priceLabel: "Precio del combustible:",
+      saving: "guardando…",
+      saved: "guardado",
+      save: "guardar",
+      saveFailed: "No se pudo guardar. Inténtalo de nuevo.",
+      estimateNote: "Incluye el ralentí. Datos de la ECU, ±5-10%.",
+      tankAriaLabel: (pct, status) => `Depósito de combustible al ${pct} por ciento, ${status}`,
+      status: { reserve: "Reserva", low: "Bajo", full: "Lleno", good: "Bien" },
+    },
+  },
 };
