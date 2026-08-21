@@ -3,10 +3,10 @@
 // sync engine (lib/sync.ts) pushes the local record up under this user's
 // JWT with RLS deciding every row. Lives in the Vehicle tab next to the
 // other data/export concerns until a real Settings surface exists.
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { CloudUpload, LogOut, UserRound } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import { supabase } from "@/lib/supabase";
+import { useEmailOtp } from "@/features/account/useEmailOtp";
 import { getSyncStatus, requestSync, subscribeSyncStatus } from "@/lib/sync";
 import { useT } from "@/i18n";
 
@@ -16,42 +16,8 @@ const inputCls =
 export function AccountSyncCard() {
   const t = useT();
   const sync = useSyncExternalStore(subscribeSyncStatus, getSyncStatus);
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
-  const [busy, setBusy] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => setUserEmail(data.session?.user.email ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user.email ?? null);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  const sendCode = async () => {
-    setBusy(true);
-    setAuthError(null);
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim() });
-    setBusy(false);
-    if (error) setAuthError(error.message);
-    else setStep("code");
-  };
-
-  const verify = async () => {
-    setBusy(true);
-    setAuthError(null);
-    const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
-    setBusy(false);
-    if (error) setAuthError(error.message);
-    else {
-      setStep("email");
-      setCode("");
-      requestSync();
-    }
-  };
+  const { email, setEmail, code, setCode, step, setStep, busy, authError, userEmail, sendCode, verify, signOut } =
+    useEmailOtp();
 
   return (
     <Card>
@@ -125,7 +91,7 @@ export function AccountSyncCard() {
                 <CloudUpload className="h-4 w-4" aria-hidden="true" />
                 {sync.phase === "syncing" ? t.vehicle.account.syncing : t.vehicle.account.syncNow}
               </Button>
-              <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>
+              <Button variant="ghost" onClick={signOut}>
                 <LogOut className="h-4 w-4" aria-hidden="true" /> {t.vehicle.account.signOut}
               </Button>
             </div>

@@ -34,6 +34,7 @@ export type Dictionary = {
   shell: {
     appName: string;
     demoData: string;
+    cloudSignInPrompt: string;
     demoDataTooltip: string;
     nav: {
       overview: string;

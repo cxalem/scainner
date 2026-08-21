@@ -13,6 +13,7 @@ export const es: Dictionary = {
   shell: {
     appName: "Scainner",
     demoData: "Datos de demostración",
+    cloudSignInPrompt: "Inicia sesión para el respaldo en la nube",
     demoDataTooltip: "No se detectó backend de Tauri: mostrando datos simulados para la vista previa de la interfaz",
     nav: {
       overview: "Resumen",
