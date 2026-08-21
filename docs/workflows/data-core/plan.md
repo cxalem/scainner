@@ -126,13 +126,47 @@ vehicle_parts            -- a part actually on a specific vehicle (service-histo
   "the current unidentified connection's scans," not "everything."
 - `ai_context`/`export_json` gain the same optional vehicle scope.
 
-## Supabase phase (documented target, NOT built now)
+## Supabase phase — schema SHIPPED 2026-08-21, auth/sync still to build
 
-- `auth.users` (Supabase-managed) · `organizations(id, name)` ·
-  `org_members(org_id, user_id, role 'owner'|'tech'|'viewer')`.
-- `vehicles.org_id`/`owner_user_id` become real FKs; RLS: a row is visible
-  iff `org_id` in caller's orgs OR `owner_user_id` = caller.
+The schema half is no longer "documented target": `supabase/migrations/`
+holds it and it is applied to the hosted `scainner` project (eu-west-3,
+ref pqaqwbsahjaoadxyccfg) — organizations/org_members, tenant-required
+vehicles (CHECK constraint), RLS on every table. What remains is the
+auth + sync stream. The credential/auth model, written down because "how
+does a local app do auth without a server .env" is a real question with
+a precise answer:
+
+**Two credentials, two worlds — nothing in between:**
+
+1. **DB password + service_role key: developer/admin side only.** Used
+   for migrations (`supabase db push`) and future server-side jobs.
+   Never shipped in the app, never on a user's machine. Lives in the
+   owner's password manager and (optionally) an untracked `.env.local`
+   — the same role a server's `.env` plays for a web app, except here
+   it stays entirely on the dev/CI side.
+2. **Project URL + anon key: public by design, embedded in the app.**
+   Exactly like a web app's client bundle where the anon key is visible
+   in DevTools. Extracting them from the binary yields nothing: the
+   RLS policies require a valid `auth.uid()`, so anon-key-only requests
+   return zero rows. Security lives in the DATABASE's row-level
+   policies, not in hiding client config. There is no secret that both
+   ships in the app and needs protecting — that category simply
+   doesn't exist in this architecture.
+
+**User auth flow (the stream to build):**
+
+- Sign in with Google via Supabase Auth: OAuth client in Google Cloud
+  Console, its client ID/secret configured in the Supabase dashboard
+  (that secret lives server-side with Supabase, never in the app);
+  desktop redirect via system browser + deep link back into Tauri
+  (PKCE), tokens stored locally (keychain/app data), auto-refreshed.
+- Every cloud request carries the user's JWT; Postgres evaluates
+  `auth.uid()` against the RLS policies — the database itself refuses
+  other tenants' rows.
+- The app stays fully offline-capable: local SQLite remains the source
+  of record on-device; sign-in is what enables sync, not what enables
+  the app. `vehicles.owner_user_id` gets populated at first sync.
 - Solo owners get a personal org OR plain owner_user_id ownership —
   decide at that phase, columns support both.
-- Local SQLite keeps working offline; sync strategy (push-up vs live
-  Postgres) is that phase's design question, deliberately not this one's.
+- Sync strategy (push-up batches vs live Postgres reads) is that
+  stream's own design question, deliberately not answered here.

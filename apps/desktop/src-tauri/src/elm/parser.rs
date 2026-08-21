@@ -145,6 +145,10 @@ pub const PIDS: &[PidDef] = &[
     PidDef { pid: "010E", key: "timing_adv",   label: "Timing advance",   unit: "°",   decode: |d| Some(*d.first()? as f64 / 2.0 - 64.0) },
     PidDef { pid: "015E", key: "fuel_rate",    label: "Fuel rate",        unit: "L/h", decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 20.0) },
     PidDef { pid: "012F", key: "fuel_level",   label: "Fuel level",       unit: "%",   decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
+    // In the poll set since polling became bitmap-adaptive (2026-08-21):
+    // cars whose ECU declares MAF support (the old Peugeot does) get
+    // continuous airflow; cars that don't skip it for free.
+    PidDef { pid: "0110", key: "maf",          label: "MAF air flow",     unit: "g/s", decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 100.0) },
 ];
 
 /// Decode a supported-PID bitmap response (0100/0120/0140/0160 → 4 data bytes).

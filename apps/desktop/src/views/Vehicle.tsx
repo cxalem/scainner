@@ -5,6 +5,7 @@ import { DeviceService } from "@scainner/core";
 import { Bot, Car, Copy, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useTransientLabel } from "@/components/ui";
 import { useDbPath, useReadEcuInfo, useVehicleInfo } from "@/features/vehicle/queries";
+import { AccountSyncCard } from "@/views/vehicle/AccountSyncCard";
 import { useT } from "@/i18n";
 
 export function Vehicle({ connected, vehicleId = null }: { connected: boolean; vehicleId?: number | null }) {
@@ -157,6 +158,8 @@ export function Vehicle({ connected, vehicleId = null }: { connected: boolean; v
           <p className="text-xs text-muted-foreground">{t.vehicle.data.briefingExplainer}</p>
         </CardContent>
       </Card>
+
+      <AccountSyncCard />
     </div>
   );
 }
