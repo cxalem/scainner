@@ -642,7 +642,7 @@ pub fn discover(
                         // that is the whole point of researching the map:
                         // discovery on a known brand yields labeled
                         // sensors, not anonymous hex.
-                        let known = uds_map::known_did(vin.as_deref(), did);
+                        let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
                         // A DID number is only meaningful together with
                         // the ECU that answered it. The map does not yet
                         // carry a machine-readable module constraint for
