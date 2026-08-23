@@ -29,6 +29,7 @@
 
 use super::driver::{ElmDriver, ElmError};
 use super::parser;
+use super::uds_map;
 use crate::db::Db;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -422,6 +423,211 @@ pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx
     }
     teardown(drv);
     out
+}
+
+// ---------- auto-discovery (the "no ranges, one button" engine) ----------
+// Owner call 2026-08-23: nobody knows DID ranges, so ranges must not be a
+// user concept. Three read-only phases: enumerate module addresses → read
+// each module's STANDARD identification block (ISO 14229 F18x/F19x — the
+// one corner of UDS that is as universal as OBD PIDs) → sweep
+// brand-prioritized "hot bands" where manufacturers actually cluster their
+// data DIDs. Every finding persists to discovered_modules/discovered_dids,
+// so a pass runs once per car, ever.
+
+#[derive(Serialize, Clone)]
+pub struct DiscoveryReport {
+    pub modules_found: u32,
+    pub dids_found: u32,
+    /// True when the user cancelled — findings so far are still saved.
+    pub cancelled: bool,
+}
+
+/// Point physical addressing at one request/response pair without the full
+/// per-module session dance — used while enumerating many addresses.
+fn point_at(drv: &mut ElmDriver, req: u16, resp: u16) -> Result<(), ElmError> {
+    drv.cmd(&format!("ATSH {req:03X}"), Duration::from_secs(2))?;
+    drv.cmd(&format!("ATCRA {resp:03X}"), Duration::from_secs(2))?;
+    drv.cmd(&format!("ATFCSH {req:03X}"), Duration::from_secs(2))?;
+    Ok(())
+}
+
+/// Is anything at this address? A positive (62…) OR a negative (7F 22 …)
+/// reply both prove presence — read_did can't tell those apart from
+/// silence (it maps both non-answers to None), so classify the raw bytes.
+fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> bool {
+    let did = uds_map::presence_probe_did();
+    match drv.cmd(&format!("22{did:04X}"), timeout) {
+        Err(_) => false,
+        Ok(raw) => {
+            let lines = parser::clean_response(&raw);
+            let bytes = parser::payload_bytes(&lines, "");
+            bytes.windows(2).any(|w| w[0] == 0x62 || (w[0] == 0x7F && w[1] == 0x22))
+        }
+    }
+}
+
+fn printable(data: &[u8]) -> Option<String> {
+    let s: String = data.iter().map(|&b| if (32..127).contains(&b) { b as char } else { '.' }).collect();
+    let clean = s.trim_matches('.').to_string();
+    if clean.len() >= 4 && clean.chars().filter(|c| c.is_ascii_alphanumeric()).count() >= 3 {
+        Some(clean)
+    } else {
+        None
+    }
+}
+
+fn hex_string(data: &[u8]) -> String {
+    data.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
+}
+
+pub fn discover(
+    drv: &mut ElmDriver,
+    db: &Db,
+    vehicle_id: i64,
+    vin: Option<String>,
+    cancel_scan: &AtomicBool,
+    app: &tauri::AppHandle,
+) -> Result<DiscoveryReport, String> {
+    let emit = |phase: &str, current: u32, total: u32, detail: &str, modules: u32, dids: u32| {
+        let _ = app.emit("discovery-progress", serde_json::json!({
+            "phase": phase, "current": current, "total": total,
+            "detail": detail, "modulesFound": modules, "didsFound": dids,
+        }));
+    };
+
+    // One-time bus setup; per-address bits happen in point_at.
+    for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
+        drv.cmd(c, Duration::from_secs(2)).map_err(|e| e.to_string())?;
+    }
+
+    // Phase 1 — who's on the bus? Addresses come from the map: this
+    // brand's documented modules first (a recognized car finds its real
+    // modules in seconds), then the conventional range behind them.
+    let timings = &uds_map::map().standard.timings_ms;
+    let addrs = uds_map::addresses_to_probe(vin.as_deref());
+    let total_addrs = addrs.len() as u32;
+    let mut present: Vec<(u16, u16, Option<String>)> = Vec::new();
+    for (i, (req, resp, known_name)) in addrs.iter().enumerate() {
+        if cancel_scan.swap(false, Ordering::Relaxed) {
+            teardown(drv);
+            return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found: 0, cancelled: true });
+        }
+        if i % 4 == 0 {
+            emit("modules", i as u32, total_addrs, &format!("{req:03X}"), present.len() as u32, 0);
+        }
+        if point_at(drv, *req, *resp).is_err() {
+            continue;
+        }
+        if probe_addr(drv, Duration::from_millis(timings.presence_probe)) {
+            log::info!("discovery: module answering at {req:03X}/{resp:03X}");
+            present.push((*req, *resp, known_name.clone()));
+        }
+    }
+
+    // Phase 2 — the standard identification block per present module.
+    let ident_dids = uds_map::ident_dids();
+    let name_dids = uds_map::name_dids();
+    let mut dids_found = 0u32;
+    let mut module_rows: Vec<(i64, u16, u16)> = Vec::new();
+    let total_ident = (present.len() * ident_dids.len()) as u32;
+    for (mi, (req, resp, known_name)) in present.iter().enumerate() {
+        if point_at(drv, *req, *resp).is_err() {
+            continue;
+        }
+        let _ = drv.cmd("1003", Duration::from_secs(1));
+        // A name the map already documents beats anything read off the bus.
+        let mut name: Option<String> = known_name.clone();
+        let mut best_name_rank = usize::MAX;
+        let mut ident_hits: Vec<(u16, Vec<u8>)> = Vec::new();
+        for (di, did) in ident_dids.iter().enumerate() {
+            if cancel_scan.swap(false, Ordering::Relaxed) {
+                teardown(drv);
+                return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, cancelled: true });
+            }
+            emit("ident", (mi * ident_dids.len() + di) as u32, total_ident, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
+            if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(timings.ident_read)) {
+                if known_name.is_none() {
+                    if let Some(rank) = name_dids.iter().position(|n| n == did) {
+                        if rank < best_name_rank {
+                            if let Some(p) = printable(&data) {
+                                name = Some(p);
+                                best_name_rank = rank;
+                            }
+                        }
+                    }
+                }
+                ident_hits.push((*did, data));
+            }
+        }
+        let module_id = db.upsert_discovered_module(vehicle_id, &format!("{req:03X}/{resp:03X}"), name.as_deref());
+        for (did, data) in &ident_hits {
+            let label = uds_map::map()
+                .standard
+                .ident_dids
+                .iter()
+                .find(|d| uds_map::hex16(&d.did) == Some(*did))
+                .map(|d| d.label.clone())
+                .or_else(|| printable(data));
+            db.upsert_discovered_did(module_id, *did, &hex_string(data), data.len() as i64, label.as_deref());
+            dids_found += 1;
+        }
+        module_rows.push((module_id, *req, *resp));
+    }
+
+    // Phase 3 — the brand's data neighborhoods, from the map.
+    let bands = uds_map::bands_for_vin(vin.as_deref());
+    let per_module: u32 = bands.iter().map(|(a, b)| (b - a + 1) as u32).sum();
+    let total_sweep = per_module * module_rows.len() as u32;
+    let mut sweep_i = 0u32;
+    for (module_id, req, resp) in &module_rows {
+        if point_at(drv, *req, *resp).is_err() {
+            continue;
+        }
+        let _ = drv.cmd("1003", Duration::from_secs(1));
+        let mut consecutive_errors = 0u32;
+        'bands: for (from, to) in &bands {
+            for did in *from..=*to {
+                sweep_i += 1;
+                if cancel_scan.swap(false, Ordering::Relaxed) {
+                    teardown(drv);
+                    return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, cancelled: true });
+                }
+                if sweep_i % 8 == 0 {
+                    emit("sweep", sweep_i, total_sweep, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
+                }
+                if sweep_i % 40 == 39 {
+                    tester_present(drv);
+                }
+                match read_did_timeout(drv, did, Duration::from_millis(timings.sweep_read)) {
+                    Ok(Some(data)) => {
+                        consecutive_errors = 0;
+                        // A hit the map already documents arrives named —
+                        // that is the whole point of researching the map:
+                        // discovery on a known brand yields labeled
+                        // sensors, not anonymous hex.
+                        let label = uds_map::known_did(vin.as_deref(), did).map(|k| k.label.clone());
+                        db.upsert_discovered_did(*module_id, did, &hex_string(&data), data.len() as i64, label.as_deref());
+                        dids_found += 1;
+                    }
+                    Ok(None) => consecutive_errors = 0,
+                    Err(_) => {
+                        consecutive_errors += 1;
+                        // A module that stops responding entirely isn't worth
+                        // grinding through — move to the next one.
+                        if consecutive_errors > 10 {
+                            log::warn!("discovery: link degraded on {req:03X}, skipping its remaining bands");
+                            break 'bands;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    teardown(drv);
+    emit("done", total_sweep, total_sweep, "", present.len() as u32, dids_found);
+    log::info!("discovery complete: {} modules, {dids_found} DIDs persisted", present.len());
+    Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, cancelled: false })
 }
 
 #[cfg(test)]

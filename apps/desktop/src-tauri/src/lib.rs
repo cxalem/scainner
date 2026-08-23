@@ -192,6 +192,28 @@ async fn uds_scan(state: tauri::State<'_, AppState>, module: String, from: u16, 
     ask(&state, |tx| Request::UdsScan { module, from, to, tx }).await
 }
 
+/// One-button auto-discovery. Takes NO arguments on purpose: which modules
+/// exist and which DID ranges are worth sweeping come from the car's VIN
+/// and the shipped knowledge map (data/uds-map.json), never from the user
+/// — nobody knows their car's DID ranges, so they must not be asked.
+/// Cancellable through the existing uds_cancel_scan command.
+#[tauri::command]
+async fn discover_sensors(state: tauri::State<'_, AppState>) -> Result<elm::uds::DiscoveryReport, String> {
+    ask(&state, Request::Discover).await
+}
+
+/// What previous discovery passes found for a vehicle: one row per module
+/// with its DID counts. Local DB read, no car needed.
+#[tauri::command]
+fn discovered_modules(state: tauri::State<AppState>, vehicle_id: i64) -> Vec<db::DiscoveredModuleRow> {
+    state.db.discovered_summary(vehicle_id)
+}
+
+#[tauri::command]
+fn discovered_dids(state: tauri::State<AppState>, module_id: i64) -> Vec<db::DiscoveredDidRow> {
+    state.db.discovered_dids(module_id)
+}
+
 /// Clears the fault memory on one module (ABS/engine). Standard, safe
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
@@ -421,6 +443,9 @@ pub fn run() {
             uds_read,
             uds_scan,
             uds_cancel_scan,
+            discover_sensors,
+            discovered_modules,
+            discovered_dids,
             uds_clear,
             uds_module_dtcs,
             writes_log,

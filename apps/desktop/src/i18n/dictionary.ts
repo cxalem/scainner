@@ -238,6 +238,20 @@ export type Dictionary = {
     };
   };
   lab: {
+    discovery: {
+      cardTitle: string;
+      explainer: string;
+      needsVehicle: string;
+      start: string;
+      running: string;
+      phases: { modules: string; ident: string; sweep: string; done: string };
+      foundSoFar: (modules: number, dids: number) => string;
+      doneSummary: (modules: number, dids: number) => string;
+      cancelledSummary: (modules: number, dids: number) => string;
+      previousFindings: string;
+      unnamedModule: string;
+      didCount: (total: number, labeled: number) => string;
+    };
     title: string;
     moduleAriaLabel: string;
     customSuffix: string;

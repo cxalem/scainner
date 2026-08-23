@@ -36,6 +36,25 @@ pub struct DtcScan {
     pub freeze: Option<serde_json::Value>,
 }
 
+#[derive(Serialize)]
+pub struct DiscoveredModuleRow {
+    pub id: i64,
+    pub address: String,
+    pub name: Option<String>,
+    pub discovered_at: String,
+    pub did_count: i64,
+    pub labeled_count: i64,
+}
+
+#[derive(Serialize)]
+pub struct DiscoveredDidRow {
+    pub did: u16,
+    pub raw_sample: Option<String>,
+    pub byte_length: Option<i64>,
+    pub label: Option<String>,
+    pub confidence: Option<String>,
+}
+
 #[derive(Serialize, serde::Deserialize, Clone)]
 pub struct UdsProbe {
     #[serde(default)]
@@ -765,6 +784,116 @@ impl Db {
                 min: r.get(2)?,
                 avg: r.get(3)?,
                 max: r.get(4)?,
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
+    }
+
+    // ---------- auto-discovery findings ----------
+    // Upserts, not inserts: rediscovering the same car refreshes what it
+    // finds rather than piling up duplicates — a pass is idempotent.
+
+    pub fn upsert_discovered_module(&self, vehicle_id: i64, address: &str, name: Option<&str>) -> i64 {
+        let conn = self.0.lock().unwrap();
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT id FROM discovered_modules WHERE vehicle_id = ?1 AND module_address = ?2",
+                params![vehicle_id, address],
+                |r| r.get(0),
+            )
+            .ok();
+        match existing {
+            Some(id) => {
+                // Only ever overwrite a stored name with a real one.
+                if name.is_some() {
+                    let _ = conn.execute("UPDATE discovered_modules SET module_name = ?1 WHERE id = ?2", params![name, id]);
+                }
+                id
+            }
+            None => {
+                conn.execute(
+                    "INSERT INTO discovered_modules (vehicle_id, module_address, module_name) VALUES (?1, ?2, ?3)",
+                    params![vehicle_id, address, name],
+                )
+                .ok();
+                conn.last_insert_rowid()
+            }
+        }
+    }
+
+    pub fn upsert_discovered_did(&self, module_id: i64, did: u16, raw_sample: &str, byte_length: i64, label: Option<&str>) {
+        let conn = self.0.lock().unwrap();
+        // A label from the knowledge map counts as confirmed; an unlabeled
+        // hit stays honestly "unlabeled" until something identifies it.
+        let confidence = if label.is_some() { "confirmed" } else { "unlabeled" };
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT id FROM discovered_dids WHERE module_id = ?1 AND did = ?2",
+                params![module_id, did as i64],
+                |r| r.get(0),
+            )
+            .ok();
+        match existing {
+            Some(id) => {
+                let _ = conn.execute(
+                    "UPDATE discovered_dids SET raw_sample = ?1, byte_length = ?2,
+                     label = COALESCE(?3, label),
+                     confidence = CASE WHEN ?3 IS NOT NULL THEN 'confirmed' ELSE confidence END
+                     WHERE id = ?4",
+                    params![raw_sample, byte_length, label, id],
+                );
+            }
+            None => {
+                let _ = conn.execute(
+                    "INSERT INTO discovered_dids (module_id, did, raw_sample, byte_length, label, confidence)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![module_id, did as i64, raw_sample, byte_length, label, confidence],
+                );
+            }
+        }
+    }
+
+    pub fn discovered_summary(&self, vehicle_id: i64) -> Vec<DiscoveredModuleRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT m.id, m.module_address, m.module_name, m.discovered_at,
+                        COUNT(d.id), SUM(CASE WHEN d.label IS NOT NULL THEN 1 ELSE 0 END)
+                 FROM discovered_modules m
+                 LEFT JOIN discovered_dids d ON d.module_id = m.id
+                 WHERE m.vehicle_id = ?1
+                 GROUP BY m.id ORDER BY m.module_address",
+            )
+            .unwrap();
+        stmt.query_map(params![vehicle_id], |r| {
+            Ok(DiscoveredModuleRow {
+                id: r.get(0)?,
+                address: r.get(1)?,
+                name: r.get(2)?,
+                discovered_at: r.get(3)?,
+                did_count: r.get(4)?,
+                labeled_count: r.get::<_, Option<i64>>(5)?.unwrap_or(0),
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
+    }
+
+    pub fn discovered_dids(&self, module_id: i64) -> Vec<DiscoveredDidRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare("SELECT did, raw_sample, byte_length, label, confidence FROM discovered_dids WHERE module_id = ?1 ORDER BY did")
+            .unwrap();
+        stmt.query_map(params![module_id], |r| {
+            Ok(DiscoveredDidRow {
+                did: r.get::<_, i64>(0)? as u16,
+                raw_sample: r.get(1)?,
+                byte_length: r.get(2)?,
+                label: r.get(3)?,
+                confidence: r.get(4)?,
             })
         })
         .unwrap()

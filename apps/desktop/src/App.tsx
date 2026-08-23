@@ -128,7 +128,7 @@ export default function App() {
         {view === "live" && <Live live={live} connected={connected} />}
         {view === "history" && <History connState={conn.state} vehicleId={currentVehicleId} />}
         {view === "diagnose" && <Diagnose connected={connected} vehicleId={currentVehicleId} />}
-        {view === "lab" && <Lab connected={connected} />}
+        {view === "lab" && <Lab connected={connected} vehicleId={currentVehicleId} />}
         {view === "vehicle" && (
           <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
             <Vehicle connected={connected} vehicleId={currentVehicleId} />

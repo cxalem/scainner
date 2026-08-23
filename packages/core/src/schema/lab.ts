@@ -32,3 +32,30 @@ export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
   accepted: Schema.Boolean,
   after: Schema.mutable(Schema.Array(Schema.String)),
 }) {}
+
+/// Result of one auto-discovery pass (uds::DiscoveryReport). `cancelled`
+/// means the user stopped it — whatever was found is still persisted.
+export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryReport")({
+  modules_found: Schema.Number,
+  dids_found: Schema.Number,
+  cancelled: Schema.Boolean,
+}) {}
+
+/// One module a discovery pass found on this vehicle, with how many DIDs
+/// it holds and how many of those the knowledge map could already name.
+export class DiscoveredModule extends Schema.Class<DiscoveredModule>("DiscoveredModule")({
+  id: Schema.Number,
+  address: Schema.String,
+  name: Schema.NullOr(Schema.String),
+  discovered_at: Schema.String,
+  did_count: Schema.Number,
+  labeled_count: Schema.Number,
+}) {}
+
+export class DiscoveredDid extends Schema.Class<DiscoveredDid>("DiscoveredDid")({
+  did: Schema.Number,
+  raw_sample: Schema.NullOr(Schema.String),
+  byte_length: Schema.NullOr(Schema.Number),
+  label: Schema.NullOr(Schema.String),
+  confidence: Schema.NullOr(Schema.String),
+}) {}
