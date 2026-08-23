@@ -4,13 +4,13 @@
 // to onAuthStateChange, so success here needs no navigation call.
 import { Activity } from "lucide-react-native";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useT } from "../i18n";
 import { supabase } from "../lib/supabase";
 import { colors, fontSize, icon, mono, radius, space } from "../theme";
 import { Button } from "../components/ui";
 
-export function SignInScreen() {
+export function SignInScreen({ onPreview }: { onPreview: () => void }) {
   const t = useT();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -48,6 +48,12 @@ export function SignInScreen() {
         </View>
 
         <Text style={styles.explainer}>{t.signIn.explainer}</Text>
+
+        {/* TEMP preview entry (owner request 2026-08-21): demo fixtures,
+            no auth — the cloud shows nothing without a session anyway. */}
+        <Pressable onPress={onPreview} accessibilityRole="button">
+          <Text style={styles.previewLink}>{t.signIn.preview}</Text>
+        </Pressable>
 
         {step === "email" ? (
           <View style={styles.formBlock}>
@@ -116,6 +122,12 @@ export function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
+  previewLink: {
+    color: colors.mutedForeground,
+    fontSize: fontSize.sm,
+    textDecorationLine: "underline",
+    marginBottom: space(4),
+  },
   flex: { flex: 1 },
   container: {
     flexGrow: 1,

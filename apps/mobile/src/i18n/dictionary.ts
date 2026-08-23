@@ -24,6 +24,8 @@ export type Dictionary = {
     codeLabel: string;
     verify: string;
     verifying: string;
+    preview: string;
+    previewBadge: string;
   };
   vehicles: {
     title: string;
