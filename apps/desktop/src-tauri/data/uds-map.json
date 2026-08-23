@@ -1,25 +1,48 @@
 {
-  "version": 1,
+  "version": 2,
   "generated": "2026-08-23",
-  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules and which DID neighborhoods hold real data, keyed by VIN WMI. Seed entries are the two brands verified first-hand in this project; the researched expansion lands as a data-only update. Editing this file needs no code change and no rebuild of the discovery logic.",
+  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. Editing this file needs no code change: the discovery engine reads every per-brand value from here.",
   "standard": {
     "note": "ISO 14229-1 identification block — genuinely universal, the one part of UDS as standard as OBD PIDs. Kept here rather than in code so every value the engine uses lives in one queryable place.",
     "ident_dids": [
-      { "did": "F187", "label": "Spare part number" },
-      { "did": "F18C", "label": "ECU serial number" },
-      { "did": "F190", "label": "VIN" },
-      { "did": "F191", "label": "Hardware version" },
-      { "did": "F195", "label": "Software version" },
-      { "did": "F197", "label": "System name" }
+      {
+        "did": "F187",
+        "label": "Spare part number"
+      },
+      {
+        "did": "F18C",
+        "label": "ECU serial number"
+      },
+      {
+        "did": "F190",
+        "label": "VIN"
+      },
+      {
+        "did": "F191",
+        "label": "Hardware version"
+      },
+      {
+        "did": "F195",
+        "label": "Software version"
+      },
+      {
+        "did": "F197",
+        "label": "System name"
+      }
     ],
-    "name_dids": ["F197", "F187"],
+    "name_dids": [
+      "F197",
+      "F187"
+    ],
     "presence_probe_did": "F186",
     "address_scan": {
       "note": "Conventional 11-bit physical addressing: request 0x700-0x7F6, response = request + 8. 7DF is the functional broadcast, excluded.",
       "req_from": "700",
       "req_to": "7F6",
       "resp_offset": 8,
-      "exclude": ["7DF"]
+      "exclude": [
+        "7DF"
+      ]
     },
     "timings_ms": {
       "presence_probe": 250,
@@ -30,45 +53,3594 @@
   "brands": [
     {
       "id": "psa",
-      "name": "PSA / Stellantis (Peugeot, Citroën, DS, Opel)",
-      "wmi": ["VF3", "VF7", "VR1", "VR3", "VR7", "VXK"],
+      "name": "PSA / Stellantis Europe (Peugeot, Citroen, DS)",
+      "wmi": [
+        "VF3",
+        "VF7",
+        "VR1",
+        "VR3",
+        "VR7",
+        "VS7",
+        "VS8",
+        "LPA"
+      ],
       "confidence": "high",
       "modules": [
-        { "req": "6B4", "resp": "694", "name": "BSI (body control)", "confidence": "high" },
-        { "req": "752", "resp": "652", "name": "CMM (engine)", "confidence": "medium" },
-        { "req": "765", "resp": "665", "name": "Instrument cluster", "confidence": "medium" },
-        { "req": "7D6", "resp": "6D6", "name": "Telematics / NAC", "confidence": "medium" }
+        {
+          "req": "6A8",
+          "resp": "688",
+          "name": "Engine ECU (INJ)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "6AD",
+          "resp": "68D",
+          "name": "ABS / ESP",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "752",
+          "resp": "652",
+          "name": "BSI (body control / gateway)",
+          "confidence": "high"
+        },
+        {
+          "req": "75F",
+          "resp": "65F",
+          "name": "Instrument cluster (COMBINE)",
+          "confidence": "high"
+        },
+        {
+          "req": "6B4",
+          "resp": "694",
+          "name": "Battery monitoring / HV battery unit (MSB, TBMU)",
+          "confidence": "high"
+        },
+        {
+          "req": "6A9",
+          "resp": "689",
+          "name": "Automatic transmission (BVA / BVMP)",
+          "confidence": "high"
+        },
+        {
+          "req": "6AF",
+          "resp": "68F",
+          "name": "TPMS (DSG family)",
+          "confidence": "high"
+        },
+        {
+          "req": "6B5",
+          "resp": "695",
+          "name": "Electric power steering (DAE / EPS)",
+          "confidence": "high"
+        },
+        {
+          "req": "744",
+          "resp": "644",
+          "name": "Airbag",
+          "confidence": "high"
+        },
+        {
+          "req": "765",
+          "resp": "665",
+          "name": "Display / EMF",
+          "confidence": "high"
+        },
+        {
+          "req": "764",
+          "resp": "664",
+          "name": "Telematics / infotainment (NAC, RCC, SMEG)",
+          "confidence": "high"
+        },
+        {
+          "req": "76D",
+          "resp": "66D",
+          "name": "Climate control (CLIM)",
+          "confidence": "high"
+        },
+        {
+          "req": "74B",
+          "resp": "64B",
+          "name": "Park distance control (PDPC)",
+          "confidence": "high"
+        },
+        {
+          "req": "6C1",
+          "resp": "601",
+          "name": "FAP additive / Eolys pump (PADDITIVATION)",
+          "confidence": "high"
+        },
+        {
+          "req": "6A1",
+          "resp": "681",
+          "name": "SCR / AdBlue",
+          "confidence": "high"
+        },
+        {
+          "req": "5D0",
+          "resp": "5CF",
+          "name": "Electric parking brake (EBB)",
+          "confidence": "high"
+        },
+        {
+          "req": "6A6",
+          "resp": "686",
+          "name": "Hybrid / EV motor control unit (MCU, HCU2)",
+          "confidence": "medium"
+        },
+        {
+          "req": "6A2",
+          "resp": "682",
+          "name": "EV vehicle control unit (VCU)",
+          "confidence": "medium"
+        },
+        {
+          "req": "590",
+          "resp": "58F",
+          "name": "On-board charger / DC-DC (OBC_DCDC)",
+          "confidence": "medium"
+        },
+        {
+          "req": "730",
+          "resp": "710",
+          "name": "Rain / light sensor (CPL)",
+          "confidence": "medium"
+        },
+        {
+          "req": "703",
+          "resp": "70B",
+          "name": "Immobiliser (ADC)",
+          "confidence": "medium"
+        },
+        {
+          "req": "720",
+          "resp": "728",
+          "name": "Gateway (BSP)",
+          "confidence": "medium"
+        },
+        {
+          "req": "79B",
+          "resp": "79B",
+          "name": "Functional gateway used by Stellantis-era profiles",
+          "confidence": "low"
+        }
       ],
       "did_bands": [
-        { "from": "D400", "to": "D4FF", "note": "live sensor data", "confidence": "high" },
-        { "from": "D000", "to": "D0FF", "note": "configuration / status", "confidence": "medium" }
+        {
+          "from": "D400",
+          "to": "D4FF",
+          "note": "densest live measurement block; 150 answers on engine plus 62 on ABS in this project's own sweep. Also the Stellantis EV battery neighbourhood (D410 SOC on 6B4)",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "D600",
+          "to": "D6FF",
+          "note": "per-cylinder and secondary measurements; 84 answers on engine, 13 on ABS",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "D700",
+          "to": "D7FF",
+          "note": "further measurements; 71 answers on engine",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "D800",
+          "to": "D8FF",
+          "note": "Stellantis EV battery block (SOH D860, HV voltage D815) seen on Fiat 600e and Opel Astra K",
+          "confidence": "medium"
+        },
+        {
+          "from": "D900",
+          "to": "D9FF",
+          "note": "sparse measurement tail; 25 answers on engine",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "DA00",
+          "to": "DAFF",
+          "note": "very sparse; 3 answers on engine",
+          "confidence": "medium"
+        },
+        {
+          "from": "D000",
+          "to": "D0FF",
+          "note": "community-reported PSA data block; NOT reproduced on this project's 2023 C4 (zero answers) and absent from arduino-psa-diag's BSI zone table",
+          "confidence": "low"
+        },
+        {
+          "from": "2100",
+          "to": "210F",
+          "note": "BSI list/values zone pairs: 2100 gauging list, 2101 gauging values (fuel, oil), 2102 maintenance list, 2103 maintenance values. Read the list zone first to enumerate what this vehicle populates",
+          "confidence": "high"
+        },
+        {
+          "from": "2200",
+          "to": "23FF",
+          "note": "BSI configuration zones (fuel tank 2201-2203, oil level 2205-2207, battery type 2333, DPF type 232D, SCR present 23D0)",
+          "confidence": "high"
+        },
+        {
+          "from": "F080",
+          "to": "F0FF",
+          "note": "PSA-specific identification / config strings",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "confirmed"
+        }
       ],
       "known_dids": [
         {
           "did": "D422",
-          "label": "Battery state of charge",
+          "label": "Battery voltage, engine ECU live sensor (NOT state of charge)",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "D4B1",
+          "label": "Battery voltage, latched snapshot, does not track live value",
+          "unit": "V",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "low"
+        },
+        {
+          "did": "D410",
+          "label": "HV battery state of charge, Stellantis EV on module 6B4/694",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001953125,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D860",
+          "label": "HV battery state of health, Stellantis EV on module 6B4/694",
+          "unit": "%",
+          "offset": 1,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D815",
+          "label": "HV battery voltage, Stellantis EV on module 6B4/694",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D400",
+          "label": "BSI present-groups list (enumerate before sweeping)",
+          "confidence": "high"
+        },
+        {
+          "did": "D401",
+          "label": "BSI user-visibility data list",
+          "confidence": "high"
+        },
+        {
+          "did": "D402",
+          "label": "BSI user-visibility data values",
+          "confidence": "high"
+        },
+        {
+          "did": "2101",
+          "label": "BSI gauging group values (fuel, oil)",
+          "confidence": "high"
+        },
+        {
+          "did": "2103",
+          "label": "BSI maintenance group values (service interval candidates)",
+          "confidence": "high"
+        },
+        {
+          "did": "2201",
+          "label": "Fuel tank capacity",
+          "confidence": "high"
+        },
+        {
+          "did": "220A",
+          "label": "Critical fuel level threshold",
+          "confidence": "high"
+        },
+        {
+          "did": "2333",
+          "label": "Battery type (configuration, not a measurement)",
+          "confidence": "high"
+        },
+        {
+          "did": "232D",
+          "label": "DPF / FAP type (configuration)",
+          "confidence": "high"
+        },
+        {
+          "did": "23D0",
+          "label": "SCR / AdBlue presence flag (configuration)",
+          "confidence": "high"
+        },
+        {
+          "did": "F08F",
+          "label": "ABS/ESC system name string (ASCII)",
+          "confidence": "confirmed"
+        },
+        {
+          "did": "D619",
+          "label": "ABS/ESC software identifier string (ASCII)",
+          "confidence": "confirmed"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "600",
+          "to": "6FF",
+          "delta": -32
+        },
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": -256
+        }
+      ],
+      "resp_offset_note": "Two rules, not one: the 6xx block is -0x20, the 7xx block is -0x100. Reconciles 6B4/694 against 752/652."
+    },
+    {
+      "id": "opel_psa",
+      "name": "Opel / Vauxhall, 2017 onward (PSA / Stellantis platform)",
+      "wmi": [
+        "W0V",
+        "VXK",
+        "VXE"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "6B4",
+          "resp": "694",
+          "name": "HV battery / body module (Stellantis EV profile)",
+          "confidence": "high"
+        },
+        {
+          "req": "6A8",
+          "resp": "688",
+          "name": "Engine ECU (INJ)",
+          "confidence": "medium"
+        },
+        {
+          "req": "6AD",
+          "resp": "68D",
+          "name": "ABS / ESP",
+          "confidence": "medium"
+        },
+        {
+          "req": "752",
+          "resp": "652",
+          "name": "BSI / body control",
+          "confidence": "medium"
+        },
+        {
+          "req": "75F",
+          "resp": "65F",
+          "name": "Instrument cluster",
+          "confidence": "medium"
+        },
+        {
+          "req": "6AF",
+          "resp": "68F",
+          "name": "TPMS",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "D400",
+          "to": "D4FF",
+          "note": "Stellantis measurement / EV battery block",
+          "confidence": "medium"
+        },
+        {
+          "from": "D800",
+          "to": "D8FF",
+          "note": "Stellantis EV battery health block",
+          "confidence": "medium"
+        },
+        {
+          "from": "D600",
+          "to": "D7FF",
+          "note": "PSA measurement block, inherited platform",
+          "confidence": "medium"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "D410",
+          "label": "HV battery state of charge",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001953125,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D860",
+          "label": "HV battery state of health",
+          "unit": "%",
+          "offset": 1,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D815",
+          "label": "HV battery voltage",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "600",
+          "to": "6FF",
+          "delta": -32
+        },
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": -256
+        }
+      ],
+      "resp_offset_note": "Same as PSA post-2017."
+    },
+    {
+      "id": "vag",
+      "name": "Volkswagen Group (VW, Audi)",
+      "wmi": [
+        "WVW",
+        "WV1",
+        "WV2",
+        "WV3",
+        "WVG",
+        "1VW",
+        "3VW",
+        "9BW",
+        "AAV",
+        "WAU",
+        "WA1",
+        "WUA",
+        "WU1",
+        "TRU",
+        "93U"
+      ],
+      "confidence": "high",
+      "modules": [
+        {
+          "req": "710",
+          "resp": "77A",
+          "name": "Gateway J533 (the only module directly exposed on the OBD port; it proxies the sub-buses)",
+          "confidence": "high"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine J623 (VCDS module 01, generic OBD addressing)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission / DSG J217 (VCDS module 02, generic OBD addressing)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E2",
+          "resp": "7EA",
+          "name": "Engine 2 (multi-ECU engines)",
+          "confidence": "medium"
+        },
+        {
+          "req": "713",
+          "resp": "77D",
+          "name": "ABS / ESP J104 (VCDS module 03)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "714",
+          "resp": "77E",
+          "name": "Instrument cluster J285 (VCDS module 17)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "712",
+          "resp": "71A",
+          "name": "Steering assist / EPS (VCDS module 44)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "715",
+          "resp": "77F",
+          "name": "Airbag J234 (VCDS module 15)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "70B",
+          "resp": "775",
+          "name": "TPMS",
+          "confidence": "medium"
+        },
+        {
+          "req": "728",
+          "resp": "792",
+          "name": "12V battery regulation / intelligent battery sensor (IBS)",
+          "confidence": "medium"
+        },
+        {
+          "req": "757",
+          "resp": "7C1",
+          "name": "Forward radar",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "74F",
+          "resp": "7B9",
+          "name": "Forward camera",
+          "confidence": "high"
+        },
+        {
+          "req": "711",
+          "resp": "77B",
+          "name": "Immobiliser (VCDS module 25)",
+          "confidence": "high"
+        },
+        {
+          "req": "773",
+          "resp": "7DD",
+          "name": "Infotainment / information electronics (VCDS module 5F)",
+          "confidence": "high"
+        },
+        {
+          "req": "762",
+          "resp": "76A",
+          "name": "Brake system sensors (VCDS module AD)",
+          "confidence": "high"
+        },
+        {
+          "req": "73B",
+          "resp": "743",
+          "name": "Brake boost (VCDS module 23)",
+          "confidence": "high"
+        },
+        {
+          "req": "7E5",
+          "resp": "7ED",
+          "name": "Hybrid / EV battery management (VCDS module 8C)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E6",
+          "resp": "7EE",
+          "name": "Electric drive (VCDS module 51)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "744",
+          "resp": "7AE",
+          "name": "HV charger (VCDS module C6)",
+          "confidence": "high"
+        },
+        {
+          "req": "765",
+          "resp": "7CF",
+          "name": "HV charge management (VCDS module BD)",
+          "confidence": "confirmed"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "0200",
+          "to": "02FF",
+          "note": "core measurements (absolute SOC 028C, odometer 02BD, ECU temp 028D)",
+          "confidence": "high"
+        },
+        {
+          "from": "1000",
+          "to": "16FF",
+          "note": "motor electronics / drive-state block (state 14D9, SOC 1164, temps 1116-1169 and 1611-1616). On diesels this same band carries the DPF/oil set (10F9, 10FB, 114E, 114F, 1156, 115E, 11B2, 11BE) but those are EDC17-family specific, not universal across engine codes",
+          "confidence": "high"
+        },
+        {
+          "from": "1800",
+          "to": "18FF",
+          "note": "chassis and infotainment sensors; TPMS at 1821 on the brake ECU",
+          "confidence": "medium"
+        },
+        {
+          "from": "1D00",
+          "to": "1EFF",
+          "note": "charge management and battery management (1DDx charge, 1E3x pack V/I, 1E40-1EA5 cell voltages, 1EAE-1EBD cell temps)",
+          "confidence": "high"
+        },
+        {
+          "from": "2200",
+          "to": "22FF",
+          "note": "cluster / MFD block: odometer 2203, service interval 2260 and 2261, range 22E0 and 22E4",
+          "confidence": "high"
+        },
+        {
+          "from": "2A00",
+          "to": "2AFF",
+          "note": "battery pack temperature",
+          "confidence": "medium"
+        },
+        {
+          "from": "3E00",
+          "to": "3EFF",
+          "note": "electric drive temperatures",
+          "confidence": "medium"
+        },
+        {
+          "from": "4100",
+          "to": "46FF",
+          "note": "charger and power-electronics measurements (gen2 charger 41Fx, DC-DC 465x, IGBT 466x)",
+          "confidence": "medium"
+        },
+        {
+          "from": "7400",
+          "to": "74FF",
+          "note": "battery health, capacity and history (SOH and capacity 74CB, per-cell Ah 74CC)",
+          "confidence": "high"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror: DID F4nn returns mode-01 PID nn (F405 coolant, F40D speed, F446 ambient, F45B hybrid pack life)",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        },
+        {
+          "from": "F800",
+          "to": "F8FF",
+          "note": "VIN at F802 on motor electronics",
+          "confidence": "medium"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "2203",
+          "label": "Odometer (instrument cluster / MFD 714/77E)",
+          "unit": "km",
+          "confidence": "high"
+        },
+        {
+          "did": "2260",
+          "label": "Service interval remaining distance",
+          "unit": "km",
+          "confidence": "high"
+        },
+        {
+          "did": "2261",
+          "label": "Service interval remaining time",
+          "confidence": "high"
+        },
+        {
+          "did": "22E0",
+          "label": "Estimated range displayed",
+          "unit": "km",
+          "confidence": "high"
+        },
+        {
+          "did": "22E4",
+          "label": "Usable battery energy from range estimation",
+          "unit": "kWh",
+          "confidence": "high"
+        },
+        {
+          "did": "1821",
+          "label": "TPMS tyre pressures (read on brake electronics 713/77D)",
+          "confidence": "high"
+        },
+        {
+          "did": "1E3B",
+          "label": "HV battery pack voltage (battery management 7E5/7ED)",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.25,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1E3D",
+          "label": "HV battery pack current, positive when discharging (7E5/7ED)",
+          "unit": "A",
+          "offset": 0,
+          "len": 2,
+          "scale": -0.25,
+          "bias": 511.0,
+          "confidence": "high"
+        },
+        {
+          "did": "028C",
+          "label": "HV battery absolute state of charge (7E5/7ED)",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.4,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1DD0",
+          "label": "Displayed state of charge, matches instrument cluster (charge management 765/7CF)",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.5,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1E33",
+          "label": "Maximum cell voltage",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.000244140625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1E34",
+          "label": "Minimum cell voltage",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.000244140625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "2A0B",
+          "label": "HV battery pack temperature (signed)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.015625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "74CB",
+          "label": "HV battery state of health and capacity: capacity at offset 0 (scale 0.01 Ah), cell count at offset 2, per-cell SOH bytes from offset 4",
+          "confidence": "high"
+        },
+        {
+          "did": "1E0E",
+          "label": "Maximum battery temperature",
+          "unit": "C",
+          "confidence": "high"
+        },
+        {
+          "did": "1E0F",
+          "label": "Minimum battery temperature",
+          "unit": "C",
+          "confidence": "high"
+        },
+        {
+          "did": "02BD",
+          "label": "Odometer (battery management view)",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "465C",
+          "label": "DC-DC converter output voltage (12 V system, electric drive 7E6/7EE)",
+          "unit": "V",
+          "confidence": "high"
+        },
+        {
+          "did": "465B",
+          "label": "DC-DC converter output current (12 V system)",
+          "unit": "A",
+          "confidence": "high"
+        },
+        {
+          "did": "F45B",
+          "label": "Hybrid pack remaining life, motor electronics view",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.392156863,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "11BE",
+          "label": "Engine oil temperature (EDC17 diesel family, engine ECU 7E0/7E8)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -273.1,
+          "confidence": "high"
+        },
+        {
+          "did": "11B2",
+          "label": "DPF inlet temperature (EDC17 diesel family)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -273.1,
+          "confidence": "high"
+        },
+        {
+          "did": "10F9",
+          "label": "DPF outlet temperature (EDC17 diesel family)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -273.1,
+          "confidence": "high"
+        },
+        {
+          "did": "10FB",
+          "label": "Turbocharger temperature (EDC17 diesel family)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -273.1,
+          "confidence": "high"
+        },
+        {
+          "did": "1156",
+          "label": "Distance since last DPF regeneration (EDC17 diesel family)",
+          "unit": "km",
+          "offset": 0,
+          "len": 3,
+          "scale": 0.001,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "115E",
+          "label": "Time since last DPF regeneration (EDC17 diesel family)",
+          "unit": "min",
+          "offset": 0,
+          "len": 3,
+          "scale": 0.016666667,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "114F",
+          "label": "Soot mass, calculated (EDC17 diesel family); measured value at 114E",
+          "offset": 0,
+          "len": 2,
+          "confidence": "medium"
+        },
+        {
+          "did": "F40C",
+          "label": "Engine RPM (OBD PID mirror)",
+          "unit": "rpm",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.25,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "F41F",
+          "label": "Run time since engine start (OBD PID mirror)",
+          "unit": "min",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.016666667,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "F802",
+          "label": "VIN (motor electronics)",
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7DF",
+          "delta": 106
+        },
+        {
+          "from": "7E0",
+          "to": "7EF",
+          "delta": 8
+        }
+      ],
+      "resp_offset_note": "Proprietary modules +0x6A; the generic OBD 7Ex block is +0x08."
+    },
+    {
+      "id": "skoda",
+      "name": "Skoda (VW Group platform, shared diagnostic stack)",
+      "wmi": [
+        "TMB",
+        "TMP",
+        "TMK",
+        "TML"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine / motor electronics (address 01)",
+          "confidence": "high"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission (address 02)",
+          "confidence": "high"
+        },
+        {
+          "req": "713",
+          "resp": "77D",
+          "name": "Brake electronics / ABS (address 03)",
+          "confidence": "medium"
+        },
+        {
+          "req": "714",
+          "resp": "77E",
+          "name": "Instrument cluster / MFD (address 17)",
+          "confidence": "medium"
+        },
+        {
+          "req": "712",
+          "resp": "71A",
+          "name": "Steering assist / EPS (address 44)",
+          "confidence": "high"
+        },
+        {
+          "req": "715",
+          "resp": "77F",
+          "name": "Airbag / SRS (address 15)",
+          "confidence": "high"
+        },
+        {
+          "req": "773",
+          "resp": "7DD",
+          "name": "Infotainment (address 5F)",
+          "confidence": "medium"
+        },
+        {
+          "req": "7E5",
+          "resp": "7ED",
+          "name": "Hybrid / EV battery management (address 8C)",
+          "confidence": "medium"
+        },
+        {
+          "req": "7E6",
+          "resp": "7EE",
+          "name": "Electric drive (address 51)",
+          "confidence": "medium"
+        },
+        {
+          "req": "765",
+          "resp": "7CF",
+          "name": "HV charge management (address BD)",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "0200",
+          "to": "02FF",
+          "note": "core measurements, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "1000",
+          "to": "16FF",
+          "note": "engine and drive-state block, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "1800",
+          "to": "18FF",
+          "note": "chassis sensors including TPMS 1821 on the brake ECU",
+          "confidence": "medium"
+        },
+        {
+          "from": "1D00",
+          "to": "1EFF",
+          "note": "charge and battery management, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "2200",
+          "to": "22FF",
+          "note": "cluster block: odometer and service interval",
+          "confidence": "medium"
+        },
+        {
+          "from": "7400",
+          "to": "74FF",
+          "note": "battery health block",
+          "confidence": "medium"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "2203",
+          "label": "Odometer (instrument cluster / MFD)",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "2260",
+          "label": "Service interval remaining distance",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "2261",
+          "label": "Service interval remaining time",
+          "confidence": "medium"
+        },
+        {
+          "did": "1821",
+          "label": "TPMS tyre pressures (read on brake electronics)",
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7DF",
+          "delta": 106
+        },
+        {
+          "from": "7E0",
+          "to": "7EF",
+          "delta": 8
+        }
+      ]
+    },
+    {
+      "id": "seat",
+      "name": "SEAT (VW Group platform, shared diagnostic stack)",
+      "wmi": [
+        "VSS"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine / motor electronics (address 01)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission (address 02)",
+          "confidence": "high"
+        },
+        {
+          "req": "712",
+          "resp": "71A",
+          "name": "Steering assist / EPS (address 44)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "715",
+          "resp": "77F",
+          "name": "Airbag / SRS (address 15)",
+          "confidence": "high"
+        },
+        {
+          "req": "757",
+          "resp": "7C1",
+          "name": "Forward radar",
+          "confidence": "high"
+        },
+        {
+          "req": "713",
+          "resp": "77D",
+          "name": "Brake electronics / ABS (address 03)",
+          "confidence": "medium"
+        },
+        {
+          "req": "714",
+          "resp": "77E",
+          "name": "Instrument cluster / MFD (address 17)",
+          "confidence": "medium"
+        },
+        {
+          "req": "711",
+          "resp": "77B",
+          "name": "Immobiliser (address 25)",
+          "confidence": "medium"
+        },
+        {
+          "req": "773",
+          "resp": "7DD",
+          "name": "Infotainment (address 5F)",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "0200",
+          "to": "02FF",
+          "note": "core measurements, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "1000",
+          "to": "16FF",
+          "note": "engine and drive-state block, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "1800",
+          "to": "18FF",
+          "note": "chassis sensors including TPMS 1821 on the brake ECU",
+          "confidence": "medium"
+        },
+        {
+          "from": "2200",
+          "to": "22FF",
+          "note": "cluster block: odometer 2203, service interval 2260 and 2261",
+          "confidence": "medium"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "2203",
+          "label": "Odometer (instrument cluster / MFD)",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "2260",
+          "label": "Service interval remaining distance",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "2261",
+          "label": "Service interval remaining time",
+          "confidence": "medium"
+        },
+        {
+          "did": "1821",
+          "label": "TPMS tyre pressures (read on brake electronics 713/77D)",
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7DF",
+          "delta": 106
+        },
+        {
+          "from": "7E0",
+          "to": "7EF",
+          "delta": 8
+        }
+      ]
+    },
+    {
+      "id": "cupra",
+      "name": "Cupra (VW Group; MQB from Martorell, MEB Born from Zwickau)",
+      "wmi": [
+        "VSS"
+      ],
+      "confidence": "low",
+      "modules": [
+        {
+          "req": "715",
+          "resp": "77F",
+          "name": "Airbag / SRS (address 15)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "757",
+          "resp": "7C1",
+          "name": "Forward radar",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine / motor electronics (address 01)",
+          "confidence": "high"
+        },
+        {
+          "req": "712",
+          "resp": "71A",
+          "name": "Steering assist / EPS (address 44)",
+          "confidence": "high"
+        },
+        {
+          "req": "713",
+          "resp": "77D",
+          "name": "Brake electronics / ABS (address 03)",
+          "confidence": "medium"
+        },
+        {
+          "req": "714",
+          "resp": "77E",
+          "name": "Instrument cluster / MFD (address 17)",
+          "confidence": "medium"
+        },
+        {
+          "req": "773",
+          "resp": "7DD",
+          "name": "Infotainment (address 5F)",
+          "confidence": "medium"
+        },
+        {
+          "req": "7E5",
+          "resp": "7ED",
+          "name": "HV battery management, MEB models such as Born (address 8C)",
+          "confidence": "low"
+        },
+        {
+          "req": "7E6",
+          "resp": "7EE",
+          "name": "Electric drive, MEB models (address 51)",
+          "confidence": "low"
+        },
+        {
+          "req": "765",
+          "resp": "7CF",
+          "name": "HV charge management, MEB models (address BD)",
+          "confidence": "low"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "0200",
+          "to": "02FF",
+          "note": "core measurements, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "1000",
+          "to": "16FF",
+          "note": "engine and drive-state block, VW Group shared",
+          "confidence": "medium"
+        },
+        {
+          "from": "1800",
+          "to": "18FF",
+          "note": "chassis sensors including TPMS 1821 on the brake ECU",
+          "confidence": "medium"
+        },
+        {
+          "from": "1D00",
+          "to": "1EFF",
+          "note": "charge and battery management; VW Group convention, NOT verified on MEB",
+          "confidence": "low"
+        },
+        {
+          "from": "2200",
+          "to": "22FF",
+          "note": "cluster block: odometer 2203, service interval 2260 and 2261",
+          "confidence": "medium"
+        },
+        {
+          "from": "7400",
+          "to": "74FF",
+          "note": "battery health block; VW Group convention, NOT verified on MEB",
+          "confidence": "low"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "2203",
+          "label": "Odometer (instrument cluster / MFD)",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "2260",
+          "label": "Service interval remaining distance",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "1821",
+          "label": "TPMS tyre pressures (read on brake electronics 713/77D)",
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7DF",
+          "delta": 106
+        },
+        {
+          "from": "7E0",
+          "to": "7EF",
+          "delta": 8
+        }
+      ]
+    },
+    {
+      "id": "bmw",
+      "name": "BMW / Mini",
+      "wmi": [
+        "WBA",
+        "WBS",
+        "WBX",
+        "WBY",
+        "WB1",
+        "WB5",
+        "4US",
+        "5UX",
+        "5YM",
+        "WMW",
+        "WMZ"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "6F1",
+          "resp": "612",
+          "name": "DME / DDE engine. D-CAN uses ISO-TP extended addressing: request always on 6F1 with target byte 12 as payload byte 0; response on 600 + target with payload byte 0 = F1 (tester)",
+          "confidence": "high"
+        },
+        {
+          "req": "6F1",
+          "resp": "662",
+          "name": "SME HV battery management (target byte 62)",
+          "confidence": "high"
+        },
+        {
+          "req": "6F1",
+          "resp": "660",
+          "name": "KOM instrument cluster or DSC (target byte 60; sources conflict on which)",
+          "confidence": "low"
+        },
+        {
+          "req": "6F1",
+          "resp": "610",
+          "name": "ZGW central gateway (target byte 10)",
+          "confidence": "high"
+        },
+        {
+          "req": "6F1",
+          "resp": "65E",
+          "name": "GWS gear selector, F-series (target byte 5E)",
+          "confidence": "medium"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine, legacy OBD-II addressing",
+          "confidence": "high"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "4200",
+          "to": "59FF",
+          "note": "DME engine sensor band on the D-CAN generation (ambient pressure 4201, coolant 4300, MAP 4A2D, transmission fluid 4650, fuel rail 56D7, IAT 580F, oil pressure 586F, lambda 5889, coolant 5890, spark 59FA). Sweep this first on an engine ECU",
+          "confidence": "high"
+        },
+        {
+          "from": "D000",
+          "to": "DFFF",
+          "note": "main measurement space on the i3/EV generation; every documented BMW EV live-data DID falls here",
+          "confidence": "high"
+        },
+        {
+          "from": "D100",
+          "to": "D1FF",
+          "note": "cluster and vehicle-state sub-band (speed D107, odometer D10D)",
+          "confidence": "medium"
+        },
+        {
+          "from": "DD00",
+          "to": "DDFF",
+          "note": "HV battery sub-band on SME (voltage DD68, current DD69, SOC DDBC)",
+          "confidence": "medium"
+        },
+        {
+          "from": "DE00",
+          "to": "DEFF",
+          "note": "charging and motor sub-band (charge state DE84, motor RPM DEA7, plug status DEF5)",
+          "confidence": "medium"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "DD68",
+          "label": "HV battery voltage (SME)",
+          "unit": "V",
+          "confidence": "high"
+        },
+        {
+          "did": "DD69",
+          "label": "HV battery current (SME)",
+          "unit": "A",
+          "confidence": "high"
+        },
+        {
+          "did": "DDBC",
+          "label": "Displayed state of charge with upper and lower limits (SME)",
+          "unit": "%",
+          "confidence": "high"
+        },
+        {
+          "did": "D10D",
+          "label": "Odometer (KOM instrument cluster)",
+          "unit": "km",
+          "confidence": "high"
+        },
+        {
+          "did": "D107",
+          "label": "Vehicle speed (KOM instrument cluster)",
+          "unit": "km/h",
+          "confidence": "high"
+        },
+        {
+          "did": "DEA7",
+          "label": "Motor RPM (EME motor electronics)",
+          "unit": "rpm",
+          "confidence": "high"
+        },
+        {
+          "did": "DE84",
+          "label": "Charge state and DC charging status (KLE charging electronics)",
+          "confidence": "high"
+        },
+        {
+          "did": "DEF5",
+          "label": "Charge port plug status (LIM charging interface)",
+          "confidence": "high"
+        },
+        {
+          "did": "DB99",
+          "label": "Vehicle READY state (EPS power steering)",
+          "confidence": "medium"
+        },
+        {
+          "did": "4300",
+          "label": "Engine coolant temperature (DME, D-CAN generation)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -273.15,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "4650",
+          "label": "Transmission fluid temperature, read via the DME (no separate EGS address found)",
+          "unit": "F",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.35,
+          "bias": -54.4,
+          "confidence": "medium"
+        },
+        {
+          "did": "5890",
+          "label": "Engine coolant temperature (alternate DID)",
+          "unit": "F",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.35,
+          "bias": -54.4,
+          "confidence": "medium"
+        },
+        {
+          "did": "580F",
+          "label": "Intake air temperature (DME)",
+          "unit": "F",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.35,
+          "bias": -54.4,
+          "confidence": "medium"
+        },
+        {
+          "did": "586F",
+          "label": "Engine oil pressure (DME)",
+          "unit": "psi",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.014504,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "56D7",
+          "label": "Fuel rail pressure (DME)",
+          "unit": "MPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.002,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "F410",
+          "label": "Odometer, 3-byte big-endian, read off the central gateway (target 10)",
+          "unit": "km",
+          "offset": 0,
+          "len": 3,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "mercedes",
+      "name": "Mercedes-Benz / Daimler (incl. Smart)",
+      "wmi": [
+        "WDB",
+        "WDC",
+        "WDD",
+        "WDF",
+        "WEB",
+        "WME",
+        "W1K",
+        "W1N",
+        "W1Y",
+        "4JG",
+        "55S"
+      ],
+      "confidence": "low",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine (MS). Legally mandated OBD ECUs sit at standard addresses; most other Mercedes modules do NOT",
+          "confidence": "high"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission (GS)",
+          "confidence": "high"
+        },
+        {
+          "req": "730",
+          "resp": "4F6",
+          "name": "AGW gateway, W203/W209 comfort CAN",
+          "confidence": "medium"
+        },
+        {
+          "req": "6B8",
+          "resp": "4F8",
+          "name": "TPM tyre pressure monitoring, W203/W209",
+          "confidence": "medium"
+        },
+        {
+          "req": "791",
+          "resp": "4F1",
+          "name": "KLA climate control, W203/W209",
+          "confidence": "medium"
+        },
+        {
+          "req": "4E0",
+          "resp": "5FF",
+          "name": "EZS ignition lock / electronic steering lock",
+          "confidence": "medium"
+        },
+        {
+          "req": "796",
+          "resp": "797",
+          "name": "KOMBI instrument cluster on drivetrain CAN, W211/W219",
+          "confidence": "medium"
+        },
+        {
+          "req": "5B4",
+          "resp": "4F4",
+          "name": "KOMBI instrument cluster on comfort CAN, W211/W219",
+          "confidence": "medium"
+        },
+        {
+          "req": "784",
+          "resp": "785",
+          "name": "BS brake system, W211/W219",
+          "confidence": "medium"
+        },
+        {
+          "req": "77A",
+          "resp": "77B",
+          "name": "CAS steering, W211/W219",
+          "confidence": "medium"
+        },
+        {
+          "req": "662",
+          "resp": "4E2",
+          "name": "SAM_V front signal acquisition module, W211/W219",
+          "confidence": "medium"
+        },
+        {
+          "req": "563",
+          "resp": "4E3",
+          "name": "SAM_H rear signal acquisition module, W211/W219",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block; the only reliably documented Mercedes DID range",
+          "confidence": "medium"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror, generic rather than Mercedes-specific",
+          "confidence": "medium"
+        }
+      ],
+      "known_dids": []
+    },
+    {
+      "id": "renault",
+      "name": "Renault / Dacia",
+      "wmi": [
+        "VF1",
+        "VF2",
+        "VF6",
+        "VNV",
+        "VS5",
+        "UU1",
+        "UU5",
+        "93Y",
+        "8A1"
+      ],
+      "confidence": "high",
+      "modules": [
+        {
+          "req": "7E4",
+          "resp": "7EC",
+          "name": "EVC electric vehicle controller",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "79B",
+          "resp": "7BB",
+          "name": "LBC lithium battery controller (service 0x21, not 0x22)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "796",
+          "resp": "7B6",
+          "name": "LBC2 lithium battery controller 2",
+          "confidence": "high"
+        },
+        {
+          "req": "743",
+          "resp": "763",
+          "name": "Instrument panel / cluster",
+          "confidence": "high"
+        },
+        {
+          "req": "745",
+          "resp": "765",
+          "name": "Body control module (UCH, service 0x21 only)",
+          "confidence": "high"
+        },
+        {
+          "req": "744",
+          "resp": "764",
+          "name": "Climate control",
+          "confidence": "high"
+        },
+        {
+          "req": "742",
+          "resp": "762",
+          "name": "Electric power steering",
+          "confidence": "high"
+        },
+        {
+          "req": "740",
+          "resp": "760",
+          "name": "Electronic stability control / ABS",
+          "confidence": "high"
+        },
+        {
+          "req": "752",
+          "resp": "772",
+          "name": "Airbag",
+          "confidence": "high"
+        },
+        {
+          "req": "74D",
+          "resp": "76D",
+          "name": "Safety module (USM)",
+          "confidence": "high"
+        },
+        {
+          "req": "74E",
+          "resp": "76E",
+          "name": "Park assist",
+          "confidence": "high"
+        },
+        {
+          "req": "75A",
+          "resp": "77E",
+          "name": "PEB power electronics block",
+          "confidence": "high"
+        },
+        {
+          "req": "7CA",
+          "resp": "7DA",
+          "name": "DCM telematics control unit",
+          "confidence": "high"
+        },
+        {
+          "req": "792",
+          "resp": "793",
+          "name": "Battery connection box / on-board charger",
+          "confidence": "high"
+        },
+        {
+          "req": "79C",
+          "resp": "7BC",
+          "name": "Uncoupled braking pedal",
+          "confidence": "high"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine ECU, standard OBD-II addressing (ICE models)",
+          "confidence": "high"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "2000",
+          "to": "20FF",
+          "note": "EVC live measurement block (SOC 2002, 12V voltage 2005, odometer 2006)",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "3200",
+          "to": "32FF",
+          "note": "EVC battery health block (SOH 3206)",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "3300",
+          "to": "34FF",
+          "note": "EVC energy and charging block (33D9 charge duration, 33DB energy, 3444 max charge power, 3451 range)",
+          "confidence": "high"
+        },
+        {
+          "from": "FD00",
+          "to": "FDFF",
+          "note": "DCM telematics: GPS and GSM cluster (IMEI FD1C, RSSI FD1D, satellites FD26)",
+          "confidence": "high"
+        },
+        {
+          "from": "FE00",
+          "to": "FEFF",
+          "note": "DCM telematics: TCU state cluster",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block (VIN F190)",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "2002",
+          "label": "HV battery state of charge (EVC 7E4/7EC)",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.02,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "2005",
+          "label": "12V battery voltage (EVC 7E4/7EC)",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "2006",
+          "label": "Total vehicle distance / odometer (EVC 7E4/7EC)",
+          "unit": "km",
+          "offset": 0,
+          "len": 3,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "3206",
+          "label": "HV battery state of health (EVC 7E4/7EC)",
           "unit": "%",
           "offset": 0,
           "len": 1,
           "scale": 1.0,
           "bias": 0.0,
-          "confidence": "confirmed",
-          "note": "Verified first-hand on a 2023 Citroën C4 III in this project."
+          "confidence": "confirmed"
+        },
+        {
+          "did": "3451",
+          "label": "Estimated range shown on the display",
+          "unit": "km",
+          "confidence": "high"
+        },
+        {
+          "did": "3444",
+          "label": "Maximum charging power authorised by the HV battery",
+          "unit": "kW",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.3,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "FD1C",
+          "label": "Telematics IMEI (DCM 7CA/7DA)",
+          "confidence": "high"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": 32
+        }
+      ],
+      "resp_offset_note": "Majority pattern only — EVC/DCM/BCB break it, so prefer the explicit module list over derivation."
+    },
+    {
+      "id": "nissan",
+      "name": "Nissan / Infiniti",
+      "wmi": [
+        "JN1",
+        "JN3",
+        "JN6",
+        "JN8",
+        "JNK",
+        "JNR",
+        "JNX",
+        "SJN",
+        "SJK",
+        "VSK",
+        "1N4",
+        "1N6",
+        "3N1",
+        "3N6",
+        "3N8",
+        "5N1",
+        "5N3"
+      ],
+      "confidence": "high",
+      "modules": [
+        {
+          "req": "79B",
+          "resp": "7BB",
+          "name": "LBC lithium battery controller, Leaf (service 0x21, not 0x22)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "797",
+          "resp": "79A",
+          "name": "PDM / on-board charger, Leaf",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "743",
+          "resp": "763",
+          "name": "Body / VCM general data module (service 0x22)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine ECU, standard OBD-II addressing",
+          "confidence": "high"
+        },
+        {
+          "req": "745",
+          "resp": "765",
+          "name": "Body control module (alliance addressing)",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "0E00",
+          "to": "0E2F",
+          "note": "odometer, TPMS and range block on 743/763",
+          "confidence": "high"
+        },
+        {
+          "from": "1100",
+          "to": "131F",
+          "note": "dense main vehicle-data band on 743/763 (12V 1103, motor power 1146, 12V current 1183, speed 121A, charge state 1234, charge power 1236, RPM 1255)",
+          "confidence": "high"
+        },
+        {
+          "from": "1200",
+          "to": "12FF",
+          "note": "charger counters on PDM 797/79A (quick-charge count 1203, L1/L2 count 1205)",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "1103",
+          "label": "12V battery voltage (743/763)",
+          "unit": "V",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.08,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1183",
+          "label": "12V battery current, signed (743/763)",
+          "unit": "A",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.00390625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "1146",
+          "label": "Motor power (743/763)",
+          "unit": "W",
+          "offset": 0,
+          "len": 2,
+          "scale": 40.0,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "121A",
+          "label": "Vehicle speed (743/763)",
+          "unit": "km/h",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "1236",
+          "label": "Charge power (743/763)",
+          "unit": "W",
+          "offset": 0,
+          "len": 2,
+          "scale": 100.0,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "1234",
+          "label": "Charge port state (743/763)",
+          "confidence": "medium"
+        },
+        {
+          "did": "1255",
+          "label": "Motor RPM (743/763)",
+          "unit": "rpm",
+          "confidence": "medium"
+        },
+        {
+          "did": "0E2E",
+          "label": "Range remaining (743/763)",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "1203",
+          "label": "Quick-charge (CHAdeMO) count, PDM 797/79A",
+          "confidence": "confirmed"
+        },
+        {
+          "did": "1205",
+          "label": "Level 1 / Level 2 AC charge count, PDM 797/79A",
+          "confidence": "confirmed"
         }
       ]
     },
     {
       "id": "hyundai_kia",
-      "name": "Hyundai / Kia",
-      "wmi": ["KMH", "KNA", "KND", "KM8", "TMA", "U5Y", "U6Y"],
-      "confidence": "medium",
+      "name": "Hyundai / Kia / Genesis",
+      "wmi": [
+        "KMH",
+        "KM8",
+        "KME",
+        "KMF",
+        "KMT",
+        "KMU",
+        "TMA",
+        "NLH",
+        "KNA",
+        "KND",
+        "5NM",
+        "5NT",
+        "5NP",
+        "5XY",
+        "5XX",
+        "U5Y",
+        "U6Y",
+        "3KP"
+      ],
+      "confidence": "high",
       "modules": [
-        { "req": "7A0", "resp": "7A8", "name": "TPMS", "confidence": "medium" }
+        {
+          "req": "7E4",
+          "resp": "7EC",
+          "name": "BMS / battery management (hybrid and EV)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E2",
+          "resp": "7EA",
+          "name": "VMCU vehicle / motor control unit",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7A0",
+          "resp": "7A8",
+          "name": "BCM / TPMS module (E-GMP and modern platforms)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7D6",
+          "resp": "7DE",
+          "name": "TPMS module (older PS platform, e.g. Soul EV)",
+          "confidence": "high"
+        },
+        {
+          "req": "7C6",
+          "resp": "7CE",
+          "name": "Instrument cluster",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7B3",
+          "resp": "7BB",
+          "name": "HVAC / air conditioning",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "770",
+          "resp": "778",
+          "name": "IGPM / integrated gateway and power module",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "771",
+          "resp": "779",
+          "name": "SJB smart junction box (older platforms)",
+          "confidence": "high"
+        },
+        {
+          "req": "794",
+          "resp": "79C",
+          "name": "OBC on-board charger",
+          "confidence": "high"
+        },
+        {
+          "req": "7C5",
+          "resp": "7CD",
+          "name": "LDC low-voltage DC-DC converter",
+          "confidence": "high"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine ECU, standard OBD-II addressing (ICE models)",
+          "confidence": "high"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission control unit",
+          "confidence": "medium"
+        },
+        {
+          "req": "7D1",
+          "resp": "7D9",
+          "name": "ABS / ESC",
+          "confidence": "medium"
+        },
+        {
+          "req": "730",
+          "resp": "738",
+          "name": "ADAS module",
+          "confidence": "medium"
+        },
+        {
+          "req": "7B1",
+          "resp": "7B9",
+          "name": "Parking ADAS module",
+          "confidence": "medium"
+        },
+        {
+          "req": "7B7",
+          "resp": "7BF",
+          "name": "Corner radar",
+          "confidence": "medium"
+        }
       ],
       "did_bands": [
-        { "from": "C000", "to": "C0FF", "note": "body/chassis data incl. TPMS", "confidence": "medium" },
-        { "from": "B000", "to": "B0FF", "note": "secondary data band", "confidence": "low" }
+        {
+          "from": "0100",
+          "to": "010C",
+          "note": "BMS diagnostic pages on 7E4/7EC and HVAC page 0100 on 7B3/7BB. The single highest-value band on this brand",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "C000",
+          "to": "C0FF",
+          "note": "TPMS block on 7A0/7A8 (sensor IDs C002, pressure and temperature C00B)",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "B000",
+          "to": "B0FF",
+          "note": "cluster and body block (odometer B002 on 7C6/7CE, brake B008 and heated handle B00C on 7A0/7A8)",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "BC00",
+          "to": "BCFF",
+          "note": "IGPM door, ignition and lighting status on 770/778",
+          "confidence": "high"
+        },
+        {
+          "from": "E000",
+          "to": "E0FF",
+          "note": "VMCU drive status and accelerator on 7E2/7EA (E004)",
+          "confidence": "high"
+        },
+        {
+          "from": "F100",
+          "to": "F1FF",
+          "note": "identification: F100 and F110 Hyundai firmware description strings, plus ISO 14229 F180-F1FF",
+          "confidence": "high"
+        }
       ],
+      "known_dids": [
+        {
+          "did": "0101",
+          "label": "BMS state of charge (pack block on 7E4/7EC)",
+          "unit": "%",
+          "offset": 4,
+          "len": 1,
+          "scale": 0.5,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "0105",
+          "label": "BMS state of health (health block on 7E4/7EC)",
+          "unit": "%",
+          "offset": 25,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "0102",
+          "label": "Cell voltages 1-32, one byte each, scale 0.02 V",
+          "confidence": "confirmed"
+        },
+        {
+          "did": "0103",
+          "label": "Cell voltages 33-64, one byte each, scale 0.02 V",
+          "confidence": "confirmed"
+        },
+        {
+          "did": "0104",
+          "label": "Cell voltages 65-96, one byte each, scale 0.02 V",
+          "confidence": "confirmed"
+        },
+        {
+          "did": "B002",
+          "label": "Odometer (instrument cluster 7C6/7CE)",
+          "unit": "km",
+          "offset": 0,
+          "len": 3,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "C00B",
+          "label": "TPMS front-left tyre pressure (7A0/7A8); FR at offset 9, RL at 14, RR at 19",
+          "unit": "PSI",
+          "offset": 4,
+          "len": 1,
+          "scale": 0.2,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "C002",
+          "label": "TPMS sensor IDs, four 32-bit values at offsets 4, 8, 12 and 16 (7A0/7A8)",
+          "confidence": "confirmed"
+        },
+        {
+          "did": "E004",
+          "label": "VMCU drive status; gear in the low nibble at offset 14, accelerator at offset 9",
+          "confidence": "high"
+        },
+        {
+          "did": "F100",
+          "label": "Firmware long description string",
+          "confidence": "high"
+        },
+        {
+          "did": "F110",
+          "label": "Firmware alternate long description string",
+          "confidence": "high"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": 8
+        }
+      ]
+    },
+    {
+      "id": "ford",
+      "name": "Ford / Lincoln",
+      "wmi": [
+        "WF0",
+        "SFA",
+        "VS6",
+        "VF6",
+        "TW2",
+        "XLC",
+        "PE1",
+        "LVS",
+        "1FA",
+        "1FB",
+        "1FC",
+        "1FD",
+        "1FM",
+        "1FT",
+        "2FA",
+        "2FM",
+        "2FT",
+        "3FA",
+        "5LM",
+        "MAJ",
+        "MNA",
+        "MNB"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "PCM powertrain control module",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "726",
+          "resp": "72E",
+          "name": "BCM body control module (battery monitor, TPMS, odometer)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "TCM transmission control module",
+          "confidence": "high"
+        },
+        {
+          "req": "7D0",
+          "resp": "7D8",
+          "name": "APIM / ACM accessory or audio module (SYNC)",
+          "confidence": "high"
+        },
+        {
+          "req": "732",
+          "resp": "73A",
+          "name": "GSM gear shift module (shift by wire)",
+          "confidence": "high"
+        },
+        {
+          "req": "720",
+          "resp": "728",
+          "name": "IPC instrument panel cluster",
+          "confidence": "medium"
+        },
+        {
+          "req": "7C6",
+          "resp": "7CE",
+          "name": "Module answering generic VIN queries",
+          "confidence": "medium"
+        },
+        {
+          "req": "760",
+          "resp": "768",
+          "name": "ABS module",
+          "confidence": "low"
+        },
+        {
+          "req": "737",
+          "resp": "73F",
+          "name": "RCM restraints control module",
+          "confidence": "low"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "4000",
+          "to": "40FF",
+          "note": "battery monitor telemetry on BCM 726/72E (SOC 4028, temperature 4029, voltage 402A, current 402B)",
+          "confidence": "high"
+        },
+        {
+          "from": "2800",
+          "to": "28FF",
+          "note": "tyre pressures on BCM 726/72E (2813 FL, 2814 FR, 2815 RR, 2816 RL)",
+          "confidence": "high"
+        },
+        {
+          "from": "1E00",
+          "to": "1EFF",
+          "note": "transmission block (gear 1E12, TCC ratio 1E15, fluid temperature 1E1C)",
+          "confidence": "high"
+        },
+        {
+          "from": "0300",
+          "to": "06FF",
+          "note": "engine, fuel and drivetrain state (intake air 03CA, fuel pressure 03DC, fuel pump duty 0307, octane 03E8, wastegate 0462, alternator 0598, drive mode 0651)",
+          "confidence": "high"
+        },
+        {
+          "from": "DD00",
+          "to": "DDFF",
+          "note": "BCM miscellaneous (odometer DD01, cabin temperature DD04)",
+          "confidence": "high"
+        },
+        {
+          "from": "DE00",
+          "to": "DE14",
+          "note": "Ford AS-Built configuration blocks, DE00 + block index for blocks 1-21. Configuration data, not live sensors",
+          "confidence": "confirmed"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "engine environmental and status data (coolant F405, intake air F40F, fuel pressure F423, fuel level F42F, fuel rate F49D, oil temperature F45C)",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "4028",
+          "label": "Battery state of charge (BCM 726/72E)",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "402A",
+          "label": "Battery voltage (BCM 726/72E)",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.000390625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "402B",
+          "label": "Battery current, signed (BCM 726/72E)",
+          "unit": "A",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.00390625,
+          "bias": -128.0,
+          "confidence": "high"
+        },
+        {
+          "did": "4029",
+          "label": "Battery temperature (BCM 726/72E)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -40.0,
+          "confidence": "high"
+        },
+        {
+          "did": "2813",
+          "label": "Tyre pressure front left (BCM 726/72E); scale varies by platform, some profiles use PSI",
+          "unit": "kPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "2814",
+          "label": "Tyre pressure front right (BCM 726/72E)",
+          "unit": "kPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "2815",
+          "label": "Tyre pressure rear right (BCM 726/72E)",
+          "unit": "kPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "2816",
+          "label": "Tyre pressure rear left (BCM 726/72E)",
+          "unit": "kPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "054B",
+          "label": "Engine oil life remaining (PCM)",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1E1C",
+          "label": "Transmission fluid temperature",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1E12",
+          "label": "Current gear",
+          "offset": 0,
+          "len": 1,
+          "confidence": "high"
+        },
+        {
+          "did": "F45C",
+          "label": "Engine oil temperature (PCM)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -40.0,
+          "confidence": "high"
+        },
+        {
+          "did": "F405",
+          "label": "Engine coolant temperature (PCM)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -40.0,
+          "confidence": "high"
+        },
+        {
+          "did": "F40F",
+          "label": "Intake air temperature (PCM)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -40.0,
+          "confidence": "high"
+        },
+        {
+          "did": "F42F",
+          "label": "Fuel level (PCM)",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.392156863,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "DD01",
+          "label": "Odometer (BCM 726/72E)",
+          "unit": "km",
+          "offset": 0,
+          "len": 3,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "DD04",
+          "label": "Cabin temperature (BCM 726/72E)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.111111,
+          "bias": -45.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "DE00",
+          "label": "AS-Built configuration block 1 (configuration, not live data)",
+          "confidence": "confirmed"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": 8
+        }
+      ]
+    },
+    {
+      "id": "gm",
+      "name": "GM (Chevrolet, Cadillac, GMC, Buick) and Opel/Vauxhall before 2017",
+      "wmi": [
+        "1G1",
+        "1G2",
+        "1G4",
+        "1G6",
+        "1GC",
+        "1GT",
+        "2G1",
+        "3G1",
+        "KL1",
+        "KL8",
+        "LSG",
+        "W0L",
+        "SKA",
+        "J81"
+      ],
+      "confidence": "low",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "ECM engine control module",
+          "confidence": "high"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "TCM transmission control module",
+          "confidence": "medium"
+        },
+        {
+          "req": "241",
+          "resp": "641",
+          "name": "GMLAN body/chassis diagnostic group (response = request + 0x400)",
+          "confidence": "high"
+        },
+        {
+          "req": "24B",
+          "resp": "64B",
+          "name": "Forward camera module",
+          "confidence": "high"
+        },
+        {
+          "req": "14DACBF1",
+          "resp": "142AF1CB",
+          "name": "Ultium EV platform, 29-bit extended addressing",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "5005",
+          "to": "5008",
+          "note": "tyre pressures on the GMLAN 241/641 group via service 0x22, one DID per wheel",
+          "confidence": "high"
+        },
+        {
+          "from": "2700",
+          "to": "27FF",
+          "note": "Ultium EV battery telemetry (SOC 27C6, pack capacity 27AF, distance since full charge 27C0, range 27C7)",
+          "confidence": "medium"
+        },
+        {
+          "from": "5400",
+          "to": "54FF",
+          "note": "Ultium EV charger block (DC power 5401)",
+          "confidence": "medium"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "5005",
+          "label": "Tyre pressure, first wheel (GMLAN group 241/641)",
+          "unit": "kPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "27C6",
+          "label": "HV battery state of charge (Ultium EV)",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001525903,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "27AF",
+          "label": "HV pack capacity remaining (Ultium EV)",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "00DF",
+          "label": "Odometer, read with legacy KWP service 0x1A not 0x22; scale is platform-specific",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "006D",
+          "label": "Engine oil life, read with legacy KWP service 0x1A not 0x22",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.392156863,
+          "bias": 0.0,
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "200",
+          "to": "2FF",
+          "delta": 1024
+        }
+      ],
+      "resp_offset_note": "GM_RX_OFFSET per opendbc."
+    },
+    {
+      "id": "fca",
+      "name": "FCA / Stellantis North America (Fiat, Chrysler, Jeep, Dodge, RAM, Alfa Romeo)",
+      "wmi": [
+        "ZFA",
+        "ZFB",
+        "ZFC",
+        "ZAR",
+        "ZAS",
+        "ZAA",
+        "ZAC",
+        "1C3",
+        "1C4",
+        "1C6",
+        "1B3",
+        "1B4",
+        "1B7",
+        "1D7",
+        "2C3",
+        "2C4",
+        "3C4",
+        "3C6",
+        "LE4",
+        "LWV",
+        "LTN"
+      ],
+      "confidence": "low",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "PCM / ECM engine control module",
+          "confidence": "high"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission control module",
+          "confidence": "medium"
+        },
+        {
+          "req": "7E4",
+          "resp": "7EC",
+          "name": "ABS module on some hybrid platforms",
+          "confidence": "medium"
+        },
+        {
+          "req": "18DA10F1",
+          "resp": "18DAF110",
+          "name": "Powertrain via 29-bit extended addressing (RAM Promaster)",
+          "confidence": "high"
+        },
+        {
+          "req": "6B4",
+          "resp": "694",
+          "name": "HV battery / body module on Stellantis EV platforms (Fiat 600e)",
+          "confidence": "high"
+        },
+        {
+          "req": "7B0",
+          "resp": "7C0",
+          "name": "Body control module (older Fiat platform)",
+          "confidence": "low"
+        },
+        {
+          "req": "7B0",
+          "resp": "7C3",
+          "name": "Instrument cluster (older Fiat platform)",
+          "confidence": "low"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "D400",
+          "to": "D8FF",
+          "note": "Stellantis EV battery neighbourhood (SOC D410, HV voltage D815, SOH D860) reached on module 6B4/694",
+          "confidence": "medium"
+        },
+        {
+          "from": "B000",
+          "to": "B0FF",
+          "note": "transmission block on RAM Promaster (fluid temperature B010)",
+          "confidence": "medium"
+        },
+        {
+          "from": "0100",
+          "to": "02FF",
+          "note": "engine oil block on RAM Promaster (oil temperature 0121, oil pressure 022A)",
+          "confidence": "medium"
+        },
+        {
+          "from": "F100",
+          "to": "F1FF",
+          "note": "identification; F132 carries the FCA version string, plus ISO 14229 F180-F1FF",
+          "confidence": "high"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror",
+          "confidence": "medium"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "D410",
+          "label": "HV battery state of charge, Stellantis EV on 6B4/694",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001953125,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D860",
+          "label": "HV battery state of health, Stellantis EV on 6B4/694",
+          "unit": "%",
+          "offset": 1,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "D815",
+          "label": "HV battery voltage, Stellantis EV on 6B4/694",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.0625,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "B010",
+          "label": "Transmission temperature (RAM Promaster, community-refined scaling)",
+          "unit": "C",
+          "confidence": "low"
+        },
+        {
+          "did": "0121",
+          "label": "Engine oil temperature (RAM Promaster)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -64.0,
+          "confidence": "low"
+        },
+        {
+          "did": "022A",
+          "label": "Engine oil pressure (RAM Promaster)",
+          "offset": 0,
+          "len": 1,
+          "scale": 4.0,
+          "bias": 0.0,
+          "confidence": "low"
+        },
+        {
+          "did": "F132",
+          "label": "FCA ECU version string",
+          "confidence": "high"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": -640
+        }
+      ],
+      "resp_offset_note": "CHRYSLER_RX_OFFSET per opendbc."
+    },
+    {
+      "id": "toyota",
+      "name": "Toyota / Lexus",
+      "wmi": [
+        "JTD",
+        "JTE",
+        "JTH",
+        "JTJ",
+        "JTK",
+        "JTL",
+        "JTM",
+        "JTN",
+        "JT2",
+        "JT3",
+        "JT4",
+        "JT5",
+        "JT6",
+        "JT8",
+        "SB1",
+        "VNK",
+        "NMT",
+        "MR0",
+        "2T1",
+        "2T2",
+        "2T3",
+        "4T1",
+        "4T3",
+        "4T4",
+        "5TD",
+        "5TE",
+        "5TF",
+        "5YF",
+        "58A"
+      ],
+      "confidence": "high",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine ECU",
+          "confidence": "high"
+        },
+        {
+          "req": "7D2",
+          "resp": "7DA",
+          "name": "Hybrid vehicle control ECU, modern UDS-over-CAN",
+          "confidence": "high"
+        },
+        {
+          "req": "7E2",
+          "resp": "7EA",
+          "name": "Hybrid ECU, legacy KWP2000 address on older Prius generations",
+          "confidence": "high"
+        },
+        {
+          "req": "747",
+          "resp": "74F",
+          "name": "HV battery pack module, cell-level data",
+          "confidence": "high"
+        },
+        {
+          "req": "716",
+          "resp": "724",
+          "name": "Motor generator",
+          "confidence": "medium"
+        },
+        {
+          "req": "7B0",
+          "resp": "7B8",
+          "name": "ABS / VSC",
+          "confidence": "medium"
+        },
+        {
+          "req": "7C0",
+          "resp": "7C8",
+          "name": "Combination meter / cluster",
+          "confidence": "medium"
+        },
+        {
+          "req": "750",
+          "resp": "758",
+          "name": "Body / gateway, sub-module selected by a byte inside the payload",
+          "confidence": "medium"
+        },
+        {
+          "req": "780",
+          "resp": "788",
+          "name": "SRS airbag",
+          "confidence": "low"
+        },
+        {
+          "req": "7C4",
+          "resp": "7CC",
+          "name": "HVAC",
+          "confidence": "low"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "1000",
+          "to": "10FF",
+          "note": "primary engine and drivetrain measurements (oil pressure 1074, motor RPM and torque 10A1, SOC max/min 106C, fuel 1022)",
+          "confidence": "high"
+        },
+        {
+          "from": "1800",
+          "to": "1FFF",
+          "note": "battery and hybrid measurements (cell voltages 182E, max cell temperature 1829, coolant 1F05, SOC 1F5B, pack V and I 1F9A)",
+          "confidence": "high"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        },
+        {
+          "from": "F400",
+          "to": "F4FF",
+          "note": "ISO 15031-5 OBD-II PID mirror",
+          "confidence": "medium"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "1F5B",
+          "label": "HV battery state of charge (hybrid ECU 7D2/7DA)",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.392156863,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1F9A",
+          "label": "HV pack voltage at offset 2; pack current at offset 4 (scale 0.1, bias -3276.8, signed)",
+          "unit": "V",
+          "offset": 2,
+          "len": 2,
+          "scale": 0.015625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "106C",
+          "label": "HV battery SOC maximum and minimum",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.5,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "182E",
+          "label": "96 individual HV cell voltages, 16-bit each, scale 5/65535 V (pack module 747/74F)",
+          "unit": "V",
+          "confidence": "high"
+        },
+        {
+          "did": "1829",
+          "label": "Maximum HV cell temperature (pack module 747/74F)",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -50.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1F05",
+          "label": "Engine coolant temperature",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -40.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1074",
+          "label": "Engine oil pressure",
+          "unit": "kPa",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.078125,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "1022",
+          "label": "Fuel remaining (combination meter 7C0)",
+          "unit": "L",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "1021",
+          "label": "12V battery voltage",
+          "unit": "V",
+          "confidence": "medium"
+        }
+      ],
+      "resp_offsets": [
+        {
+          "from": "700",
+          "to": "7FF",
+          "delta": 8
+        }
+      ]
+    },
+    {
+      "id": "honda",
+      "name": "Honda / Acura",
+      "wmi": [
+        "JHM",
+        "JHL",
+        "JH1",
+        "JH4",
+        "SHH",
+        "SHS",
+        "1HG",
+        "2HG",
+        "2HK",
+        "2HJ",
+        "3HG",
+        "3CZ",
+        "5J6",
+        "5J8",
+        "5FN",
+        "5FP",
+        "5FR",
+        "19U",
+        "19V",
+        "19X"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "18DA10F1",
+          "resp": "18DAF110",
+          "name": "PCM / engine, 29-bit normal fixed addressing (target 0x10)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "18DA1DF1",
+          "resp": "18DAF11D",
+          "name": "TCM transmission (target 0x1D)",
+          "confidence": "high"
+        },
+        {
+          "req": "18DA60F1",
+          "resp": "18DAF160",
+          "name": "Combination meter / HVAC (target 0x60)",
+          "confidence": "confirmed"
+        },
+        {
+          "req": "18DA26F1",
+          "resp": "18DAF126",
+          "name": "TPMS module (target 0x26, seen on Acura TLX)",
+          "confidence": "medium"
+        },
+        {
+          "req": "18DA01F1",
+          "resp": "18DAF101",
+          "name": "Body / gateway (target 0x01)",
+          "confidence": "medium"
+        },
+        {
+          "req": "18DA1EF1",
+          "resp": "18DAF11E",
+          "name": "Drivetrain-adjacent module (target 0x1E)",
+          "confidence": "medium"
+        },
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine control module, legacy 11-bit OBD-II addressing",
+          "confidence": "high"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "2600",
+          "to": "26FF",
+          "note": "PCM main data block (generator load 2610, VCM active cylinders 2615, odometer and runtime 2660, knock and VVT 2662, misfire counters 2663)",
+          "confidence": "high"
+        },
+        {
+          "from": "2200",
+          "to": "2299",
+          "note": "transmission block on target 0x1D (2201, 2203: gear, ATF temperature, oil pressure)",
+          "confidence": "high"
+        },
+        {
+          "from": "6000",
+          "to": "60FF",
+          "note": "TPMS block on target 0x26 (tyre pressures and temperatures at 6001)",
+          "confidence": "medium"
+        },
+        {
+          "from": "7020",
+          "to": "70FF",
+          "note": "climate and body block on target 0x60 (outside air temperature 7028)",
+          "confidence": "medium"
+        },
+        {
+          "from": "3080",
+          "to": "30FF",
+          "note": "additional body data band",
+          "confidence": "low"
+        },
+        {
+          "from": "F100",
+          "to": "F1FF",
+          "note": "identification; F112 is Honda's manufacturer-specific ECU identifier, plus ISO 14229 F180-F1FF",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "2660",
+          "label": "Odometer (24-bit) and engine runtime (16-bit) on PCM target 0x10",
+          "unit": "km",
+          "confidence": "medium"
+        },
+        {
+          "did": "2610",
+          "label": "Generator load percentage and A/C clutch state (PCM)",
+          "unit": "%",
+          "confidence": "medium"
+        },
+        {
+          "did": "2615",
+          "label": "Active cylinder count (VCM cylinder deactivation)",
+          "confidence": "medium"
+        },
+        {
+          "did": "2663",
+          "label": "Per-cylinder misfire counters, six 16-bit values",
+          "confidence": "medium"
+        },
+        {
+          "did": "6001",
+          "label": "TPMS: four tyre pressures (16-bit, kPa) and four tyre temperatures (8-bit signed, C)",
+          "confidence": "medium"
+        },
+        {
+          "did": "7028",
+          "label": "Outside air temperature (target 0x60)",
+          "unit": "C",
+          "confidence": "medium"
+        },
+        {
+          "did": "F112",
+          "label": "Honda manufacturer-specific ECU identifier",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "mazda",
+      "name": "Mazda",
+      "wmi": [
+        "JM1",
+        "JM2",
+        "JM3",
+        "JM6",
+        "JM7",
+        "JMZ",
+        "JC1",
+        "JC2",
+        "3MZ",
+        "3MY",
+        "3MD",
+        "3MV",
+        "4F2",
+        "4F4",
+        "1YV"
+      ],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine control module",
+          "confidence": "high"
+        },
+        {
+          "req": "7E1",
+          "resp": "7E9",
+          "name": "Transmission control module",
+          "confidence": "high"
+        },
+        {
+          "req": "720",
+          "resp": "728",
+          "name": "TPMS module",
+          "confidence": "high"
+        },
+        {
+          "req": "793",
+          "resp": "79B",
+          "name": "Cruise control / radar module",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "2A00",
+          "to": "2A0F",
+          "note": "TPMS block on module 720/728 (pressures 2A05-2A08, temperatures 2A0A-2A0D)",
+          "confidence": "high"
+        },
+        {
+          "from": "1100",
+          "to": "17FF",
+          "note": "temperatures, O2, valve timing and EVAP block (IAT/ECT voltages 114A and 114D, valve timing 16CD-16CF, EVAP pump currents 17F4-17FA)",
+          "confidence": "high"
+        },
+        {
+          "from": "0300",
+          "to": "0999",
+          "note": "sensor voltages and loads (MAP 0301, oil pressure 0415, fuel temperature 0522)",
+          "confidence": "high"
+        },
+        {
+          "from": "1300",
+          "to": "13FF",
+          "note": "engine oil block (oil temperature 1310)",
+          "confidence": "high"
+        },
+        {
+          "from": "1E00",
+          "to": "1EFF",
+          "note": "transmission block (fluid temperature 1E1C, same DID Ford uses)",
+          "confidence": "high"
+        },
+        {
+          "from": "A200",
+          "to": "A220",
+          "note": "switch and status bitfields (A211 idle validation, park/neutral, brake, clutch)",
+          "confidence": "medium"
+        },
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "1310",
+          "label": "Engine oil temperature",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": -40.0,
+          "confidence": "high"
+        },
+        {
+          "did": "1E1C",
+          "label": "Transmission fluid temperature (documented in Fahrenheit on Mazda profiles)",
+          "unit": "F",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1125,
+          "bias": 32.0,
+          "confidence": "high"
+        },
+        {
+          "did": "61B1",
+          "label": "Fuel level",
+          "unit": "L",
+          "confidence": "high"
+        },
+        {
+          "did": "2A05",
+          "label": "Tyre pressure, wheel 1 (TPMS 720/728); wheels 2-4 at 2A06, 2A07, 2A08",
+          "unit": "bar",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01373,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "2A0A",
+          "label": "Tyre temperature, wheel 1 (TPMS 720/728); wheels 2-4 at 2A0B, 2A0C, 2A0D",
+          "unit": "C",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": -50.0,
+          "confidence": "high"
+        },
+        {
+          "did": "0415",
+          "label": "Engine oil pressure, signed",
+          "unit": "kPa",
+          "confidence": "medium"
+        },
+        {
+          "did": "D901",
+          "label": "Adaptive cruise target distance",
+          "unit": "m",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.25,
+          "bias": 0.0,
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "volvo",
+      "name": "Volvo / Polestar",
+      "wmi": [
+        "YV1",
+        "YV2",
+        "YV3",
+        "YV4",
+        "YV5",
+        "LVY",
+        "LYV",
+        "LPS",
+        "7JR"
+      ],
+      "confidence": "low",
+      "modules": [],
+      "did_bands": [
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block, if the vehicle answers standard UDS at all",
+          "confidence": "low"
+        }
+      ],
+      "known_dids": []
+    },
+    {
+      "id": "subaru",
+      "name": "Subaru",
+      "wmi": [
+        "JF1",
+        "JF2",
+        "JF3",
+        "JF4",
+        "4S3",
+        "4S4",
+        "JJ1"
+      ],
+      "confidence": "low",
+      "modules": [
+        {
+          "req": "7E0",
+          "resp": "7E8",
+          "name": "Engine control module",
+          "confidence": "medium"
+        }
+      ],
+      "did_bands": [
+        {
+          "from": "F100",
+          "to": "F1FF",
+          "note": "identification; F100 used for the Subaru manufacturer-specific version string, plus ISO 14229 F180-F1FF",
+          "confidence": "high"
+        }
+      ],
+      "known_dids": [
+        {
+          "did": "F100",
+          "label": "Subaru manufacturer-specific version identifier",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "mitsubishi",
+      "name": "Mitsubishi",
+      "wmi": [
+        "JA3",
+        "JA4",
+        "JA7",
+        "4A3",
+        "4A4",
+        "ML3",
+        "MP3",
+        "JP3",
+        "JP4",
+        "JB4",
+        "6MM"
+      ],
+      "confidence": "low",
+      "modules": [],
+      "did_bands": [
+        {
+          "from": "F180",
+          "to": "F1FF",
+          "note": "ISO 14229 standard identification block",
+          "confidence": "medium"
+        }
+      ],
+      "known_dids": []
+    },
+    {
+      "id": "tesla",
+      "name": "Tesla",
+      "wmi": [
+        "5YJ",
+        "7SA",
+        "7G2",
+        "LRW",
+        "XP7"
+      ],
+      "confidence": "low",
+      "modules": [],
+      "did_bands": [],
       "known_dids": []
     }
   ]
