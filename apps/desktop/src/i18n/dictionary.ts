@@ -247,7 +247,11 @@ export type Dictionary = {
       phases: { modules: string; ident: string; sweep: string; done: string };
       foundSoFar: (modules: number, dids: number) => string;
       doneSummary: (modules: number, dids: number, sensorsAdded: number) => string;
+      refreshedSummary: (modules: number, dids: number, sensorsAdded: number) => string;
       cancelledSummary: (modules: number, dids: number) => string;
+      engineStartedSummary: (modules: number, dids: number) => string;
+      engineWarning: string;
+      fullRescanToggle: string;
       previousFindings: string;
       unnamedModule: string;
       didCount: (total: number, labeled: number) => string;
@@ -400,6 +404,8 @@ export type Dictionary = {
     modeAllSensors: string;
     notConnectedTitle: string;
     notConnectedExplainer: string;
+    scanningTitle: string;
+    scanningExplainer: string;
     recordingNote: string;
     discoveredSensors: string;
     allSensors: {

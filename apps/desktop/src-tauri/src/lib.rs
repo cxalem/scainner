@@ -192,14 +192,16 @@ async fn uds_scan(state: tauri::State<'_, AppState>, module: String, from: u16, 
     ask(&state, |tx| Request::UdsScan { module, from, to, tx }).await
 }
 
-/// One-button auto-discovery. Takes NO arguments on purpose: which modules
-/// exist and which DID ranges are worth sweeping come from the car's VIN
-/// and the shipped knowledge map (data/uds-map.json), never from the user
-/// — nobody knows their car's DID ranges, so they must not be asked.
-/// Cancellable through the existing uds_cancel_scan command.
+/// One-button auto-discovery. No addresses/ranges to fill in — those come
+/// from the car's VIN and the shipped knowledge map, never from the user.
+/// `full`: false (the normal button) re-probes only what a prior pass on
+/// THIS car already found, which is fast — "a re-scan shouldn't take that
+/// long" (owner, 2026-08-24); true forces the complete blind sweep (a
+/// brand new car, or checking for newly-covered sensors after a map
+/// update). Cancellable through the existing uds_cancel_scan command.
 #[tauri::command]
-async fn discover_sensors(state: tauri::State<'_, AppState>) -> Result<elm::uds::DiscoveryReport, String> {
-    ask(&state, Request::Discover).await
+async fn discover_sensors(state: tauri::State<'_, AppState>, full: bool) -> Result<elm::uds::DiscoveryReport, String> {
+    ask(&state, |tx| Request::Discover { full, tx }).await
 }
 
 /// What previous discovery passes found for a vehicle: one row per module

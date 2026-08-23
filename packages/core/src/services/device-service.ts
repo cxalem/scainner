@@ -62,10 +62,11 @@ export class DeviceService extends Context.Tag("DeviceService")<
       to: number,
     ) => Effect.Effect<UdsHit[], InvokeError | ParseResult.ParseError>;
     readonly udsCancelScan: () => Effect.Effect<void, InvokeError>;
-    /// One-button auto-discovery — no arguments by design: module addresses
-    /// and DID bands come from the VIN + the shipped knowledge map, never
-    /// from the user. Cancel via udsCancelScan.
-    readonly discoverSensors: () => Effect.Effect<DiscoveryReport, InvokeError | ParseResult.ParseError>;
+    /// One-button auto-discovery — addresses/bands come from the VIN + the
+    /// shipped knowledge map, never from the user. `full`: false re-probes
+    /// only a prior pass's findings on this car (fast); true forces the
+    /// complete blind sweep. Cancel via udsCancelScan.
+    readonly discoverSensors: (full: boolean) => Effect.Effect<DiscoveryReport, InvokeError | ParseResult.ParseError>;
     readonly discoveredModules: (vehicleId: number) => Effect.Effect<DiscoveredModule[], InvokeError | ParseResult.ParseError>;
     readonly discoveredDids: (moduleId: number) => Effect.Effect<DiscoveredDid[], InvokeError | ParseResult.ParseError>;
     readonly udsClear: (module: string) => Effect.Effect<ClearOutcome, InvokeError | ParseResult.ParseError>;

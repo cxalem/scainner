@@ -39,6 +39,14 @@ pub struct ConnStatus {
     pub vehicle_id: Option<i64>,
     pub display_name: Option<String>,
     pub vehicle_is_new: bool,
+    // A UDS scan (auto-discovery or a manual range scan) is running —
+    // standard PID polling is paused for its duration, so live gauges go
+    // stale everywhere. Carried on the SAME global conn-status broadcast
+    // every tab already listens to, so any view (Live, Lab, Overview) can
+    // show an honest "scanning, live data will be back when finished"
+    // state instead of a silently frozen/empty one, and the state itself
+    // survives switching tabs for free (owner, 2026-08-24).
+    pub scanning: bool,
 }
 
 /// The live connection's identity context, threaded into every handler that
@@ -59,7 +67,7 @@ pub enum Request {
     UdsRead { module: String, did: u16, tx: Sender<Result<Option<uds::UdsHit>, String>> },
     UdsScan { module: String, from: u16, to: u16, tx: Sender<Result<Vec<uds::UdsHit>, String>> },
     /// One-button auto-discovery: no ranges, no addresses, no user input.
-    Discover(Sender<Result<uds::DiscoveryReport, String>>),
+    Discover { full: bool, tx: Sender<Result<uds::DiscoveryReport, String>> },
     UdsClear { module: String, tx: Sender<Result<uds::ClearOutcome, String>> },
     UdsModuleDtcs { module: String, tx: Sender<Result<Vec<String>, String>> },
     /// The "name this car" flow for VIN-less vehicles: creates the vehicles
@@ -96,6 +104,20 @@ impl Supervisor {
 fn set_status(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, s: ConnStatus) {
     *status.lock().unwrap() = s.clone();
     let _ = app.emit("conn-status", &s);
+}
+
+/// Flips just the `scanning` flag on the current status and re-broadcasts
+/// it — used around any UDS scan (auto-discovery or the manual range
+/// scanner), both of which block standard PID polling for their duration.
+/// Every tab already listens to conn-status, so this is how "a scan is
+/// running" becomes visible everywhere for free (owner, 2026-08-24).
+fn set_scanning(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, scanning: bool) {
+    let snapshot = {
+        let mut guard = status.lock().unwrap();
+        guard.scanning = scanning;
+        guard.clone()
+    };
+    let _ = app.emit("conn-status", &snapshot);
 }
 
 fn notify(app: &tauri::AppHandle, title: &str, body: &str) {
@@ -201,6 +223,7 @@ fn run_loop(
             vehicle_id,
             display_name,
             vehicle_is_new,
+            scanning: false,
         });
 
         // Adaptive polling: ask the ECU once which mode-01 PIDs it supports
@@ -268,11 +291,12 @@ fn run_loop(
                                     display_name: Some(trimmed.to_string()),
                                     // Naming IS this vehicle's first appearance.
                                     vehicle_is_new: true,
+                                    scanning: false,
                                 });
                                 let _ = tx.send(Ok(id));
                             }
                         }
-                        req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx),
+                        req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx, &status),
                     }
                 }
             };
@@ -477,7 +501,7 @@ fn answer_disconnected(req: Request) {
         Request::AllSensors(tx) => { let _ = tx.send(Err(err)); }
         Request::UdsRead { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsScan { tx, .. } => { let _ = tx.send(Err(err)); }
-        Request::Discover(tx) => { let _ = tx.send(Err(err)); }
+        Request::Discover { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsClear { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsModuleDtcs { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::NameVehicle { tx, .. } => { let _ = tx.send(Err(err)); }
@@ -489,7 +513,15 @@ fn answer_disconnected(req: Request) {
 /// place that knows both "how to talk to the car" (via `drv`) and "what the
 /// UI asked for" (via `Request`) — everything past this point is either
 /// `obd::` (standard, any-car) or `uds::` (manufacturer-specific) logic.
-fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &AtomicBool, app: &tauri::AppHandle, ctx: ConnCtx) {
+fn handle_request(
+    req: Request,
+    drv: &mut ElmDriver,
+    db: &Db,
+    cancel_scan: &AtomicBool,
+    app: &tauri::AppHandle,
+    ctx: ConnCtx,
+    status: &Arc<Mutex<ConnStatus>>,
+) {
     match req {
         Request::ScanDtcs(tx) => {
             let res = obd::scan_dtcs(drv).map(|r| {
@@ -621,10 +653,12 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
         }
         Request::UdsScan { module, from, to, tx } => {
             cancel_scan.store(false, Ordering::Relaxed);
+            set_scanning(app, status, true);
             let result = uds::scan_range(drv, db, &module, from, to, cancel_scan, app);
+            set_scanning(app, status, false);
             let _ = tx.send(result);
         }
-        Request::Discover(tx) => {
+        Request::Discover { full, tx } => {
             cancel_scan.store(false, Ordering::Relaxed);
             // Findings are per-vehicle, so an unidentified car must name
             // itself first — otherwise a discovery pass would have nowhere
@@ -632,7 +666,10 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
             let result = match ctx.vehicle_id {
                 Some(vehicle_id) => {
                     let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
-                    uds::discover(drv, db, vehicle_id, vin, cancel_scan, app)
+                    set_scanning(app, status, true);
+                    let r = uds::discover(drv, db, vehicle_id, vin, cancel_scan, app, full);
+                    set_scanning(app, status, false);
+                    r
                 }
                 None => Err("name this vehicle first so its findings have somewhere to live".into()),
             };

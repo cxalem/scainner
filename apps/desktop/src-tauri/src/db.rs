@@ -905,6 +905,26 @@ impl Db {
         .collect()
     }
 
+    /// Every (module address, did) pair already found on this vehicle —
+    /// the fast re-scan path's input: re-probe exactly these instead of
+    /// blindly sweeping the whole bus/band range again. Owner call
+    /// 2026-08-24: "if we already have data from a car, a re-scan
+    /// shouldn't take that long."
+    pub fn discovered_addresses_and_dids(&self, vehicle_id: i64) -> Vec<(String, u16)> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT m.module_address, d.did FROM discovered_dids d
+                 JOIN discovered_modules m ON m.id = d.module_id
+                 WHERE m.vehicle_id = ?1 ORDER BY m.module_address, d.did",
+            )
+            .unwrap();
+        stmt.query_map(params![vehicle_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as u16)))
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect()
+    }
+
     pub fn discovered_dids(&self, module_id: i64) -> Vec<DiscoveredDidRow> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn

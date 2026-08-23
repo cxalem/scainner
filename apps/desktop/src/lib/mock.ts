@@ -446,6 +446,13 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "delete_uds_module":
     case "uds_cancel_scan":
       return undefined as T;
+    case "discover_sensors":
+      await delay(600);
+      return { modules_found: 1, dids_found: 2, sensors_added: 1, cancelled: false, auto_stopped_reason: null, was_fast_refresh: false } as T;
+    case "discovered_modules":
+      return [{ id: 1, address: "6B4/694", name: "BSI (body computer)", discovered_at: "2026-08-24 10:00:00", did_count: 2, labeled_count: 1 }] as T;
+    case "discovered_dids":
+      return [] as T;
     case "uds_read":
       return null as T;
     case "uds_module_dtcs":

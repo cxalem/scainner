@@ -449,8 +449,25 @@ pub struct DiscoveryReport {
     /// know how to turn its bytes into a number, so it stays browsable in
     /// the Lab rather than pretending to be a live value.
     pub sensors_added: u32,
-    /// True when the user cancelled — findings so far are still saved.
+    /// True when the scan didn't finish — findings so far are still
+    /// saved either way. `auto_stopped_reason` says why: user-pressed-
+    /// cancel vs the safety auto-stop below have very different UI
+    /// treatments.
     pub cancelled: bool,
+    /// Some("engine_started") when the scan aborted ITSELF because
+    /// engine start was detected mid-scan (a voltage jump — see
+    /// `engine_likely_started`) — never a guess the user has to notice.
+    /// Distinct from a plain user cancel so the UI can explain why and
+    /// point at the real risk: a module held in an extended diagnostic
+    /// session while the engine starts can throw dash warnings/comm
+    /// faults on that module (the U-codes this app's own Module Faults
+    /// card already documents as a routine side effect of scanning).
+    pub auto_stopped_reason: Option<String>,
+    /// True when this pass re-probed only what a PRIOR discovery already
+    /// found on this car, instead of the full blind sweep — "a re-scan
+    /// shouldn't take that long" (owner, 2026-08-24). The UI can show a
+    /// quieter "refreshed" summary instead of the full-discovery one.
+    pub was_fast_refresh: bool,
 }
 
 /// Find (or register) a custom module key for this request/response pair,
@@ -513,6 +530,30 @@ fn hex_string(data: &[u8]) -> String {
     data.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
 }
 
+/// The adapter's own battery voltage (ATRV) — a local command, answered
+/// regardless of the scan's current UDS addressing/session state, which
+/// is exactly why it's the cheap way to notice the engine started mid-scan
+/// without disturbing the scan itself.
+fn read_voltage(drv: &mut ElmDriver) -> Option<f64> {
+    let raw = drv.cmd("ATRV", Duration::from_millis(400)).ok()?;
+    raw.trim().trim_end_matches('>').trim().trim_end_matches('V').trim().parse::<f64>().ok()
+}
+
+/// True once voltage climbs enough above THIS scan's own starting
+/// baseline to mean the engine started (alternator now charging) — not
+/// just normal resting-battery drift. Both a floor and a relative jump
+/// are required so a healthy 12.6V-resting battery never false-triggers.
+fn engine_likely_started(current: f64, baseline: f64) -> bool {
+    current > 13.2 && current > baseline + 0.6
+}
+
+/// Parses a "REQ/RESP" module_address string back into addresses — the
+/// exact format `discover()` writes via `upsert_discovered_module`.
+fn parse_module_address(addr: &str) -> Option<(u16, u16)> {
+    let (req, resp) = addr.split_once('/')?;
+    Some((uds_map::hex16(req)?, uds_map::hex16(resp)?))
+}
+
 /// Reconcile only probes discovery owns against the current knowledge map.
 /// This is independent of whether today's car scan happens to get a reply,
 /// so a transient timeout cannot delete a valid sensor. A probe is stale
@@ -542,6 +583,7 @@ pub fn discover(
     vin: Option<String>,
     cancel_scan: &AtomicBool,
     app: &tauri::AppHandle,
+    full: bool,
 ) -> Result<DiscoveryReport, String> {
     let emit = |phase: &str, current: u32, total: u32, detail: &str, modules: u32, dids: u32| {
         let _ = app.emit("discovery-progress", serde_json::json!({
@@ -552,9 +594,26 @@ pub fn discover(
 
     prune_stale_discovery_probes(db, vehicle_id, vin.as_deref());
 
-    // One-time bus setup; per-address bits happen in point_at.
-    for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
-        drv.cmd(c, Duration::from_secs(2)).map_err(|e| e.to_string())?;
+    let baseline_voltage = {
+        for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
+            drv.cmd(c, Duration::from_secs(2)).map_err(|e| e.to_string())?;
+        }
+        read_voltage(drv)
+    };
+    let engine_started = |drv: &mut ElmDriver| -> bool {
+        match (baseline_voltage, read_voltage(drv)) {
+            (Some(base), Some(now)) => engine_likely_started(now, base),
+            _ => false, // couldn't read voltage this tick — never false-abort on a read hiccup
+        }
+    };
+
+    // Fast re-scan (owner, 2026-08-24): a car already discovered doesn't
+    // need the full blind sweep again — re-probe exactly what was found
+    // last time. Fresh discovery (full=true, or a car with no prior data)
+    // still runs the complete three-phase pass below.
+    let known = db.discovered_addresses_and_dids(vehicle_id);
+    if !full && !known.is_empty() {
+        return fast_refresh(drv, db, vehicle_id, vin.as_deref(), &known, baseline_voltage, cancel_scan, &emit, &engine_started);
     }
 
     // Phase 1 — who's on the bus? Addresses come from the map: this
@@ -567,7 +626,26 @@ pub fn discover(
     for (i, (req, resp, known_name)) in addrs.iter().enumerate() {
         if cancel_scan.swap(false, Ordering::Relaxed) {
             teardown(drv);
-            return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found: 0, sensors_added: 0, cancelled: true });
+            return Ok(DiscoveryReport {
+                modules_found: present.len() as u32,
+                dids_found: 0,
+                sensors_added: 0,
+                cancelled: true,
+                auto_stopped_reason: None,
+                was_fast_refresh: false,
+            });
+        }
+        if i % 20 == 19 && engine_started(drv) {
+            log::warn!("discovery: engine start detected (voltage jump) — stopping to avoid a module mid-session when it starts");
+            teardown(drv);
+            return Ok(DiscoveryReport {
+                modules_found: present.len() as u32,
+                dids_found: 0,
+                sensors_added: 0,
+                cancelled: true,
+                auto_stopped_reason: Some("engine_started".into()),
+                was_fast_refresh: false,
+            });
         }
         if i % 4 == 0 {
             emit("modules", i as u32, total_addrs, &format!("{req:03X}"), present.len() as u32, 0);
@@ -602,7 +680,26 @@ pub fn discover(
                 // Phase 2 (identification) never promotes probes — that
                 // only happens in phase 3's data sweep — so 0 is exact
                 // here, not a placeholder.
-                return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, sensors_added: 0, cancelled: true });
+                return Ok(DiscoveryReport {
+                    modules_found: present.len() as u32,
+                    dids_found,
+                    sensors_added: 0,
+                    cancelled: true,
+                    auto_stopped_reason: None,
+                    was_fast_refresh: false,
+                });
+            }
+            if di % 3 == 2 && engine_started(drv) {
+                log::warn!("discovery: engine start detected mid-identification — stopping");
+                teardown(drv);
+                return Ok(DiscoveryReport {
+                    modules_found: present.len() as u32,
+                    dids_found,
+                    sensors_added: 0,
+                    cancelled: true,
+                    auto_stopped_reason: Some("engine_started".into()),
+                    was_fast_refresh: false,
+                });
             }
             emit("ident", (mi * ident_dids.len() + di) as u32, total_ident, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
             if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(timings.ident_read)) {
@@ -651,7 +748,26 @@ pub fn discover(
                 sweep_i += 1;
                 if cancel_scan.swap(false, Ordering::Relaxed) {
                     teardown(drv);
-                    return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, sensors_added, cancelled: true });
+                    return Ok(DiscoveryReport {
+                        modules_found: present.len() as u32,
+                        dids_found,
+                        sensors_added,
+                        cancelled: true,
+                        auto_stopped_reason: None,
+                        was_fast_refresh: false,
+                    });
+                }
+                if sweep_i % 20 == 19 && engine_started(drv) {
+                    log::warn!("discovery: engine start detected mid-sweep — stopping to avoid leaving {req:03X} in a session while it starts");
+                    teardown(drv);
+                    return Ok(DiscoveryReport {
+                        modules_found: present.len() as u32,
+                        dids_found,
+                        sensors_added,
+                        cancelled: true,
+                        auto_stopped_reason: Some("engine_started".into()),
+                        was_fast_refresh: false,
+                    });
                 }
                 if sweep_i % 8 == 0 {
                     emit("sweep", sweep_i, total_sweep, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
@@ -727,7 +843,112 @@ pub fn discover(
     teardown(drv);
     emit("done", total_sweep, total_sweep, "", present.len() as u32, dids_found);
     log::info!("discovery complete: {} modules, {dids_found} DIDs persisted", present.len());
-    Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, sensors_added, cancelled: false })
+    Ok(DiscoveryReport {
+        modules_found: present.len() as u32,
+        dids_found,
+        sensors_added,
+        cancelled: false,
+        auto_stopped_reason: None,
+        was_fast_refresh: false,
+    })
+}
+
+/// Re-probe exactly what a prior discovery already found on this car —
+/// no blind bus enumeration, no full band sweep. "If we already have data
+/// from a car, a re-scan shouldn't take that long" (owner, 2026-08-24):
+/// this turns a multi-minute pass into a few seconds for a car already on
+/// file, which also directly shrinks the window the engine-start safety
+/// check above has to protect. Same voltage-based abort applies.
+#[allow(clippy::too_many_arguments)]
+fn fast_refresh(
+    drv: &mut ElmDriver,
+    db: &Db,
+    vehicle_id: i64,
+    vin: Option<&str>,
+    known: &[(String, u16)],
+    baseline_voltage: Option<f64>,
+    cancel_scan: &AtomicBool,
+    emit: &dyn Fn(&str, u32, u32, &str, u32, u32),
+    engine_started: &dyn Fn(&mut ElmDriver) -> bool,
+) -> Result<DiscoveryReport, String> {
+    let mut by_module: HashMap<String, Vec<u16>> = HashMap::new();
+    for (addr, did) in known {
+        by_module.entry(addr.clone()).or_default().push(*did);
+    }
+    let total: u32 = known.len() as u32;
+    let mut sweep_i = 0u32;
+    let mut dids_found = 0u32;
+    let mut sensors_added = 0u32;
+    let mut modules_seen = 0u32;
+
+    for (addr, dids) in &by_module {
+        let Some((req, resp)) = parse_module_address(addr) else { continue };
+        if point_at(drv, req, resp).is_err() {
+            continue;
+        }
+        let module_id = db.upsert_discovered_module(vehicle_id, addr, None);
+        modules_seen += 1;
+        let _ = drv.cmd("1003", Duration::from_secs(1));
+        for did in dids {
+            sweep_i += 1;
+            if cancel_scan.swap(false, Ordering::Relaxed) {
+                teardown(drv);
+                return Ok(DiscoveryReport {
+                    modules_found: modules_seen,
+                    dids_found,
+                    sensors_added,
+                    cancelled: true,
+                    auto_stopped_reason: None,
+                    was_fast_refresh: true,
+                });
+            }
+            if sweep_i % 15 == 14 && baseline_voltage.is_some() && engine_started(drv) {
+                log::warn!("fast refresh: engine start detected — stopping");
+                teardown(drv);
+                return Ok(DiscoveryReport {
+                    modules_found: modules_seen,
+                    dids_found,
+                    sensors_added,
+                    cancelled: true,
+                    auto_stopped_reason: Some("engine_started".into()),
+                    was_fast_refresh: true,
+                });
+            }
+            emit("sweep", sweep_i, total, &format!("{req:03X}:{did:04X}"), modules_seen, dids_found);
+            if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(500)) {
+                let known_entry = uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
+                    (Some(offset), Some(len)) => (offset as usize).checked_add(len as usize).is_some_and(|end| end <= data.len()),
+                    _ => true,
+                });
+                let label = known_entry.map(|k| k.label.clone());
+                db.upsert_discovered_did(module_id, *did, &hex_string(&data), data.len() as i64, label.as_deref());
+                dids_found += 1;
+                if let Some(k) = known_entry {
+                    if let (Some(offset), Some(len), Some(scale), Some(bias)) = (k.offset, k.len, k.scale, k.bias) {
+                        let module_key = ensure_module_key(db, req, resp, None);
+                        if db.upsert_probe_from_discovery(
+                            vehicle_id, &module_key, *did, &k.label,
+                            k.unit.as_deref().unwrap_or(""), offset as usize, len as usize, scale, bias,
+                        ) {
+                            sensors_added += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    teardown(drv);
+    emit("done", total, total, "", modules_seen, dids_found);
+    log::info!("fast refresh complete: {modules_seen} modules, {dids_found} DIDs re-verified");
+    Ok(DiscoveryReport {
+        modules_found: modules_seen,
+        dids_found,
+        sensors_added,
+        cancelled: false,
+        auto_stopped_reason: None,
+        was_fast_refresh: true,
+    })
 }
 
 #[cfg(test)]
@@ -772,5 +993,27 @@ mod tests {
         assert!(!m.builtin);
         // Built-ins still resolve even when a custom list is supplied.
         assert!(resolve("engine", &custom).is_some());
+    }
+
+    #[test]
+    fn engine_start_detection_needs_both_a_floor_and_a_jump() {
+        // A healthy resting battery (12.6V) must never false-trigger just
+        // for sitting near the floor without an actual alternator jump.
+        assert!(!engine_likely_started(12.6, 12.6));
+        // Real engine start: idle-off baseline -> alternator charging.
+        assert!(engine_likely_started(14.1, 12.4));
+        // A tiny fluctuation (surface charge, adapter noise) must not
+        // trigger — the relative-jump requirement exists for exactly this.
+        assert!(!engine_likely_started(12.9, 12.6));
+        // Below the absolute floor, even a big relative jump from a very
+        // low baseline (near-dead battery) must not read as "running."
+        assert!(!engine_likely_started(13.0, 11.0));
+    }
+
+    #[test]
+    fn parses_the_exact_module_address_format_discover_writes() {
+        assert_eq!(parse_module_address("6B4/694"), Some((0x6B4, 0x694)));
+        assert_eq!(parse_module_address("garbage"), None);
+        assert_eq!(parse_module_address("ZZZ/694"), None);
     }
 }

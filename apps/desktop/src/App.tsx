@@ -125,10 +125,10 @@ export default function App() {
         onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
       >
         {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
-        {view === "live" && <Live live={live} connected={connected} />}
+        {view === "live" && <Live live={live} connected={connected} scanning={conn.scanning ?? false} />}
         {view === "history" && <History connState={conn.state} vehicleId={currentVehicleId} />}
         {view === "diagnose" && <Diagnose connected={connected} vehicleId={currentVehicleId} />}
-        {view === "lab" && <Lab connected={connected} vehicleId={currentVehicleId} />}
+        {view === "lab" && <Lab connected={connected} vehicleId={currentVehicleId} scanning={conn.scanning ?? false} />}
         {view === "vehicle" && (
           <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
             <Vehicle connected={connected} vehicleId={currentVehicleId} />
