@@ -229,7 +229,7 @@ export const en: Dictionary = {
     discovery: {
       cardTitle: "Find this car's sensors",
       explainer:
-        "Asks the car which modules it has, then reads the data areas known for its brand. Run it once — any sensor it recognizes joins your live dashboard from then on, same as a normal gauge.",
+        "Asks the car which modules it has, then reads the data areas known for its brand. Findings stay in the Lab; they are not polled in the background while you drive.",
       needsVehicle: "Name this vehicle first so its findings have somewhere to live.",
       start: "Find sensors",
       running: "Searching…",
@@ -242,11 +242,11 @@ export const en: Dictionary = {
       foundSoFar: (modules, dids) => `${modules} modules, ${dids} values so far`,
       doneSummary: (modules, dids, sensorsAdded) =>
         sensorsAdded > 0
-          ? `Found ${modules} modules and ${dids} values — ${sensorsAdded} now live on your dashboard.`
+          ? `Found ${modules} modules and ${dids} values — ${sensorsAdded} were recognized and decoded in the Lab.`
           : `Found ${modules} modules and ${dids} values. None matched a known sensor yet, so they're saved here for reference.`,
       refreshedSummary: (modules, dids, sensorsAdded) =>
         sensorsAdded > 0
-          ? `Refreshed ${modules} modules and ${dids} values — ${sensorsAdded} confirmed live on your dashboard.`
+          ? `Refreshed ${modules} modules and ${dids} values — ${sensorsAdded} recognized definitions were updated in the Lab.`
           : `Refreshed ${modules} modules and ${dids} values.`,
       cancelledSummary: (modules, dids) => `Stopped. Kept ${modules} modules and ${dids} values found so far.`,
       engineStartedSummary: (modules, dids) =>

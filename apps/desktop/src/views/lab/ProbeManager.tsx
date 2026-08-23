@@ -33,7 +33,11 @@ export function ProbeManager({
 }) {
   const t = useT();
   const probesQuery = useListProbes(vehicleId);
-  const probes = probesQuery.data ?? [];
+  // Auto-discovered definitions are inventory, not background telemetry:
+  // polling them continuously can put multiple ECUs into diagnostic
+  // sessions and cause dashboard communication warnings. This manager is
+  // exclusively for probes the user explicitly created.
+  const probes = (probesQuery.data ?? []).filter((probe) => (probe.origin ?? "manual") === "manual");
   const addProbe = useAddProbe();
   const toggleProbe = useToggleProbe();
   const deleteProbe = useDeleteProbe();

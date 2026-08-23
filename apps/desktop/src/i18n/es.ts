@@ -237,7 +237,7 @@ export const es: Dictionary = {
     discovery: {
       cardTitle: "Buscar los sensores de este coche",
       explainer:
-        "Le pregunta al coche qué módulos tiene y luego lee las zonas de datos conocidas de su marca. Hazlo una vez: cualquier sensor que reconozca se añade a tu panel en vivo a partir de ahí, como un indicador normal.",
+        "Le pregunta al coche qué módulos tiene y luego lee las zonas de datos conocidas de su marca. Los hallazgos se quedan en el Laboratorio; no se consultan en segundo plano mientras conduces.",
       needsVehicle: "Ponle nombre a este vehículo para que sus hallazgos tengan dónde guardarse.",
       start: "Buscar sensores",
       running: "Buscando…",
@@ -250,11 +250,11 @@ export const es: Dictionary = {
       foundSoFar: (modules, dids) => `${modules} módulos, ${dids} valores hasta ahora`,
       doneSummary: (modules, dids, sensorsAdded) =>
         sensorsAdded > 0
-          ? `Encontrados ${modules} módulos y ${dids} valores: ${sensorsAdded} ya están en vivo en tu panel.`
+          ? `Encontrados ${modules} módulos y ${dids} valores: ${sensorsAdded} se reconocieron y decodificaron en el Laboratorio.`
           : `Encontrados ${modules} módulos y ${dids} valores. Ninguno coincidió con un sensor conocido todavía, así que quedan guardados aquí como referencia.`,
       refreshedSummary: (modules, dids, sensorsAdded) =>
         sensorsAdded > 0
-          ? `Actualizados ${modules} módulos y ${dids} valores: ${sensorsAdded} confirmados en vivo en tu panel.`
+          ? `Actualizados ${modules} módulos y ${dids} valores: ${sensorsAdded} definiciones reconocidas se actualizaron en el Laboratorio.`
           : `Actualizados ${modules} módulos y ${dids} valores.`,
       cancelledSummary: (modules, dids) => `Detenido. Se guardan ${modules} módulos y ${dids} valores encontrados.`,
       engineStartedSummary: (modules, dids) =>

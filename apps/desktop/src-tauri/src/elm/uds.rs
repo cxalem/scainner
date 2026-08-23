@@ -96,6 +96,11 @@ pub fn setup(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
 
 /// Restore functional OBD-II addressing so normal PID polling keeps working.
 pub fn teardown(drv: &mut ElmDriver) {
+    // Leave an ECU we explicitly placed in an extended session before
+    // changing the adapter's receive/header filters. Previously we only
+    // restored ELM addressing and left the ECU itself in 10 03 until its
+    // timeout, which can surface as temporary communication warnings.
+    let _ = drv.cmd("1001", Duration::from_millis(800));
     let _ = drv.cmd("ATSH 7DF", Duration::from_secs(2));
     let _ = drv.cmd("ATAR", Duration::from_secs(2));
     let _ = drv.cmd("ATFCSM 0", Duration::from_secs(2));
@@ -410,7 +415,16 @@ pub fn scan_range(
 /// Poll all enabled user-defined UDS probes once; record + return values.
 pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx) -> HashMap<String, f64> {
     let mut out = HashMap::new();
-    let probes: Vec<_> = db.list_probes(ctx.vehicle_id).into_iter().filter(|p| p.enabled).collect();
+    // Discovery is read-only inventory, not standing telemetry. Repeatedly
+    // opening diagnostic sessions on every discovered ECU while the app was
+    // merely connected caused the exact dashboard communication warnings
+    // discovery itself warns about. Only probes a user explicitly created
+    // in the advanced Lab remain eligible for periodic polling.
+    let probes: Vec<_> = db
+        .list_probes(ctx.vehicle_id)
+        .into_iter()
+        .filter(should_poll_probe)
+        .collect();
     if probes.is_empty() {
         return out;
     }
@@ -422,6 +436,7 @@ pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx
     for (mkey, group) in by_module {
         let Some(m) = resolve(&mkey, &custom) else { continue };
         if setup(drv, &m).is_err() {
+            teardown(drv);
             continue;
         }
         for p in group {
@@ -433,9 +448,16 @@ pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx
                 }
             }
         }
+        // Close each module's session while it is still addressed. A final
+        // teardown after the loop only ever reached the last module and left
+        // every earlier ECU waiting for its session timeout.
+        teardown(drv);
     }
-    teardown(drv);
     out
+}
+
+fn should_poll_probe(probe: &crate::db::UdsProbe) -> bool {
+    probe.enabled && probe.origin == "manual"
 }
 
 // ---------- auto-discovery (the "no ranges, one button" engine) ----------
@@ -1036,6 +1058,26 @@ mod tests {
     fn voltage_safety_parses_a_complete_elm_frame() {
         assert_eq!(parse_voltage_response("12.6V\r\r>"), Some(12.6));
         assert_eq!(parse_voltage_response("14.1v\r>"), Some(14.1));
+    }
+
+    #[test]
+    fn discovered_probes_never_become_background_bus_traffic() {
+        let probe = crate::db::UdsProbe {
+            id: 1,
+            vehicle_id: Some(1),
+            module: "engine".into(),
+            did: 0xD422,
+            label: "Battery voltage".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.01,
+            bias: 0.0,
+            enabled: true,
+            origin: "discovery".into(),
+        };
+        assert!(!should_poll_probe(&probe));
+        assert!(should_poll_probe(&crate::db::UdsProbe { origin: "manual".into(), ..probe }));
     }
 
     #[test]
