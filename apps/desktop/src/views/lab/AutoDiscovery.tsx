@@ -9,7 +9,7 @@
 // "Advanced" section) stay for brands this map doesn't cover yet.
 import { useEffect, useState } from "react";
 import { Effect } from "effect";
-import { Radar, X } from "lucide-react";
+import { AlertTriangle, Radar, X } from "lucide-react";
 import { listen } from "@/lib/tauri";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
@@ -26,15 +26,38 @@ type Progress = {
   didsFound: number;
 };
 
-export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; vehicleId: number | null }) {
+type Result = {
+  modules: number;
+  dids: number;
+  sensorsAdded: number;
+  cancelled: boolean;
+  autoStoppedReason: string | null;
+  wasFastRefresh: boolean;
+};
+
+export function AutoDiscovery({
+  connected,
+  vehicleId,
+  scanning,
+}: {
+  connected: boolean;
+  vehicleId: number | null;
+  /// A scan is running RIGHT NOW, possibly started from this card in a
+  /// different tab visit, possibly not — this comes from the global
+  /// conn-status broadcast, so it's accurate either way. Lets this card
+  /// show the truth ("a scan is running, here's Cancel") instead of
+  /// looking idle just because its own local state was reset by
+  /// switching tabs away and back (owner, 2026-08-24).
+  scanning: boolean;
+}) {
   const t = useT();
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ modules: number; dids: number; sensorsAdded: number; cancelled: boolean } | null>(
-    null,
-  );
+  const [result, setResult] = useState<Result | null>(null);
   const found = useDiscoveredModules(vehicleId);
+  const hasPriorFindings = (found.data?.length ?? 0) > 0;
+  const [forceFull, setForceFull] = useState(false);
 
   useEffect(() => {
     const un = listen<Progress>("discovery-progress", (e) => setProgress(e.payload));
@@ -49,8 +72,15 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
     setResult(null);
     setProgress(null);
     try {
-      const r = await runPromise(Effect.flatMap(DeviceService, (d) => d.discoverSensors()));
-      setResult({ modules: r.modules_found, dids: r.dids_found, sensorsAdded: r.sensors_added, cancelled: r.cancelled });
+      const r = await runPromise(Effect.flatMap(DeviceService, (d) => d.discoverSensors(forceFull || !hasPriorFindings)));
+      setResult({
+        modules: r.modules_found,
+        dids: r.dids_found,
+        sensorsAdded: r.sensors_added,
+        cancelled: r.cancelled,
+        autoStoppedReason: r.auto_stopped_reason ?? null,
+        wasFastRefresh: r.was_fast_refresh ?? false,
+      });
       void found.refetch();
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
@@ -64,6 +94,9 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
 
   const pct = progress != null && progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
   const phaseLabel = progress != null ? t.lab.discovery.phases[progress.phase] : "";
+  // Either this card started the scan (running) or another tab/session
+  // did (scanning && !running) — both need the same "it's active" UI.
+  const active = running || scanning;
 
   return (
     <Card>
@@ -78,15 +111,35 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
         {vehicleId == null ? (
           <p className="text-muted-foreground">{t.lab.discovery.needsVehicle}</p>
         ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => void start()} disabled={!connected || running}>
-              <Radar className={"h-4 w-4" + (running ? " animate-pulse" : "")} aria-hidden="true" />
-              {running ? t.lab.discovery.running : t.lab.discovery.start}
-            </Button>
-            {running && (
-              <Button variant="outline" onClick={cancel}>
-                <X className="h-4 w-4" aria-hidden="true" /> {t.common.cancel}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => void start()} disabled={!connected || active}>
+                <Radar className={"h-4 w-4" + (active ? " animate-pulse" : "")} aria-hidden="true" />
+                {active ? t.lab.discovery.running : t.lab.discovery.start}
               </Button>
+              {active && (
+                <Button variant="outline" onClick={cancel}>
+                  <X className="h-4 w-4" aria-hidden="true" /> {t.common.cancel}
+                </Button>
+              )}
+              {!active && hasPriorFindings && (
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <input type="checkbox" checked={forceFull} onChange={(e) => setForceFull(e.target.checked)} />
+                  {t.lab.discovery.fullRescanToggle}
+                </label>
+              )}
+            </div>
+            {/* The literal safety ask (owner, 2026-08-24): flag the risk
+                while a scan is active, not just after something goes
+                wrong. A module held in an extended session while the
+                engine starts can throw dash warnings/comm faults on it —
+                the scan auto-stops on an engine-start signal, but that
+                isn't instant, so the warning matters too. */}
+            {active && (
+              <p className="flex items-center gap-1.5 text-xs text-warn">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {t.lab.discovery.engineWarning}
+              </p>
             )}
           </div>
         )}
@@ -110,9 +163,13 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
 
         {result != null && (
           <p className={result.cancelled ? "text-muted-foreground" : "text-foreground"}>
-            {result.cancelled
-              ? t.lab.discovery.cancelledSummary(result.modules, result.dids)
-              : t.lab.discovery.doneSummary(result.modules, result.dids, result.sensorsAdded)}
+            {result.autoStoppedReason === "engine_started"
+              ? t.lab.discovery.engineStartedSummary(result.modules, result.dids)
+              : result.cancelled
+                ? t.lab.discovery.cancelledSummary(result.modules, result.dids)
+                : result.wasFastRefresh
+                  ? t.lab.discovery.refreshedSummary(result.modules, result.dids, result.sensorsAdded)
+                  : t.lab.discovery.doneSummary(result.modules, result.dids, result.sensorsAdded)}
           </p>
         )}
         {error != null && <p className="text-destructive">{error}</p>}

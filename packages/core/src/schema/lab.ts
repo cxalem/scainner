@@ -37,7 +37,11 @@ export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
 }) {}
 
 /// Result of one auto-discovery pass (uds::DiscoveryReport). `cancelled`
-/// means the user stopped it — whatever was found is still persisted.
+/// means the scan didn't finish — whatever was found is still persisted
+/// either way. `auto_stopped_reason` distinguishes a user cancel from the
+/// scan stopping ITSELF because it detected the engine starting mid-scan
+/// (a real risk: a module held in an extended session while the engine
+/// starts can throw dash warnings/comm faults on it).
 export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryReport")({
   modules_found: Schema.Number,
   dids_found: Schema.Number,
@@ -46,6 +50,10 @@ export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryRep
   // probe" step, no re-scanning to see them again.
   sensors_added: Schema.Number,
   cancelled: Schema.Boolean,
+  auto_stopped_reason: Schema.optional(Schema.NullOr(Schema.String)),
+  // True when this pass only re-probed what a PRIOR pass on this car
+  // already found, instead of the full blind sweep — much faster.
+  was_fast_refresh: Schema.optional(Schema.Boolean),
 }) {}
 
 /// One module a discovery pass found on this vehicle, with how many DIDs

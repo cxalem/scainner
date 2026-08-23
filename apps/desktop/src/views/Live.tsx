@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Database, RefreshCw } from "lucide-react";
+import { Activity, Database, RefreshCw, Radar } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, useCyclingLabel } from "@/components/ui";
 import { GAUGES, gaugeLabel } from "@/shared/domain/gauges";
 import type { Live as LiveMap } from "@scainner/core";
@@ -110,7 +110,22 @@ function AllSensorsTable({ connected }: { connected: boolean }) {
   );
 }
 
-export function Live({ live, connected }: { live: LiveMap; connected: boolean }) {
+export function Live({
+  live,
+  connected,
+  scanning = false,
+}: {
+  live: LiveMap;
+  connected: boolean;
+  /// A UDS scan (auto-discovery or the manual range scanner, either tab)
+  /// is running — standard PID polling is paused for its duration, so
+  /// nothing here would update anyway. Shown explicitly rather than
+  /// letting the gauges silently go stale, and this reads from the same
+  /// global conn-status every tab gets, so it's accurate even if the scan
+  /// was started from the Lab tab while the user is sitting here
+  /// (owner, 2026-08-24).
+  scanning?: boolean;
+}) {
   const t = useT();
   const [mode, setMode] = useState<"gauges" | "table">("gauges");
   const hasData = Object.keys(live).length > 0;
@@ -129,7 +144,15 @@ export function Live({ live, connected }: { live: LiveMap; connected: boolean })
         />
       </div>
 
-      {mode === "gauges" ? (
+      {scanning ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
+            <Radar className="h-8 w-8 animate-pulse text-muted-foreground" aria-hidden="true" />
+            <p className="font-medium">{t.live.scanningTitle}</p>
+            <p className="max-w-sm text-sm text-muted-foreground">{t.live.scanningExplainer}</p>
+          </CardContent>
+        </Card>
+      ) : mode === "gauges" ? (
         <>
           {!connected && !hasData && (
             <Card>

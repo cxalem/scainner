@@ -244,7 +244,15 @@ export const en: Dictionary = {
         sensorsAdded > 0
           ? `Found ${modules} modules and ${dids} values — ${sensorsAdded} now live on your dashboard.`
           : `Found ${modules} modules and ${dids} values. None matched a known sensor yet, so they're saved here for reference.`,
+      refreshedSummary: (modules, dids, sensorsAdded) =>
+        sensorsAdded > 0
+          ? `Refreshed ${modules} modules and ${dids} values — ${sensorsAdded} confirmed live on your dashboard.`
+          : `Refreshed ${modules} modules and ${dids} values.`,
       cancelledSummary: (modules, dids) => `Stopped. Kept ${modules} modules and ${dids} values found so far.`,
+      engineStartedSummary: (modules, dids) =>
+        `Stopped automatically because the engine started (kept ${modules} modules and ${dids} values found so far). The module it was talking to may show a brief dashboard warning — that's expected and clears on its own, or check Module Faults.`,
+      engineWarning: "Don't start the engine while this runs — a module mid-scan can show a dashboard warning if the engine starts.",
+      fullRescanToggle: "Full rescan instead (slower, checks for anything new)",
       previousFindings: "Already found on this car",
       unnamedModule: "Unnamed module",
       didCount: (total, labeled) => (labeled > 0 ? `${total} values (${labeled} named)` : `${total} values`),
@@ -411,6 +419,8 @@ export const en: Dictionary = {
     notConnectedTitle: "Not connected",
     notConnectedExplainer:
       "Turn the ignition on, then press Connect in the sidebar. Everything records automatically while connected.",
+    scanningTitle: "Looking for sensors",
+    scanningExplainer: "Live data pauses while a scan runs (Lab tab) and comes back automatically when it finishes.",
     recordingNote: "Recording continuously — every value on this screen is being saved.",
     allSensors: {
       readButton: "Read all sensors",

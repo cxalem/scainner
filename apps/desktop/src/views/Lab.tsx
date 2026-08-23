@@ -14,7 +14,15 @@ import { useT } from "@/i18n";
 /// safety rail (ConfirmWrite modal, confirmed flag, write history).
 /// This component just owns the module selection shared across every card;
 /// each card is its own focused component under `views/lab/`.
-export function Lab({ connected, vehicleId = null }: { connected: boolean; vehicleId?: number | null }) {
+export function Lab({
+  connected,
+  vehicleId = null,
+  scanning = false,
+}: {
+  connected: boolean;
+  vehicleId?: number | null;
+  scanning?: boolean;
+}) {
   const t = useT();
   const modulesQuery = useUdsModules();
   const modules = modulesQuery.data ?? [];
@@ -47,7 +55,7 @@ export function Lab({ connected, vehicleId = null }: { connected: boolean; vehic
       </div>
       <p className="text-sm text-muted-foreground">{t.lab.explainer}</p>
 
-      <AutoDiscovery connected={connected} vehicleId={vehicleId} />
+      <AutoDiscovery connected={connected} vehicleId={vehicleId} scanning={scanning} />
 
       {/* Manual tools, demoted below auto-discovery: for a brand it
           doesn't cover yet, for reading a specific address by hand, or

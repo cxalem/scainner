@@ -252,7 +252,16 @@ export const es: Dictionary = {
         sensorsAdded > 0
           ? `Encontrados ${modules} módulos y ${dids} valores: ${sensorsAdded} ya están en vivo en tu panel.`
           : `Encontrados ${modules} módulos y ${dids} valores. Ninguno coincidió con un sensor conocido todavía, así que quedan guardados aquí como referencia.`,
+      refreshedSummary: (modules, dids, sensorsAdded) =>
+        sensorsAdded > 0
+          ? `Actualizados ${modules} módulos y ${dids} valores: ${sensorsAdded} confirmados en vivo en tu panel.`
+          : `Actualizados ${modules} módulos y ${dids} valores.`,
       cancelledSummary: (modules, dids) => `Detenido. Se guardan ${modules} módulos y ${dids} valores encontrados.`,
+      engineStartedSummary: (modules, dids) =>
+        `Detenido automáticamente porque el motor arrancó (se guardan ${modules} módulos y ${dids} valores encontrados hasta ahora). El módulo con el que estaba hablando puede mostrar un aviso breve en el cuadro: es normal y desaparece solo, o revísalo en Fallos del módulo.`,
+      engineWarning:
+        "No arranques el motor mientras esto se ejecuta: un módulo a mitad de escaneo puede mostrar un aviso en el cuadro si el motor arranca.",
+      fullRescanToggle: "Escaneo completo en su lugar (más lento, busca algo nuevo)",
       previousFindings: "Ya encontrado en este coche",
       unnamedModule: "Módulo sin nombre",
       didCount: (total, labeled) => (labeled > 0 ? `${total} valores (${labeled} con nombre)` : `${total} valores`),
@@ -419,6 +428,9 @@ export const es: Dictionary = {
     notConnectedTitle: "No conectado",
     notConnectedExplainer:
       "Pon el contacto y pulsa Conectar en la barra lateral. Todo se graba automáticamente mientras estás conectado.",
+    scanningTitle: "Buscando sensores",
+    scanningExplainer:
+      "Los datos en vivo se pausan mientras hay un escaneo en curso (pestaña Laboratorio) y vuelven automáticamente al terminar.",
     recordingNote: "Grabando de forma continua: todos los valores de esta pantalla se están guardando.",
     allSensors: {
       readButton: "Leer todos los sensores",

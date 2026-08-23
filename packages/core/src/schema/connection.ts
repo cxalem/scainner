@@ -19,6 +19,12 @@ export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   vehicle_id: Schema.optional(Schema.NullOr(Schema.Number)),
   display_name: Schema.optional(Schema.NullOr(Schema.String)),
   vehicle_is_new: Schema.optional(Schema.Boolean),
+  // A UDS scan (auto-discovery or the manual range scanner) is running —
+  // standard PID polling is paused for its duration, so live gauges go
+  // stale everywhere until it ends. Carried on the same broadcast every
+  // view already listens to, so any tab can show an honest "scanning"
+  // state instead of a silently frozen one (owner, 2026-08-24).
+  scanning: Schema.optional(Schema.Boolean),
 }) {}
 
 // Live-event payload (from `listen("live-update", ...)`, not `invoke`) —
