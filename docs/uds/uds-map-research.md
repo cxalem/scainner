@@ -543,3 +543,346 @@ Ranked by yield in this round, for whoever does the next pass:
 Forums (ForScan, BimmerForums, planète-citroën) were consistently unreachable —
 403s, logins and CAPTCHAs. Do not budget research time on them without a plan for
 authentication.
+
+---
+
+## Verification and 2026-08-23 extension pass
+
+This pass had two jobs: independently re-derive a sample of the prior pass's
+high-confidence entries against primary sources (not just re-read the prior
+pass's own summary of them), and extend coverage toward newer/EV models. Six
+research passes ran in parallel, each fetching primary sources directly
+(`raw.githubusercontent.com`, `gh api`, not WebFetch summaries, which lose
+exact hex values). `uds-map.json` is now at version 3.
+
+### Method note on this pass's own limits
+
+Every sub-pass exhausted its WebSearch budget partway through and fell back to
+direct `curl`/`WebFetch`/`gh api` calls against GitHub. This turned out to be
+a strength, not a weakness, for the kind of verification this needed (raw
+source files beat search-engine summaries for exact hex values), but it does
+mean a few items that would normally get a forum/community cross-check (BMW
+F-series ZGW/GWS, Ford ABS/RCM, general "is there an OBD-II port on Tesla"
+corroboration) stayed unconfirmed rather than getting a second opinion. Flagged
+per-item below.
+
+### Job 1 outcome: verification
+
+**PSA.** Both response-offset rules (6xx block -0x20, 7xx block -0x100)
+verified exactly against `arduino-psa-diag`'s `ECU_LIST.md` for every pair
+listed. All the BSI zone DIDs (D400/D401/D402, 2101, 2103, 2201, 220A, 2333,
+232D, 23D0) verified exactly against `zones/BMF.md`. The Stellantis EV DIDs
+(D410, D860, D815) verified byte-exact against `wican-fw`'s
+`fiat/600e.json`, a second independent confirmation of the same formula found
+last pass, so those three are now `high` confidence in psa, opel_psa and fca
+(they share the identical Stellantis EV DID block). D422, D4B1, F08F and D619
+could not be found in any of the external repos checked this pass, which
+looked concerning until checking `~/projects/scainner/UDS_INVESTIGATION_LOG.md`
+and `docs/uds/hunt_results.txt` directly: all four are this project's own live
+reads off the real Citroen C4 (raw bytes recorded, correlation reads against
+PID 0142 for D422/D4B1), a source outside what the verification sub-agents
+were pointed at. No change needed, no external confirmation exists because
+none is expected to for a hardware-anchored find.
+
+**VAG.** Both response-offset rules (+0x6A proprietary, +0x08 generic OBD)
+verified exactly against `ConnorHowell/vag-uds-ids` and cross-confirmed via
+OVMS `vweup_obd.h`. Every battery/DCDC/EDC17 DID checked (1E3B, 1E3D, 028C,
+1DD0, 1E33, 1E34, 2A0B, 74CB, 465C, 465B, 10F9, 10FB, 11B2, 11BE) verified
+exact, formula for formula, against the OVMS source and
+`dpf-load-monitor-wide`. One real contradiction found: **F45B was attributed
+to the wrong module.** The map had it on 7E5/7ED (battery management) labeled
+"hybrid pack life". OVMS's actual constant is `VWUP_MOT_ELEC_SOC_ABS` on
+`VWUP_MOT_ELEC_TX/RX = 0x7E0/0x7E8` (the motor-electronics/engine ECU). Scale
+(0.392156863) was already correct, only the module and the meaning were wrong.
+Corrected in the map, confidence raised to `confirmed` since the OVMS source
+is production firmware and the formula now matches it exactly, module and all.
+
+**BMW.** The D-CAN extended-addressing scheme (request 6F1, target byte as
+payload 0, response 0x600+target) verified exactly against both OVMS
+`vehicle_bmwi3` and `jcevanco/rcp_bmw_service_0x22`. Two real problems found:
+
+1. **SME's target byte was wrong.** The map had SME (HV battery management)
+   at target 0x62 (response 0x662). OVMS's `ecu_sme_defines.h` defines
+   `I3_ECU_SME_TX = 0x06F107`, i.e. target byte 0x07, response 0x607. No
+   module in the source uses target byte 0x62 at all (grepped for it, zero
+   hits). Corrected in the map.
+2. **The DID 4300 "confirmed" coolant-temperature formula was wrong.** The map
+   had it as a 2-byte, decikelvin formula (scale 0.1, bias -273.15), backed by
+   a supposed worked example "raw hex 0D BA" that could not be traced to any
+   source this pass checked. The actual source
+   (`rcp_bmw_service_0x22/src/inc/pid_debug.lua`) defines `0x4300` as
+   `Engine_Temp`, 1-byte, Fahrenheit, `multiply=1.35, add=-54.4`, the exact
+   same formula family already correctly documented for 4650/5890/580F/586F.
+   Corrected in the map; confidence dropped from `confirmed` to `high` since
+   this pass didn't produce its own raw-byte worked example, only matched the
+   production Lua source's formula.
+
+The 0x60 = KOM vs DSC ambiguity flagged last pass turned out not to be a real
+conflict within the OVMS i3 source: KOM (cluster) is unambiguously target
+0x60, and DSC lives at a completely different target byte, 0x29 (response
+0x629), previously undocumented. Added as a new module entry, confidence
+`high`. (Whether some other BMW platform genuinely puts DSC at 0x60 instead
+remains an open question this pass didn't have a source to check, flagged as
+still-possible, not ruled out, for a future F-series-specific source.)
+4650/5890/580F/586F/56D7 all verified formula-exact and are now `high`
+confidence (were `medium`). ZGW (target 10) and GWS (target 5E, F-series
+gear selector) and F410 (odometer via gateway) could not be reproduced from
+either listed source this pass (the i3 doesn't poll ZGW or GWS, and reads
+odometer via D10D on KOM instead), downgraded (ZGW high to medium, GWS
+medium to low, F410 medium to low) per the confidence discipline rule: an
+entry that can no longer be independently reproduced should not keep its old
+confidence just because nobody actively disproved it.
+
+**Ford.** The +0x08 rule and the entire BCM DID set (4028, 402A, 402B, 4029,
+2813-2816, DD01, DD04) plus 054B/1E1C/1E12/F405/F40F/F42F verified formula-exact
+against `wican-fw`'s `transit.json` and `focus_rs_mk3.json`, including the "B4
+byte = after-header offset 0" convention. F45C (oil temperature) is not
+present in either of the only two published Ford profiles, so it could not be
+re-verified. Downgraded from `high` to `medium` (it may still be correct on a
+Ford model not covered by wican-fw's currently published set, but this pass
+could not confirm it).
+
+**Hyundai/Kia.** The uniform +0x08 rule verified exhaustively against both the
+E-GMP poll table (`vehicle_hyundai_ioniq5.cpp`) and the older PS-platform
+table (`vehicle_kiasoulev.cpp`), every pair, no exceptions. The BMS byte
+offsets for `22 01 01` (SOC@4, current@10, voltage@12, max/min temp@14/15)
+verified byte-exact straight from `hif_can_poll.cpp`, as were B002 (odometer,
+confirmed independently by both OVMS and EVNotiPi), C00B/C002 (TPMS) and E004
+(VMCU drive status). F100/F110 (firmware description strings) could not be
+found in `vehicle_hyundai_ioniq5`, `vehicle_kiasoulev`, or the JejuSoul CSVs
+checked. Downgraded from `high` to `low`.
+
+**Nissan.** This is the pass's most consequential correction. `79B/7BB`
+(LBC, service 0x21) and `797/79A` (PDM/charger) verified exactly against
+`vehicle_nissanleaf.cpp`. But cross-checking the `743/763` DID list against
+OBDb's actively test-covered `Nissan-Leaf` signalset (whose test fixtures
+literally name the module in the filename, e.g.
+`797.79A.221103|...yaml`) found that **7 of the 8 DIDs the map attributed to
+743/763 (1103, 1183, 1146, 121A, 1236, 1234, 1255) actually live on 797/79A,
+the PDM/charger module, not the body module.** Only 0E2E genuinely belongs to
+743/763. This is exactly the class of error the verification pass exists to
+catch: the scale/offset/bias formula for every one of those 7 DIDs was
+already correct, only the CAN address they'd be read from was wrong. An
+implementation trusting the old attribution would query the body ECU and get
+nothing, or worse, misinterpret whatever that ECU happens to answer at the
+same DID number. Corrected: all 7 relabeled to 797/79A and bumped to `high`
+confidence (matched exactly against test-covered production data); 0E2E
+bumped to `high` (module confirmed correct); added 0E01 (odometer, genuinely
+on 743/763, confirmed); the `1100-131F` did_band note and the 743/763 module
+description both corrected to reflect the real scope (743/763 carries only
+odometer, tyre pressure and range; the dense 11xx/12xx vehicle-data block is
+on 797/79A).
+
+### Job 2 outcome: extension, newer models
+
+**Mercedes EQB, real data, the first non-empty Mercedes entry in the map.**
+OBDb's `Mercedes-Benz-EQB` repo has genuine, test-verified data: its
+`tests/test_cases/{2023,2024,2025}/commands/*.yaml` fixtures pair raw captured
+CAN responses with expected decoded values, checked by hand this pass (DID
+6050 raw `1B83` -> 7043/100 = 70.43%, matching the fixture exactly). Added
+module 7E2/7EA (chassis/ESP: wheel speeds, vehicle dynamics) and 7E5/7ED (HV
+battery), and ten known_dids (2001, 2002, 2005, 2526, 6050, 6053, 6071, 6075,
+6502, 6504) at `high`/`confirmed` confidence, applicable to EQB 2023-2025.
+Mercedes brand confidence raised low to medium.
+
+Three important negatives, kept as negatives rather than silently omitted:
+
+- **EQA** has an identical-looking DID set in OBDb's repo, but the repo has
+  zero test fixtures and the originating commit is literally titled "Add a
+  bunch of potential EV pids." Read as templated from EQB (same MFA2
+  platform, plausible but not independently verified), not confirmed. Not
+  added to the map. If someone gets a real EQA to test against, this is the
+  first thing to check.
+- **EQE and EQS (EVA2 platform, 2021+)** were actively tested against these
+  exact DIDs in OBDb's own test fixtures and explicitly listed under
+  `unsupported_commands_by_ecu`, someone polled a real EQE/EQS and got no
+  usable response. **The EQB/MFA2 DID pattern does not carry over to EVA2.**
+  No working DIDs exist anywhere in the checked sources for EVA2 Mercedes
+  EVs (EQE, EQS, presumably EQC). This is a tested, not merely absent, gap.
+- **Smart EQ (chassis 453, ~2017-2020)** has a mature, actively maintained
+  OVMS component (`vehicle_smarteq`) with extensive real BMS/charger DIDs on
+  `79B/7BB` and `7EC`. This is the Renault-Nissan-Daimler alliance platform,
+  architecturally unrelated to the EVA2/MFA2 Mercedes EQ lineup despite the
+  shared badge, and was deliberately not folded into the `mercedes` brand
+  entry (it would misrepresent the platform relationship). Worth a dedicated
+  brand entry if Smart 453 support is ever wanted; a real safety note came
+  with it: `openvehicles/Open-Vehicle-Monitoring-System-3` issue #1405
+  documents third-party OBD polling potentially glitching the HV
+  contactor-cycle counter on this specific chassis and bricking the HV
+  contactors, which matters given Scainner's always-on recording model.
+
+**Tesla, mechanism now understood, still correctly empty.** Prior pass
+concluded "not UDS-sweepable, ships broadcast frames only." This pass found
+that's the right practical conclusion but not quite the right mechanism.
+`opendbc`'s own Tesla fingerprinting code (`opendbc/car/tesla/values.py`)
+performs a real UDS transaction (TesterPresent + ReadDataByIdentifier for
+standard DID F18, supplier software version) against Model 3/Y to distinguish
+HW3/HW4. **Tesla ECUs do run a UDS server and do answer it.** The reason
+nothing is sweepable from an OBD-II-class dongle is bus topology, not absence
+of UDS: that request targets `bus=0` ("Party" bus), and the only way
+documented anywhere to reach it is tapping the Autopilot computer's own
+harness inline, per comma's own hardware install instructions, which needs
+interior teardown. The one semi-accessible connector documented for Model 3/Y
+(the A-pillar X179 connector, reachable only after removing three trim
+panels) exposes a different segment, "Vehicle bus" (`bus=1`), characterized
+in every source checked as broadcast infotainment/body traffic only, no UDS
+activity documented there. No source confirms a standard dashboard J1962
+OBD-II port exists on Model 3/Y at all; the one page that describes one is
+Model S/X-era content misfiled in a generic docs section, not Model-3/Y-specific,
+and was not treated as evidence for 3/Y. Net effect for Scainner: still
+correctly empty (nothing is sweepable through a plug-in dongle), but the
+`known_dids`/`modules` emptiness is now a confirmed structural fact rather
+than an unresolved guess, so brand confidence raised low to high, matching
+the file's confidence semantics ("high confidence" describing how much to
+trust what's documented, and what's documented here is a firm negative).
+
+**Volvo/Polestar, real data on the CMA/SPA2 platform, a genuine structural
+shift from the legacy VIDA scheme.** OBDb's `Polestar-2` and
+`Volvo-XC40-Recharge` repos (identical DID sets, confirming the platform-share
+hypothesis) have byte-tested data: standard OBD-II Mode 01 access confirmed
+over standard 29-bit extended addressing (response
+`18DAF11003410D00` decodes to Mode 01 PID 0x0D, vehicle speed), and two
+manufacturer DIDs, EE6F (accelerator pedal position, byte-verified: raw `02`
+-> 0.78%, matching a test fixture) and 4028 (HV battery SOC, present in the
+default signalset, scale confirmed but no byte-level test fixture found for
+it specifically). Added module `18DA10F1`/`18DAF110` at `high` confidence
+(the standard-PID pattern is solidly confirmed) and both known_dids at
+`medium` (the DID and scale are real, but the exact request-frame CAN ID for
+the two manufacturer DIDs, derivable in principle from OBDb's
+`hdr`/`pri`/`tst` schema fields, wasn't independently reconstructed and
+doesn't obviously match the captured response ID by a simple offset, so it
+needs hardware confirmation before being trusted for addressing). Brand
+confidence raised low to medium. This is a real finding worth restating
+plainly: **the older P1/P2-era VIDA scheme documented last pass is not what
+current CMA/SPA2 Volvos and Polestars speak**, at least for standard PIDs.
+Whether the pre-2020 VIDA-only cars are still on the road in numbers worth
+supporting separately is a product question, not a research one.
+
+**Mitsubishi, still genuinely empty, but now a researched gap instead of an
+untried one.** OBDb has nothing (all 12 Mitsubishi-family repos checked are
+empty `{"commands": []}` stubs). PHEV Watchdog/MyPHEV, the well-known
+closed-source Android apps for Outlander PHEV monitoring, have no published
+open-source protocol documentation. What does exist: `projectgus/car_hacking`
+(a known EV/car-hacking reverse-engineering effort) has working code for
+reading DTCs off the Outlander PHEV, but it (a) requires a brute-force scan
+of the full 11-bit address range per vehicle, no stable published address
+table exists even in this best source, and (b) uses Mitsubishi-proprietary
+KWP2000-flavored session commands (`10 92`/`50 92` to enter a custom
+diagnostic session type, `18 00 FF 00` for DTC reads using SID 0x18, not the
+standard UDS 0x19) riding on ISO-TP, not clean ISO 14229 DID reads, and has no
+DID list for SOC/SOH at all. The SOC/SOH-bearing CMU/BMS protocol that does
+exist (documented by `Tom-evnut/OutlanderPHEVBMS` and
+`damienmaguire/Outlander-PHEV`) lives on a separate internal EV/BMU CAN bus
+that is generally not exposed at the OBD2 connector on this platform, similar
+in spirit to the PSA BSI and Mitsubishi CMU access limitations already
+documented elsewhere in this file. Left the map entry empty, as instructed:
+an honest gap beats a fabricated address table, and this one is now backed by
+an actual search rather than an assumption. `projectgus/car_hacking` is the
+one source worth returning to first if Mitsubishi coverage ever becomes a
+priority.
+
+**VAG MEB (ID.3/ID.4/ID.5, Cupra Born), the flagged low-confidence gap is
+now real confirmed data, at least partially.** Last pass had no MEB-specific
+source and flagged the inherited e-Up battery DIDs as needing field
+verification. This pass found OBDb has genuinely populated (not stub)
+`Volkswagen-ID.4` and `Cupra-Born` repos, both with real test fixtures. Key
+result: **the legacy 11-bit module 0x7E5/0x7ED is still alive on MEB**, and
+carries the same DIDs already documented for e-Up: 1E33 (max cell voltage),
+1E34 (min cell voltage), 1E3B (pack voltage) and 1E3D (pack current) all
+confirmed present and matching on both ID.4 and Cupra Born test fixtures.
+Bumped these to `confirmed` in both `vag` and `cupra` (which mirrors VAG's
+values per the existing convention). One real correction alongside the
+confirmation: **74CB (SOH) does not appear anywhere in either real dataset.**
+Instead both show DID **51E0** explicitly named `HVBAT_SOH`. Added 51E0 to
+both brands at `high` confidence; left 74CB in place for e-Up but added a
+caveat that it is not confirmed on MEB. Also found, and added as new
+did_bands (label-only, no per-DID scale extracted yet, so band-level rather
+than individual known_dids): a cluster of individual cell voltage DIDs
+(1850-1870) and cell/module temperature DIDs (1821-1841), plus dynamic
+charge/discharge current-limit DIDs (5170-5175), all confirmed present on the
+same legacy 7E5/7ED module.
+
+One deliberately unencoded finding: MEB cars also expose a second, richer
+diagnostic surface using 29-bit functional addressing (a `FC00` header
+combined with a target-address byte, e.g. `ta=7B`/`7C`/`76`/`B9` in OBDb's
+notation) that carries much more data (108 individual cell voltages, 24
+module temperatures, motor/inverter data) than the legacy surface. This
+pass did not encode it into the map: the request-ID construction from
+OBDb's `hdr`/`pri`/`tst` fields into an actual CAN ID this engine could send
+was not confirmed (same caveat as the Volvo/Polestar manufacturer DIDs
+above), and guessing would risk exactly the kind of wrong-high-confidence
+entry the confidence discipline exists to prevent. Flagged here as the
+single highest-value follow-up for VAG MEB: if someone nails down that
+addressing scheme, it unlocks a much larger DID set than what's in the map
+today.
+
+**Renault EVC/DCM/BCB, and a new fourth exception, PEB, a real behavioral
+fix.** Last pass documented these three modules as "breaking the +0x20
+majority rule" without recording individual deltas, meaning
+`response_addr()` in the Rust engine actually fell through to the wrong
+majority-rule default for them (e.g. req 0x7E4 + 0x20 = 0x804, clamped to
+0x7FF, nowhere near the real 0x7EC). This pass confirmed the individual
+deltas directly against CanZE's `_Ecus.csv` (verifying column semantics
+against `Ecu.java`/`Frame.java` first, since the CSV's from/to column order
+isn't self-evident): EVC +0x08, DCM +0x10, BCB +0x01, all exactly matching
+what the doc's footnote had already guessed. A fourth module, **PEB (power
+electronics block, 75A/77E)**, was found to break the rule too, with delta
++0x24, previously undocumented. All four are now explicit per-module ranges
+in `resp_offsets`, listed before the general +0x20 range so the engine
+resolves them correctly instead of silently falling through. This is a real
+bug fix, not just a documentation upgrade: before this pass, an
+implementation querying EVC/DCM/BCB/PEB on a real Renault would have computed
+the wrong response address for all four.
+
+**Toyota 5th-gen THS (2023+, e-Four dual-motor AWD).** OBDb's `Toyota-Prius`
+repo explicitly covers the fifth-generation redesign (XW60, 2023+) on the
+same existing module (7D2/7DA). Two DIDs flagged with `dbgfilter: {to: 2023}`
+that aren't present on earlier generations: 10A2 (rear motor torque,
+requested and actual) and 10A6 (rear motor inverter coolant/max temperature),
+consistent with the redesign's added rear motor for AWD. Added at `medium`
+confidence (single source, not yet cross-checked against a second).
+
+**Honda e:HEV (2022+ CR-V/Civic hybrid) and newer ADAS modules.** Both
+remain confirmed gaps, not just unexplored ones. `OBDb/Honda-CR-V-Hybrid`
+exists and explicitly targets the current CR-V generation, but is a
+completely empty stub, zero commands, zero test fixtures. Same for
+Honda-Accord-Hybrid's current generation. No radar/camera/lane module
+signals were found in any Toyota, Honda or VAG-MEB signalset checked this
+pass; VAG's MEB radar fuses onto a plain CAN broadcast message rather than a
+diagnostic-session read, per opendbc's `radar_interface.py`, which may be
+the more general pattern for newer ADAS data (broadcast, not UDS) rather than
+a gap this map can close by finding the right DID.
+
+### Updated totals
+
+21 brands (unchanged), 181 `known_dids` (up from 159), 180 module address
+pairs. The overall shape hasn't changed, most brands were already
+well-covered, but two structural bugs (Nissan's module misattribution,
+Renault's silent resp_offset fallthrough) are fixed, one wrong-but-labeled-confirmed
+BMW formula is corrected, and five brands that were essentially empty
+placeholders (Mercedes, Volvo, and Tesla's justification) now carry either
+real data or a properly-documented reason for staying empty.
+
+### Remaining gaps worth flagging for the next pass
+
+1. **The VAG MEB `FC00` extended-addressing surface** (above), highest
+   value: unlocks 100+ additional confirmed DIDs per model if the addressing
+   scheme gets nailed down.
+2. **Mercedes EVA2 (EQE/EQS/EQC)** has zero working DIDs found in any
+   checked source, confirmed tested-negative rather than merely unexplored.
+   Whatever DID scheme EVA2 uses hasn't been cracked by anyone whose work is
+   public.
+3. **Mercedes EQA** needs a real car to confirm or refute the EQB-shaped
+   guess currently sitting unconfirmed in OBDb (and deliberately not copied
+   into this map).
+4. **BMW F-series** ZGW/GWS/DSC-vs-KOM-at-0x60 all remain open questions
+   for anything past the i3 generation this pass's sources cover.
+5. **Ford ABS (760/768) and RCM (737/73F)**, and now also **F45C oil
+   temperature**, still need either a ForScan account or a live car; wican-fw
+   currently only publishes two Ford profiles.
+6. **Mitsubishi and Subaru** remain honest empty gaps, now backed by an
+   actual documented search rather than an assumption; `projectgus/car_hacking`
+   is the concrete next step for Mitsubishi if it becomes a priority.
+7. **Volvo/Polestar manufacturer DID request-frame construction** (EE6F,
+   4028) needs a live car to confirm before the engine can address them with
+   confidence, the DID and scale are solid, the CAN request ID is a guess.

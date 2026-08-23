@@ -269,7 +269,12 @@ mod tests {
     #[test]
     fn map_parses_and_has_content() {
         let m = map();
-        assert_eq!(m.version, 2);
+        // >= 2, not an exact match: version bumps happen on pure data
+        // updates (new brands, corrected DIDs) that must NOT require
+        // touching this file — that coupling is exactly what "no hardcoded
+        // values" (2026-08-23) rules out. See uds-map-research.md for the
+        // version history.
+        assert!(m.version >= 2);
         assert!(!m.brands.is_empty());
         assert!(!m.standard.ident_dids.is_empty());
     }

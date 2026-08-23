@@ -1,9 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "generated": "2026-08-23",
-  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. Editing this file needs no code change: the discovery engine reads every per-brand value from here.",
+  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. Editing this file needs no code change: the discovery engine reads every per-brand value from here. v3 (2026-08-23) verification+extension pass: re-derived high-confidence PSA/VAG/BMW/Ford/Hyundai/Nissan entries against primary sources directly (found and fixed a Nissan module misattribution, a BMW target-byte error and a wrong DID formula, a VAG module mix-up), fixed a live Renault resp_offset bug for EVC/DCM/BCB/PEB, added newer-model coverage (Mercedes EQB, VAG MEB battery DIDs, Volvo/Polestar CMA platform, Toyota 5th-gen THS), and confirmed Tesla and Mitsubishi are genuinely not OBD-port-UDS-reachable with the specific mechanism documented rather than left a mystery.",
   "standard": {
-    "note": "ISO 14229-1 identification block — genuinely universal, the one part of UDS as standard as OBD PIDs. Kept here rather than in code so every value the engine uses lives in one queryable place.",
+    "note": "ISO 14229-1 identification block, genuinely universal, the one part of UDS as standard as OBD PIDs. Kept here rather than in code so every value the engine uses lives in one queryable place.",
     "ident_dids": [
       {
         "did": "F187",
@@ -302,7 +302,7 @@
           "len": 2,
           "scale": 0.001953125,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D860",
@@ -312,7 +312,7 @@
           "len": 2,
           "scale": 0.0625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D815",
@@ -322,7 +322,7 @@
           "len": 2,
           "scale": 0.0625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D400",
@@ -481,7 +481,7 @@
           "len": 2,
           "scale": 0.001953125,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D860",
@@ -491,7 +491,7 @@
           "len": 2,
           "scale": 0.0625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D815",
@@ -501,7 +501,7 @@
           "len": 2,
           "scale": 0.0625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         }
       ],
       "resp_offsets": [
@@ -733,6 +733,24 @@
           "to": "F8FF",
           "note": "VIN at F802 on motor electronics",
           "confidence": "medium"
+        },
+        {
+          "from": "1850",
+          "to": "1870",
+          "note": "individual HV cell voltage DIDs, MEB battery module cluster (confirmed present on VW ID.4 and Cupra Born OBDb test fixtures, module 7E5/7ED, the legacy 11-bit address, not the newer FC00 extended-addressing surface these platforms also expose; exact per-DID scale/offset not yet extracted from the fixtures)",
+          "confidence": "high"
+        },
+        {
+          "from": "1821",
+          "to": "1841",
+          "note": "individual HV cell/module temperature DIDs, MEB battery module cluster (confirmed present on VW ID.4 and Cupra Born OBDb test fixtures, module 7E5/7ED; exact per-DID scale/offset not yet extracted)",
+          "confidence": "high"
+        },
+        {
+          "from": "5170",
+          "to": "5175",
+          "note": "dynamic charge/discharge current limits, MEB (module 7E5/7ED, confirmed present on VW ID.4 / Cupra Born OBDb test fixtures)",
+          "confidence": "medium"
         }
       ],
       "known_dids": [
@@ -772,33 +790,33 @@
         },
         {
           "did": "1E3B",
-          "label": "HV battery pack voltage (battery management 7E5/7ED)",
+          "label": "HV battery pack voltage (battery management 7E5/7ED), confirmed also on MEB (VW ID.4, Cupra Born test fixtures), not just e-Up",
           "unit": "V",
           "offset": 0,
           "len": 2,
           "scale": 0.25,
           "bias": 0.0,
-          "confidence": "high"
+          "confidence": "confirmed"
         },
         {
           "did": "1E3D",
-          "label": "HV battery pack current, positive when discharging (7E5/7ED)",
+          "label": "HV battery pack current, positive when discharging (7E5/7ED), confirmed also on MEB (VW ID.4, Cupra Born test fixtures), not just e-Up",
           "unit": "A",
           "offset": 0,
           "len": 2,
           "scale": -0.25,
           "bias": 511.0,
-          "confidence": "high"
+          "confidence": "confirmed"
         },
         {
           "did": "028C",
-          "label": "HV battery absolute state of charge (7E5/7ED)",
+          "label": "HV battery absolute state of charge (7E5/7ED), confirmed also on MEB (VW ID.4, Cupra Born test fixtures), not just e-Up",
           "unit": "%",
           "offset": 0,
           "len": 1,
           "scale": 0.4,
           "bias": 0.0,
-          "confidence": "high"
+          "confidence": "confirmed"
         },
         {
           "did": "1DD0",
@@ -812,23 +830,23 @@
         },
         {
           "did": "1E33",
-          "label": "Maximum cell voltage",
+          "label": "Maximum cell voltage, confirmed also on MEB (VW ID.4, Cupra Born test fixtures), not just e-Up",
           "unit": "V",
           "offset": 0,
           "len": 2,
           "scale": 0.000244140625,
           "bias": 0.0,
-          "confidence": "high"
+          "confidence": "confirmed"
         },
         {
           "did": "1E34",
-          "label": "Minimum cell voltage",
+          "label": "Minimum cell voltage, confirmed also on MEB (VW ID.4, Cupra Born test fixtures), not just e-Up",
           "unit": "V",
           "offset": 0,
           "len": 2,
           "scale": 0.000244140625,
           "bias": 0.0,
-          "confidence": "high"
+          "confidence": "confirmed"
         },
         {
           "did": "2A0B",
@@ -842,7 +860,7 @@
         },
         {
           "did": "74CB",
-          "label": "HV battery state of health and capacity: capacity at offset 0 (scale 0.01 Ah), cell count at offset 2, per-cell SOH bytes from offset 4",
+          "label": "HV battery state of health and capacity: capacity at offset 0 (scale 0.01 Ah), cell count at offset 2, per-cell SOH bytes from offset 4, validated on e-Up only; NOT reproduced on MEB (ID.4/Cupra Born SOH DID is 51E0 instead, see below)",
           "confidence": "high"
         },
         {
@@ -877,13 +895,13 @@
         },
         {
           "did": "F45B",
-          "label": "Hybrid pack remaining life, motor electronics view",
+          "label": "Motor electronics absolute state of charge, module 7E0/7E8 (generic OBD engine/motor-electronics ECU), NOT battery management 7E5/7ED as previously labeled 'hybrid pack life'. OVMS names the constant VWUP_MOT_ELEC_SOC_ABS (MotElecSoCAbs). Scale/offset unchanged, module and meaning corrected.",
           "unit": "%",
           "offset": 0,
           "len": 1,
           "scale": 0.392156863,
           "bias": 0.0,
-          "confidence": "high"
+          "confidence": "confirmed"
         },
         {
           "did": "11BE",
@@ -976,6 +994,12 @@
           "did": "F802",
           "label": "VIN (motor electronics)",
           "confidence": "medium"
+        },
+        {
+          "did": "51E0",
+          "label": "HV battery state of health (MEB platform: VW ID.4, Cupra Born, module 7E5/7ED, the legacy pre-MEB address is still alive on MEB and carries this DID instead of 74CB)",
+          "unit": "%",
+          "confidence": "high"
         }
       ],
       "resp_offsets": [
@@ -1295,7 +1319,7 @@
       "wmi": [
         "VSS"
       ],
-      "confidence": "low",
+      "confidence": "medium",
       "modules": [
         {
           "req": "715",
@@ -1342,8 +1366,8 @@
         {
           "req": "7E5",
           "resp": "7ED",
-          "name": "HV battery management, MEB models such as Born (address 8C)",
-          "confidence": "low"
+          "name": "HV battery management, MEB models such as Born (address 8C), module confirmed alive on MEB via OBDb Cupra Born / VW ID.4 test fixtures",
+          "confidence": "high"
         },
         {
           "req": "7E6",
@@ -1380,8 +1404,8 @@
         {
           "from": "1D00",
           "to": "1EFF",
-          "note": "charge and battery management; VW Group convention, NOT verified on MEB",
-          "confidence": "low"
+          "note": "charge and battery management (1DDx charge, 1E3x pack V/I, 1E40-1EA5 cell voltages, 1EAE-1EBD cell temps), confirmed on Cupra Born / VW ID.4 MEB test fixtures via the legacy 7E5/7ED module (no longer just e-Up convention)",
+          "confidence": "high"
         },
         {
           "from": "2200",
@@ -1392,7 +1416,7 @@
         {
           "from": "7400",
           "to": "74FF",
-          "note": "battery health block; VW Group convention, NOT verified on MEB",
+          "note": "battery health block; e-Up convention (74CB SOH) NOT reproduced on MEB, MEB SOH DID is 51E0 on module 7E5/7ED instead (see known_dids)",
           "confidence": "low"
         },
         {
@@ -1405,6 +1429,18 @@
           "from": "F180",
           "to": "F1FF",
           "note": "ISO 14229 standard identification block",
+          "confidence": "high"
+        },
+        {
+          "from": "1850",
+          "to": "1870",
+          "note": "individual HV cell voltage DIDs, MEB battery module cluster (confirmed present on Cupra Born OBDb test fixtures, module 7E5/7ED; exact per-DID scale/offset not yet extracted)",
+          "confidence": "high"
+        },
+        {
+          "from": "1821",
+          "to": "1841",
+          "note": "individual HV cell/module temperature DIDs, MEB battery module cluster (confirmed present on Cupra Born OBDb test fixtures, module 7E5/7ED)",
           "confidence": "high"
         }
       ],
@@ -1425,6 +1461,62 @@
           "did": "1821",
           "label": "TPMS tyre pressures (read on brake electronics 713/77D)",
           "confidence": "medium"
+        },
+        {
+          "did": "1E33",
+          "label": "Maximum cell voltage, confirmed on Cupra Born / VW ID.4 (MEB), module 7E5/7ED",
+          "unit": "V",
+          "confidence": "high",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.000244140625,
+          "bias": 0.0
+        },
+        {
+          "did": "1E34",
+          "label": "Minimum cell voltage, confirmed on Cupra Born / VW ID.4 (MEB), module 7E5/7ED",
+          "unit": "V",
+          "confidence": "high",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.000244140625,
+          "bias": 0.0
+        },
+        {
+          "did": "1E3B",
+          "label": "HV battery pack voltage, confirmed on Cupra Born / VW ID.4 (MEB), module 7E5/7ED",
+          "unit": "V",
+          "confidence": "high",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.25,
+          "bias": 0.0
+        },
+        {
+          "did": "1E3D",
+          "label": "HV battery pack current, positive when discharging, confirmed on Cupra Born / VW ID.4 (MEB), module 7E5/7ED",
+          "unit": "A",
+          "confidence": "high",
+          "offset": 0,
+          "len": 2,
+          "scale": -0.25,
+          "bias": 511.0
+        },
+        {
+          "did": "028C",
+          "label": "HV battery absolute state of charge, confirmed on Cupra Born / VW ID.4 (MEB), module 7E5/7ED",
+          "unit": "%",
+          "confidence": "high",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.4,
+          "bias": 0.0
+        },
+        {
+          "did": "51E0",
+          "label": "HV battery state of health (module 7E5/7ED, confirmed on Cupra Born / VW ID.4 MEB test fixtures, supersedes the unconfirmed 74CB e-Up convention for this brand)",
+          "unit": "%",
+          "confidence": "high"
         }
       ],
       "resp_offsets": [
@@ -1466,32 +1558,38 @@
         },
         {
           "req": "6F1",
-          "resp": "662",
-          "name": "SME HV battery management (target byte 62)",
+          "resp": "607",
+          "name": "SME HV battery management (target byte 07, corrected from an earlier wrong target byte 62/resp 662; OVMS vehicle_bmwi3 ecu_sme_defines.h defines I3_ECU_SME_TX = 0x06F107)",
           "confidence": "high"
         },
         {
           "req": "6F1",
           "resp": "660",
-          "name": "KOM instrument cluster or DSC (target byte 60; sources conflict on which)",
-          "confidence": "low"
-        },
-        {
-          "req": "6F1",
-          "resp": "610",
-          "name": "ZGW central gateway (target byte 10)",
+          "name": "KOM instrument cluster (target byte 60), resolved: within OVMS vehicle_bmwi3 this is unambiguously KOM, not DSC. DSC lives at a different target byte entirely (0x29, resp 0x629), see the separate DSC module entry below, not a real conflict on the same address.",
           "confidence": "high"
         },
         {
           "req": "6F1",
-          "resp": "65E",
-          "name": "GWS gear selector, F-series (target byte 5E)",
+          "resp": "610",
+          "name": "ZGW central gateway (target byte 10), could not be re-verified this pass in OVMS vehicle_bmwi3 or rcp_bmw_service_0x22 (the i3 doesn't poll ZGW; no other BMW OVMS component exists to check)",
           "confidence": "medium"
+        },
+        {
+          "req": "6F1",
+          "resp": "65E",
+          "name": "GWS gear selector, F-series (target byte 5E), could not be re-verified this pass either (not present in the i3, which has a single-speed reduction gear, not a ZF 8HP)",
+          "confidence": "low"
         },
         {
           "req": "7E0",
           "resp": "7E8",
           "name": "Engine, legacy OBD-II addressing",
+          "confidence": "high"
+        },
+        {
+          "req": "6F1",
+          "resp": "629",
+          "name": "DSC dynamic stability control (target byte 29), real, separate address from KOM; found this pass in OVMS vehicle_bmwi3 ecu_sme_defines.h (I3_ECU_DSC_TX = 0x06F129), previously undocumented",
           "confidence": "high"
         }
       ],
@@ -1587,13 +1685,13 @@
         },
         {
           "did": "4300",
-          "label": "Engine coolant temperature (DME, D-CAN generation)",
-          "unit": "C",
+          "label": "Engine coolant temperature (DME, target 0x12), corrected this pass: jcevanco/rcp_bmw_service_0x22's actual source defines this DID as 1-byte Fahrenheit ('Engine_Temp'), not the previously documented 2-byte Kelvin formula. The earlier 'raw hex 0D BA' worked example could not be traced to any checked source and is likely misattributed.",
+          "unit": "F",
           "offset": 0,
-          "len": 2,
-          "scale": 0.1,
-          "bias": -273.15,
-          "confidence": "confirmed"
+          "len": 1,
+          "scale": 1.35,
+          "bias": -54.4,
+          "confidence": "high"
         },
         {
           "did": "4650",
@@ -1603,7 +1701,7 @@
           "len": 1,
           "scale": 1.35,
           "bias": -54.4,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "5890",
@@ -1613,7 +1711,7 @@
           "len": 1,
           "scale": 1.35,
           "bias": -54.4,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "580F",
@@ -1623,7 +1721,7 @@
           "len": 1,
           "scale": 1.35,
           "bias": -54.4,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "586F",
@@ -1633,7 +1731,7 @@
           "len": 2,
           "scale": 0.014504,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "56D7",
@@ -1643,17 +1741,17 @@
           "len": 2,
           "scale": 0.002,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "F410",
-          "label": "Odometer, 3-byte big-endian, read off the central gateway (target 10)",
+          "label": "Odometer, 3-byte big-endian, read off the central gateway (target 10), could not be re-verified this pass (not present in OVMS vehicle_bmwi3, which reads odometer via D10D on KOM instead)",
           "unit": "km",
           "offset": 0,
           "len": 3,
           "scale": 1.0,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "low"
         }
       ]
     },
@@ -1673,7 +1771,7 @@
         "4JG",
         "55S"
       ],
-      "confidence": "low",
+      "confidence": "medium",
       "modules": [
         {
           "req": "7E0",
@@ -1746,6 +1844,18 @@
           "resp": "4E3",
           "name": "SAM_H rear signal acquisition module, W211/W219",
           "confidence": "medium"
+        },
+        {
+          "req": "7E2",
+          "resp": "7EA",
+          "name": "Chassis / ESP (EQB, wheel speeds and vehicle dynamics), standard 11-bit +8 offset, confirmed via OBDb Mercedes-Benz-EQB test fixtures (2023-2025)",
+          "confidence": "high"
+        },
+        {
+          "req": "7E5",
+          "resp": "7ED",
+          "name": "HV battery management (EQB), standard 11-bit +8 offset, confirmed via OBDb Mercedes-Benz-EQB test fixtures (2023-2025)",
+          "confidence": "high"
         }
       ],
       "did_bands": [
@@ -1760,9 +1870,113 @@
           "to": "F4FF",
           "note": "ISO 15031-5 OBD-II PID mirror, generic rather than Mercedes-specific",
           "confidence": "medium"
+        },
+        {
+          "from": "6050",
+          "to": "6504",
+          "note": "EQB HV battery telemetry (SOC 6050, current 6053, DC-DC requested voltage 6071, pack voltage 6075, remaining range 6502, distance to next service 6504), module 7E5/7ED, confirmed via OBDb Mercedes-Benz-EQB test fixtures with byte-exact raw-vs-decoded examples (e.g. DID 6050 raw 1B83 = 7043/100 = 70.43% SOC, matched against the fixture's recorded expected value). Confirmed on EQB (MFA2 platform) 2023-2025 model years only, the EVA2 platform (EQE/EQS) was actively tested with these exact DIDs and found NOT to answer, see research doc",
+          "confidence": "high"
+        },
+        {
+          "from": "2001",
+          "to": "2526",
+          "note": "EQB chassis/ESP dynamics (wheel speeds 2001, accel/yaw/steering/brake pressure 2002) and HV battery aux data (12V aux voltage 2005, HV coolant temp 2526), module 7E2/7EA for 2001/2002, module 7E5/7ED for 2005/2526. Confirmed on EQB only, same caveat as above",
+          "confidence": "high"
         }
       ],
-      "known_dids": []
+      "known_dids": [
+        {
+          "did": "2001",
+          "label": "Wheel speeds (EQB, module 7E2/7EA): FL at offset 0, FR at offset 2, RL at offset 4, RR at offset 6, each 16-bit",
+          "unit": "km/h",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.05625,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "2002",
+          "label": "Vehicle dynamics frame (EQB, module 7E2/7EA): longitudinal/lateral acceleration, yaw rate, steering angle, master-cylinder and vacuum brake pressure, multiple signals in one DID, offsets not individually extracted this pass",
+          "confidence": "medium"
+        },
+        {
+          "did": "2005",
+          "label": "12V auxiliary battery voltage (EQB, module 7E5/7ED)",
+          "unit": "V",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.101569,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "2526",
+          "label": "HV battery coolant temperature, signed (EQB, module 7E5/7ED)",
+          "unit": "C",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.125,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "6050",
+          "label": "HV battery state of charge (EQB, module 7E5/7ED), byte-verified: raw 1B83 decoded and matched against the OBDb test fixture's recorded expected value (70.43%)",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed"
+        },
+        {
+          "did": "6053",
+          "label": "HV battery current, signed (EQB, module 7E5/7ED)",
+          "unit": "A",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "6071",
+          "label": "DC-DC converter requested voltage (EQB, module 7E5/7ED)",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.025,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "6075",
+          "label": "HV battery pack voltage (EQB, module 7E5/7ED)",
+          "unit": "V",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.025,
+          "bias": 0.0,
+          "confidence": "high"
+        },
+        {
+          "did": "6502",
+          "label": "HV battery remaining range (EQB, module 7E5/7ED)",
+          "unit": "km",
+          "offset": 0,
+          "len": 4,
+          "confidence": "high"
+        },
+        {
+          "did": "6504",
+          "label": "Distance to next service (EQB, module 7E5/7ED)",
+          "unit": "km",
+          "offset": 0,
+          "len": 2,
+          "confidence": "high"
+        }
+      ]
     },
     {
       "id": "renault",
@@ -1980,12 +2194,32 @@
       ],
       "resp_offsets": [
         {
+          "from": "7E4",
+          "to": "7E4",
+          "delta": 8
+        },
+        {
+          "from": "7CA",
+          "to": "7CA",
+          "delta": 16
+        },
+        {
+          "from": "792",
+          "to": "792",
+          "delta": 1
+        },
+        {
+          "from": "75A",
+          "to": "75A",
+          "delta": 36
+        },
+        {
           "from": "700",
           "to": "7FF",
           "delta": 32
         }
       ],
-      "resp_offset_note": "Majority pattern only — EVC/DCM/BCB break it, so prefer the explicit module list over derivation."
+      "resp_offset_note": "Majority pattern (+0x20) covers most modules; four confirmed exceptions now have explicit individual deltas listed above the general range so the engine derives them correctly instead of silently falling through to the wrong majority rule: EVC 7E4/7EC (+0x08), DCM 7CA/7DA (+0x10), BCB 792/793 (+0x01), and PEB 75A/77E (+0x24, found this pass). All four confirmed via CanZE _Ecus.csv (fromId/toId columns, cross-checked against Ecu.java/Frame.java for column semantics). Before this pass these were documented as merely 'breaking the rule' with no individual delta recorded, meaning the engine's response_addr() actually fell through to the wrong +0x20 default for these modules, this is a real behavioral fix, not just documentation."
     },
     {
       "id": "nissan",
@@ -2026,7 +2260,7 @@
         {
           "req": "743",
           "resp": "763",
-          "name": "Body / VCM general data module (service 0x22)",
+          "name": "Body / VCM, odometer, tyre pressure and range only (0E01, 0E25-0E28, 0E2E), service 0x22. Does NOT carry the 11xx/12xx vehicle-data block (12V, motor power, speed, charge state), that's on 797/79A (PDM/charger), corrected this pass after finding 7 DIDs misattributed here",
           "confidence": "confirmed"
         },
         {
@@ -2052,8 +2286,8 @@
         {
           "from": "1100",
           "to": "131F",
-          "note": "dense main vehicle-data band on 743/763 (12V 1103, motor power 1146, 12V current 1183, speed 121A, charge state 1234, charge power 1236, RPM 1255)",
-          "confidence": "high"
+          "note": "dense main vehicle-data band on 797/79A (PDM/charger module), corrected this pass: previously misattributed to the body module 743/763, which per OBDb's test-covered Nissan-Leaf signalset only carries odometer (0E01), tyre pressures (0E25-0E28) and range (0E2E). Formulas unchanged (verified exact), only the module was wrong.",
+          "confidence": "confirmed"
         },
         {
           "from": "1200",
@@ -2071,7 +2305,7 @@
       "known_dids": [
         {
           "did": "1103",
-          "label": "12V battery voltage (743/763)",
+          "label": "12V battery voltage (797/79A, corrected this pass, was wrongly attributed to 743/763)",
           "unit": "V",
           "offset": 0,
           "len": 1,
@@ -2081,60 +2315,60 @@
         },
         {
           "did": "1183",
-          "label": "12V battery current, signed (743/763)",
+          "label": "12V battery current, signed (797/79A, corrected this pass, was wrongly attributed to 743/763)",
           "unit": "A",
           "offset": 0,
           "len": 2,
           "scale": 0.00390625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "1146",
-          "label": "Motor power (743/763)",
+          "label": "Motor power (797/79A, corrected this pass, was wrongly attributed to 743/763)",
           "unit": "W",
           "offset": 0,
           "len": 2,
           "scale": 40.0,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "121A",
-          "label": "Vehicle speed (743/763)",
+          "label": "Vehicle speed (797/79A, corrected this pass, was wrongly attributed to 743/763)",
           "unit": "km/h",
           "offset": 0,
           "len": 2,
           "scale": 0.1,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "1236",
-          "label": "Charge power (743/763)",
+          "label": "Charge power (797/79A, corrected this pass, was wrongly attributed to 743/763)",
           "unit": "W",
           "offset": 0,
           "len": 2,
           "scale": 100.0,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "1234",
-          "label": "Charge port state (743/763)",
-          "confidence": "medium"
+          "label": "Charge port state (797/79A, corrected this pass, was wrongly attributed to 743/763)",
+          "confidence": "high"
         },
         {
           "did": "1255",
-          "label": "Motor RPM (743/763)",
+          "label": "Motor RPM (797/79A, corrected this pass, was wrongly attributed to 743/763)",
           "unit": "rpm",
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "0E2E",
-          "label": "Range remaining (743/763)",
+          "label": "Range remaining (743/763, module confirmed correct this pass)",
           "unit": "km",
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "1203",
@@ -2145,6 +2379,12 @@
           "did": "1205",
           "label": "Level 1 / Level 2 AC charge count, PDM 797/79A",
           "confidence": "confirmed"
+        },
+        {
+          "did": "0E01",
+          "label": "Odometer (743/763, confirmed this pass via OBDb Nissan-Leaf test fixtures)",
+          "unit": "km",
+          "confidence": "high"
         }
       ]
     },
@@ -2376,13 +2616,13 @@
         },
         {
           "did": "F100",
-          "label": "Firmware long description string",
-          "confidence": "high"
+          "label": "Firmware long description string, could not be re-verified this pass in OVMS vehicle_hyundai_ioniq5, vehicle_kiasoulev, or the JejuSoul CSVs checked",
+          "confidence": "low"
         },
         {
           "did": "F110",
-          "label": "Firmware alternate long description string",
-          "confidence": "high"
+          "label": "Firmware alternate long description string, could not be re-verified this pass in OVMS vehicle_hyundai_ioniq5, vehicle_kiasoulev, or the JejuSoul CSVs checked",
+          "confidence": "low"
         }
       ],
       "resp_offsets": [
@@ -2637,13 +2877,13 @@
         },
         {
           "did": "F45C",
-          "label": "Engine oil temperature (PCM)",
+          "label": "Engine oil temperature (PCM), could not be re-verified this pass; not present in either of the two published wican-fw Ford profiles (transit.json, focus_rs_mk3.json), the only Ford sources available",
           "unit": "C",
           "offset": 0,
           "len": 1,
           "scale": 1.0,
           "bias": -40.0,
-          "confidence": "high"
+          "confidence": "medium"
         },
         {
           "did": "F405",
@@ -2955,7 +3195,7 @@
           "len": 2,
           "scale": 0.001953125,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D860",
@@ -2965,7 +3205,7 @@
           "len": 2,
           "scale": 0.0625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "D815",
@@ -2975,7 +3215,7 @@
           "len": 2,
           "scale": 0.0625,
           "bias": 0.0,
-          "confidence": "medium"
+          "confidence": "high"
         },
         {
           "did": "B010",
@@ -3221,6 +3461,17 @@
           "did": "1021",
           "label": "12V battery voltage",
           "unit": "V",
+          "confidence": "medium"
+        },
+        {
+          "did": "10A2",
+          "label": "Rear motor torque, requested and actual (5th-gen THS e-Four AWD, 2023+ Prius/RAV4/Corolla; hybrid ECU 7D2/7DA)",
+          "confidence": "medium"
+        },
+        {
+          "did": "10A6",
+          "label": "Rear motor inverter coolant temperature and max inverter temperature (5th-gen THS e-Four AWD, 2023+; hybrid ECU 7D2/7DA)",
+          "unit": "C",
           "confidence": "medium"
         }
       ],
@@ -3551,17 +3802,45 @@
         "LPS",
         "7JR"
       ],
-      "confidence": "low",
-      "modules": [],
+      "confidence": "medium",
+      "modules": [
+        {
+          "req": "18DA10F1",
+          "resp": "18DAF110",
+          "name": "Engine / standard OBD-II PIDs, 29-bit ISO 15765-4 extended addressing, confirmed via a live Mode 01 PID 0x0D (vehicle speed) exchange in OBDb Polestar-2/Volvo-XC40-Recharge test fixtures (response 18DAF11003410D00). This is the CMA/SPA2 platform (XC40 Recharge, C40 Recharge, Polestar 2, 2020+), a real, confirmed departure from the older P1/P2-era VIDA scheme documented below",
+          "confidence": "high"
+        }
+      ],
       "did_bands": [
         {
           "from": "F180",
           "to": "F1FF",
-          "note": "ISO 14229 standard identification block, if the vehicle answers standard UDS at all",
-          "confidence": "low"
+          "note": "ISO 14229 standard identification block, confirmed reachable on CMA/SPA2 platform (Polestar 2 / XC40 Recharge / C40 Recharge) via standard extended addressing",
+          "confidence": "high"
         }
       ],
-      "known_dids": []
+      "known_dids": [
+        {
+          "did": "EE6F",
+          "label": "Accelerator pedal position (Polestar 2 / Volvo XC40-C40 Recharge, CMA/SPA2 platform), DID and scale byte-verified against an OBDb test fixture (raw 02 -> 0.78%), but the exact request-frame CAN ID (header D016, priority 1D, tester 30 in OBDb's schema) was not independently reconstructed this pass and needs hardware confirmation before relying on it for addressing",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.392156863,
+          "bias": 0.0,
+          "confidence": "medium"
+        },
+        {
+          "did": "4028",
+          "label": "HV battery state of charge (Polestar 2 / Volvo XC40-C40 Recharge, CMA/SPA2 platform), DID and scale present in OBDb default.json (header D01A, priority 1D, tester 01), same request-frame-construction caveat as EE6F above",
+          "unit": "%",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "medium"
+        }
+      ]
     },
     {
       "id": "subaru",
@@ -3638,7 +3917,7 @@
         "LRW",
         "XP7"
       ],
-      "confidence": "low",
+      "confidence": "high",
       "modules": [],
       "did_bands": [],
       "known_dids": []
