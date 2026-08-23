@@ -146,24 +146,29 @@ export function History({ connState = "disconnected", vehicleId: connectedVehicl
           ) : stats.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t.history.sensorRanges.noDataYet}</p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full table-fixed text-sm">
+              <caption className="sr-only">{t.history.sensorRanges.cardTitle}</caption>
+              <colgroup>
+                <col className="w-1/3" />
+                <col span={4} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="pb-1 font-medium">{t.history.sensorRanges.sensor}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sensorRanges.min}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sensorRanges.avg}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sensorRanges.max}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sensorRanges.samples}</th>
+                  <th className="pb-1 pr-2 font-medium">{t.history.sensorRanges.sensor}</th>
+                  <th className="px-1 pb-1 text-right font-medium">{t.history.sensorRanges.min}</th>
+                  <th className="px-1 pb-1 text-right font-medium">{t.history.sensorRanges.avg}</th>
+                  <th className="px-1 pb-1 text-right font-medium">{t.history.sensorRanges.max}</th>
+                  <th className="pb-1 pl-1 text-right font-medium">{t.history.sensorRanges.samples}</th>
                 </tr>
               </thead>
               <tbody>
                 {stats.map((s) => (
                   <tr key={s.key} className="border-b border-border/50 last:border-0">
-                    <td className="py-1">{statLabel(s.key, locale)}</td>
-                    <td className="py-1 text-right font-mono tabular-nums">{s.min.toFixed(1)}</td>
-                    <td className="py-1 text-right font-mono tabular-nums">{s.avg.toFixed(1)}</td>
-                    <td className="py-1 text-right font-mono tabular-nums">{s.max.toFixed(1)}</td>
-                    <td className="py-1 text-right font-mono text-xs text-muted-foreground">{s.n}</td>
+                    <td className="truncate py-1 pr-2" title={statLabel(s.key, locale)}>{statLabel(s.key, locale)}</td>
+                    <td className="whitespace-nowrap px-1 py-1 text-right font-mono tabular-nums">{s.min.toFixed(1)}</td>
+                    <td className="whitespace-nowrap px-1 py-1 text-right font-mono tabular-nums">{s.avg.toFixed(1)}</td>
+                    <td className="whitespace-nowrap px-1 py-1 text-right font-mono tabular-nums">{s.max.toFixed(1)}</td>
+                    <td className="whitespace-nowrap py-1 pl-1 text-right font-mono text-xs text-muted-foreground">{s.n}</td>
                   </tr>
                 ))}
               </tbody>
@@ -188,38 +193,47 @@ export function History({ connState = "disconnected", vehicleId: connectedVehicl
           ) : !report || report.sessions.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t.history.sessions.noSessionsYet}</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="-mx-4 overflow-x-auto px-4 pb-1">
+            <table className="w-full min-w-3xl table-fixed text-sm">
+              <caption className="sr-only">
+                {report ? t.history.sessions.cardTitleWithCount(report.sessions.length) : t.history.sessions.cardTitle}
+              </caption>
+              <colgroup>
+                <col className="w-1/4" />
+                <col span={5} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="pb-1 font-medium">{t.history.sessions.startedUtc}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sessions.duration}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sessions.maxSpeed}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sessions.maxCoolant}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sessions.minVolts}</th>
-                  <th className="pb-1 text-right font-medium">{t.history.sessions.readings}</th>
+                  <th className="pb-1 pr-3 font-medium">{t.history.sessions.startedUtc}</th>
+                  <th className="px-2 pb-1 text-right font-medium">{t.history.sessions.duration}</th>
+                  <th className="px-2 pb-1 text-right font-medium">{t.history.sessions.maxSpeed}</th>
+                  <th className="px-2 pb-1 text-right font-medium">{t.history.sessions.maxCoolant}</th>
+                  <th className="px-2 pb-1 text-right font-medium">{t.history.sessions.minVolts}</th>
+                  <th className="pb-1 pl-2 text-right font-medium">{t.history.sessions.readings}</th>
                 </tr>
               </thead>
               <tbody>
                 {report.sessions.map((s) => (
                   <tr key={s.id} className="border-b border-border/50 last:border-0">
-                    <td className="py-1 font-mono text-xs">{s.started_at}</td>
-                    <td className="py-1 text-right font-mono tabular-nums">
+                    <td className="whitespace-nowrap py-1 pr-3 font-mono text-xs">{s.started_at}</td>
+                    <td className="whitespace-nowrap px-2 py-1 text-right font-mono tabular-nums">
                       {s.ended_at ? `${Math.round(s.minutes)}m` : "…"}
                     </td>
-                    <td className="py-1 text-right font-mono tabular-nums">
+                    <td className="whitespace-nowrap px-2 py-1 text-right font-mono tabular-nums">
                       {s.max_speed != null ? s.max_speed.toFixed(0) : "—"}
                     </td>
-                    <td className="py-1 text-right font-mono tabular-nums">
+                    <td className="whitespace-nowrap px-2 py-1 text-right font-mono tabular-nums">
                       {s.max_coolant != null ? `${s.max_coolant.toFixed(0)}°` : "—"}
                     </td>
-                    <td className="py-1 text-right font-mono tabular-nums">
+                    <td className="whitespace-nowrap px-2 py-1 text-right font-mono tabular-nums">
                       {s.min_voltage != null ? s.min_voltage.toFixed(1) : "—"}
                     </td>
-                    <td className="py-1 text-right font-mono text-xs text-muted-foreground">{s.readings}</td>
+                    <td className="whitespace-nowrap py-1 pl-2 text-right font-mono text-xs text-muted-foreground">{s.readings}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
       </Card>
