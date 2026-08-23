@@ -1,4 +1,7 @@
-//! The manufacturer UDS knowledge map, loaded from `data/uds-map.json`.
+//! The manufacturer UDS knowledge map, loaded from
+//! `packages/uds-map/data/uds-map.json` — the single source of truth,
+//! shared with the published `@scainner/uds-map` npm package (same file,
+//! two consumers, zero drift by construction).
 //!
 //! Every per-brand value the discovery engine uses — module addresses, DID
 //! neighborhoods, already-identified DIDs, even the scan timings and the
@@ -126,7 +129,7 @@ pub struct KnownDid {
     pub bias: Option<f64>,
 }
 
-const RAW: &str = include_str!("../../data/uds-map.json");
+const RAW: &str = include_str!("../../../../../packages/uds-map/data/uds-map.json");
 
 pub fn map() -> &'static UdsMap {
     static MAP: OnceLock<UdsMap> = OnceLock::new();

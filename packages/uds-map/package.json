@@ -1,0 +1,51 @@
+{
+  "name": "@scainner/uds-map",
+  "version": "1.0.0",
+  "description": "A queryable knowledge map of manufacturer-specific UDS (ISO 14229) diagnostic addresses and DID ranges for 21 car brands, keyed by VIN — the data behind Scainner's auto-discovery engine.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./data/uds-map.json": "./data/uds-map.json"
+  },
+  "files": [
+    "dist",
+    "data",
+    "RESEARCH.md",
+    "README.md"
+  ],
+  "keywords": [
+    "obd2",
+    "uds",
+    "iso14229",
+    "vin",
+    "can-bus",
+    "car-diagnostics",
+    "automotive"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cxalem/scainner",
+    "directory": "packages/uds-map"
+  },
+  "homepage": "https://github.com/cxalem/scainner/tree/main/packages/uds-map",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build && pnpm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "~5.8.3",
+    "vitest": "^3.0.0"
+  }
+}
