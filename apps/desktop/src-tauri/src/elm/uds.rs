@@ -643,6 +643,25 @@ pub fn discover(
                         // discovery on a known brand yields labeled
                         // sensors, not anonymous hex.
                         let known = uds_map::known_did(vin.as_deref(), did);
+                        // A DID number is only meaningful together with
+                        // the ECU that answered it. The map does not yet
+                        // carry a machine-readable module constraint for
+                        // every known DID, so payload shape is the minimum
+                        // honest validation we can enforce here: never
+                        // label or promote a formula that cannot even read
+                        // the bytes this ECU returned. This catches, for
+                        // example, PSA D410 answering with one byte on the
+                        // engine/ABS/EPS while the documented EV-battery
+                        // formula requires two bytes on 6B4/694.
+                        let known = known.filter(|k| match (k.offset, k.len) {
+                            (Some(offset), Some(len)) => (offset as usize)
+                                .checked_add(len as usize)
+                                .is_some_and(|end| end <= data.len()),
+                            // Label-only knowledge has no byte shape to
+                            // validate, so retain its browsable label. It
+                            // can never be auto-promoted below.
+                            _ => true,
+                        });
                         let label = known.map(|k| k.label.clone());
                         db.upsert_discovered_did(*module_id, did, &hex_string(&data), data.len() as i64, label.as_deref());
                         dids_found += 1;

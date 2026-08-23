@@ -420,6 +420,7 @@ export const es: Dictionary = {
     notConnectedExplainer:
       "Pon el contacto y pulsa Conectar en la barra lateral. Todo se graba automáticamente mientras estás conectado.",
     recordingNote: "Grabando de forma continua: todos los valores de esta pantalla se están guardando.",
+    discoveredSensors: "Sensores descubiertos",
     allSensors: {
       readButton: "Leer todos los sensores",
       readingPhrases: ["Interrogando a la ECU…", "Barriendo los PID de sensores…"],

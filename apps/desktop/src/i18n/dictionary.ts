@@ -402,6 +402,7 @@ export type Dictionary = {
     notConnectedTitle: string;
     notConnectedExplainer: string;
     recordingNote: string;
+    discoveredSensors: string;
     allSensors: {
       readButton: string;
       readingPhrases: [string, string];
