@@ -10,16 +10,16 @@ import { DeviceService } from "@scainner/core";
 const run = <A, E>(f: (device: Effect.Effect.Success<typeof DeviceService>) => Effect.Effect<A, E>) =>
   runPromise(Effect.flatMap(DeviceService, f));
 
-export function useReadingKeys() {
+export function useReadingKeys(vehicleId: number | null) {
   return useQuery({
-    queryKey: ["reading_keys"],
-    queryFn: () => run((device) => device.readingKeys()),
+    queryKey: ["reading_keys", vehicleId],
+    queryFn: () => run((device) => device.readingKeys(vehicleId)),
   });
 }
 
-export function useHistoryPoints(key: string, hours: number) {
+export function useHistoryPoints(vehicleId: number | null, key: string, hours: number) {
   return useQuery({
-    queryKey: ["history", key, hours],
-    queryFn: () => run((device) => device.historyPoints(key, hours)),
+    queryKey: ["history", vehicleId, key, hours],
+    queryFn: () => run((device) => device.historyPoints(vehicleId, key, hours)),
   });
 }

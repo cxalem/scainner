@@ -40,9 +40,9 @@ function summary(w: WriteLogRow, t: Dictionary): string {
   return t.diagnose.writeHistory.codesBeforeAfter(before, after);
 }
 
-export function WriteHistory() {
+export function WriteHistory({ vehicleId }: { vehicleId: number | null }) {
   const t = useT();
-  const { data: rows = [], isPending, isError, refetch } = useWritesLog();
+  const { data: rows = [], isPending, isError, refetch } = useWritesLog(vehicleId);
 
   const outcomeBadge: Record<WriteLogRow["outcome"], { label: string; variant: "ok" | "warn" | "error" }> = {
     cleared: { label: t.diagnose.writeHistory.outcome.cleared, variant: "ok" },

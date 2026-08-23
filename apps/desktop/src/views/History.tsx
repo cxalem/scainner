@@ -9,14 +9,14 @@ import { useLocale, useT } from "@/i18n";
 // this is the second of the two usages plan.md's bundle-trim step targets.
 const TrendLineChart = lazy(() => import("@/components/charts").then((m) => ({ default: m.TrendLineChart })));
 
-function TrendChart() {
+function TrendChart({ vehicleId }: { vehicleId: number | null }) {
   const t = useT();
   const { locale } = useLocale();
   const [key, setKey] = useState("voltage");
   const [hours, setHours] = useState(24);
-  const readingKeysQuery = useReadingKeys();
+  const readingKeysQuery = useReadingKeys(vehicleId);
   const extraKeys = (readingKeysQuery.data ?? []).filter((k) => !GAUGES.some((g) => g.key === k));
-  const pointsQuery = useHistoryPoints(key, hours);
+  const pointsQuery = useHistoryPoints(vehicleId, key, hours);
   const points = pointsQuery.data ?? [];
 
   const meta = GAUGES.find((g) => g.key === key);
@@ -119,7 +119,7 @@ export function History({ connState = "disconnected", vehicleId: connectedVehicl
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-semibold tracking-tight">{t.history.title}</h1>
 
-      <TrendChart />
+      <TrendChart vehicleId={vehicleId} />
 
       <Card>
         <CardHeader>

@@ -67,7 +67,7 @@ export function setApiKey(key: string) {
 // a cached report from before a locale switch never silently shows as if
 // it matched the current one — callers check `report.lang === locale`
 // before trusting a cached report (see AiReportCard.tsx/DtcDetailModal.tsx).
-export type SavedReport = { ts: string; md: string; lang: Locale };
+export type SavedReport = { ts: string; md: string; lang: Locale; vehicleId: number | null };
 
 export function getLastReport(): SavedReport | null {
   try {
@@ -106,10 +106,10 @@ async function callClaude(system: string, userContent: string): Promise<string> 
   return runPromise(Effect.flatMap(AiService, (ai) => ai.complete({ apiKey: key, model: MODEL, system, userContent })));
 }
 
-export async function generateDiagnosisReport(locale: Locale): Promise<SavedReport> {
-  const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
+export async function generateDiagnosisReport(vehicleId: number | null, locale: Locale): Promise<SavedReport> {
+  const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(vehicleId, 24 * 30)));
   const md = await callClaude(withLanguage(SYSTEM_PROMPT, locale), briefing);
-  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md, lang: locale };
+  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md, lang: locale, vehicleId };
   localStorage.setItem(REPORT_STORAGE, JSON.stringify(report));
   return report;
 }
@@ -150,15 +150,15 @@ export function getCodeReports(): CodeReports {
   }
 }
 
-export async function generateCodeReport(code: string, occurrenceSummary: string, locale: Locale): Promise<SavedReport> {
-  const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(24 * 30)));
+export async function generateCodeReport(vehicleId: number | null, code: string, occurrenceSummary: string, locale: Locale): Promise<SavedReport> {
+  const briefing = await runPromise(Effect.flatMap(DeviceService, (device) => device.aiContext(vehicleId, 24 * 30)));
   const md = await callClaude(
     withLanguage(CODE_SYSTEM_PROMPT, locale),
     `${briefing}\n\n---\n\n# FOCUS CODE: ${code}\n\nRecorded occurrences of ${code} (from the scan history above):\n${occurrenceSummary}`,
   );
-  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md, lang: locale };
+  const report: SavedReport = { ts: new Date().toISOString().slice(0, 16).replace("T", " "), md, lang: locale, vehicleId };
   const all = getCodeReports();
-  all[code] = report;
+  all[`${vehicleId ?? "unidentified"}:${code}`] = report;
   localStorage.setItem(CODE_REPORTS_STORAGE, JSON.stringify(all));
   return report;
 }

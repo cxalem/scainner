@@ -19,24 +19,26 @@ export function DtcDetailModal({
   code,
   history,
   scan,
+  vehicleId,
   onClose,
 }: {
   code: string;
   history: DtcScanRow[];
   scan: DtcResult | null;
+  vehicleId: number | null;
   onClose: () => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
   const info = dtcInfo(code, locale);
   const structure = decodeDtc(code);
-  const [report, setReport] = useState<SavedReport | null>(() => getCodeReports()[code] ?? null);
+  const [report, setReport] = useState<SavedReport | null>(() => getCodeReports()[`${vehicleId ?? "unidentified"}:${code}`] ?? null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasKey = !!getApiKey();
   // Same stale-cache guard as AiReportCard.tsx — see lib/ai.ts's
   // SavedReport.lang comment.
-  const validReport = report && report.lang === locale ? report : null;
+  const validReport = report && report.lang === locale && report.vehicleId === vehicleId ? report : null;
   // Plain fetch outside `invoke`, no midpoint signal possible from the
   // Anthropic API — cycled phrases instead of a static label so a 10-60s
   // wait doesn't read as frozen (interaction-audit.md rule 3).
@@ -64,7 +66,7 @@ export function DtcDetailModal({
         occurrences.map((occ) => `- ${occ.ts} UTC — seen as ${occ.role}${occ.voltage != null ? ` (battery ${occ.voltage.toFixed(1)} V)` : ""}`).join("\n") +
         (freeze ? `\nFreeze frame at the moment it tripped: ${JSON.stringify(freeze)}` : "");
       setReport(
-        await generateCodeReport(code, summary || "(no recorded occurrences — code seen in a live scan only)", locale),
+        await generateCodeReport(vehicleId, code, summary || "(no recorded occurrences — code seen in a live scan only)", locale),
       );
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));

@@ -44,8 +44,8 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly clearDtcs: () => Effect.Effect<ObdClearOutcome, InvokeError | ParseResult.ParseError>;
     // sensors / history
     readonly allSensors: () => Effect.Effect<SensorReading[], InvokeError | ParseResult.ParseError>;
-    readonly readingKeys: () => Effect.Effect<string[], InvokeError>;
-    readonly historyPoints: (key: string, hours: number) => Effect.Effect<HistoryPoint[], InvokeError | ParseResult.ParseError>;
+    readonly readingKeys: (vehicleId: number | null) => Effect.Effect<string[], InvokeError>;
+    readonly historyPoints: (vehicleId: number | null, key: string, hours: number) => Effect.Effect<HistoryPoint[], InvokeError | ParseResult.ParseError>;
     // uds
     readonly udsModules: () => Effect.Effect<UdsModule[], InvokeError | ParseResult.ParseError>;
     readonly addUdsModule: (fields: {
@@ -79,9 +79,9 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly toggleProbe: (id: number, enabled: boolean) => Effect.Effect<void, InvokeError>;
     readonly deleteProbe: (id: number) => Effect.Effect<void, InvokeError>;
     // one-shot exports / AI briefing
-    readonly exportJson: (sinceHours: number) => Effect.Effect<string, InvokeError>;
-    readonly aiContext: (sinceHours: number) => Effect.Effect<string, InvokeError>;
+    readonly exportJson: (vehicleId: number | null, sinceHours: number) => Effect.Effect<string, InvokeError>;
+    readonly aiContext: (vehicleId: number | null, sinceHours: number) => Effect.Effect<string, InvokeError>;
     // write audit trail
-    readonly writesLog: (limit: number) => Effect.Effect<WriteLogRow[], InvokeError | ParseResult.ParseError>;
+    readonly writesLog: (vehicleId: number | null, limit: number) => Effect.Effect<WriteLogRow[], InvokeError | ParseResult.ParseError>;
   }
 >() {}
