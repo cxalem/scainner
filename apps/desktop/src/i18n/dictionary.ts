@@ -246,11 +246,15 @@ export type Dictionary = {
       running: string;
       phases: { modules: string; ident: string; sweep: string; done: string };
       foundSoFar: (modules: number, dids: number) => string;
-      doneSummary: (modules: number, dids: number) => string;
+      doneSummary: (modules: number, dids: number, sensorsAdded: number) => string;
       cancelledSummary: (modules: number, dids: number) => string;
       previousFindings: string;
       unnamedModule: string;
       didCount: (total: number, labeled: number) => string;
+    };
+    advanced: {
+      title: string;
+      explainer: string;
     };
     title: string;
     moduleAriaLabel: string;

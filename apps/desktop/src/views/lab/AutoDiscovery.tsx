@@ -1,8 +1,12 @@
 // One-button sensor discovery. Takes no inputs on purpose: which modules
 // exist and which DID neighborhoods hold data come from the car's VIN and
 // the shipped knowledge map, never from the user — "nobody knows their
-// car's DID ranges, so we can't ask for them" (owner, 2026-08-23). The
-// manual RangeScanner stays below for power users who do know.
+// car's DID ranges, so we can't ask for them" (owner, 2026-08-23). A hit
+// the map has a full decode formula for is promoted straight into the
+// live poll loop server-side (uds::discover's sensors_added) — run this
+// once, that sensor behaves like a normal OBD gauge from then on, no
+// re-scanning needed (owner, 2026-08-24). The manual tools below (Lab.tsx's
+// "Advanced" section) stay for brands this map doesn't cover yet.
 import { useEffect, useState } from "react";
 import { Effect } from "effect";
 import { Radar, X } from "lucide-react";
@@ -27,7 +31,9 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ modules: number; dids: number; cancelled: boolean } | null>(null);
+  const [result, setResult] = useState<{ modules: number; dids: number; sensorsAdded: number; cancelled: boolean } | null>(
+    null,
+  );
   const found = useDiscoveredModules(vehicleId);
 
   useEffect(() => {
@@ -44,7 +50,7 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
     setProgress(null);
     try {
       const r = await runPromise(Effect.flatMap(DeviceService, (d) => d.discoverSensors()));
-      setResult({ modules: r.modules_found, dids: r.dids_found, cancelled: r.cancelled });
+      setResult({ modules: r.modules_found, dids: r.dids_found, sensorsAdded: r.sensors_added, cancelled: r.cancelled });
       void found.refetch();
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
@@ -106,7 +112,7 @@ export function AutoDiscovery({ connected, vehicleId }: { connected: boolean; ve
           <p className={result.cancelled ? "text-muted-foreground" : "text-foreground"}>
             {result.cancelled
               ? t.lab.discovery.cancelledSummary(result.modules, result.dids)
-              : t.lab.discovery.doneSummary(result.modules, result.dids)}
+              : t.lab.discovery.doneSummary(result.modules, result.dids, result.sensorsAdded)}
           </p>
         )}
         {error != null && <p className="text-destructive">{error}</p>}

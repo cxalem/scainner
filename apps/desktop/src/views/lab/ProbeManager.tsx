@@ -24,13 +24,15 @@ export function ProbeManager({
   module,
   candidate,
   onCandidateHandled,
+  vehicleId,
 }: {
   module: string;
   candidate: UdsHit | null;
   onCandidateHandled: () => void;
+  vehicleId: number | null;
 }) {
   const t = useT();
-  const probesQuery = useListProbes();
+  const probesQuery = useListProbes(vehicleId);
   const probes = probesQuery.data ?? [];
   const addProbe = useAddProbe();
   const toggleProbe = useToggleProbe();
@@ -60,6 +62,7 @@ export function ProbeManager({
           bias: draft.bias ?? 0,
           enabled: true,
         },
+        vehicleId,
       },
       {
         onSuccess: () => {

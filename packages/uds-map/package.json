@@ -1,7 +1,7 @@
 {
   "name": "@scainner/uds-map",
-  "version": "1.0.0",
-  "description": "A queryable knowledge map of manufacturer-specific UDS (ISO 14229) diagnostic addresses and DID ranges for 21 car brands, keyed by VIN — the data behind Scainner's auto-discovery engine.",
+  "version": "1.0.1",
+  "description": "A queryable knowledge map of manufacturer-specific UDS (ISO 14229) diagnostic addresses and DID ranges for 21 car brands, keyed by VIN \u2014 the data behind Scainner's auto-discovery engine.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

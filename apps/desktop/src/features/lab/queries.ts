@@ -23,10 +23,14 @@ export function useUdsModules() {
 // Not in plan.md's named key list (research flagged Lab's child cards as
 // "not audited individually... flagged for the planner to size" — see
 // decisions-build.md). Follows the same "command name verbatim" rule.
-export function useListProbes() {
+//
+// Scoped by vehicle (2026-08-24): a probe found on one car must never be
+// attempted on another. null = no identified vehicle connected — returns
+// only legacy (pre-scoping) global probes.
+export function useListProbes(vehicleId: number | null) {
   return useQuery({
-    queryKey: ["list_probes"],
-    queryFn: () => run((device) => device.listProbes()),
+    queryKey: ["list_probes", vehicleId],
+    queryFn: () => run((device) => device.listProbes(vehicleId)),
   });
 }
 
@@ -50,7 +54,7 @@ export function useDeleteUdsModule() {
 export function useAddProbe() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { probe: UdsProbe }) => run((device) => device.addProbe(vars.probe)),
+    mutationFn: (vars: { probe: UdsProbe; vehicleId: number | null }) => run((device) => device.addProbe(vars.probe, vars.vehicleId)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["list_probes"] }),
   });
 }

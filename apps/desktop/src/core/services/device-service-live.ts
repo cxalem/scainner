@@ -81,8 +81,8 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   discoveredDids: (moduleId) => decoded(Schema.mutable(Schema.Array(DiscoveredDid)), "discovered_dids", { moduleId }),
   udsClear: (module) => decoded(ClearOutcome, "uds_clear", { module, confirmed: true }),
   udsModuleDtcs: (module) => call<string[]>("uds_module_dtcs", { module }),
-  listProbes: () => decoded(Schema.mutable(Schema.Array(UdsProbe)), "list_probes"),
-  addProbe: (probe) => call<void>("add_probe", { probe }),
+  listProbes: (vehicleId) => decoded(Schema.mutable(Schema.Array(UdsProbe)), "list_probes", { vehicleId }),
+  addProbe: (probe, vehicleId) => call<void>("add_probe", { probe, vehicleId }),
   toggleProbe: (id, enabled) => call<void>("toggle_probe", { id, enabled }),
   deleteProbe: (id) => call<void>("delete_probe", { id }),
 

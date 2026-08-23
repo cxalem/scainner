@@ -49,10 +49,22 @@ export function Lab({ connected, vehicleId = null }: { connected: boolean; vehic
 
       <AutoDiscovery connected={connected} vehicleId={vehicleId} />
 
+      {/* Manual tools, demoted below auto-discovery: for a brand it
+          doesn't cover yet, for reading a specific address by hand, or
+          for extending the knowledge map with a real find (owner
+          decision 2026-08-24 — keep them, but they're no longer the
+          primary path). */}
+      <h2 className="text-sm font-medium text-muted-foreground">{t.lab.advanced.title}</h2>
+      <p className="-mt-2 text-xs text-muted-foreground">{t.lab.advanced.explainer}</p>
       <ModuleManager />
       <DidReader module={mod} connected={connected} />
       <RangeScanner module={mod} connected={connected} onProbeCandidate={setProbeCandidate} />
-      <ProbeManager module={mod} candidate={probeCandidate} onCandidateHandled={() => setProbeCandidate(null)} />
+      <ProbeManager
+        module={mod}
+        candidate={probeCandidate}
+        onCandidateHandled={() => setProbeCandidate(null)}
+        vehicleId={vehicleId}
+      />
       <ModuleFaults module={mod} label={selected?.label ?? mod} connected={connected} />
     </div>
   );

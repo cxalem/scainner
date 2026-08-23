@@ -237,7 +237,7 @@ export const es: Dictionary = {
     discovery: {
       cardTitle: "Buscar los sensores de este coche",
       explainer:
-        "Le pregunta al coche qué módulos tiene y lee las zonas de datos conocidas de su marca. No hay que rellenar direcciones ni rangos. Tarda unos minutos, todo lo que encuentra se guarda y solo lee: no se escribe nada en el coche.",
+        "Le pregunta al coche qué módulos tiene y luego lee las zonas de datos conocidas de su marca. Hazlo una vez: cualquier sensor que reconozca se añade a tu panel en vivo a partir de ahí, como un indicador normal.",
       needsVehicle: "Ponle nombre a este vehículo para que sus hallazgos tengan dónde guardarse.",
       start: "Buscar sensores",
       running: "Buscando…",
@@ -248,11 +248,19 @@ export const es: Dictionary = {
         done: "Listo",
       },
       foundSoFar: (modules, dids) => `${modules} módulos, ${dids} valores hasta ahora`,
-      doneSummary: (modules, dids) => `Encontrados ${modules} módulos y ${dids} valores. Guardados para este coche.`,
+      doneSummary: (modules, dids, sensorsAdded) =>
+        sensorsAdded > 0
+          ? `Encontrados ${modules} módulos y ${dids} valores: ${sensorsAdded} ya están en vivo en tu panel.`
+          : `Encontrados ${modules} módulos y ${dids} valores. Ninguno coincidió con un sensor conocido todavía, así que quedan guardados aquí como referencia.`,
       cancelledSummary: (modules, dids) => `Detenido. Se guardan ${modules} módulos y ${dids} valores encontrados.`,
       previousFindings: "Ya encontrado en este coche",
       unnamedModule: "Módulo sin nombre",
       didCount: (total, labeled) => (labeled > 0 ? `${total} valores (${labeled} con nombre)` : `${total} valores`),
+    },
+    advanced: {
+      title: "Avanzado: herramientas manuales",
+      explainer:
+        "Para marcas que la búsqueda automática todavía no cubre, o para leer una dirección concreta a mano. Lo que guardes aquí también se convierte en un sensor en vivo.",
     },
     title: "Laboratorio",
     moduleAriaLabel: "Módulo",

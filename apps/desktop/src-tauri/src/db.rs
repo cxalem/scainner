@@ -59,6 +59,14 @@ pub struct DiscoveredDidRow {
 pub struct UdsProbe {
     #[serde(default)]
     pub id: i64,
+    /// None only for legacy probes saved before per-vehicle scoping
+    /// (2026-08-24) — those keep polling on every car, same as always.
+    /// Every probe saved from now on (manual or auto-discovered) carries a
+    /// real vehicle_id, so a probe found on one car is never attempted on
+    /// another (the same cross-car isolation every other table already
+    /// has since schema v2).
+    #[serde(default)]
+    pub vehicle_id: Option<i64>,
     pub module: String,
     pub did: u16,
     pub label: String,
@@ -903,23 +911,31 @@ impl Db {
 
     // ---------- uds probes / modules ----------
 
-    pub fn list_probes(&self) -> Vec<UdsProbe> {
+    /// Probes for one car: this vehicle's own probes plus any legacy
+    /// (pre-scoping) global ones. `None` scope (no identified vehicle
+    /// connected) returns only the legacy global probes — never another
+    /// car's, the same isolation rule as readings/scans/everything else.
+    pub fn list_probes(&self, vehicle_id: Option<i64>) -> Vec<UdsProbe> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
-            .prepare("SELECT id, module, did, label, unit, offset, len, scale, bias, enabled FROM uds_probes ORDER BY id")
+            .prepare(
+                "SELECT id, vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled
+                 FROM uds_probes WHERE vehicle_id IS ?1 OR vehicle_id IS NULL ORDER BY id",
+            )
             .unwrap();
-        stmt.query_map([], |r| {
+        stmt.query_map(params![vehicle_id], |r| {
             Ok(UdsProbe {
                 id: r.get(0)?,
-                module: r.get(1)?,
-                did: r.get::<_, i64>(2)? as u16,
-                label: r.get(3)?,
-                unit: r.get(4)?,
-                offset: r.get::<_, i64>(5)? as usize,
-                len: r.get::<_, i64>(6)? as usize,
-                scale: r.get(7)?,
-                bias: r.get(8)?,
-                enabled: r.get(9)?,
+                vehicle_id: r.get(1)?,
+                module: r.get(2)?,
+                did: r.get::<_, i64>(3)? as u16,
+                label: r.get(4)?,
+                unit: r.get(5)?,
+                offset: r.get::<_, i64>(6)? as usize,
+                len: r.get::<_, i64>(7)? as usize,
+                scale: r.get(8)?,
+                bias: r.get(9)?,
+                enabled: r.get(10)?,
             })
         })
         .unwrap()
@@ -927,15 +943,59 @@ impl Db {
         .collect()
     }
 
-    pub fn add_probe(&self, p: &UdsProbe) -> i64 {
+    pub fn add_probe(&self, p: &UdsProbe, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO uds_probes (module, did, label, unit, offset, len, scale, bias, enabled)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            params![p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled],
+            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled],
         )
         .ok();
         conn.last_insert_rowid()
+    }
+
+    /// Auto-discovery's promotion path: a DID the knowledge map has a full
+    /// decode formula for becomes a real, continuously-polled probe with
+    /// no manual "save as probe" step. Upserts on (vehicle_id, module,
+    /// did) so re-running discovery refreshes the formula rather than
+    /// piling up duplicates.
+    pub fn upsert_probe_from_discovery(
+        &self,
+        vehicle_id: i64,
+        module: &str,
+        did: u16,
+        label: &str,
+        unit: &str,
+        offset: usize,
+        len: usize,
+        scale: f64,
+        bias: f64,
+    ) -> bool {
+        let conn = self.0.lock().unwrap();
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT id FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3",
+                params![vehicle_id, module, did as i64],
+                |r| r.get(0),
+            )
+            .ok();
+        match existing {
+            Some(id) => {
+                let _ = conn.execute(
+                    "UPDATE uds_probes SET label = ?1, unit = ?2, offset = ?3, len = ?4, scale = ?5, bias = ?6 WHERE id = ?7",
+                    params![label, unit, offset as i64, len as i64, scale, bias, id],
+                );
+                false
+            }
+            None => {
+                let _ = conn.execute(
+                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1)",
+                    params![vehicle_id, module, did as i64, label, unit, offset as i64, len as i64, scale, bias],
+                );
+                true
+            }
+        }
     }
 
     pub fn delete_probe(&self, id: i64) {
@@ -1480,6 +1540,76 @@ mod tests {
         assert_eq!(peugeot_report.insights.fuel_level_pct, Some(49.8));
         assert_eq!(citroen_report.total_readings, 1);
         assert_eq!(peugeot_report.total_readings, 1);
+    }
+
+    #[test]
+    fn probes_are_scoped_per_vehicle() {
+        // A probe found on one car (e.g. auto-discovery on a Kona) must
+        // never be attempted on another (e.g. a Peugeot) — the same cross-
+        // car isolation every other table already has since schema v2.
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+        let probe = UdsProbe {
+            id: 0,
+            vehicle_id: None,
+            module: "engine".into(),
+            did: 0xD422,
+            label: "Battery voltage".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.01,
+            bias: 0.0,
+            enabled: true,
+        };
+        db.add_probe(&probe, Some(citroen));
+        let citroen_probes = db.list_probes(Some(citroen));
+        let peugeot_probes = db.list_probes(Some(peugeot));
+        assert_eq!(citroen_probes.len(), 1);
+        assert!(peugeot_probes.is_empty(), "a Citroën-scoped probe leaked onto the Peugeot");
+    }
+
+    #[test]
+    fn legacy_global_probes_still_poll_on_every_car() {
+        // Probes saved before per-vehicle scoping existed have vehicle_id
+        // NULL — they must keep working everywhere, not silently vanish.
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+        let probe = UdsProbe {
+            id: 0,
+            vehicle_id: None,
+            module: "engine".into(),
+            did: 0xD422,
+            label: "Battery voltage".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.01,
+            bias: 0.0,
+            enabled: true,
+        };
+        db.add_probe(&probe, None); // legacy path: no vehicle scope
+        assert_eq!(db.list_probes(Some(citroen)).len(), 1);
+        assert_eq!(db.list_probes(Some(peugeot)).len(), 1);
+        assert_eq!(db.list_probes(None).len(), 1);
+    }
+
+    #[test]
+    fn discovery_promotion_upserts_instead_of_duplicating() {
+        // Re-running discovery on the same car must refresh the probe's
+        // formula, not pile up a second row for the same DID.
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let first = db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Battery voltage", "V", 0, 2, 0.01, 0.0);
+        let second = db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Battery voltage (refined)", "V", 0, 2, 0.02, 0.0);
+        assert!(first, "first pass should insert");
+        assert!(!second, "second pass should update, not insert");
+        let probes = db.list_probes(Some(citroen));
+        assert_eq!(probes.len(), 1);
+        assert_eq!(probes[0].label, "Battery voltage (refined)");
+        assert_eq!(probes[0].scale, 0.02);
     }
 
     #[test]
