@@ -412,6 +412,7 @@ export const en: Dictionary = {
     notConnectedExplainer:
       "Turn the ignition on, then press Connect in the sidebar. Everything records automatically while connected.",
     recordingNote: "Recording continuously — every value on this screen is being saved.",
+    discoveredSensors: "Discovered sensors",
     allSensors: {
       readButton: "Read all sensors",
       readingPhrases: ["Interrogating ECU…", "Sweeping sensor PIDs…"],
