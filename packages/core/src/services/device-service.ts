@@ -70,8 +70,11 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly discoveredDids: (moduleId: number) => Effect.Effect<DiscoveredDid[], InvokeError | ParseResult.ParseError>;
     readonly udsClear: (module: string) => Effect.Effect<ClearOutcome, InvokeError | ParseResult.ParseError>;
     readonly udsModuleDtcs: (module: string) => Effect.Effect<string[], InvokeError>;
-    readonly listProbes: () => Effect.Effect<UdsProbe[], InvokeError | ParseResult.ParseError>;
-    readonly addProbe: (probe: UdsProbe) => Effect.Effect<void, InvokeError>;
+    // Probes are per-vehicle (2026-08-24): a probe found on one car must
+    // never be attempted on another. vehicleId null = no identified
+    // vehicle connected — returns only legacy (pre-scoping) global probes.
+    readonly listProbes: (vehicleId: number | null) => Effect.Effect<UdsProbe[], InvokeError | ParseResult.ParseError>;
+    readonly addProbe: (probe: UdsProbe, vehicleId: number | null) => Effect.Effect<void, InvokeError>;
     readonly toggleProbe: (id: number, enabled: boolean) => Effect.Effect<void, InvokeError>;
     readonly deleteProbe: (id: number) => Effect.Effect<void, InvokeError>;
     // one-shot exports / AI briefing

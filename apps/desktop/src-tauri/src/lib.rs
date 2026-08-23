@@ -267,14 +267,16 @@ fn set_fuel_price(state: tauri::State<AppState>, vehicle_id: i64, price: f64) {
     state.db.set_fuel_price(vehicle_id, price);
 }
 
+/// Probes for one car — the vehicle's own plus any legacy (pre-scoping)
+/// global ones. `None` when no vehicle is identified.
 #[tauri::command]
-fn list_probes(state: tauri::State<AppState>) -> Vec<db::UdsProbe> {
-    state.db.list_probes()
+fn list_probes(state: tauri::State<AppState>, vehicle_id: Option<i64>) -> Vec<db::UdsProbe> {
+    state.db.list_probes(vehicle_id)
 }
 
 #[tauri::command]
-fn add_probe(state: tauri::State<AppState>, probe: db::UdsProbe) -> i64 {
-    state.db.add_probe(&probe)
+fn add_probe(state: tauri::State<AppState>, probe: db::UdsProbe, vehicle_id: Option<i64>) -> i64 {
+    state.db.add_probe(&probe, vehicle_id)
 }
 
 #[tauri::command]

@@ -229,7 +229,7 @@ export const en: Dictionary = {
     discovery: {
       cardTitle: "Find this car's sensors",
       explainer:
-        "Asks the car which modules it has and reads the data areas known for its brand. No addresses or ranges to fill in. Takes a few minutes, everything it finds is saved, and it only reads — nothing is written to the car.",
+        "Asks the car which modules it has, then reads the data areas known for its brand. Run it once — any sensor it recognizes joins your live dashboard from then on, same as a normal gauge.",
       needsVehicle: "Name this vehicle first so its findings have somewhere to live.",
       start: "Find sensors",
       running: "Searching…",
@@ -240,11 +240,19 @@ export const en: Dictionary = {
         done: "Done",
       },
       foundSoFar: (modules, dids) => `${modules} modules, ${dids} values so far`,
-      doneSummary: (modules, dids) => `Found ${modules} modules and ${dids} values. Saved for this car.`,
+      doneSummary: (modules, dids, sensorsAdded) =>
+        sensorsAdded > 0
+          ? `Found ${modules} modules and ${dids} values — ${sensorsAdded} now live on your dashboard.`
+          : `Found ${modules} modules and ${dids} values. None matched a known sensor yet, so they're saved here for reference.`,
       cancelledSummary: (modules, dids) => `Stopped. Kept ${modules} modules and ${dids} values found so far.`,
       previousFindings: "Already found on this car",
       unnamedModule: "Unnamed module",
       didCount: (total, labeled) => (labeled > 0 ? `${total} values (${labeled} named)` : `${total} values`),
+    },
+    advanced: {
+      title: "Advanced: manual tools",
+      explainer:
+        "For brands the auto search doesn't cover yet, or to read a specific address by hand. Anything you save here becomes a live sensor too.",
     },
     title: "Lab",
     moduleAriaLabel: "Module",

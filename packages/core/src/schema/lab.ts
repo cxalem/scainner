@@ -16,6 +16,9 @@ export class UdsHit extends Schema.Class<UdsHit>("UdsHit")({
 }) {}
 export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
   id: Schema.Number,
+  // null only for legacy (pre-scoping) global probes — every probe saved
+  // from now on, manual or auto-discovered, carries a real vehicle_id.
+  vehicle_id: Schema.optional(Schema.NullOr(Schema.Number)),
   module: Schema.String,
   did: Schema.Number,
   label: Schema.String,
@@ -38,6 +41,10 @@ export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
 export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryReport")({
   modules_found: Schema.Number,
   dids_found: Schema.Number,
+  // Of dids_found, how many got a FULL decode formula from the knowledge
+  // map and were promoted straight into the live poll loop — no "save as
+  // probe" step, no re-scanning to see them again.
+  sensors_added: Schema.Number,
   cancelled: Schema.Boolean,
 }) {}
 

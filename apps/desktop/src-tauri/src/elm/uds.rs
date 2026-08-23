@@ -397,7 +397,7 @@ pub fn scan_range(
 /// Poll all enabled user-defined UDS probes once; record + return values.
 pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx) -> HashMap<String, f64> {
     let mut out = HashMap::new();
-    let probes: Vec<_> = db.list_probes().into_iter().filter(|p| p.enabled).collect();
+    let probes: Vec<_> = db.list_probes(ctx.vehicle_id).into_iter().filter(|p| p.enabled).collect();
     if probes.is_empty() {
         return out;
     }
@@ -438,8 +438,41 @@ pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx
 pub struct DiscoveryReport {
     pub modules_found: u32,
     pub dids_found: u32,
+    /// Of `dids_found`, how many the knowledge map had a FULL decode
+    /// formula for (offset+len+scale+bias, not just a label) — those are
+    /// promoted straight into `uds_probes` during the same pass, so they
+    /// start polling on the live dashboard immediately. No separate "save
+    /// as probe" step, no re-scanning to see them again: run discovery
+    /// once, the car's sensors behave like standard OBD PIDs from then on
+    /// (owner request, 2026-08-24). Everything else in `dids_found` is
+    /// unlabeled or label-only — real data, saved, but the map doesn't yet
+    /// know how to turn its bytes into a number, so it stays browsable in
+    /// the Lab rather than pretending to be a live value.
+    pub sensors_added: u32,
     /// True when the user cancelled — findings so far are still saved.
     pub cancelled: bool,
+}
+
+/// Find (or register) a custom module key for this request/response pair,
+/// so an auto-promoted probe has something to hand `uds::setup` — probes
+/// are addressed by module KEY (built-in or custom), never raw hex,
+/// matching the manual save-as-probe path exactly.
+fn ensure_module_key(db: &Db, req: u16, resp: u16, name: Option<&str>) -> String {
+    let req_hex = format!("{req:03X}");
+    let resp_hex = format!("{resp:03X}");
+    if let Some(m) = builtin_modules().into_iter().find(|m| m.req == req_hex && m.resp == resp_hex) {
+        return m.key;
+    }
+    if let Some(m) = custom_modules(db).into_iter().find(|m| m.req == req_hex && m.resp == resp_hex) {
+        return m.key;
+    }
+    let key = format!("auto_{}_{}", req_hex.to_lowercase(), resp_hex.to_lowercase());
+    let label = name.map(str::to_string).unwrap_or_else(|| format!("Discovered module {req_hex}"));
+    // A concurrent discovery pass racing to register the same key is not a
+    // realistic scenario (one connection, one scan at a time) — if it ever
+    // fails on a duplicate, the key is already usable regardless.
+    let _ = db.add_uds_module(&key, &label, &req_hex, &resp_hex);
+    key
 }
 
 /// Point physical addressing at one request/response pair without the full
@@ -510,7 +543,7 @@ pub fn discover(
     for (i, (req, resp, known_name)) in addrs.iter().enumerate() {
         if cancel_scan.swap(false, Ordering::Relaxed) {
             teardown(drv);
-            return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found: 0, cancelled: true });
+            return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found: 0, sensors_added: 0, cancelled: true });
         }
         if i % 4 == 0 {
             emit("modules", i as u32, total_addrs, &format!("{req:03X}"), present.len() as u32, 0);
@@ -542,7 +575,10 @@ pub fn discover(
         for (di, did) in ident_dids.iter().enumerate() {
             if cancel_scan.swap(false, Ordering::Relaxed) {
                 teardown(drv);
-                return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, cancelled: true });
+                // Phase 2 (identification) never promotes probes — that
+                // only happens in phase 3's data sweep — so 0 is exact
+                // here, not a placeholder.
+                return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, sensors_added: 0, cancelled: true });
             }
             emit("ident", (mi * ident_dids.len() + di) as u32, total_ident, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
             if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(timings.ident_read)) {
@@ -579,6 +615,7 @@ pub fn discover(
     let per_module: u32 = bands.iter().map(|(a, b)| (b - a + 1) as u32).sum();
     let total_sweep = per_module * module_rows.len() as u32;
     let mut sweep_i = 0u32;
+    let mut sensors_added = 0u32;
     for (module_id, req, resp) in &module_rows {
         if point_at(drv, *req, *resp).is_err() {
             continue;
@@ -590,7 +627,7 @@ pub fn discover(
                 sweep_i += 1;
                 if cancel_scan.swap(false, Ordering::Relaxed) {
                     teardown(drv);
-                    return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, cancelled: true });
+                    return Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, sensors_added, cancelled: true });
                 }
                 if sweep_i % 8 == 0 {
                     emit("sweep", sweep_i, total_sweep, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
@@ -605,9 +642,34 @@ pub fn discover(
                         // that is the whole point of researching the map:
                         // discovery on a known brand yields labeled
                         // sensors, not anonymous hex.
-                        let label = uds_map::known_did(vin.as_deref(), did).map(|k| k.label.clone());
+                        let known = uds_map::known_did(vin.as_deref(), did);
+                        let label = known.map(|k| k.label.clone());
                         db.upsert_discovered_did(*module_id, did, &hex_string(&data), data.len() as i64, label.as_deref());
                         dids_found += 1;
+                        // A FULL decode formula (not just a label) means
+                        // this isn't just "found," it's a real sensor —
+                        // promote it straight into the continuous poll
+                        // loop. Run discovery once, get standing live data
+                        // forever, same as any OBD PID (owner, 2026-08-24).
+                        if let Some(k) = known {
+                            if let (Some(offset), Some(len), Some(scale), Some(bias)) = (k.offset, k.len, k.scale, k.bias) {
+                                let module_key = ensure_module_key(db, *req, *resp, None);
+                                let added = db.upsert_probe_from_discovery(
+                                    vehicle_id,
+                                    &module_key,
+                                    did,
+                                    &k.label,
+                                    k.unit.as_deref().unwrap_or(""),
+                                    offset as usize,
+                                    len as usize,
+                                    scale,
+                                    bias,
+                                );
+                                if added {
+                                    sensors_added += 1;
+                                }
+                            }
+                        }
                     }
                     Ok(None) => consecutive_errors = 0,
                     Err(_) => {
@@ -627,7 +689,7 @@ pub fn discover(
     teardown(drv);
     emit("done", total_sweep, total_sweep, "", present.len() as u32, dids_found);
     log::info!("discovery complete: {} modules, {dids_found} DIDs persisted", present.len());
-    Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, cancelled: false })
+    Ok(DiscoveryReport { modules_found: present.len() as u32, dids_found, sensors_added, cancelled: false })
 }
 
 #[cfg(test)]
