@@ -308,9 +308,9 @@ mod tests {
     fn vin_selects_its_brand_and_narrows_the_sweep() {
         // The real Citroën VIN from this project resolves to PSA, and PSA's
         // bands must be a strict subset of the unknown-brand union.
-        let psa = brand_for_vin(Some("VR7BAHNSANE014974")).expect("PSA WMI VR7");
+        let psa = brand_for_vin(Some("VR7EXAMPLE0000001")).expect("PSA WMI VR7");
         assert_eq!(psa.id, "psa");
-        let narrowed = bands_for_vin(Some("VR7BAHNSANE014974"));
+        let narrowed = bands_for_vin(Some("VR7EXAMPLE0000001"));
         let union = bands_for_vin(None);
         assert!(!narrowed.is_empty());
         assert!(narrowed.len() < union.len(), "known brand must sweep less than unknown");
@@ -325,7 +325,7 @@ mod tests {
 
     #[test]
     fn known_modules_are_probed_before_the_blind_sweep() {
-        let addrs = addresses_to_probe(Some("VR7BAHNSANE014974"));
+        let addrs = addresses_to_probe(Some("VR7EXAMPLE0000001"));
         let first = addrs.first().expect("at least one address");
         assert!(first.2.is_some(), "a named brand module should lead the list");
         // No address appears twice, even though known modules also fall
@@ -351,7 +351,7 @@ mod tests {
         assert_eq!(hex16("D422"), Some(0xD422));
         assert_eq!(hex16("F190"), Some(0xF190));
         assert!(can11("D422").is_none());
-        for (_, resp, _) in addresses_to_probe(Some("VR7BAHNSANE014974")) {
+        for (_, resp, _) in addresses_to_probe(Some("VR7EXAMPLE0000001")) {
             assert!(resp <= 0x7FF, "an 11-bit sweep produced an out-of-range response id");
         }
     }
@@ -362,7 +362,7 @@ mod tests {
         // the 6xx rule (-0x20), 752/652 is the 7xx rule (-0x100). A single
         // global offset gets one of them wrong, which is the bug this
         // per-block table exists to prevent.
-        let psa = brand_for_vin(Some("VR7BAHNSANE014974")).expect("PSA");
+        let psa = brand_for_vin(Some("VR7EXAMPLE0000001")).expect("PSA");
         assert_eq!(response_addr(Some(psa), 0x6B4), 0x694);
         assert_eq!(response_addr(Some(psa), 0x752), 0x652);
     }
@@ -376,7 +376,7 @@ mod tests {
     fn bands_sweep_confirmed_before_low_confidence() {
         // A widely-cited PSA band (D0xx) returned zero hits on the real
         // car, so it must not consume a scan before the productive D4xx.
-        let bands = bands_for_vin(Some("VR7BAHNSANE014974"));
+        let bands = bands_for_vin(Some("VR7EXAMPLE0000001"));
         let pos = |target: u16| bands.iter().position(|(f, _)| *f == target);
         if let (Some(d4), Some(d0)) = (pos(0xD400), pos(0xD000)) {
             assert!(d4 < d0, "confirmed D4xx must sweep before low-confidence D0xx");
@@ -397,7 +397,7 @@ mod tests {
         // Research corrected this: D422 is battery VOLTAGE, not state of
         // charge — proven by this project's own live correlation against
         // PID 0142 (UDS_INVESTIGATION_LOG.md).
-        let k = known_did(Some("VR7BAHNSANE014974"), 0xD422).expect("D422 documented");
+        let k = known_did(Some("VR7EXAMPLE0000001"), 0xD422).expect("D422 documented");
         assert!(k.label.to_lowercase().contains("battery"));
         assert_eq!(k.unit.as_deref(), Some("V"));
     }
