@@ -24,7 +24,7 @@ npm install @scainner/uds-map
 ```ts
 import { brandForVin, bandsForVin, addressesToProbe, knownDid, decodeKnownDid } from "@scainner/uds-map";
 
-const vin = "VR7BAHNSANE014974"; // a real Citroën VIN
+const vin = "VR7EXAMPLE0000001"; // a synthetic example VIN (PSA WMI prefix)
 
 brandForVin(vin);
 // => { id: "psa", name: "PSA / Stellantis...", wmi: [...], modules: [...], ... }

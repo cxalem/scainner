@@ -10,7 +10,7 @@ import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@scain
 import type { HistoryPoint } from "@scainner/core";
 import type { SensorReading } from "@scainner/core";
 
-const MOCK_VIN = "VR7BAHNSANE014974";
+const MOCK_VIN = "VR7EXAMPLE0000001";
 
 // ---------- tiny event bus (mirrors @tauri-apps/api/event's listen shape) ----------
 

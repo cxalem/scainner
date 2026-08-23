@@ -1451,8 +1451,8 @@ mod tests {
     #[test]
     fn ensure_vehicle_is_get_or_create() {
         let db = test_db();
-        let (id1, created1) = db.ensure_vehicle("VR7BAHNSANE014974");
-        let (id2, created2) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (id1, created1) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let (id2, created2) = db.ensure_vehicle("VR7EXAMPLE0000001");
         assert!(created1);
         assert!(!created2);
         assert_eq!(id1, id2);
@@ -1464,7 +1464,7 @@ mod tests {
     #[test]
     fn readings_are_scoped_per_vehicle() {
         let db = test_db();
-        let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
         let c1 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.link_connection_vehicle(c1, citroen);
@@ -1485,7 +1485,7 @@ mod tests {
     #[test]
     fn unidentified_connection_stays_unattributed_until_named() {
         let db = test_db();
-        let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let c_known = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.link_connection_vehicle(c_known, citroen);
         db.insert_reading(c_known, Some(citroen), "rpm", 800.0);
@@ -1514,7 +1514,7 @@ mod tests {
     #[test]
     fn scans_clean_counts_per_vehicle() {
         let db = test_db();
-        let (v, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (v, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let c = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.link_connection_vehicle(c, v);
         db.insert_dtc_scan(Some(c), Some(v), false, &[], &[], &[], Some(13.1), None);
@@ -1532,7 +1532,7 @@ mod tests {
     #[test]
     fn sync_batch_only_ships_identified_rows_and_advances_watermark() {
         let db = test_db();
-        let (v, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (v, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let c = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.link_connection_vehicle(c, v);
         db.insert_reading(c, Some(v), "rpm", 800.0);
@@ -1562,7 +1562,7 @@ mod tests {
     #[test]
     fn fuel_price_is_per_vehicle() {
         let db = test_db();
-        let (a, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (a, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let (b, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
         db.set_fuel_price(a, 1.62);
         assert_eq!(db.vehicle_report(a).insights.fuel_price, 1.62);

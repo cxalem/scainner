@@ -18,7 +18,7 @@ import {
   responseAddr,
 } from "./index.js";
 
-const CITROEN_VIN = "VR7BAHNSANE014974"; // the real test vehicle this project verified live
+const CITROEN_VIN = "VR7EXAMPLE0000001"; // a synthetic example VIN (PSA WMI prefix)
 
 describe("getMap", () => {
   it("parses and has content", () => {
