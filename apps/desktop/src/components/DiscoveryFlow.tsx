@@ -13,7 +13,6 @@ import { Badge, Button, Card, CardContent } from "@/components/ui";
 import { VehicleScene } from "@/components/VehicleScene";
 import type { DtcResult } from "@scainner/core";
 import type { EcuInfo } from "@scainner/core";
-import type { SensorReading } from "@scainner/core";
 import { brandFromVin } from "@/lib/brand";
 import { decodeModelYear } from "@/lib/vin";
 import { appearVariants, fadeTransition, staggerContainer, staggerItem } from "@/motion";
@@ -71,7 +70,6 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
   const t = useT();
   const [step, setStep] = useState<Step>("discovering");
   const [ecu, setEcu] = useState<EcuInfo | null>(null);
-  const [sensors, setSensors] = useState<SensorReading[] | null>(null);
   const [scan, setScan] = useState<DtcResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
@@ -87,16 +85,12 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
         yield* Effect.sleep("700 millis"); // let identity land before the sweep starts
         setStep("scanning");
 
-        // Effect.all with concurrency: "unbounded" runs both requests in
-        // parallel, same as the Promise.all it replaces.
-        const [sensorList, dtc] = yield* Effect.all(
-          [
-            device.allSensors().pipe(Effect.catchAll(() => Effect.succeed([]))),
-            device.scanDtcs().pipe(Effect.catchAll(() => Effect.succeed(null))),
-          ],
-          { concurrency: "unbounded" },
-        );
-        setSensors(sensorList);
+        // Do not run the expensive full sensor-catalog sweep here. That is
+        // deliberately manual (Live → All sensors → Read all sensors), so
+        // connecting never interrogates every supported PID behind the
+        // user's back. The lightweight standing live gauges still record
+        // normally once this flow finishes.
+        const dtc = yield* device.scanDtcs().pipe(Effect.catchAll(() => Effect.succeed(null)));
         setScan(dtc);
         setStep("results");
       }),
@@ -203,12 +197,6 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
                   readingAriaLabel={t.discoveryFlow.readingAriaLabel}
                 />
                 <Row
-                  label={t.discoveryFlow.row.sensorsFound}
-                  value={sensors ? String(sensors.length) : null}
-                  pending={step !== "results" && sensors == null}
-                  readingAriaLabel={t.discoveryFlow.readingAriaLabel}
-                />
-                <Row
                   label={t.discoveryFlow.row.faultCodes}
                   value={
                     scan
@@ -224,36 +212,6 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
             </motion.div>
           </Card>
         </motion.div>
-
-        <AnimatePresence>
-          {step === "results" && sensors && sensors.length > 0 && (
-            <motion.div layout="position" initial="hidden" animate="visible" exit="hidden" variants={appearVariants}>
-              <Card>
-                {/* overflow-y-scroll (not -auto): the scrollbar's gutter stays
-                    reserved whether or not the content actually overflows, so
-                    it doesn't appear the instant this list grows past max-h-52
-                    and shove everything a few pixels left — the same
-                    layout-shift bug class the connect flow already got fixed
-                    for elsewhere, just a different trigger. */}
-                <CardContent className="max-h-52 overflow-y-scroll pt-4">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      {sensors.map((sensor) => (
-                        <tr key={sensor.pid} className="border-b border-border/50 last:border-0">
-                          <td className="py-1 text-muted-foreground">{sensor.label}</td>
-                          <td className="py-1 text-right font-mono tabular-nums">
-                            {sensor.value.toFixed(1)}{" "}
-                            <span className="text-xs text-muted-foreground">{sensor.unit}</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence>
           {(step === "results" || error) && (

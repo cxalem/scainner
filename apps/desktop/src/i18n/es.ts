@@ -393,8 +393,8 @@ export const es: Dictionary = {
     step: {
       discoveringTitle: "Descubriendo tu vehículo…",
       discoveringSubtitle: "Confirmando identidad y protocolo.",
-      scanningTitle: "Leyendo todos sus sensores…",
-      scanningSubtitle: "Puede tardar hasta 20 segundos en hardware real.",
+      scanningTitle: "Comprobando códigos de avería…",
+      scanningSubtitle: "Leyendo el estado de diagnóstico actual del vehículo.",
       resultsTitle: "Esto es lo que encontramos",
       resultsSubtitle: "La grabación empieza automáticamente a partir de aquí.",
     },
@@ -405,7 +405,6 @@ export const es: Dictionary = {
       vin: "VIN",
       protocol: "Protocolo",
       elmVersion: "Versión ELM",
-      sensorsFound: "Sensores encontrados",
       faultCodes: "Códigos de avería",
       faultCodesClean: "ninguno: sin averías",
       faultCodesFound: (n) => `${n} encontrados`,

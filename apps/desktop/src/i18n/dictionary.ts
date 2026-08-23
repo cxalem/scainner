@@ -388,7 +388,6 @@ export type Dictionary = {
       vin: string;
       protocol: string;
       elmVersion: string;
-      sensorsFound: string;
       faultCodes: string;
       faultCodesClean: string;
       faultCodesFound: (n: number) => string;

@@ -88,8 +88,8 @@ export function Shell({
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-border p-3">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border p-3">
         <div className="mb-4 flex items-center gap-2 px-2 pt-1">
           <Gauge className="h-5 w-5 text-primary" aria-hidden="true" />
           <span className="text-sm font-semibold tracking-tight">{t.shell.appName}</span>
@@ -209,9 +209,9 @@ export function Shell({
           instant it does everything shifts. Same fix DiscoveryFlow.tsx
           already applied to its own scroll area, just at the app-wide
           level this time. */}
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
         <UpdateBanner />
-        <div className="flex-1 overflow-y-scroll">
+        <div className="min-h-0 flex-1 overflow-y-scroll">
           <div className="mx-auto max-w-4xl p-6">{children}</div>
         </div>
       </main>
