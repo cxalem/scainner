@@ -229,7 +229,7 @@ export const en: Dictionary = {
     discovery: {
       cardTitle: "Find this car's sensors",
       explainer:
-        "Asks the car which modules it has, then reads the data areas known for its brand. Run it once — any sensor it recognizes joins your live dashboard from then on, same as a normal gauge.",
+        "Asks the car which modules it has, then reads the data areas known for its brand. Findings stay in the Lab; they are not polled in the background while you drive.",
       needsVehicle: "Name this vehicle first so its findings have somewhere to live.",
       start: "Find sensors",
       running: "Searching…",
@@ -242,11 +242,11 @@ export const en: Dictionary = {
       foundSoFar: (modules, dids) => `${modules} modules, ${dids} values so far`,
       doneSummary: (modules, dids, sensorsAdded) =>
         sensorsAdded > 0
-          ? `Found ${modules} modules and ${dids} values — ${sensorsAdded} now live on your dashboard.`
+          ? `Found ${modules} modules and ${dids} values — ${sensorsAdded} were recognized and decoded in the Lab.`
           : `Found ${modules} modules and ${dids} values. None matched a known sensor yet, so they're saved here for reference.`,
       refreshedSummary: (modules, dids, sensorsAdded) =>
         sensorsAdded > 0
-          ? `Refreshed ${modules} modules and ${dids} values — ${sensorsAdded} confirmed live on your dashboard.`
+          ? `Refreshed ${modules} modules and ${dids} values — ${sensorsAdded} recognized definitions were updated in the Lab.`
           : `Refreshed ${modules} modules and ${dids} values.`,
       cancelledSummary: (modules, dids) => `Stopped. Kept ${modules} modules and ${dids} values found so far.`,
       engineStartedSummary: (modules, dids) =>
@@ -342,6 +342,8 @@ export const en: Dictionary = {
       scanningChunk: (from, to, hitsSoFar) => `scanning ${from}–${to}… (${hitsSoFar} hits so far)`,
       scanDone: (n) =>
         `done — ${n} DIDs answered. Heads-up: scans can leave temporary "lost communication" warnings on the dashboard; an ignition cycle clears them (see Module faults below).`,
+      engineStarted: (did, hitsSoFar) =>
+        `Stopped safely at ${did}: the engine appears to have started. ${hitsSoFar} earlier hits remain available.`,
       checkingProgress: (did, current, total) => `checking ${did}… ${current}/${total} in this chunk`,
       noAnswersYetNote: " — no answers yet; some modules stay silent for a whole range, that's normal",
       probeAction: "→ probe",

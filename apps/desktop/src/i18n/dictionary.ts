@@ -331,6 +331,7 @@ export type Dictionary = {
       scan: string;
       scanningChunk: (from: string, to: string, hitsSoFar: number) => string;
       scanDone: (n: number) => string;
+      engineStarted: (did: string, hitsSoFar: number) => string;
       checkingProgress: (did: string, current: number, total: number) => string;
       noAnswersYetNote: string;
       probeAction: string;

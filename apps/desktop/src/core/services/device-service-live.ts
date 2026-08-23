@@ -67,8 +67,8 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   clearDtcs: () => decoded(ObdClearOutcome, "clear_dtcs", { confirmed: true }),
 
   allSensors: () => decoded(Schema.mutable(Schema.Array(SensorReading)), "all_sensors"),
-  readingKeys: () => call<string[]>("reading_keys"),
-  historyPoints: (key, hours) => decoded(Schema.mutable(Schema.Array(HistoryPoint)), "history", { key, sinceHours: hours }),
+  readingKeys: (vehicleId) => call<string[]>("reading_keys", { vehicleId }),
+  historyPoints: (vehicleId, key, hours) => decoded(Schema.mutable(Schema.Array(HistoryPoint)), "history", { vehicleId, key, sinceHours: hours }),
 
   udsModules: () => decoded(Schema.mutable(Schema.Array(UdsModule)), "uds_modules"),
   addUdsModule: (fields) => call<void>("add_uds_module", fields),
@@ -86,8 +86,8 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   toggleProbe: (id, enabled) => call<void>("toggle_probe", { id, enabled }),
   deleteProbe: (id) => call<void>("delete_probe", { id }),
 
-  exportJson: (sinceHours) => call<string>("export_json", { sinceHours }),
-  aiContext: (sinceHours) => call<string>("ai_context", { sinceHours }),
+  exportJson: (vehicleId, sinceHours) => call<string>("export_json", { vehicleId, sinceHours }),
+  aiContext: (vehicleId, sinceHours) => call<string>("ai_context", { vehicleId, sinceHours }),
 
-  writesLog: (limit) => decoded(Schema.mutable(Schema.Array(WriteLogRow)), "writes_log", { limit }),
+  writesLog: (vehicleId, limit) => decoded(Schema.mutable(Schema.Array(WriteLogRow)), "writes_log", { vehicleId, limit }),
 });

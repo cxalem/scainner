@@ -142,8 +142,8 @@ async fn clear_dtcs(state: tauri::State<'_, AppState>, confirmed: bool) -> Resul
 /// The write audit trail, newest first: everything the app has changed on
 /// the car, with before/after state and outcome.
 #[tauri::command]
-fn writes_log(state: tauri::State<AppState>, limit: i64) -> Vec<db::WriteLogRow> {
-    state.db.writes_log(limit)
+fn writes_log(state: tauri::State<AppState>, vehicle_id: Option<i64>, limit: i64) -> Vec<db::WriteLogRow> {
+    state.db.writes_log(vehicle_id, limit)
 }
 
 #[tauri::command]
@@ -232,8 +232,8 @@ async fn uds_module_dtcs(state: tauri::State<'_, AppState>, module: String) -> R
 }
 
 #[tauri::command]
-fn reading_keys(state: tauri::State<AppState>) -> Vec<String> {
-    state.db.reading_keys()
+fn reading_keys(state: tauri::State<AppState>, vehicle_id: Option<i64>) -> Vec<String> {
+    state.db.reading_keys(vehicle_id)
 }
 
 #[tauri::command]
@@ -299,13 +299,13 @@ fn dtc_history(state: tauri::State<AppState>, vehicle_id: Option<i64>, limit: i6
 }
 
 #[tauri::command]
-fn history(state: tauri::State<AppState>, key: String, since_hours: f64) -> Vec<db::HistoryPoint> {
-    state.db.history(&key, since_hours)
+fn history(state: tauri::State<AppState>, vehicle_id: Option<i64>, key: String, since_hours: f64) -> Vec<db::HistoryPoint> {
+    state.db.history(vehicle_id, &key, since_hours)
 }
 
 #[tauri::command]
-fn export_json(state: tauri::State<AppState>, since_hours: f64) -> String {
-    state.db.export_json(since_hours)
+fn export_json(state: tauri::State<AppState>, vehicle_id: Option<i64>, since_hours: f64) -> String {
+    state.db.export_json(vehicle_id, since_hours)
 }
 
 #[tauri::command]
@@ -334,11 +334,15 @@ fn app_setting_set(state: tauri::State<AppState>, key: String, value: String) {
 
 /// Markdown briefing about the car, ready to paste into any AI chat.
 #[tauri::command]
-fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, since_hours: f64) -> String {
-    let vehicles = state.db.list_vehicles();
-    let scans = state.db.dtc_history_all(5);
-    let stats = state.db.key_stats(since_hours);
-    let sessions = state.db.connection_count();
+fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, vehicle_id: Option<i64>, since_hours: f64) -> String {
+    let vehicles: Vec<_> = vehicle_id
+        .and_then(|id| state.db.vehicle(id))
+        .map(|v| db::VehicleListRow { id: v.id, vin: v.vin, display_name: v.display_name, connections: state.db.connection_count(Some(v.id)) })
+        .into_iter()
+        .collect();
+    let scans = state.db.dtc_history(vehicle_id, 5);
+    let stats = state.db.key_stats(vehicle_id, since_hours);
+    let sessions = state.db.connection_count(vehicle_id);
     let days = since_hours / 24.0;
 
     let mut md = String::from("# Car diagnostic briefing (Scainner export)\n\n## Vehicles\n\n");

@@ -15,7 +15,7 @@ import { useLocale, useT } from "@/i18n";
 // identity, DTC scan history with freeze frames, sensor stats) to the
 // Anthropic API with the user's own key and renders the returned report.
 // The key lives in localStorage only — see src/lib/ai.ts for why not the DB.
-export function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
+export function AiReportCard({ hasAnyData, vehicleId }: { hasAnyData: boolean; vehicleId: number | null }) {
   const t = useT();
   const { locale } = useLocale();
   const [hasKey, setHasKey] = useState(() => !!getApiKey());
@@ -28,7 +28,7 @@ export function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
   // the "not generated yet" state and let the user regenerate, rather than
   // silently displaying an English report under a Spanish-language app
   // (or vice versa). See lib/ai.ts's SavedReport.lang comment.
-  const validReport = report && report.lang === locale ? report : null;
+  const validReport = report && report.lang === locale && report.vehicleId === vehicleId ? report : null;
   // Same transient success idiom as Overview's fuel save and Vehicle's
   // exports — plan.md rule 10 extracted it into ui.tsx once, so this card
   // uses the shared helper too instead of its own useState+setTimeout.
@@ -46,7 +46,7 @@ export function AiReportCard({ hasAnyData }: { hasAnyData: boolean }) {
     setGenerating(true);
     setError(null);
     try {
-      setReport(await generateDiagnosisReport(locale));
+      setReport(await generateDiagnosisReport(vehicleId, locale));
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
     } finally {

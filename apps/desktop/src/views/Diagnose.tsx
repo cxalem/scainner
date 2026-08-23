@@ -148,12 +148,12 @@ export function Diagnose({ connected, vehicleId = null }: { connected: boolean; 
         </CardContent>
       </Card>
 
-      <WriteHistory />
+      <WriteHistory vehicleId={vehicleId} />
 
-      <AiReportCard hasAnyData={history.length > 0 || scan !== null} />
+      <AiReportCard hasAnyData={history.length > 0 || scan !== null} vehicleId={vehicleId} />
 
       {detailCode && (
-        <DtcDetailModal code={detailCode} history={history} scan={scan} onClose={() => setDetailCode(null)} />
+        <DtcDetailModal code={detailCode} history={history} scan={scan} vehicleId={vehicleId} onClose={() => setDetailCode(null)} />
       )}
     </div>
   );

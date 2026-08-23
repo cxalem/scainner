@@ -64,9 +64,9 @@ export function useClearDtcs() {
 // to the car, part 2 of the write-caps hard rule. useClearDtcs above
 // invalidates this key, so the history card updates the moment a write
 // actually lands.
-export function useWritesLog(limit = 20) {
+export function useWritesLog(vehicleId: number | null, limit = 20) {
   return useQuery({
-    queryKey: ["writes_log", limit],
-    queryFn: () => run((device) => device.writesLog(limit)),
+    queryKey: ["writes_log", vehicleId, limit],
+    queryFn: () => run((device) => device.writesLog(vehicleId, limit)),
   });
 }

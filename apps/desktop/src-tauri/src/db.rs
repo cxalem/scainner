@@ -22,7 +22,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 4;
+const SCHEMA_VERSION: i64 = 5;
 
 #[derive(Serialize, Clone)]
 pub struct DtcScan {
@@ -288,12 +288,50 @@ pub struct SyncReading {
 }
 
 #[derive(Serialize)]
+pub struct SyncProbe {
+    pub cloud_id: String,
+    pub vehicle_cloud_id: String,
+    pub module: String,
+    pub did: u16,
+    pub label: String,
+    pub unit: String,
+    pub offset: usize,
+    pub len: usize,
+    pub scale: f64,
+    pub bias: f64,
+    pub enabled: bool,
+    pub origin: String,
+}
+
+#[derive(Serialize)]
+pub struct SyncDiscoveredDid {
+    pub did: u16,
+    pub raw_sample: Option<String>,
+    pub byte_length: Option<i64>,
+    pub label: Option<String>,
+    pub confidence: Option<String>,
+    pub first_seen_at: String,
+}
+
+#[derive(Serialize)]
+pub struct SyncDiscoveredModule {
+    pub cloud_id: String,
+    pub vehicle_cloud_id: String,
+    pub module_address: String,
+    pub module_name: Option<String>,
+    pub discovered_at: String,
+    pub dids: Vec<SyncDiscoveredDid>,
+}
+
+#[derive(Serialize)]
 pub struct SyncBatch {
     pub vehicles: Vec<SyncVehicle>,
     pub connections: Vec<SyncConnection>,
     pub scan_events: Vec<SyncScanEvent>,
     pub writes: Vec<SyncWrite>,
     pub readings: Vec<SyncReading>,
+    pub probes: Vec<SyncProbe>,
+    pub discovered_modules: Vec<SyncDiscoveredModule>,
     /// Highest readings.id included — the next watermark on success.
     pub last_reading_id: i64,
 }
@@ -475,6 +513,8 @@ impl Db {
         let _ = conn.execute("ALTER TABLE connections ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE dtc_scan_events ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE writes_log ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE uds_probes ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute("ALTER TABLE discovered_modules ADD COLUMN cloud_id TEXT", []);
         // v4: provenance makes discovery-owned probes safely
         // reconcilable. Existing rows are conservatively manual because
         // older schemas cannot prove how they were created.
@@ -488,10 +528,20 @@ impl Db {
             CREATE UNIQUE INDEX IF NOT EXISTS idx_connections_cloud ON connections(cloud_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_scan_events_cloud ON dtc_scan_events(cloud_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_writes_cloud ON writes_log(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_uds_probes_cloud ON uds_probes(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_discovered_modules_cloud ON discovered_modules(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_discovered_modules_vehicle_address
+                ON discovered_modules(vehicle_id, module_address);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_discovered_dids_module_did
+                ON discovered_dids(module_id, did);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_dtc_codes_unique_event_status
+                ON dtc_codes(scan_event_id, code, status);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_uds_probes_vehicle_module_did_origin
+                ON uds_probes(vehicle_id, module, did, origin);
             "#,
         )?;
         // Backfill rows created on v2 before cloud_id existed.
-        for table in ["vehicles", "connections", "dtc_scan_events", "writes_log"] {
+        for table in ["vehicles", "connections", "dtc_scan_events", "writes_log", "uds_probes", "discovered_modules"] {
             let ids: Vec<i64> = {
                 let mut stmt = conn.prepare(&format!("SELECT id FROM {table} WHERE cloud_id IS NULL"))?;
                 let rows = stmt.query_map([], |r| r.get(0))?;
@@ -720,15 +770,17 @@ impl Db {
         conn.last_insert_rowid()
     }
 
-    pub fn writes_log(&self, limit: i64) -> Vec<WriteLogRow> {
+    /// Write audit trail for exactly one vehicle. `None` means only writes
+    /// made while the connection was still unidentified, never all cars.
+    pub fn writes_log(&self, vehicle_id: Option<i64>, limit: i64) -> Vec<WriteLogRow> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
                 "SELECT id, ts, module, action, params_json, before_json, after_json, outcome, error
-                 FROM writes_log ORDER BY id DESC LIMIT ?1",
+                 FROM writes_log WHERE vehicle_id IS ?1 ORDER BY id DESC LIMIT ?2",
             )
             .unwrap();
-        stmt.query_map(params![limit], |r| {
+        stmt.query_map(params![vehicle_id, limit], |r| {
             Ok(WriteLogRow {
                 id: r.get(0)?,
                 ts: r.get(1)?,
@@ -759,11 +811,6 @@ impl Db {
         )
     }
 
-    /// Every scan regardless of vehicle — export/AI-briefing use only.
-    pub fn dtc_history_all(&self, limit: i64) -> Vec<DtcScan> {
-        self.dtc_history_where(String::new(), limit)
-    }
-
     fn dtc_history_where(&self, where_clause: String, limit: i64) -> Vec<DtcScan> {
         let conn = self.0.lock().unwrap();
         let sql = format!(
@@ -792,15 +839,15 @@ impl Db {
     }
 
     /// Per-key min/avg/max over the last N hours — feeds the AI briefing.
-    pub fn key_stats(&self, since_hours: f64) -> Vec<KeyStats> {
+    pub fn key_stats(&self, vehicle_id: Option<i64>, since_hours: f64) -> Vec<KeyStats> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
                 "SELECT key, COUNT(*), MIN(value), AVG(value), MAX(value) FROM readings
-                 WHERE ts >= datetime('now', '-' || ?1 || ' hours') GROUP BY key ORDER BY key",
+                 WHERE vehicle_id IS ?1 AND ts >= datetime('now', '-' || ?2 || ' hours') GROUP BY key ORDER BY key",
             )
             .unwrap();
-        stmt.query_map(params![since_hours], |r| {
+        stmt.query_map(params![vehicle_id, since_hours], |r| {
             Ok(KeyStats {
                 key: r.get(0)?,
                 n: r.get(1)?,
@@ -837,8 +884,8 @@ impl Db {
             }
             None => {
                 conn.execute(
-                    "INSERT INTO discovered_modules (vehicle_id, module_address, module_name) VALUES (?1, ?2, ?3)",
-                    params![vehicle_id, address, name],
+                    "INSERT INTO discovered_modules (vehicle_id, module_address, module_name, cloud_id) VALUES (?1, ?2, ?3, ?4)",
+                    params![vehicle_id, address, name, Self::new_cloud_id()],
                 )
                 .ok();
                 conn.last_insert_rowid()
@@ -982,17 +1029,17 @@ impl Db {
     pub fn add_probe(&self, p: &UdsProbe, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual')",
-            params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled],
+            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, cloud_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual', ?11)",
+            params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled, Self::new_cloud_id()],
         )
         .ok();
         conn.last_insert_rowid()
     }
 
     /// Auto-discovery's promotion path: a DID the knowledge map has a full
-    /// decode formula for becomes a real, continuously-polled probe with
-    /// no manual "save as probe" step. Upserts on (vehicle_id, module,
+    /// decode formula for becomes a stored decode definition with no
+    /// manual "save as probe" step. Upserts on (vehicle_id, module,
     /// did) so re-running discovery refreshes the formula rather than
     /// piling up duplicates.
     pub fn upsert_probe_from_discovery(
@@ -1028,9 +1075,9 @@ impl Db {
             }
             None => {
                 let _ = conn.execute(
-                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery')",
-                    params![vehicle_id, module, did as i64, label, unit, offset as i64, len as i64, scale, bias],
+                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, cloud_id)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10)",
+                    params![vehicle_id, module, did as i64, label, unit, offset as i64, len as i64, scale, bias, Self::new_cloud_id()],
                 );
                 true
             }
@@ -1428,33 +1475,86 @@ impl Db {
             }
             list
         };
-        SyncBatch { vehicles, connections, scan_events, writes, readings, last_reading_id }
+        let probes = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT p.cloud_id, v.cloud_id, p.module, p.did, p.label, p.unit, p.offset, p.len, p.scale, p.bias, p.enabled, p.origin
+                     FROM uds_probes p JOIN vehicles v ON v.id = p.vehicle_id
+                     WHERE p.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
+                )
+                .unwrap();
+            stmt.query_map([], |r| {
+                Ok(SyncProbe {
+                    cloud_id: r.get(0)?, vehicle_cloud_id: r.get(1)?, module: r.get(2)?,
+                    did: r.get::<_, i64>(3)? as u16, label: r.get(4)?, unit: r.get(5)?,
+                    offset: r.get::<_, i64>(6)? as usize, len: r.get::<_, i64>(7)? as usize,
+                    scale: r.get(8)?, bias: r.get(9)?, enabled: r.get(10)?, origin: r.get(11)?,
+                })
+            })
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect()
+        };
+        let discovered_modules = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT m.id, m.cloud_id, v.cloud_id, m.module_address, m.module_name, m.discovered_at
+                     FROM discovered_modules m JOIN vehicles v ON v.id = m.vehicle_id
+                     WHERE m.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
+                )
+                .unwrap();
+            let rows: Vec<(i64, SyncDiscoveredModule)> = stmt
+                .query_map([], |r| Ok((r.get(0)?, SyncDiscoveredModule {
+                    cloud_id: r.get(1)?, vehicle_cloud_id: r.get(2)?, module_address: r.get(3)?,
+                    module_name: r.get(4)?, discovered_at: r.get(5)?, dids: Vec::new(),
+                })))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect();
+            rows.into_iter().map(|(module_id, mut module)| {
+                let mut did_stmt = conn.prepare(
+                    "SELECT did, raw_sample, byte_length, label, confidence, first_seen_at
+                     FROM discovered_dids WHERE module_id = ?1 ORDER BY did"
+                ).unwrap();
+                module.dids = did_stmt.query_map(params![module_id], |r| Ok(SyncDiscoveredDid {
+                    did: r.get::<_, i64>(0)? as u16, raw_sample: r.get(1)?, byte_length: r.get(2)?,
+                    label: r.get(3)?, confidence: r.get(4)?, first_seen_at: r.get(5)?,
+                })).unwrap().filter_map(Result::ok).collect();
+                module
+            }).collect()
+        };
+        SyncBatch { vehicles, connections, scan_events, writes, readings, probes, discovered_modules, last_reading_id }
     }
 
     // ---------- misc ----------
 
-    pub fn reading_keys(&self) -> Vec<String> {
+    pub fn reading_keys(&self, vehicle_id: Option<i64>) -> Vec<String> {
         let conn = self.0.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT DISTINCT key FROM readings ORDER BY key").unwrap();
-        stmt.query_map([], |r| r.get(0)).unwrap().filter_map(Result::ok).collect()
+        let mut stmt = conn
+            .prepare("SELECT DISTINCT key FROM readings WHERE vehicle_id IS ?1 ORDER BY key")
+            .unwrap();
+        stmt.query_map(params![vehicle_id], |r| r.get(0))
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect()
     }
 
-    pub fn connection_count(&self) -> i64 {
+    pub fn connection_count(&self, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
-        conn.query_row("SELECT COUNT(*) FROM connections", [], |r| r.get(0))
+        conn.query_row("SELECT COUNT(*) FROM connections WHERE vehicle_id IS ?1", params![vehicle_id], |r| r.get(0))
             .unwrap_or(0)
     }
 
-    pub fn history(&self, key: &str, since_hours: f64) -> Vec<HistoryPoint> {
+    pub fn history(&self, vehicle_id: Option<i64>, key: &str, since_hours: f64) -> Vec<HistoryPoint> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
                 "SELECT ts, value FROM readings
-                 WHERE key = ?1 AND ts >= datetime('now', '-' || ?2 || ' hours')
+                 WHERE vehicle_id IS ?1 AND key = ?2 AND ts >= datetime('now', '-' || ?3 || ' hours')
                  ORDER BY ts",
             )
             .unwrap();
-        stmt.query_map(params![key, since_hours], |r| {
+        stmt.query_map(params![vehicle_id, key, since_hours], |r| {
             Ok(HistoryPoint { ts: r.get(0)?, value: r.get(1)? })
         })
         .unwrap()
@@ -1463,24 +1563,27 @@ impl Db {
     }
 
     /// Everything in a date range as one JSON blob — the export button.
-    pub fn export_json(&self, since_hours: f64) -> String {
+    pub fn export_json(&self, vehicle_id: Option<i64>, since_hours: f64) -> String {
         let readings: Vec<(String, String, f64, Option<i64>)> = {
             let conn = self.0.lock().unwrap();
             let mut stmt = conn
                 .prepare(
                     "SELECT ts, key, value, vehicle_id FROM readings
-                     WHERE ts >= datetime('now', '-' || ?1 || ' hours') ORDER BY ts",
+                     WHERE vehicle_id IS ?1 AND ts >= datetime('now', '-' || ?2 || ' hours') ORDER BY ts",
                 )
                 .unwrap();
-            stmt.query_map(params![since_hours], |r| {
+            stmt.query_map(params![vehicle_id, since_hours], |r| {
                 Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
             })
             .unwrap()
             .filter_map(Result::ok)
             .collect()
         };
-        let scans = self.dtc_history_all(100);
-        let vehicles = self.list_vehicles();
+        let scans = self.dtc_history(vehicle_id, 100);
+        let vehicles: Vec<_> = vehicle_id
+            .and_then(|id| self.vehicle(id))
+            .into_iter()
+            .collect();
         serde_json::json!({
             "vehicles": vehicles,
             "dtc_scans": scans,
@@ -1515,7 +1618,7 @@ mod tests {
             None,
         );
         assert!(id > 0);
-        let rows = db.writes_log(10);
+        let rows = db.writes_log(None, 10);
         assert_eq!(rows.len(), 1);
         let row = &rows[0];
         assert_eq!(row.module, "engine");
@@ -1540,7 +1643,7 @@ mod tests {
             "error",
             Some("link dropped mid-clear"),
         );
-        let rows = db.writes_log(10);
+        let rows = db.writes_log(None, 10);
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].outcome, "error");
         assert_eq!(rows[0].error.as_deref(), Some("link dropped mid-clear"));
@@ -1553,9 +1656,43 @@ mod tests {
         for i in 0..5 {
             db.log_write(None, None, "engine", &format!("action_{i}"), &serde_json::json!({}), None, None, "cleared", None);
         }
-        let rows = db.writes_log(3);
+        let rows = db.writes_log(None, 3);
         assert_eq!(rows.len(), 3);
         assert_eq!(rows[0].action, "action_4");
+    }
+
+    #[test]
+    fn writes_log_never_leaks_between_vehicles() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (peugeot, _) = db.ensure_vehicle("VF3EXAMPLE0000001");
+        db.log_write(None, Some(citroen), "engine", "citroen_write", &serde_json::json!({}), None, None, "cleared", None);
+        db.log_write(None, Some(peugeot), "engine", "peugeot_write", &serde_json::json!({}), None, None, "cleared", None);
+
+        let citroen_rows = db.writes_log(Some(citroen), 10);
+        assert_eq!(citroen_rows.len(), 1);
+        assert_eq!(citroen_rows[0].action, "citroen_write");
+        let peugeot_rows = db.writes_log(Some(peugeot), 10);
+        assert_eq!(peugeot_rows.len(), 1);
+        assert_eq!(peugeot_rows[0].action, "peugeot_write");
+    }
+
+    #[test]
+    fn history_and_sensor_keys_never_leak_between_vehicles() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
+        let (peugeot, _) = db.ensure_vehicle("VF3EXAMPLE0000001");
+        let c1 = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(c1, citroen);
+        db.insert_reading(c1, Some(citroen), "rpm", 800.0);
+        let c2 = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(c2, peugeot);
+        db.insert_reading(c2, Some(peugeot), "coolant", 90.0);
+
+        assert_eq!(db.reading_keys(Some(citroen)), vec!["rpm"]);
+        assert_eq!(db.reading_keys(Some(peugeot)), vec!["coolant"]);
+        assert_eq!(db.history(Some(citroen), "rpm", 24.0).len(), 1);
+        assert!(db.history(Some(citroen), "coolant", 24.0).is_empty());
     }
 
     #[test]
@@ -1775,6 +1912,9 @@ mod tests {
         db.insert_reading(c, Some(v), "rpm", 800.0);
         db.insert_reading(c, Some(v), "rpm", 810.0);
         db.insert_dtc_scan(Some(c), Some(v), true, &["P0420".into()], &[], &[], Some(13.1), None);
+        let module_id = db.upsert_discovered_module(v, "6A8/688", Some("Engine ECU"));
+        db.upsert_discovered_did(module_id, 0xD422, "05 78", 2, Some("Battery voltage"));
+        db.upsert_probe_from_discovery(v, "engine", 0xD422, "Battery voltage", "V", 0, 2, 0.01, 0.0);
         // An unidentified connection: its rows must NOT ship (the cloud's
         // RLS rejects NULL-vehicle facts by design).
         let c2 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
@@ -1785,6 +1925,9 @@ mod tests {
         assert_eq!(batch.readings.len(), 2);
         assert_eq!(batch.scan_events.len(), 1);
         assert_eq!(batch.scan_events[0].codes.len(), 1);
+        assert_eq!(batch.probes.len(), 1);
+        assert_eq!(batch.discovered_modules.len(), 1);
+        assert_eq!(batch.discovered_modules[0].dids.len(), 1);
         assert!(batch.last_reading_id >= 2);
         // Idempotent watermark: nothing new past the watermark.
         let empty = db.sync_batch(batch.last_reading_id, 100);

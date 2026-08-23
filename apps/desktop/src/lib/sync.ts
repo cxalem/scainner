@@ -73,6 +73,16 @@ type SyncBatch = {
     key: string;
     value: number;
   }[];
+  probes: {
+    cloud_id: string; vehicle_cloud_id: string; module: string; did: number;
+    label: string; unit: string; offset: number; len: number; scale: number;
+    bias: number; enabled: boolean; origin: "manual" | "discovery";
+  }[];
+  discovered_modules: {
+    cloud_id: string; vehicle_cloud_id: string; module_address: string;
+    module_name: string | null; discovered_at: string;
+    dids: { did: number; raw_sample: string | null; byte_length: number | null; label: string | null; confidence: string | null; first_seen_at: string }[];
+  }[];
   last_reading_id: number;
 };
 
@@ -238,6 +248,38 @@ async function runSyncOnce(): Promise<void> {
         { onConflict: "connection_id,local_id", ignoreDuplicates: true },
       );
       fail("readings", error);
+    }
+    if (batch.probes.length > 0) {
+      const { error } = await supabase.from("uds_probes").upsert(
+        batch.probes.map((p) => ({
+          client_uuid: p.cloud_id, vehicle_id: p.vehicle_cloud_id, module: p.module,
+          did: p.did, label: p.label, unit: p.unit, byte_offset: p.offset, len: p.len,
+          scale: p.scale, bias: p.bias, enabled: p.enabled, origin: p.origin,
+        })),
+        { onConflict: "client_uuid" },
+      );
+      fail("uds_probes", error);
+    }
+    if (batch.discovered_modules.length > 0) {
+      const { error } = await supabase.from("discovered_modules").upsert(
+        batch.discovered_modules.map((m) => ({
+          id: m.cloud_id, vehicle_id: m.vehicle_cloud_id, module_address: m.module_address,
+          module_name: m.module_name, discovered_at: toIso(m.discovered_at),
+        })),
+        { onConflict: "id" },
+      );
+      fail("discovered_modules", error);
+      const dids = batch.discovered_modules.flatMap((m) => m.dids.map((d) => ({
+        module_id: m.cloud_id, did: d.did, raw_sample: d.raw_sample,
+        byte_length: d.byte_length, label: d.label, confidence: d.confidence,
+        first_seen_at: toIso(d.first_seen_at),
+      })));
+      if (dids.length > 0) {
+        const { error: didError } = await supabase
+          .from("discovered_dids")
+          .upsert(dids, { onConflict: "module_id,did" });
+        fail("discovered_dids", didError);
+      }
     }
     await invoke<void>("app_setting_set", { key: WATERMARK_KEY, value: String(batch.last_reading_id) });
     setStatus({
