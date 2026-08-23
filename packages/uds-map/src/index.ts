@@ -201,10 +201,22 @@ export function presenceProbeDid(): number {
 /** A documented label (and decode hints, when known) for a DID on this
  * brand — turns a raw discovery hit into a named sensor instead of
  * anonymous hex. */
-export function knownDid(vin: string | null | undefined, did: number): KnownDid | undefined {
+export function knownDid(
+  vin: string | null | undefined,
+  did: number,
+  module?: { req: number; resp: number },
+): KnownDid | undefined {
   const brand = brandForVin(vin);
   if (!brand) return undefined;
-  return (brand.known_dids ?? []).find((k) => hex16(k.did) === did);
+  const candidates = (brand.known_dids ?? []).filter((k) => hex16(k.did) === did);
+  if (module) {
+    const exact = candidates.find((k) =>
+      (k.modules ?? []).some((m) => can11(m.req) === module.req && can11(m.resp) === module.resp),
+    );
+    if (exact) return exact;
+    return candidates.find((k) => (k.modules ?? []).length === 0);
+  }
+  return candidates[0];
 }
 
 /** Decode a KnownDid's raw byte payload using its offset/len/scale/bias

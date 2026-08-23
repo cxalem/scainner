@@ -117,6 +117,11 @@ fn confidence_rank(c: Option<&str>) -> u8 {
 pub struct KnownDid {
     pub did: String,
     pub label: String,
+    /// Exact ECU address pairs this meaning/formula belongs to. A DID is
+    /// not globally meaningful across a vehicle: D410 on PSA's battery
+    /// ECU is state of charge, while D410 on engine/ABS/EPS is unrelated.
+    #[serde(default)]
+    pub modules: Vec<ModuleRef>,
     #[serde(default)]
     pub unit: Option<String>,
     #[serde(default)]
@@ -127,6 +132,12 @@ pub struct KnownDid {
     pub scale: Option<f64>,
     #[serde(default)]
     pub bias: Option<f64>,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ModuleRef {
+    pub req: String,
+    pub resp: String,
 }
 
 const RAW: &str = include_str!("../../../../../packages/uds-map/data/uds-map.json");
@@ -261,8 +272,15 @@ pub fn presence_probe_did() -> u16 {
 
 /// A documented label for a DID on this brand, when the map knows one —
 /// turns a raw discovery hit into a named sensor with no user work.
-pub fn known_did<'a>(vin: Option<&str>, did: u16) -> Option<&'a KnownDid> {
-    brand_for_vin(vin)?.known_dids.iter().find(|k| hex16(&k.did) == Some(did))
+pub fn known_did<'a>(vin: Option<&str>, req: u16, resp: u16, did: u16) -> Option<&'a KnownDid> {
+    let mut candidates = brand_for_vin(vin)?.known_dids.iter().filter(|k| hex16(&k.did) == Some(did));
+    // Prefer an exact module binding. Unscoped entries remain a backwards-
+    // compatible fallback while the rest of the multi-brand map is
+    // migrated, but newly verified entries should always carry modules.
+    candidates
+        .clone()
+        .find(|k| k.modules.iter().any(|m| can11(&m.req) == Some(req) && can11(&m.resp) == Some(resp)))
+        .or_else(|| candidates.find(|k| k.modules.is_empty()))
 }
 
 #[cfg(test)]
@@ -301,6 +319,10 @@ mod tests {
             }
             for k in &b.known_dids {
                 assert!(hex16(&k.did).is_some(), "{}: bad did {}", b.id, k.did);
+                for m in &k.modules {
+                    assert!(hex_any(&m.req).is_some(), "{} {}: bad module req {}", b.id, k.did, m.req);
+                    assert!(hex_any(&m.resp).is_some(), "{} {}: bad module resp {}", b.id, k.did, m.resp);
+                }
             }
         }
         assert!(!ident_dids().is_empty());
@@ -400,8 +422,15 @@ mod tests {
         // Research corrected this: D422 is battery VOLTAGE, not state of
         // charge — proven by this project's own live correlation against
         // PID 0142 (UDS_INVESTIGATION_LOG.md).
-        let k = known_did(Some("VR7EXAMPLE0000001"), 0xD422).expect("D422 documented");
+        let k = known_did(Some("VR7EXAMPLE0000001"), 0x6A8, 0x688, 0xD422).expect("D422 documented");
         assert!(k.label.to_lowercase().contains("battery"));
         assert_eq!(k.unit.as_deref(), Some("V"));
+    }
+
+    #[test]
+    fn known_did_meaning_is_scoped_to_the_module_that_answered() {
+        assert!(known_did(Some("VR7EXAMPLE0000001"), 0x6B4, 0x694, 0xD410).is_some());
+        assert!(known_did(Some("VR7EXAMPLE0000001"), 0x6A8, 0x688, 0xD410).is_none());
+        assert!(known_did(Some("VR7EXAMPLE0000001"), 0x6AD, 0x68D, 0xD410).is_none());
     }
 }

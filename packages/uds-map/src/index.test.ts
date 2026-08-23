@@ -51,6 +51,10 @@ describe("getMap", () => {
       }
       for (const k of b.known_dids ?? []) {
         expect(hex16(k.did), `${b.id}: bad did ${k.did}`).toBeDefined();
+        for (const m of k.modules ?? []) {
+          expect(hexAny(m.req), `${b.id} ${k.did}: bad module req ${m.req}`).toBeDefined();
+          expect(hexAny(m.resp), `${b.id} ${k.did}: bad module resp ${m.resp}`).toBeDefined();
+        }
       }
     }
     expect(identDids().length).toBeGreaterThan(0);
@@ -148,6 +152,12 @@ describe("knownDid / decodeKnownDid", () => {
     expect(k).toBeDefined();
     expect(k!.label.toLowerCase()).toContain("battery");
     expect(k!.unit).toBe("V");
+  });
+
+  it("does not apply a DID meaning to a different module", () => {
+    expect(knownDid(CITROEN_VIN, 0xd410, { req: 0x6b4, resp: 0x694 })).toBeDefined();
+    expect(knownDid(CITROEN_VIN, 0xd410, { req: 0x6a8, resp: 0x688 })).toBeUndefined();
+    expect(knownDid(CITROEN_VIN, 0xd410, { req: 0x6ad, resp: 0x68d })).toBeUndefined();
   });
 
   it("decodes a KnownDid's raw bytes when the map has a full formula", () => {
