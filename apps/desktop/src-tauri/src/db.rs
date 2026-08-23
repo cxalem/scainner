@@ -22,7 +22,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 4;
 
 #[derive(Serialize, Clone)]
 pub struct DtcScan {
@@ -82,7 +82,14 @@ pub struct UdsProbe {
     pub bias: f64,
     #[serde(default = "yes")]
     pub enabled: bool,
+    /// `manual` probes belong to the user and are never reconciled by
+    /// discovery. `discovery` probes may be refreshed or removed when the
+    /// shipped knowledge map changes.
+    #[serde(default = "manual_origin")]
+    pub origin: String,
 }
+
+fn manual_origin() -> String { "manual".into() }
 fn one() -> usize { 1 }
 fn onef() -> f64 { 1.0 }
 fn yes() -> bool { true }
@@ -403,7 +410,8 @@ impl Db {
                 len INTEGER NOT NULL DEFAULT 1,
                 scale REAL NOT NULL DEFAULT 1.0,
                 bias REAL NOT NULL DEFAULT 0.0,
-                enabled INTEGER NOT NULL DEFAULT 1
+                enabled INTEGER NOT NULL DEFAULT 1,
+                origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual','discovery'))
             );
             -- Auto-discovery shape (product-plan.md): no writer yet, the
             -- discovery-engine stream is later — tables exist so the shape
@@ -467,6 +475,13 @@ impl Db {
         let _ = conn.execute("ALTER TABLE connections ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE dtc_scan_events ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE writes_log ADD COLUMN cloud_id TEXT", []);
+        // v4: provenance makes discovery-owned probes safely
+        // reconcilable. Existing rows are conservatively manual because
+        // older schemas cannot prove how they were created.
+        let _ = conn.execute(
+            "ALTER TABLE uds_probes ADD COLUMN origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual','discovery'))",
+            [],
+        );
         conn.execute_batch(
             r#"
             CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicles_cloud ON vehicles(cloud_id);
@@ -847,8 +862,8 @@ impl Db {
             Some(id) => {
                 let _ = conn.execute(
                     "UPDATE discovered_dids SET raw_sample = ?1, byte_length = ?2,
-                     label = COALESCE(?3, label),
-                     confidence = CASE WHEN ?3 IS NOT NULL THEN 'confirmed' ELSE confidence END
+                     label = ?3,
+                     confidence = CASE WHEN ?3 IS NOT NULL THEN 'confirmed' ELSE 'unlabeled' END
                      WHERE id = ?4",
                     params![raw_sample, byte_length, label, id],
                 );
@@ -939,7 +954,7 @@ impl Db {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
-                "SELECT id, vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled
+                "SELECT id, vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin
                  FROM uds_probes WHERE vehicle_id IS ?1 OR vehicle_id IS NULL ORDER BY id",
             )
             .unwrap();
@@ -956,6 +971,7 @@ impl Db {
                 scale: r.get(8)?,
                 bias: r.get(9)?,
                 enabled: r.get(10)?,
+                origin: r.get(11)?,
             })
         })
         .unwrap()
@@ -966,8 +982,8 @@ impl Db {
     pub fn add_probe(&self, p: &UdsProbe, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual')",
             params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled],
         )
         .ok();
@@ -992,15 +1008,18 @@ impl Db {
         bias: f64,
     ) -> bool {
         let conn = self.0.lock().unwrap();
-        let existing: Option<i64> = conn
+        let existing: Option<(i64, String)> = conn
             .query_row(
-                "SELECT id FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3",
+                "SELECT id, origin FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3 ORDER BY origin = 'manual' DESC LIMIT 1",
                 params![vehicle_id, module, did as i64],
-                |r| r.get(0),
+                |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .ok();
         match existing {
-            Some(id) => {
+            // A manual definition is user-owned. It wins over discovery
+            // and is never silently rewritten.
+            Some((_id, origin)) if origin == "manual" => false,
+            Some((id, _)) => {
                 let _ = conn.execute(
                     "UPDATE uds_probes SET label = ?1, unit = ?2, offset = ?3, len = ?4, scale = ?5, bias = ?6 WHERE id = ?7",
                     params![label, unit, offset as i64, len as i64, scale, bias, id],
@@ -1009,8 +1028,8 @@ impl Db {
             }
             None => {
                 let _ = conn.execute(
-                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1)",
+                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery')",
                     params![vehicle_id, module, did as i64, label, unit, offset as i64, len as i64, scale, bias],
                 );
                 true
@@ -1021,6 +1040,17 @@ impl Db {
     pub fn delete_probe(&self, id: i64) {
         let conn = self.0.lock().unwrap();
         conn.execute("DELETE FROM uds_probes WHERE id = ?1", params![id]).ok();
+    }
+
+    /// Removes one probe only when discovery owns it. Used when the
+    /// knowledge map retracts or moves a formula; manual rows are immune.
+    pub fn delete_discovery_probe(&self, id: i64) -> bool {
+        self.0
+            .lock()
+            .unwrap()
+            .execute("DELETE FROM uds_probes WHERE id = ?1 AND origin = 'discovery'", params![id])
+            .map(|n| n > 0)
+            .unwrap_or(false)
     }
 
     pub fn toggle_probe(&self, id: i64, enabled: bool) {
@@ -1582,6 +1612,7 @@ mod tests {
             scale: 0.01,
             bias: 0.0,
             enabled: true,
+            origin: "manual".into(),
         };
         db.add_probe(&probe, Some(citroen));
         let citroen_probes = db.list_probes(Some(citroen));
@@ -1609,6 +1640,7 @@ mod tests {
             scale: 0.01,
             bias: 0.0,
             enabled: true,
+            origin: "manual".into(),
         };
         db.add_probe(&probe, None); // legacy path: no vehicle scope
         assert_eq!(db.list_probes(Some(citroen)).len(), 1);
@@ -1630,6 +1662,61 @@ mod tests {
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].label, "Battery voltage (refined)");
         assert_eq!(probes[0].scale, 0.02);
+        assert_eq!(probes[0].origin, "discovery");
+    }
+
+    #[test]
+    fn discovery_never_rewrites_or_deletes_a_manual_probe() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let manual = UdsProbe {
+            id: 0,
+            vehicle_id: Some(citroen),
+            module: "engine".into(),
+            did: 0xD422,
+            label: "My voltage formula".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.02,
+            bias: 0.0,
+            enabled: true,
+            origin: "manual".into(),
+        };
+        let id = db.add_probe(&manual, Some(citroen));
+
+        assert!(!db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Mapped voltage", "V", 0, 2, 0.01, 0.0));
+        assert!(!db.delete_discovery_probe(id));
+        let probes = db.list_probes(Some(citroen));
+        assert_eq!(probes.len(), 1);
+        assert_eq!(probes[0].label, "My voltage formula");
+        assert_eq!(probes[0].origin, "manual");
+    }
+
+    #[test]
+    fn stale_discovery_probe_can_be_removed_by_provenance() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        assert!(db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Battery voltage", "V", 0, 2, 0.01, 0.0));
+        let auto = db.list_probes(Some(citroen)).pop().unwrap();
+        assert_eq!(auto.origin, "discovery");
+        assert!(db.delete_discovery_probe(auto.id));
+        assert!(db.list_probes(Some(citroen)).is_empty());
+    }
+
+    #[test]
+    fn rediscovery_clears_a_label_the_current_map_no_longer_supports() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module = db.upsert_discovered_module(citroen, "6A8/688", Some("Engine ECU"));
+        db.upsert_discovered_did(module, 0xD410, "20", 1, Some("Incorrect battery SOC"));
+        db.upsert_discovered_did(module, 0xD410, "21", 1, None);
+
+        let dids = db.discovered_dids(module);
+        assert_eq!(dids.len(), 1);
+        assert_eq!(dids[0].raw_sample.as_deref(), Some("21"));
+        assert_eq!(dids[0].label, None);
+        assert_eq!(dids[0].confidence.as_deref(), Some("unlabeled"));
     }
 
     #[test]

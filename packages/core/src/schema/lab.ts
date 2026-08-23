@@ -28,6 +28,10 @@ export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
   scale: Schema.Number,
   bias: Schema.Number,
   enabled: Schema.Boolean,
+  // Older clients may omit this when creating a manual probe; the Rust
+  // boundary defaults it to `manual`. Rows read back from SQLite always
+  // carry either `manual` or `discovery`.
+  origin: Schema.optional(Schema.Literal("manual", "discovery")),
 }) {}
 // Verified per-module UDS clear (before/after fault code lists).
 export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({

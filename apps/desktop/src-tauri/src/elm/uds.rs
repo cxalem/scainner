@@ -450,8 +450,9 @@ pub struct DiscoveryReport {
     /// the Lab rather than pretending to be a live value.
     pub sensors_added: u32,
     /// True when the scan didn't finish — findings so far are still
-    /// saved either way. `stop_reason` says why: user-pressed-cancel vs
-    /// the safety auto-stop below have very different UI treatments.
+    /// saved either way. `auto_stopped_reason` says why: user-pressed-
+    /// cancel vs the safety auto-stop below have very different UI
+    /// treatments.
     pub cancelled: bool,
     /// Some("engine_started") when the scan aborted ITSELF because
     /// engine start was detected mid-scan (a voltage jump — see
@@ -553,6 +554,28 @@ fn parse_module_address(addr: &str) -> Option<(u16, u16)> {
     Some((uds_map::hex16(req)?, uds_map::hex16(resp)?))
 }
 
+/// Reconcile only probes discovery owns against the current knowledge map.
+/// This is independent of whether today's car scan happens to get a reply,
+/// so a transient timeout cannot delete a valid sensor. A probe is stale
+/// only when its module/DID no longer has a complete mapped formula.
+fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
+    let custom = custom_modules(db);
+    for probe in db
+        .list_probes(Some(vehicle_id))
+        .into_iter()
+        .filter(|p| p.vehicle_id == Some(vehicle_id) && p.origin == "discovery")
+    {
+        let still_known = resolve(&probe.module, &custom)
+            .and_then(|m| Some((uds_map::can11(&m.req)?, uds_map::can11(&m.resp)?)))
+            .and_then(|(req, resp)| uds_map::known_did(vin, req, resp, probe.did))
+            .is_some_and(|k| k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some());
+        if !still_known {
+            log::info!("discovery: removing stale auto probe {} / {:04X}", probe.module, probe.did);
+            db.delete_discovery_probe(probe.id);
+        }
+    }
+}
+
 pub fn discover(
     drv: &mut ElmDriver,
     db: &Db,
@@ -568,6 +591,9 @@ pub fn discover(
             "detail": detail, "modulesFound": modules, "didsFound": dids,
         }));
     };
+
+    prune_stale_discovery_probes(db, vehicle_id, vin.as_deref());
+
     let baseline_voltage = {
         for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
             drv.cmd(c, Duration::from_secs(2)).map_err(|e| e.to_string())?;
@@ -756,7 +782,21 @@ pub fn discover(
                         // that is the whole point of researching the map:
                         // discovery on a known brand yields labeled
                         // sensors, not anonymous hex.
-                        let known = uds_map::known_did(vin.as_deref(), did);
+                        let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
+                        // Module-aware lookup above is the primary guard;
+                        // payload shape is the independent second guard.
+                        // Never label or promote a formula that cannot
+                        // read the bytes this ECU returned, even if the
+                        // map's address binding itself is correct.
+                        let known = known.filter(|k| match (k.offset, k.len) {
+                            (Some(offset), Some(len)) => (offset as usize)
+                                .checked_add(len as usize)
+                                .is_some_and(|end| end <= data.len()),
+                            // Label-only knowledge has no byte shape to
+                            // validate, so retain its browsable label. It
+                            // can never be auto-promoted below.
+                            _ => true,
+                        });
                         let label = known.map(|k| k.label.clone());
                         db.upsert_discovered_did(*module_id, did, &hex_string(&data), data.len() as i64, label.as_deref());
                         dids_found += 1;
@@ -876,7 +916,10 @@ fn fast_refresh(
             }
             emit("sweep", sweep_i, total, &format!("{req:03X}:{did:04X}"), modules_seen, dids_found);
             if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(500)) {
-                let known_entry = uds_map::known_did(vin, *did);
+                let known_entry = uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
+                    (Some(offset), Some(len)) => (offset as usize).checked_add(len as usize).is_some_and(|end| end <= data.len()),
+                    _ => true,
+                });
                 let label = known_entry.map(|k| k.label.clone());
                 db.upsert_discovered_did(module_id, *did, &hex_string(&data), data.len() as i64, label.as_deref());
                 dids_found += 1;

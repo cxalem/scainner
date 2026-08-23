@@ -422,6 +422,7 @@ export const en: Dictionary = {
     scanningTitle: "Looking for sensors",
     scanningExplainer: "Live data pauses while a scan runs (Lab tab) and comes back automatically when it finishes.",
     recordingNote: "Recording continuously — every value on this screen is being saved.",
+    discoveredSensors: "Discovered sensors",
     allSensors: {
       readButton: "Read all sensors",
       readingPhrases: ["Interrogating ECU…", "Sweeping sensor PIDs…"],

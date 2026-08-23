@@ -8,6 +8,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { LoadingRow } from "./src/components/ui";
 import type { VehicleListItem } from "./src/data/queries";
+import { setDemo } from "./src/data/demo";
 import { I18nProvider, useT } from "./src/i18n";
 import { supabase } from "./src/lib/supabase";
 import { SignInScreen } from "./src/screens/SignInScreen";
@@ -17,7 +18,12 @@ import { colors } from "./src/theme";
 
 // "checking" covers the async AsyncStorage session restore on cold start —
 // without it the sign-in form would flash for already-signed-in users.
-type AuthState = { phase: "checking" } | { phase: "signedOut" } | { phase: "signedIn"; email: string };
+type AuthState =
+  | { phase: "checking" }
+  | { phase: "signedOut" }
+  | { phase: "signedIn"; email: string }
+  // TEMP preview: demo fixtures, no session (see src/data/demo.ts).
+  | { phase: "demo" };
 
 export default function App() {
   return (
@@ -41,14 +47,18 @@ function Root() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const email = session?.user.email;
-      setAuth(email != null ? { phase: "signedIn", email } : { phase: "signedOut" });
+      // A real session always wins over preview mode.
+      if (email != null) setDemo(false);
+      setAuth((prev) =>
+        email != null ? { phase: "signedIn", email } : prev.phase === "demo" ? prev : { phase: "signedOut" },
+      );
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   // Signing out (or a session expiring) also closes any open detail screen.
   useEffect(() => {
-    if (auth.phase !== "signedIn") setOpenVehicle(null);
+    if (auth.phase !== "signedIn" && auth.phase !== "demo") setOpenVehicle(null);
   }, [auth.phase]);
 
   return (
@@ -59,12 +69,22 @@ function Root() {
           <LoadingRow label={t.common.loading} />
         </View>
       )}
-      {auth.phase === "signedOut" && <SignInScreen />}
-      {auth.phase === "signedIn" &&
+      {auth.phase === "signedOut" && (
+        <SignInScreen
+          onPreview={() => {
+            setDemo(true);
+            setAuth({ phase: "demo" });
+          }}
+        />
+      )}
+      {(auth.phase === "signedIn" || auth.phase === "demo") &&
         (openVehicle != null ? (
           <VehicleDetailScreen vehicle={openVehicle} onBack={() => setOpenVehicle(null)} />
         ) : (
-          <VehiclesScreen userEmail={auth.email} onOpenVehicle={setOpenVehicle} />
+          <VehiclesScreen
+            userEmail={auth.phase === "signedIn" ? auth.email : t.signIn.previewBadge}
+            onOpenVehicle={setOpenVehicle}
+          />
         ))}
     </SafeAreaView>
   );

@@ -432,6 +432,7 @@ export const es: Dictionary = {
     scanningExplainer:
       "Los datos en vivo se pausan mientras hay un escaneo en curso (pestaña Laboratorio) y vuelven automáticamente al terminar.",
     recordingNote: "Grabando de forma continua: todos los valores de esta pantalla se están guardando.",
+    discoveredSensors: "Sensores descubiertos",
     allSensors: {
       readButton: "Leer todos los sensores",
       readingPhrases: ["Interrogando a la ECU…", "Barriendo los PID de sensores…"],

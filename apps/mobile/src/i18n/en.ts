@@ -20,6 +20,8 @@ export const en: Dictionary = {
     codeLabel: "One-time code",
     verify: "Sign in",
     verifying: "Signing in…",
+    preview: "Browse with demo data (no account)",
+    previewBadge: "Demo data",
   },
   vehicles: {
     title: "Vehicles",

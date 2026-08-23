@@ -7,26 +7,50 @@ import { useAllSensors } from "@/features/live/queries";
 import { useLocale, useT } from "@/i18n";
 
 function Gauges({ live }: { live: LiveMap }) {
+  const t = useT();
   const { locale } = useLocale();
+  const knownKeys = new Set(GAUGES.map((gauge) => gauge.key));
+  const discovered = Object.entries(live).filter(([key]) => !knownKeys.has(key));
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {GAUGES.map((gauge) => {
-        const value = live[gauge.key];
-        return (
-          <Card key={gauge.key} className={value === undefined ? "opacity-50" : ""}>
-            <CardHeader>
-              <CardTitle>{gaugeLabel(gauge.key, locale)}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-mono text-2xl font-semibold tabular-nums">
-                {value === undefined ? "—" : gauge.fmt ? gauge.fmt(value) : value}
-                <span className="ml-1 text-xs font-normal text-muted-foreground">{gauge.unit}</span>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {GAUGES.map((gauge) => {
+          const value = live[gauge.key];
+          return (
+            <Card key={gauge.key} className={value === undefined ? "opacity-50" : ""}>
+              <CardHeader>
+                <CardTitle>{gaugeLabel(gauge.key, locale)}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="font-mono text-2xl font-semibold tabular-nums">
+                  {value === undefined ? "—" : gauge.fmt ? gauge.fmt(value) : value}
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">{gauge.unit}</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+      {discovered.length > 0 && (
+        <div className="mt-4 flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.live.discoveredSensors}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {discovered.map(([key, value]) => (
+              <Card key={key}>
+                <CardHeader>
+                  <CardTitle className="break-words">
+                    {key.replace(/^uds_/, "").replace(/_/g, " ")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="font-mono text-2xl font-semibold tabular-nums">{value.toFixed(2)}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -277,6 +277,7 @@
         {
           "did": "D422",
           "label": "Battery voltage, engine ECU live sensor (NOT state of charge)",
+          "modules": [{ "req": "6A8", "resp": "688" }],
           "unit": "V",
           "offset": 0,
           "len": 2,
@@ -287,6 +288,7 @@
         {
           "did": "D4B1",
           "label": "Battery voltage, latched snapshot, does not track live value",
+          "modules": [{ "req": "6A8", "resp": "688" }],
           "unit": "V",
           "offset": 0,
           "len": 1,
@@ -297,6 +299,7 @@
         {
           "did": "D410",
           "label": "HV battery state of charge, Stellantis EV on module 6B4/694",
+          "modules": [{ "req": "6B4", "resp": "694" }],
           "unit": "%",
           "offset": 0,
           "len": 2,
@@ -307,6 +310,7 @@
         {
           "did": "D860",
           "label": "HV battery state of health, Stellantis EV on module 6B4/694",
+          "modules": [{ "req": "6B4", "resp": "694" }],
           "unit": "%",
           "offset": 1,
           "len": 2,
@@ -317,6 +321,7 @@
         {
           "did": "D815",
           "label": "HV battery voltage, Stellantis EV on module 6B4/694",
+          "modules": [{ "req": "6B4", "resp": "694" }],
           "unit": "V",
           "offset": 0,
           "len": 2,
@@ -327,61 +332,73 @@
         {
           "did": "D400",
           "label": "BSI present-groups list (enumerate before sweeping)",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "D401",
           "label": "BSI user-visibility data list",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "D402",
           "label": "BSI user-visibility data values",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "2101",
           "label": "BSI gauging group values (fuel, oil)",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "2103",
           "label": "BSI maintenance group values (service interval candidates)",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "2201",
           "label": "Fuel tank capacity",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "220A",
           "label": "Critical fuel level threshold",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "2333",
           "label": "Battery type (configuration, not a measurement)",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "232D",
           "label": "DPF / FAP type (configuration)",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "23D0",
           "label": "SCR / AdBlue presence flag (configuration)",
+          "modules": [{ "req": "752", "resp": "652" }],
           "confidence": "high"
         },
         {
           "did": "F08F",
           "label": "ABS/ESC system name string (ASCII)",
+          "modules": [{ "req": "6AD", "resp": "68D" }],
           "confidence": "confirmed"
         },
         {
           "did": "D619",
           "label": "ABS/ESC software identifier string (ASCII)",
+          "modules": [{ "req": "6AD", "resp": "68D" }],
           "confidence": "confirmed"
         }
       ],

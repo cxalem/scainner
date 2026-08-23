@@ -50,6 +50,8 @@ export interface Band {
 export interface KnownDid {
   did: string;
   label: string;
+  /** Exact ECU address pairs this DID meaning/formula belongs to. */
+  modules?: { req: string; resp: string }[];
   unit?: string | null;
   offset?: number | null;
   len?: number | null;

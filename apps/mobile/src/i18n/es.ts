@@ -20,6 +20,8 @@ export const es: Dictionary = {
     codeLabel: "Código de un solo uso",
     verify: "Iniciar sesión",
     verifying: "Iniciando sesión…",
+    preview: "Explorar con datos de demostración (sin cuenta)",
+    previewBadge: "Datos de demostración",
   },
   vehicles: {
     title: "Vehículos",

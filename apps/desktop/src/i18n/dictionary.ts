@@ -408,6 +408,7 @@ export type Dictionary = {
     scanningTitle: string;
     scanningExplainer: string;
     recordingNote: string;
+    discoveredSensors: string;
     allSensors: {
       readButton: string;
       readingPhrases: [string, string];
