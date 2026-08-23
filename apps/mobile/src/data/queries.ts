@@ -4,6 +4,7 @@
 // database does that. All queries are bounded: the readings table is
 // unbounded append-only telemetry, so stats are computed client-side from a
 // capped window instead of asking Postgres to aggregate it (no RPC yet).
+import { demoScans, demoStats, DEMO_VEHICLES, isDemo } from "./demo";
 import { supabase } from "../lib/supabase";
 
 // ---------- vehicles list ----------
@@ -19,6 +20,7 @@ export type VehicleListItem = {
 };
 
 export async function fetchVehicles(): Promise<VehicleListItem[]> {
+  if (isDemo()) return DEMO_VEHICLES;
   // connections(count) is a PostgREST aggregate embed — one query returns
   // each vehicle with its recorded-session count, no N+1.
   const { data, error } = await supabase
@@ -63,6 +65,7 @@ const READINGS_WINDOW_DAYS = 7;
 const READINGS_ROW_CAP = 4000;
 
 export async function fetchSensorStats(vehicleId: string): Promise<SensorStats[]> {
+  if (isDemo()) return demoStats(vehicleId);
   const since = new Date(Date.now() - READINGS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("readings")
@@ -114,6 +117,7 @@ export type ScanEvent = {
 const SCAN_EVENTS_CAP = 25;
 
 export async function fetchScanHistory(vehicleId: string): Promise<ScanEvent[]> {
+  if (isDemo()) return demoScans(vehicleId);
   const { data, error } = await supabase
     .from("dtc_scan_events")
     .select("id, ts, mil_on, voltage, dtc_codes(code, status)")
