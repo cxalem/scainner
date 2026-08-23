@@ -70,3 +70,13 @@ export function useDeleteProbe() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["list_probes"] }),
   });
 }
+
+/// What previous discovery passes found for this vehicle. Local DB read —
+/// works with no car connected, which is the point: findings persist.
+export function useDiscoveredModules(vehicleId: number | null) {
+  return useQuery({
+    queryKey: ["discovered_modules", vehicleId],
+    queryFn: () => run((device) => device.discoveredModules(vehicleId!)),
+    enabled: vehicleId != null,
+  });
+}

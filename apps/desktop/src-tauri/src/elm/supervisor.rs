@@ -58,6 +58,8 @@ pub enum Request {
     AllSensors(Sender<Result<Vec<obd::SensorReading>, String>>),
     UdsRead { module: String, did: u16, tx: Sender<Result<Option<uds::UdsHit>, String>> },
     UdsScan { module: String, from: u16, to: u16, tx: Sender<Result<Vec<uds::UdsHit>, String>> },
+    /// One-button auto-discovery: no ranges, no addresses, no user input.
+    Discover(Sender<Result<uds::DiscoveryReport, String>>),
     UdsClear { module: String, tx: Sender<Result<uds::ClearOutcome, String>> },
     UdsModuleDtcs { module: String, tx: Sender<Result<Vec<String>, String>> },
     /// The "name this car" flow for VIN-less vehicles: creates the vehicles
@@ -475,6 +477,7 @@ fn answer_disconnected(req: Request) {
         Request::AllSensors(tx) => { let _ = tx.send(Err(err)); }
         Request::UdsRead { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsScan { tx, .. } => { let _ = tx.send(Err(err)); }
+        Request::Discover(tx) => { let _ = tx.send(Err(err)); }
         Request::UdsClear { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::UdsModuleDtcs { tx, .. } => { let _ = tx.send(Err(err)); }
         Request::NameVehicle { tx, .. } => { let _ = tx.send(Err(err)); }
@@ -619,6 +622,20 @@ fn handle_request(req: Request, drv: &mut ElmDriver, db: &Db, cancel_scan: &Atom
         Request::UdsScan { module, from, to, tx } => {
             cancel_scan.store(false, Ordering::Relaxed);
             let result = uds::scan_range(drv, db, &module, from, to, cancel_scan, app);
+            let _ = tx.send(result);
+        }
+        Request::Discover(tx) => {
+            cancel_scan.store(false, Ordering::Relaxed);
+            // Findings are per-vehicle, so an unidentified car must name
+            // itself first — otherwise a discovery pass would have nowhere
+            // honest to file what it finds.
+            let result = match ctx.vehicle_id {
+                Some(vehicle_id) => {
+                    let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
+                    uds::discover(drv, db, vehicle_id, vin, cancel_scan, app)
+                }
+                None => Err("name this vehicle first so its findings have somewhere to live".into()),
+            };
             let _ = tx.send(result);
         }
         Request::UdsClear { module, tx } => {

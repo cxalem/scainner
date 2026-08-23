@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "generated": "2026-08-23",
+  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules and which DID neighborhoods hold real data, keyed by VIN WMI. Seed entries are the two brands verified first-hand in this project; the researched expansion lands as a data-only update. Editing this file needs no code change and no rebuild of the discovery logic.",
+  "standard": {
+    "note": "ISO 14229-1 identification block — genuinely universal, the one part of UDS as standard as OBD PIDs. Kept here rather than in code so every value the engine uses lives in one queryable place.",
+    "ident_dids": [
+      { "did": "F187", "label": "Spare part number" },
+      { "did": "F18C", "label": "ECU serial number" },
+      { "did": "F190", "label": "VIN" },
+      { "did": "F191", "label": "Hardware version" },
+      { "did": "F195", "label": "Software version" },
+      { "did": "F197", "label": "System name" }
+    ],
+    "name_dids": ["F197", "F187"],
+    "presence_probe_did": "F186",
+    "address_scan": {
+      "note": "Conventional 11-bit physical addressing: request 0x700-0x7F6, response = request + 8. 7DF is the functional broadcast, excluded.",
+      "req_from": "700",
+      "req_to": "7F6",
+      "resp_offset": 8,
+      "exclude": ["7DF"]
+    },
+    "timings_ms": {
+      "presence_probe": 250,
+      "ident_read": 500,
+      "sweep_read": 300
+    }
+  },
+  "brands": [
+    {
+      "id": "psa",
+      "name": "PSA / Stellantis (Peugeot, Citroën, DS, Opel)",
+      "wmi": ["VF3", "VF7", "VR1", "VR3", "VR7", "VXK"],
+      "confidence": "high",
+      "modules": [
+        { "req": "6B4", "resp": "694", "name": "BSI (body control)", "confidence": "high" },
+        { "req": "752", "resp": "652", "name": "CMM (engine)", "confidence": "medium" },
+        { "req": "765", "resp": "665", "name": "Instrument cluster", "confidence": "medium" },
+        { "req": "7D6", "resp": "6D6", "name": "Telematics / NAC", "confidence": "medium" }
+      ],
+      "did_bands": [
+        { "from": "D400", "to": "D4FF", "note": "live sensor data", "confidence": "high" },
+        { "from": "D000", "to": "D0FF", "note": "configuration / status", "confidence": "medium" }
+      ],
+      "known_dids": [
+        {
+          "did": "D422",
+          "label": "Battery state of charge",
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "note": "Verified first-hand on a 2023 Citroën C4 III in this project."
+        }
+      ]
+    },
+    {
+      "id": "hyundai_kia",
+      "name": "Hyundai / Kia",
+      "wmi": ["KMH", "KNA", "KND", "KM8", "TMA", "U5Y", "U6Y"],
+      "confidence": "medium",
+      "modules": [
+        { "req": "7A0", "resp": "7A8", "name": "TPMS", "confidence": "medium" }
+      ],
+      "did_bands": [
+        { "from": "C000", "to": "C0FF", "note": "body/chassis data incl. TPMS", "confidence": "medium" },
+        { "from": "B000", "to": "B0FF", "note": "secondary data band", "confidence": "low" }
+      ],
+      "known_dids": []
+    }
+  ]
+}

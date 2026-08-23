@@ -234,6 +234,26 @@ export const es: Dictionary = {
     },
   },
   lab: {
+    discovery: {
+      cardTitle: "Buscar los sensores de este coche",
+      explainer:
+        "Le pregunta al coche qué módulos tiene y lee las zonas de datos conocidas de su marca. No hay que rellenar direcciones ni rangos. Tarda unos minutos, todo lo que encuentra se guarda y solo lee: no se escribe nada en el coche.",
+      needsVehicle: "Ponle nombre a este vehículo para que sus hallazgos tengan dónde guardarse.",
+      start: "Buscar sensores",
+      running: "Buscando…",
+      phases: {
+        modules: "Buscando módulos",
+        ident: "Identificando módulos",
+        sweep: "Leyendo zonas de datos",
+        done: "Listo",
+      },
+      foundSoFar: (modules, dids) => `${modules} módulos, ${dids} valores hasta ahora`,
+      doneSummary: (modules, dids) => `Encontrados ${modules} módulos y ${dids} valores. Guardados para este coche.`,
+      cancelledSummary: (modules, dids) => `Detenido. Se guardan ${modules} módulos y ${dids} valores encontrados.`,
+      previousFindings: "Ya encontrado en este coche",
+      unnamedModule: "Módulo sin nombre",
+      didCount: (total, labeled) => (labeled > 0 ? `${total} valores (${labeled} con nombre)` : `${total} valores`),
+    },
     title: "Laboratorio",
     moduleAriaLabel: "Módulo",
     customSuffix: " · personalizado",

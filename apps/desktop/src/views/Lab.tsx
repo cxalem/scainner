@@ -3,6 +3,7 @@ import type { UdsHit } from "@scainner/core";
 import { useUdsModules } from "@/features/lab/queries";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";
+import { AutoDiscovery } from "@/views/lab/AutoDiscovery";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
 import { ProbeManager } from "@/views/lab/ProbeManager";
 import { RangeScanner } from "@/views/lab/RangeScanner";
@@ -13,7 +14,7 @@ import { useT } from "@/i18n";
 /// safety rail (ConfirmWrite modal, confirmed flag, write history).
 /// This component just owns the module selection shared across every card;
 /// each card is its own focused component under `views/lab/`.
-export function Lab({ connected }: { connected: boolean }) {
+export function Lab({ connected, vehicleId = null }: { connected: boolean; vehicleId?: number | null }) {
   const t = useT();
   const modulesQuery = useUdsModules();
   const modules = modulesQuery.data ?? [];
@@ -45,6 +46,8 @@ export function Lab({ connected }: { connected: boolean }) {
         </div>
       </div>
       <p className="text-sm text-muted-foreground">{t.lab.explainer}</p>
+
+      <AutoDiscovery connected={connected} vehicleId={vehicleId} />
 
       <ModuleManager />
       <DidReader module={mod} connected={connected} />

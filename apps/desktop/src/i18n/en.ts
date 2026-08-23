@@ -226,6 +226,26 @@ export const en: Dictionary = {
     },
   },
   lab: {
+    discovery: {
+      cardTitle: "Find this car's sensors",
+      explainer:
+        "Asks the car which modules it has and reads the data areas known for its brand. No addresses or ranges to fill in. Takes a few minutes, everything it finds is saved, and it only reads — nothing is written to the car.",
+      needsVehicle: "Name this vehicle first so its findings have somewhere to live.",
+      start: "Find sensors",
+      running: "Searching…",
+      phases: {
+        modules: "Looking for modules",
+        ident: "Identifying modules",
+        sweep: "Reading data areas",
+        done: "Done",
+      },
+      foundSoFar: (modules, dids) => `${modules} modules, ${dids} values so far`,
+      doneSummary: (modules, dids) => `Found ${modules} modules and ${dids} values. Saved for this car.`,
+      cancelledSummary: (modules, dids) => `Stopped. Kept ${modules} modules and ${dids} values found so far.`,
+      previousFindings: "Already found on this car",
+      unnamedModule: "Unnamed module",
+      didCount: (total, labeled) => (labeled > 0 ? `${total} values (${labeled} named)` : `${total} values`),
+    },
     title: "Lab",
     moduleAriaLabel: "Module",
     customSuffix: " · custom",
