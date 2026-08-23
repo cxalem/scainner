@@ -513,6 +513,28 @@ fn hex_string(data: &[u8]) -> String {
     data.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
 }
 
+/// Reconcile only probes discovery owns against the current knowledge map.
+/// This is independent of whether today's car scan happens to get a reply,
+/// so a transient timeout cannot delete a valid sensor. A probe is stale
+/// only when its module/DID no longer has a complete mapped formula.
+fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
+    let custom = custom_modules(db);
+    for probe in db
+        .list_probes(Some(vehicle_id))
+        .into_iter()
+        .filter(|p| p.vehicle_id == Some(vehicle_id) && p.origin == "discovery")
+    {
+        let still_known = resolve(&probe.module, &custom)
+            .and_then(|m| Some((uds_map::can11(&m.req)?, uds_map::can11(&m.resp)?)))
+            .and_then(|(req, resp)| uds_map::known_did(vin, req, resp, probe.did))
+            .is_some_and(|k| k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some());
+        if !still_known {
+            log::info!("discovery: removing stale auto probe {} / {:04X}", probe.module, probe.did);
+            db.delete_discovery_probe(probe.id);
+        }
+    }
+}
+
 pub fn discover(
     drv: &mut ElmDriver,
     db: &Db,
@@ -527,6 +549,8 @@ pub fn discover(
             "detail": detail, "modulesFound": modules, "didsFound": dids,
         }));
     };
+
+    prune_stale_discovery_probes(db, vehicle_id, vin.as_deref());
 
     // One-time bus setup; per-address bits happen in point_at.
     for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
@@ -643,16 +667,11 @@ pub fn discover(
                         // discovery on a known brand yields labeled
                         // sensors, not anonymous hex.
                         let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
-                        // A DID number is only meaningful together with
-                        // the ECU that answered it. The map does not yet
-                        // carry a machine-readable module constraint for
-                        // every known DID, so payload shape is the minimum
-                        // honest validation we can enforce here: never
-                        // label or promote a formula that cannot even read
-                        // the bytes this ECU returned. This catches, for
-                        // example, PSA D410 answering with one byte on the
-                        // engine/ABS/EPS while the documented EV-battery
-                        // formula requires two bytes on 6B4/694.
+                        // Module-aware lookup above is the primary guard;
+                        // payload shape is the independent second guard.
+                        // Never label or promote a formula that cannot
+                        // read the bytes this ECU returned, even if the
+                        // map's address binding itself is correct.
                         let known = known.filter(|k| match (k.offset, k.len) {
                             (Some(offset), Some(len)) => (offset as usize)
                                 .checked_add(len as usize)
