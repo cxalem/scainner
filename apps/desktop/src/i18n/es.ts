@@ -351,6 +351,8 @@ export const es: Dictionary = {
       scanningChunk: (from, to, hitsSoFar) => `escaneando ${from}–${to}… (${hitsSoFar} encontrados hasta ahora)`,
       scanDone: (n) =>
         `listo: ${n} DID respondieron. Aviso: los escaneos pueden dejar avisos temporales de "pérdida de comunicación" en el salpicadero; un ciclo de contacto los borra (ver Averías del módulo más abajo).`,
+      engineStarted: (did, hitsSoFar) =>
+        `Detenido de forma segura en ${did}: parece que el motor ha arrancado. Los ${hitsSoFar} resultados anteriores siguen disponibles.`,
       checkingProgress: (did, current, total) => `comprobando ${did}… ${current}/${total} en este bloque`,
       noAnswersYetNote: " — todavía sin respuestas; algunos módulos se quedan callados en todo un rango, es normal",
       probeAction: "→ sonda",

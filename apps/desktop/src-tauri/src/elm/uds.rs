@@ -350,6 +350,9 @@ pub fn scan_range(
     };
     let to = to.min(from.saturating_add(255));
     log::debug!("scan clamped to {from:04X}-{to:04X} ({} DIDs)", to - from + 1);
+    // A manual range scan holds the ECU in the same diagnostic session as
+    // automatic discovery, so it needs the same engine-start protection.
+    let baseline_voltage = read_voltage(drv);
     if let Err(e) = setup(drv, &m) {
         log::warn!("scan setup failed: {e}");
         return Err(e.to_string());
@@ -371,6 +374,16 @@ pub fn scan_range(
             log::debug!("scan cancelled at DID {did:04X}, {} hits kept", hits.len());
             teardown(drv);
             return Err(format!("cancelled at DID {did:04X}; {} hits kept", hits.len()));
+        }
+        if i % 20 == 19
+            && matches!(
+                (baseline_voltage, read_voltage(drv)),
+                (Some(base), Some(now)) if engine_likely_started(now, base)
+            )
+        {
+            log::warn!("scan auto-stopped at DID {did:04X}: engine start detected");
+            teardown(drv);
+            return Err(format!("engine_started:{did:04X}:{}", hits.len()));
         }
         if i % 40 == 39 {
             tester_present(drv);
@@ -534,9 +547,18 @@ fn hex_string(data: &[u8]) -> String {
 /// regardless of the scan's current UDS addressing/session state, which
 /// is exactly why it's the cheap way to notice the engine started mid-scan
 /// without disturbing the scan itself.
+fn parse_voltage_response(raw: &str) -> Option<f64> {
+    // `cmd` returns the complete ELM frame, normally `12.6V\r\r>`. Parsing
+    // that string directly left the CR between the value and prompt, so the
+    // engine-start safety guard silently returned None on a real adapter.
+    parser::clean_response(raw)
+        .first()
+        .and_then(|line| parser::decode_voltage(line))
+}
+
 fn read_voltage(drv: &mut ElmDriver) -> Option<f64> {
     let raw = drv.cmd("ATRV", Duration::from_millis(400)).ok()?;
-    raw.trim().trim_end_matches('>').trim().trim_end_matches('V').trim().parse::<f64>().ok()
+    parse_voltage_response(&raw)
 }
 
 /// True once voltage climbs enough above THIS scan's own starting
@@ -1008,6 +1030,12 @@ mod tests {
         // Below the absolute floor, even a big relative jump from a very
         // low baseline (near-dead battery) must not read as "running."
         assert!(!engine_likely_started(13.0, 11.0));
+    }
+
+    #[test]
+    fn voltage_safety_parses_a_complete_elm_frame() {
+        assert_eq!(parse_voltage_response("12.6V\r\r>"), Some(12.6));
+        assert_eq!(parse_voltage_response("14.1v\r>"), Some(14.1));
     }
 
     #[test]

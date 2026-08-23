@@ -67,8 +67,15 @@ export function RangeScanner({
       // A cancel surfaces here too (backend returns it as an error carrying
       // the partial count) — hits already pushed from completed chunks stay
       // on screen either way.
-      setProgress(String(e));
-      setError(String(e).startsWith("cancelled") ? null : String(e));
+      const message = String(e instanceof Error ? e.message : e);
+      const engineStop = message.match(/engine_started:([0-9A-Fa-f]{4}):(\d+)/);
+      if (engineStop) {
+        setProgress(t.lab.rangeScanner.engineStarted(hex4(parseInt(engineStop[1], 16)), Number(engineStop[2])));
+        setError(null);
+      } else {
+        setProgress(message);
+        setError(message.includes("cancelled") ? null : message);
+      }
     } finally {
       setBusy(false);
       setLiveProgress(null);

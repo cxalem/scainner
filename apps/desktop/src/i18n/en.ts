@@ -342,6 +342,8 @@ export const en: Dictionary = {
       scanningChunk: (from, to, hitsSoFar) => `scanning ${from}–${to}… (${hitsSoFar} hits so far)`,
       scanDone: (n) =>
         `done — ${n} DIDs answered. Heads-up: scans can leave temporary "lost communication" warnings on the dashboard; an ignition cycle clears them (see Module faults below).`,
+      engineStarted: (did, hitsSoFar) =>
+        `Stopped safely at ${did}: the engine appears to have started. ${hitsSoFar} earlier hits remain available.`,
       checkingProgress: (did, current, total) => `checking ${did}… ${current}/${total} in this chunk`,
       noAnswersYetNote: " — no answers yet; some modules stay silent for a whole range, that's normal",
       probeAction: "→ probe",
