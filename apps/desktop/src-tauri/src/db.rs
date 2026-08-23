@@ -847,8 +847,8 @@ impl Db {
             Some(id) => {
                 let _ = conn.execute(
                     "UPDATE discovered_dids SET raw_sample = ?1, byte_length = ?2,
-                     label = COALESCE(?3, label),
-                     confidence = CASE WHEN ?3 IS NOT NULL THEN 'confirmed' ELSE confidence END
+                     label = ?3,
+                     confidence = CASE WHEN ?3 IS NOT NULL THEN 'confirmed' ELSE 'unlabeled' END
                      WHERE id = ?4",
                     params![raw_sample, byte_length, label, id],
                 );
@@ -1610,6 +1610,21 @@ mod tests {
         assert_eq!(probes.len(), 1);
         assert_eq!(probes[0].label, "Battery voltage (refined)");
         assert_eq!(probes[0].scale, 0.02);
+    }
+
+    #[test]
+    fn rediscovery_clears_a_label_the_current_map_no_longer_supports() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module = db.upsert_discovered_module(citroen, "6A8/688", Some("Engine ECU"));
+        db.upsert_discovered_did(module, 0xD410, "20", 1, Some("Incorrect battery SOC"));
+        db.upsert_discovered_did(module, 0xD410, "21", 1, None);
+
+        let dids = db.discovered_dids(module);
+        assert_eq!(dids.len(), 1);
+        assert_eq!(dids[0].raw_sample.as_deref(), Some("21"));
+        assert_eq!(dids[0].label, None);
+        assert_eq!(dids[0].confidence.as_deref(), Some("unlabeled"));
     }
 
     #[test]
