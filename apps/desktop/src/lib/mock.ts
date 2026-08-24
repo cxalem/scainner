@@ -231,6 +231,14 @@ let demoFaults: { stored: string[]; pending: string[]; permanent: string[] } = {
 };
 let nextScanId = 7;
 
+type MockDiagnosticCase = {
+  id: number; cloud_id: string; vehicle_id: number; reference: string;
+  status: "open" | "in_progress" | "waiting" | "completed" | "cancelled";
+  complaint: string; odometer_km: number | null; assigned_to: string | null;
+  opened_at: string; updated_at: string; closed_at: string | null;
+};
+const DIAGNOSTIC_CASES: MockDiagnosticCase[] = [];
+
 // ---------- write safety rail (mirrors the backend's writes_log) ----------
 
 // Module faults for the Lab's ModuleFaults card, stateful like demoFaults:
@@ -348,6 +356,26 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       return ALL_SENSORS as T;
     case "dtc_history":
       return DTC_HISTORY as T;
+    case "diagnostic_cases":
+      return DIAGNOSTIC_CASES.filter((item) => args?.vehicleId == null || item.vehicle_id === Number(args.vehicleId)) as T;
+    case "create_diagnostic_case": {
+      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      const item: MockDiagnosticCase = {
+        id: DIAGNOSTIC_CASES.length + 1,
+        cloud_id: crypto.randomUUID(),
+        vehicle_id: Number(args?.vehicleId),
+        reference: `JOB-${String(DIAGNOSTIC_CASES.length + 1).padStart(4, "0")}`,
+        status: "open",
+        complaint: String(args?.complaint ?? ""),
+        odometer_km: args?.odometerKm == null ? null : Number(args.odometerKm),
+        assigned_to: args?.assignedTo == null ? null : String(args.assignedTo),
+        opened_at: now,
+        updated_at: now,
+        closed_at: null,
+      };
+      DIAGNOSTIC_CASES.unshift(item);
+      return item as T;
+    }
     case "scan_dtcs": {
       await delay(600);
       const mil = demoFaults.stored.length > 0;

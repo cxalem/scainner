@@ -46,7 +46,10 @@ pub enum ClearError {
 pub fn clear_and_verify(drv: &mut ElmDriver) -> Result<ObdClearOutcome, ClearError> {
     let before = scan_dtcs(drv).map_err(ClearError::BeforeScanFailed)?;
     if let Err(e) = drv.cmd("04", Duration::from_secs(10)) {
-        return Err(ClearError::ClearFailed { before, error: e.to_string() });
+        return Err(ClearError::ClearFailed {
+            before,
+            error: e.to_string(),
+        });
     }
     match scan_dtcs(drv) {
         Ok(after) => Ok(ObdClearOutcome { before, after }),
@@ -71,8 +74,15 @@ pub struct SensorReading {
 }
 
 /// Send a mode command, strip the echoed prefix, return the raw payload bytes.
-pub fn query(drv: &mut ElmDriver, cmd: &str, prefix: &str, timeout_s: u64) -> Result<Vec<u8>, String> {
-    let raw = drv.cmd(cmd, Duration::from_secs(timeout_s)).map_err(|e| e.to_string())?;
+pub fn query(
+    drv: &mut ElmDriver,
+    cmd: &str,
+    prefix: &str,
+    timeout_s: u64,
+) -> Result<Vec<u8>, String> {
+    let raw = drv
+        .cmd(cmd, Duration::from_secs(timeout_s))
+        .map_err(|e| e.to_string())?;
     let lines = parser::clean_response(&raw);
     Ok(parser::payload_bytes(&lines, prefix))
 }
@@ -85,12 +95,17 @@ pub fn scan_dtcs(drv: &mut ElmDriver) -> Result<DtcResult, String> {
     let permanent = query(drv, "0A", "4A", 15)
         .map(|p| parser::decode_dtcs(&p))
         .unwrap_or_default(); // NO DATA is fine
-    let voltage = drv
-        .cmd("ATRV", Duration::from_secs(3))
-        .ok()
-        .and_then(|r| parser::clean_response(&r).first().and_then(|l| parser::decode_voltage(l)));
+    let voltage = drv.cmd("ATRV", Duration::from_secs(3)).ok().and_then(|r| {
+        parser::clean_response(&r)
+            .first()
+            .and_then(|l| parser::decode_voltage(l))
+    });
     // Freeze frame: only meaningful when something is actually stored.
-    let freeze = if stored.is_empty() { None } else { read_freeze_frame(drv) };
+    let freeze = if stored.is_empty() {
+        None
+    } else {
+        read_freeze_frame(drv)
+    };
     Ok(DtcResult {
         mil_on: mil.mil_on,
         dtc_count: mil.dtc_count,
@@ -125,14 +140,23 @@ fn read_freeze_frame(drv: &mut ElmDriver) -> Option<serde_json::Value> {
             }
         }
     }
-    if out.is_empty() { None } else { Some(serde_json::Value::Object(out)) }
+    if out.is_empty() {
+        None
+    } else {
+        Some(serde_json::Value::Object(out))
+    }
 }
 
 pub fn read_ecu_info(drv: &mut ElmDriver) -> Result<EcuInfo, String> {
     let vin_payload = query(drv, "0902", "49 02 01", 15)?;
     let vin = parser::decode_vin(&vin_payload);
-    let protocol_raw = drv.cmd("ATDPN", Duration::from_secs(3)).map_err(|e| e.to_string())?;
-    let pn = parser::clean_response(&protocol_raw).first().cloned().unwrap_or_default();
+    let protocol_raw = drv
+        .cmd("ATDPN", Duration::from_secs(3))
+        .map_err(|e| e.to_string())?;
+    let pn = parser::clean_response(&protocol_raw)
+        .first()
+        .cloned()
+        .unwrap_or_default();
     // Full standard ELM327 protocol-number table (ATDPN's numeric reply,
     // optionally 'A'-prefixed when auto-detected), not just the two CAN
     // variants this was originally written and tested against. A ~2000
@@ -155,7 +179,11 @@ pub fn read_ecu_info(drv: &mut ElmDriver) -> Result<EcuInfo, String> {
         "C" => "USER2 CAN 11-bit".to_string(),
         other => format!("protocol {other}"),
     };
-    Ok(EcuInfo { vin, protocol, elm_version: "ELM327".into() })
+    Ok(EcuInfo {
+        vin,
+        protocol,
+        elm_version: "ELM327".into(),
+    })
 }
 
 /// Mode 0101 bytes C/D: which noncontinuous monitors are supported and complete.

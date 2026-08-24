@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "generated": "2026-08-23",
-  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. Editing this file needs no code change: the discovery engine reads every per-brand value from here. v3 (2026-08-23) verification+extension pass: re-derived high-confidence PSA/VAG/BMW/Ford/Hyundai/Nissan entries against primary sources directly (found and fixed a Nissan module misattribution, a BMW target-byte error and a wrong DID formula, a VAG module mix-up), fixed a live Renault resp_offset bug for EVC/DCM/BCB/PEB, added newer-model coverage (Mercedes EQB, VAG MEB battery DIDs, Volvo/Polestar CMA platform, Toyota 5th-gen THS), and confirmed Tesla and Mitsubishi are genuinely not OBD-port-UDS-reachable with the specific mechanism documented rather than left a mystery.",
+  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, which diagnostic session an exact module may use during automatic discovery, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. Editing this file needs no code change: the discovery engine reads every per-brand value from here. v4 (2026-08-24) adds opt-in, exact-module discovery session policies; missing policies are default-session only. v3 (2026-08-23) verification+extension pass: re-derived high-confidence PSA/VAG/BMW/Ford/Hyundai/Nissan entries against primary sources directly (found and fixed a Nissan module misattribution, a BMW target-byte error and a wrong DID formula, a VAG module mix-up), fixed a live Renault resp_offset bug for EVC/DCM/BCB/PEB, added newer-model coverage (Mercedes EQB, VAG MEB battery DIDs, Volvo/Polestar CMA platform, Toyota 5th-gen THS), and confirmed Tesla and Mitsubishi are genuinely not OBD-port-UDS-reachable with the specific mechanism documented rather than left a mystery.",
   "standard": {
     "note": "ISO 14229-1 identification block, genuinely universal, the one part of UDS as standard as OBD PIDs. Kept here rather than in code so every value the engine uses lives in one queryable place.",
     "ident_dids": [
@@ -70,24 +70,28 @@
           "req": "6A8",
           "resp": "688",
           "name": "Engine ECU (INJ)",
+          "discovery_session": "default_then_extended",
           "confidence": "confirmed"
         },
         {
           "req": "6AD",
           "resp": "68D",
           "name": "ABS / ESP",
+          "discovery_session": "default_then_extended",
           "confidence": "confirmed"
         },
         {
           "req": "752",
           "resp": "652",
           "name": "BSI (body control / gateway)",
+          "discovery_session": "default_then_extended",
           "confidence": "high"
         },
         {
           "req": "75F",
           "resp": "65F",
           "name": "Instrument cluster (COMBINE)",
+          "discovery_session": "default_then_extended",
           "confidence": "high"
         },
         {

@@ -22,7 +22,25 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 5;
+const SCHEMA_VERSION: i64 = 6;
+
+/// A workshop repair order / diagnostic investigation. Cases are deliberately
+/// separate from connections: one job can span several adapter sessions,
+/// scans, technicians, and a before/after verification cycle.
+#[derive(Serialize, Clone)]
+pub struct DiagnosticCase {
+    pub id: i64,
+    pub cloud_id: String,
+    pub vehicle_id: i64,
+    pub reference: String,
+    pub status: String,
+    pub complaint: String,
+    pub odometer_km: Option<i64>,
+    pub assigned_to: Option<String>,
+    pub opened_at: String,
+    pub updated_at: String,
+    pub closed_at: Option<String>,
+}
 
 #[derive(Serialize, Clone)]
 pub struct DtcScan {
@@ -89,10 +107,18 @@ pub struct UdsProbe {
     pub origin: String,
 }
 
-fn manual_origin() -> String { "manual".into() }
-fn one() -> usize { 1 }
-fn onef() -> f64 { 1.0 }
-fn yes() -> bool { true }
+fn manual_origin() -> String {
+    "manual".into()
+}
+fn one() -> usize {
+    1
+}
+fn onef() -> f64 {
+    1.0
+}
+fn yes() -> bool {
+    true
+}
 
 /// One row of the write audit trail: everything the app has ever changed on
 /// the car, with the state read before and after. See `docs/workflows/
@@ -324,6 +350,20 @@ pub struct SyncDiscoveredModule {
 }
 
 #[derive(Serialize)]
+pub struct SyncDiagnosticCase {
+    pub cloud_id: String,
+    pub vehicle_cloud_id: String,
+    pub reference: String,
+    pub status: String,
+    pub complaint: String,
+    pub odometer_km: Option<i64>,
+    pub assigned_to: Option<String>,
+    pub opened_at: String,
+    pub updated_at: String,
+    pub closed_at: Option<String>,
+}
+
+#[derive(Serialize)]
 pub struct SyncBatch {
     pub vehicles: Vec<SyncVehicle>,
     pub connections: Vec<SyncConnection>,
@@ -332,6 +372,7 @@ pub struct SyncBatch {
     pub readings: Vec<SyncReading>,
     pub probes: Vec<SyncProbe>,
     pub discovered_modules: Vec<SyncDiscoveredModule>,
+    pub diagnostic_cases: Vec<SyncDiagnosticCase>,
     /// Highest readings.id included — the next watermark on success.
     pub last_reading_id: i64,
 }
@@ -503,6 +544,25 @@ impl Db {
                 value TEXT NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
+            CREATE TABLE IF NOT EXISTS diagnostic_cases (
+                id INTEGER PRIMARY KEY,
+                cloud_id TEXT NOT NULL UNIQUE,
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                reference TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open'
+                    CHECK (status IN ('open','in_progress','waiting','completed','cancelled')),
+                complaint TEXT NOT NULL,
+                odometer_km INTEGER CHECK (odometer_km IS NULL OR odometer_km >= 0),
+                assigned_to TEXT,
+                opened_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                closed_at TEXT,
+                UNIQUE(vehicle_id, reference)
+            );
+            CREATE INDEX IF NOT EXISTS idx_diagnostic_cases_status_updated
+                ON diagnostic_cases(status, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_diagnostic_cases_vehicle_updated
+                ON diagnostic_cases(vehicle_id, updated_at DESC);
             "#,
         )?;
         // v3 (cloud sync): client-generated uuids on every syncable row —
@@ -514,7 +574,10 @@ impl Db {
         let _ = conn.execute("ALTER TABLE dtc_scan_events ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE writes_log ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE uds_probes ADD COLUMN cloud_id TEXT", []);
-        let _ = conn.execute("ALTER TABLE discovered_modules ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute(
+            "ALTER TABLE discovered_modules ADD COLUMN cloud_id TEXT",
+            [],
+        );
         // v4: provenance makes discovery-owned probes safely
         // reconcilable. Existing rows are conservatively manual because
         // older schemas cannot prove how they were created.
@@ -541,9 +604,17 @@ impl Db {
             "#,
         )?;
         // Backfill rows created on v2 before cloud_id existed.
-        for table in ["vehicles", "connections", "dtc_scan_events", "writes_log", "uds_probes", "discovered_modules"] {
+        for table in [
+            "vehicles",
+            "connections",
+            "dtc_scan_events",
+            "writes_log",
+            "uds_probes",
+            "discovered_modules",
+        ] {
             let ids: Vec<i64> = {
-                let mut stmt = conn.prepare(&format!("SELECT id FROM {table} WHERE cloud_id IS NULL"))?;
+                let mut stmt =
+                    conn.prepare(&format!("SELECT id FROM {table} WHERE cloud_id IS NULL"))?;
                 let rows = stmt.query_map([], |r| r.get(0))?;
                 rows.filter_map(Result::ok).collect()
             };
@@ -568,7 +639,11 @@ impl Db {
     /// `first_connected_at` on creation. Returns (vehicle_id, created).
     pub fn ensure_vehicle(&self, vin: &str) -> (i64, bool) {
         let conn = self.0.lock().unwrap();
-        if let Ok(id) = conn.query_row("SELECT id FROM vehicles WHERE vin = ?1", params![vin], |r| r.get(0)) {
+        if let Ok(id) = conn.query_row(
+            "SELECT id FROM vehicles WHERE vin = ?1",
+            params![vin],
+            |r| r.get(0),
+        ) {
             return (id, false);
         }
         conn.execute(
@@ -593,12 +668,20 @@ impl Db {
 
     pub fn set_vehicle_name(&self, vehicle_id: i64, name: &str) {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE vehicles SET display_name = ?2 WHERE id = ?1", params![vehicle_id, name]).ok();
+        conn.execute(
+            "UPDATE vehicles SET display_name = ?2 WHERE id = ?1",
+            params![vehicle_id, name],
+        )
+        .ok();
     }
 
     pub fn set_fuel_price(&self, vehicle_id: i64, price: f64) {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE vehicles SET fuel_price = ?2 WHERE id = ?1", params![vehicle_id, price]).ok();
+        conn.execute(
+            "UPDATE vehicles SET fuel_price = ?2 WHERE id = ?1",
+            params![vehicle_id, price],
+        )
+        .ok();
     }
 
     pub fn vehicle(&self, vehicle_id: i64) -> Option<Vehicle> {
@@ -635,11 +718,127 @@ impl Db {
             )
             .unwrap();
         stmt.query_map([], |r| {
-            Ok(VehicleListRow { id: r.get(0)?, vin: r.get(1)?, display_name: r.get(2)?, connections: r.get(3)? })
+            Ok(VehicleListRow {
+                id: r.get(0)?,
+                vin: r.get(1)?,
+                display_name: r.get(2)?,
+                connections: r.get(3)?,
+            })
         })
         .unwrap()
         .filter_map(Result::ok)
         .collect()
+    }
+
+    // ---------- workshop diagnostic cases ----------
+
+    pub fn create_diagnostic_case(
+        &self,
+        vehicle_id: i64,
+        complaint: &str,
+        odometer_km: Option<i64>,
+        assigned_to: Option<&str>,
+    ) -> rusqlite::Result<DiagnosticCase> {
+        let complaint = complaint.trim();
+        if complaint.is_empty() {
+            return Err(rusqlite::Error::InvalidParameterName(
+                "complaint must not be empty".into(),
+            ));
+        }
+        if odometer_km.is_some_and(|value| value < 0) {
+            return Err(rusqlite::Error::InvalidParameterName(
+                "odometer_km must be positive".into(),
+            ));
+        }
+
+        let conn = self.0.lock().unwrap();
+        // Human-readable inside one vehicle; the UUID remains the durable
+        // cloud identity. Numbering is allocated transactionally by SQLite.
+        let sequence: i64 = conn.query_row(
+            "SELECT COUNT(*) + 1 FROM diagnostic_cases WHERE vehicle_id = ?1",
+            params![vehicle_id],
+            |r| r.get(0),
+        )?;
+        let reference = format!("JOB-{sequence:04}");
+        let cloud_id = Self::new_cloud_id();
+        conn.execute(
+            "INSERT INTO diagnostic_cases
+                (cloud_id, vehicle_id, reference, complaint, odometer_km, assigned_to)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                cloud_id,
+                vehicle_id,
+                reference,
+                complaint,
+                odometer_km,
+                assigned_to.map(str::trim).filter(|s| !s.is_empty())
+            ],
+        )?;
+        Self::diagnostic_case_from_conn(&conn, conn.last_insert_rowid())
+    }
+
+    pub fn diagnostic_cases(&self, vehicle_id: Option<i64>) -> Vec<DiagnosticCase> {
+        let conn = self.0.lock().unwrap();
+        let sql = if vehicle_id.is_some() {
+            "SELECT id, cloud_id, vehicle_id, reference, status, complaint, odometer_km,
+                    assigned_to, opened_at, updated_at, closed_at
+             FROM diagnostic_cases WHERE vehicle_id = ?1 ORDER BY updated_at DESC, id DESC"
+        } else {
+            "SELECT id, cloud_id, vehicle_id, reference, status, complaint, odometer_km,
+                    assigned_to, opened_at, updated_at, closed_at
+             FROM diagnostic_cases ORDER BY updated_at DESC, id DESC"
+        };
+        let mut stmt = conn.prepare(sql).unwrap();
+        let map = |r: &rusqlite::Row<'_>| {
+            Ok(DiagnosticCase {
+                id: r.get(0)?,
+                cloud_id: r.get(1)?,
+                vehicle_id: r.get(2)?,
+                reference: r.get(3)?,
+                status: r.get(4)?,
+                complaint: r.get(5)?,
+                odometer_km: r.get(6)?,
+                assigned_to: r.get(7)?,
+                opened_at: r.get(8)?,
+                updated_at: r.get(9)?,
+                closed_at: r.get(10)?,
+            })
+        };
+        if let Some(id) = vehicle_id {
+            stmt.query_map(params![id], map)
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        } else {
+            stmt.query_map([], map)
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        }
+    }
+
+    fn diagnostic_case_from_conn(conn: &Connection, id: i64) -> rusqlite::Result<DiagnosticCase> {
+        conn.query_row(
+            "SELECT id, cloud_id, vehicle_id, reference, status, complaint, odometer_km,
+                    assigned_to, opened_at, updated_at, closed_at
+             FROM diagnostic_cases WHERE id = ?1",
+            params![id],
+            |r| {
+                Ok(DiagnosticCase {
+                    id: r.get(0)?,
+                    cloud_id: r.get(1)?,
+                    vehicle_id: r.get(2)?,
+                    reference: r.get(3)?,
+                    status: r.get(4)?,
+                    complaint: r.get(5)?,
+                    odometer_km: r.get(6)?,
+                    assigned_to: r.get(7)?,
+                    opened_at: r.get(8)?,
+                    updated_at: r.get(9)?,
+                    closed_at: r.get(10)?,
+                })
+            },
+        )
     }
 
     // ---------- connections ----------
@@ -656,12 +855,20 @@ impl Db {
 
     pub fn end_connection(&self, id: i64) {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE connections SET ended_at = datetime('now') WHERE id = ?1", params![id]).ok();
+        conn.execute(
+            "UPDATE connections SET ended_at = datetime('now') WHERE id = ?1",
+            params![id],
+        )
+        .ok();
     }
 
     pub fn set_connection_protocol(&self, id: i64, protocol: &str) {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE connections SET protocol = ?2 WHERE id = ?1", params![id, protocol]).ok();
+        conn.execute(
+            "UPDATE connections SET protocol = ?2 WHERE id = ?1",
+            params![id, protocol],
+        )
+        .ok();
     }
 
     /// Link a connection to its vehicle, back-stamping everything the
@@ -669,21 +876,43 @@ impl Db {
     /// the "name this car" flow claim the live data recorded before naming.
     pub fn link_connection_vehicle(&self, connection_id: i64, vehicle_id: i64) {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE connections SET vehicle_id = ?2 WHERE id = ?1", params![connection_id, vehicle_id]).ok();
-        conn.execute("UPDATE readings SET vehicle_id = ?2 WHERE connection_id = ?1", params![connection_id, vehicle_id]).ok();
-        conn.execute("UPDATE dtc_scan_events SET vehicle_id = ?2 WHERE connection_id = ?1", params![connection_id, vehicle_id]).ok();
+        conn.execute(
+            "UPDATE connections SET vehicle_id = ?2 WHERE id = ?1",
+            params![connection_id, vehicle_id],
+        )
+        .ok();
+        conn.execute(
+            "UPDATE readings SET vehicle_id = ?2 WHERE connection_id = ?1",
+            params![connection_id, vehicle_id],
+        )
+        .ok();
+        conn.execute(
+            "UPDATE dtc_scan_events SET vehicle_id = ?2 WHERE connection_id = ?1",
+            params![connection_id, vehicle_id],
+        )
+        .ok();
         conn.execute(
             "UPDATE dtc_codes SET vehicle_id = ?2
              WHERE scan_event_id IN (SELECT id FROM dtc_scan_events WHERE connection_id = ?1)",
             params![connection_id, vehicle_id],
         )
         .ok();
-        conn.execute("UPDATE writes_log SET vehicle_id = ?2 WHERE connection_id = ?1", params![connection_id, vehicle_id]).ok();
+        conn.execute(
+            "UPDATE writes_log SET vehicle_id = ?2 WHERE connection_id = ?1",
+            params![connection_id, vehicle_id],
+        )
+        .ok();
     }
 
     // ---------- recorded facts ----------
 
-    pub fn insert_reading(&self, connection_id: i64, vehicle_id: Option<i64>, key: &str, value: f64) {
+    pub fn insert_reading(
+        &self,
+        connection_id: i64,
+        vehicle_id: Option<i64>,
+        key: &str,
+        value: f64,
+    ) {
         let conn = self.0.lock().unwrap();
         conn.execute(
             "INSERT INTO readings (connection_id, vehicle_id, key, value) VALUES (?1, ?2, ?3, ?4)",
@@ -786,9 +1015,14 @@ impl Db {
                 ts: r.get(1)?,
                 module: r.get(2)?,
                 action: r.get(3)?,
-                params: serde_json::from_str(&r.get::<_, String>(4)?).unwrap_or(serde_json::json!({})),
-                before: r.get::<_, Option<String>>(5)?.and_then(|s| serde_json::from_str(&s).ok()),
-                after: r.get::<_, Option<String>>(6)?.and_then(|s| serde_json::from_str(&s).ok()),
+                params: serde_json::from_str(&r.get::<_, String>(4)?)
+                    .unwrap_or(serde_json::json!({})),
+                before: r
+                    .get::<_, Option<String>>(5)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
+                after: r
+                    .get::<_, Option<String>>(6)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
                 outcome: r.get(7)?,
                 error: r.get(8)?,
             })
@@ -827,7 +1061,9 @@ impl Db {
                 ts: r.get(1)?,
                 mil_on: r.get(2)?,
                 voltage: r.get(3)?,
-                freeze: r.get::<_, Option<String>>(4)?.and_then(|s| serde_json::from_str(&s).ok()),
+                freeze: r
+                    .get::<_, Option<String>>(4)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
                 stored: serde_json::from_str(&r.get::<_, String>(5)?).unwrap_or_default(),
                 pending: serde_json::from_str(&r.get::<_, String>(6)?).unwrap_or_default(),
                 permanent: serde_json::from_str(&r.get::<_, String>(7)?).unwrap_or_default(),
@@ -865,7 +1101,12 @@ impl Db {
     // Upserts, not inserts: rediscovering the same car refreshes what it
     // finds rather than piling up duplicates — a pass is idempotent.
 
-    pub fn upsert_discovered_module(&self, vehicle_id: i64, address: &str, name: Option<&str>) -> i64 {
+    pub fn upsert_discovered_module(
+        &self,
+        vehicle_id: i64,
+        address: &str,
+        name: Option<&str>,
+    ) -> i64 {
         let conn = self.0.lock().unwrap();
         let existing: Option<i64> = conn
             .query_row(
@@ -878,7 +1119,10 @@ impl Db {
             Some(id) => {
                 // Only ever overwrite a stored name with a real one.
                 if name.is_some() {
-                    let _ = conn.execute("UPDATE discovered_modules SET module_name = ?1 WHERE id = ?2", params![name, id]);
+                    let _ = conn.execute(
+                        "UPDATE discovered_modules SET module_name = ?1 WHERE id = ?2",
+                        params![name, id],
+                    );
                 }
                 id
             }
@@ -893,11 +1137,22 @@ impl Db {
         }
     }
 
-    pub fn upsert_discovered_did(&self, module_id: i64, did: u16, raw_sample: &str, byte_length: i64, label: Option<&str>) {
+    pub fn upsert_discovered_did(
+        &self,
+        module_id: i64,
+        did: u16,
+        raw_sample: &str,
+        byte_length: i64,
+        label: Option<&str>,
+    ) {
         let conn = self.0.lock().unwrap();
         // A label from the knowledge map counts as confirmed; an unlabeled
         // hit stays honestly "unlabeled" until something identifies it.
-        let confidence = if label.is_some() { "confirmed" } else { "unlabeled" };
+        let confidence = if label.is_some() {
+            "confirmed"
+        } else {
+            "unlabeled"
+        };
         let existing: Option<i64> = conn
             .query_row(
                 "SELECT id FROM discovered_dids WHERE module_id = ?1 AND did = ?2",
@@ -966,10 +1221,12 @@ impl Db {
                  WHERE m.vehicle_id = ?1 ORDER BY m.module_address, d.did",
             )
             .unwrap();
-        stmt.query_map(params![vehicle_id], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as u16)))
-            .unwrap()
-            .filter_map(Result::ok)
-            .collect()
+        stmt.query_map(params![vehicle_id], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as u16))
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
     }
 
     pub fn discovered_dids(&self, module_id: i64) -> Vec<DiscoveredDidRow> {
@@ -1086,7 +1343,8 @@ impl Db {
 
     pub fn delete_probe(&self, id: i64) {
         let conn = self.0.lock().unwrap();
-        conn.execute("DELETE FROM uds_probes WHERE id = ?1", params![id]).ok();
+        conn.execute("DELETE FROM uds_probes WHERE id = ?1", params![id])
+            .ok();
     }
 
     /// Removes one probe only when discovery owns it. Used when the
@@ -1095,14 +1353,21 @@ impl Db {
         self.0
             .lock()
             .unwrap()
-            .execute("DELETE FROM uds_probes WHERE id = ?1 AND origin = 'discovery'", params![id])
+            .execute(
+                "DELETE FROM uds_probes WHERE id = ?1 AND origin = 'discovery'",
+                params![id],
+            )
             .map(|n| n > 0)
             .unwrap_or(false)
     }
 
     pub fn toggle_probe(&self, id: i64, enabled: bool) {
         let conn = self.0.lock().unwrap();
-        conn.execute("UPDATE uds_probes SET enabled = ?2 WHERE id = ?1", params![id, enabled]).ok();
+        conn.execute(
+            "UPDATE uds_probes SET enabled = ?2 WHERE id = ?1",
+            params![id, enabled],
+        )
+        .ok();
     }
 
     /// Custom UDS modules (non-PSA brands, or extra PSA modules the built-in
@@ -1110,7 +1375,9 @@ impl Db {
     /// so this module stays free of a dependency on `elm::uds`.
     pub fn list_uds_modules(&self) -> Vec<(String, String, String, String)> {
         let conn = self.0.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT key, label, req, resp FROM uds_modules ORDER BY id").unwrap();
+        let mut stmt = conn
+            .prepare("SELECT key, label, req, resp FROM uds_modules ORDER BY id")
+            .unwrap();
         stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
             .unwrap()
             .filter_map(Result::ok)
@@ -1119,7 +1386,13 @@ impl Db {
 
     /// Returns Err if the key collides with a built-in or an existing custom
     /// module (UNIQUE constraint) — surfaced to the UI as a friendly message.
-    pub fn add_uds_module(&self, key: &str, label: &str, req: &str, resp: &str) -> Result<(), String> {
+    pub fn add_uds_module(
+        &self,
+        key: &str,
+        label: &str,
+        req: &str,
+        resp: &str,
+    ) -> Result<(), String> {
         let conn = self.0.lock().unwrap();
         conn.execute(
             "INSERT INTO uds_modules (key, label, req, resp) VALUES (?1, ?2, ?3, ?4)",
@@ -1131,15 +1404,20 @@ impl Db {
 
     pub fn delete_uds_module(&self, key: &str) {
         let conn = self.0.lock().unwrap();
-        conn.execute("DELETE FROM uds_modules WHERE key = ?1", params![key]).ok();
+        conn.execute("DELETE FROM uds_modules WHERE key = ?1", params![key])
+            .ok();
     }
 
     // ---------- app settings (app-level, not car-level) ----------
 
     pub fn setting_get(&self, key: &str) -> Option<String> {
         let conn = self.0.lock().unwrap();
-        conn.query_row("SELECT value FROM app_settings WHERE key = ?1", params![key], |r| r.get(0))
-            .ok()
+        conn.query_row(
+            "SELECT value FROM app_settings WHERE key = ?1",
+            params![key],
+            |r| r.get(0),
+        )
+        .ok()
     }
 
     pub fn setting_set(&self, key: &str, value: &str) {
@@ -1233,7 +1511,12 @@ impl Db {
                 .unwrap();
             let rows = stmt
                 .query_map(params![vehicle_id], |r| {
-                    Ok(DailyVoltage { day: r.get(0)?, min: r.get(1)?, avg: r.get(2)?, max: r.get(3)? })
+                    Ok(DailyVoltage {
+                        day: r.get(0)?,
+                        min: r.get(1)?,
+                        avg: r.get(2)?,
+                        max: r.get(3)?,
+                    })
                 })
                 .unwrap();
             daily_voltage.extend(rows.filter_map(Result::ok));
@@ -1250,7 +1533,13 @@ impl Db {
                 .unwrap();
             let rows = stmt
                 .query_map(params![vehicle_id, hours], |r| {
-                    Ok(KeyStats { key: r.get(0)?, n: r.get(1)?, min: r.get(2)?, avg: r.get(3)?, max: r.get(4)? })
+                    Ok(KeyStats {
+                        key: r.get(0)?,
+                        n: r.get(1)?,
+                        min: r.get(2)?,
+                        avg: r.get(3)?,
+                        max: r.get(4)?,
+                    })
                 })
                 .unwrap();
             rows.filter_map(Result::ok).collect()
@@ -1261,9 +1550,15 @@ impl Db {
         // ---- Plain-language insights (last 7 days; falls back to all-time) ----
         let window_hours = 24.0 * 7.0;
         let pick = |set: &Vec<KeyStats>, key: &str| -> Option<(f64, f64, f64, i64)> {
-            set.iter().find(|s| s.key == key).map(|s| (s.min, s.avg, s.max, s.n))
+            set.iter()
+                .find(|s| s.key == key)
+                .map(|s| (s.min, s.avg, s.max, s.n))
         };
-        let source = if stats_7d.is_empty() { &stats_all } else { &stats_7d };
+        let source = if stats_7d.is_empty() {
+            &stats_all
+        } else {
+            &stats_7d
+        };
         // Engine hours inside the window ≈ sum of connections started in it.
         let engine_minutes_window: f64 = conn
             .query_row(
@@ -1273,7 +1568,11 @@ impl Db {
                 |r| r.get(0),
             )
             .unwrap_or(0.0);
-        let engine_hours = if stats_7d.is_empty() { engine_minutes / 60.0 } else { engine_minutes_window / 60.0 };
+        let engine_hours = if stats_7d.is_empty() {
+            engine_minutes / 60.0
+        } else {
+            engine_minutes_window / 60.0
+        };
         let fuel = pick(source, "fuel_rate");
         let speed = pick(source, "speed");
         let fuel_lph_avg = fuel.map(|f| f.1);
@@ -1297,7 +1596,11 @@ impl Db {
             )
             .ok();
         let insights = Insights {
-            window_hours: if stats_7d.is_empty() { 24.0 * 3650.0 } else { window_hours },
+            window_hours: if stats_7d.is_empty() {
+                24.0 * 3650.0
+            } else {
+                window_hours
+            },
             engine_hours,
             fuel_lph_avg,
             speed_avg,
@@ -1377,6 +1680,31 @@ impl Db {
             });
             rows.unwrap().filter_map(Result::ok).collect()
         };
+        let diagnostic_cases = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT d.cloud_id, v.cloud_id, d.reference, d.status, d.complaint,
+                            d.odometer_km, d.assigned_to, d.opened_at, d.updated_at, d.closed_at
+                     FROM diagnostic_cases d JOIN vehicles v ON v.id = d.vehicle_id
+                     WHERE v.cloud_id IS NOT NULL",
+                )
+                .unwrap();
+            let rows = stmt.query_map([], |r| {
+                Ok(SyncDiagnosticCase {
+                    cloud_id: r.get(0)?,
+                    vehicle_cloud_id: r.get(1)?,
+                    reference: r.get(2)?,
+                    status: r.get(3)?,
+                    complaint: r.get(4)?,
+                    odometer_km: r.get(5)?,
+                    assigned_to: r.get(6)?,
+                    opened_at: r.get(7)?,
+                    updated_at: r.get(8)?,
+                    closed_at: r.get(9)?,
+                })
+            });
+            rows.unwrap().filter_map(Result::ok).collect()
+        };
         let mut scan_events: Vec<SyncScanEvent> = {
             let mut stmt = conn
                 .prepare(
@@ -1410,7 +1738,12 @@ impl Db {
                         .prepare("SELECT code, status FROM dtc_codes WHERE scan_event_id = ?1")
                         .unwrap();
                     let codes = stmt
-                        .query_map(params![event_id], |r| Ok(SyncCode { code: r.get(0)?, status: r.get(1)? }))
+                        .query_map(params![event_id], |r| {
+                            Ok(SyncCode {
+                                code: r.get(0)?,
+                                status: r.get(1)?,
+                            })
+                        })
                         .unwrap()
                         .filter_map(Result::ok)
                         .collect();
@@ -1485,10 +1818,18 @@ impl Db {
                 .unwrap();
             stmt.query_map([], |r| {
                 Ok(SyncProbe {
-                    cloud_id: r.get(0)?, vehicle_cloud_id: r.get(1)?, module: r.get(2)?,
-                    did: r.get::<_, i64>(3)? as u16, label: r.get(4)?, unit: r.get(5)?,
-                    offset: r.get::<_, i64>(6)? as usize, len: r.get::<_, i64>(7)? as usize,
-                    scale: r.get(8)?, bias: r.get(9)?, enabled: r.get(10)?, origin: r.get(11)?,
+                    cloud_id: r.get(0)?,
+                    vehicle_cloud_id: r.get(1)?,
+                    module: r.get(2)?,
+                    did: r.get::<_, i64>(3)? as u16,
+                    label: r.get(4)?,
+                    unit: r.get(5)?,
+                    offset: r.get::<_, i64>(6)? as usize,
+                    len: r.get::<_, i64>(7)? as usize,
+                    scale: r.get(8)?,
+                    bias: r.get(9)?,
+                    enabled: r.get(10)?,
+                    origin: r.get(11)?,
                 })
             })
             .unwrap()
@@ -1504,26 +1845,59 @@ impl Db {
                 )
                 .unwrap();
             let rows: Vec<(i64, SyncDiscoveredModule)> = stmt
-                .query_map([], |r| Ok((r.get(0)?, SyncDiscoveredModule {
-                    cloud_id: r.get(1)?, vehicle_cloud_id: r.get(2)?, module_address: r.get(3)?,
-                    module_name: r.get(4)?, discovered_at: r.get(5)?, dids: Vec::new(),
-                })))
+                .query_map([], |r| {
+                    Ok((
+                        r.get(0)?,
+                        SyncDiscoveredModule {
+                            cloud_id: r.get(1)?,
+                            vehicle_cloud_id: r.get(2)?,
+                            module_address: r.get(3)?,
+                            module_name: r.get(4)?,
+                            discovered_at: r.get(5)?,
+                            dids: Vec::new(),
+                        },
+                    ))
+                })
                 .unwrap()
                 .filter_map(Result::ok)
                 .collect();
-            rows.into_iter().map(|(module_id, mut module)| {
-                let mut did_stmt = conn.prepare(
-                    "SELECT did, raw_sample, byte_length, label, confidence, first_seen_at
-                     FROM discovered_dids WHERE module_id = ?1 ORDER BY did"
-                ).unwrap();
-                module.dids = did_stmt.query_map(params![module_id], |r| Ok(SyncDiscoveredDid {
-                    did: r.get::<_, i64>(0)? as u16, raw_sample: r.get(1)?, byte_length: r.get(2)?,
-                    label: r.get(3)?, confidence: r.get(4)?, first_seen_at: r.get(5)?,
-                })).unwrap().filter_map(Result::ok).collect();
-                module
-            }).collect()
+            rows.into_iter()
+                .map(|(module_id, mut module)| {
+                    let mut did_stmt = conn
+                        .prepare(
+                            "SELECT did, raw_sample, byte_length, label, confidence, first_seen_at
+                     FROM discovered_dids WHERE module_id = ?1 ORDER BY did",
+                        )
+                        .unwrap();
+                    module.dids = did_stmt
+                        .query_map(params![module_id], |r| {
+                            Ok(SyncDiscoveredDid {
+                                did: r.get::<_, i64>(0)? as u16,
+                                raw_sample: r.get(1)?,
+                                byte_length: r.get(2)?,
+                                label: r.get(3)?,
+                                confidence: r.get(4)?,
+                                first_seen_at: r.get(5)?,
+                            })
+                        })
+                        .unwrap()
+                        .filter_map(Result::ok)
+                        .collect();
+                    module
+                })
+                .collect()
         };
-        SyncBatch { vehicles, connections, scan_events, writes, readings, probes, discovered_modules, last_reading_id }
+        SyncBatch {
+            vehicles,
+            connections,
+            scan_events,
+            writes,
+            readings,
+            probes,
+            discovered_modules,
+            diagnostic_cases,
+            last_reading_id,
+        }
     }
 
     // ---------- misc ----------
@@ -1541,11 +1915,20 @@ impl Db {
 
     pub fn connection_count(&self, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
-        conn.query_row("SELECT COUNT(*) FROM connections WHERE vehicle_id IS ?1", params![vehicle_id], |r| r.get(0))
-            .unwrap_or(0)
+        conn.query_row(
+            "SELECT COUNT(*) FROM connections WHERE vehicle_id IS ?1",
+            params![vehicle_id],
+            |r| r.get(0),
+        )
+        .unwrap_or(0)
     }
 
-    pub fn history(&self, vehicle_id: Option<i64>, key: &str, since_hours: f64) -> Vec<HistoryPoint> {
+    pub fn history(
+        &self,
+        vehicle_id: Option<i64>,
+        key: &str,
+        since_hours: f64,
+    ) -> Vec<HistoryPoint> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
@@ -1555,7 +1938,10 @@ impl Db {
             )
             .unwrap();
         stmt.query_map(params![vehicle_id, key, since_hours], |r| {
-            Ok(HistoryPoint { ts: r.get(0)?, value: r.get(1)? })
+            Ok(HistoryPoint {
+                ts: r.get(0)?,
+                value: r.get(1)?,
+            })
         })
         .unwrap()
         .filter_map(Result::ok)
@@ -1654,7 +2040,17 @@ mod tests {
     fn writes_log_newest_first_and_limited() {
         let db = test_db();
         for i in 0..5 {
-            db.log_write(None, None, "engine", &format!("action_{i}"), &serde_json::json!({}), None, None, "cleared", None);
+            db.log_write(
+                None,
+                None,
+                "engine",
+                &format!("action_{i}"),
+                &serde_json::json!({}),
+                None,
+                None,
+                "cleared",
+                None,
+            );
         }
         let rows = db.writes_log(None, 3);
         assert_eq!(rows.len(), 3);
@@ -1666,8 +2062,28 @@ mod tests {
         let db = test_db();
         let (citroen, _) = db.ensure_vehicle("VR7BAHNSANE014974");
         let (peugeot, _) = db.ensure_vehicle("VF3EXAMPLE0000001");
-        db.log_write(None, Some(citroen), "engine", "citroen_write", &serde_json::json!({}), None, None, "cleared", None);
-        db.log_write(None, Some(peugeot), "engine", "peugeot_write", &serde_json::json!({}), None, None, "cleared", None);
+        db.log_write(
+            None,
+            Some(citroen),
+            "engine",
+            "citroen_write",
+            &serde_json::json!({}),
+            None,
+            None,
+            "cleared",
+            None,
+        );
+        db.log_write(
+            None,
+            Some(peugeot),
+            "engine",
+            "peugeot_write",
+            &serde_json::json!({}),
+            None,
+            None,
+            "cleared",
+            None,
+        );
 
         let citroen_rows = db.writes_log(Some(citroen), 10);
         assert_eq!(citroen_rows.len(), 1);
@@ -1755,7 +2171,10 @@ mod tests {
         let citroen_probes = db.list_probes(Some(citroen));
         let peugeot_probes = db.list_probes(Some(peugeot));
         assert_eq!(citroen_probes.len(), 1);
-        assert!(peugeot_probes.is_empty(), "a Citroën-scoped probe leaked onto the Peugeot");
+        assert!(
+            peugeot_probes.is_empty(),
+            "a Citroën-scoped probe leaked onto the Peugeot"
+        );
     }
 
     #[test]
@@ -1791,8 +2210,28 @@ mod tests {
         // formula, not pile up a second row for the same DID.
         let db = test_db();
         let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
-        let first = db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Battery voltage", "V", 0, 2, 0.01, 0.0);
-        let second = db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Battery voltage (refined)", "V", 0, 2, 0.02, 0.0);
+        let first = db.upsert_probe_from_discovery(
+            citroen,
+            "engine",
+            0xD422,
+            "Battery voltage",
+            "V",
+            0,
+            2,
+            0.01,
+            0.0,
+        );
+        let second = db.upsert_probe_from_discovery(
+            citroen,
+            "engine",
+            0xD422,
+            "Battery voltage (refined)",
+            "V",
+            0,
+            2,
+            0.02,
+            0.0,
+        );
         assert!(first, "first pass should insert");
         assert!(!second, "second pass should update, not insert");
         let probes = db.list_probes(Some(citroen));
@@ -1822,7 +2261,17 @@ mod tests {
         };
         let id = db.add_probe(&manual, Some(citroen));
 
-        assert!(!db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Mapped voltage", "V", 0, 2, 0.01, 0.0));
+        assert!(!db.upsert_probe_from_discovery(
+            citroen,
+            "engine",
+            0xD422,
+            "Mapped voltage",
+            "V",
+            0,
+            2,
+            0.01,
+            0.0
+        ));
         assert!(!db.delete_discovery_probe(id));
         let probes = db.list_probes(Some(citroen));
         assert_eq!(probes.len(), 1);
@@ -1834,7 +2283,17 @@ mod tests {
     fn stale_discovery_probe_can_be_removed_by_provenance() {
         let db = test_db();
         let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
-        assert!(db.upsert_probe_from_discovery(citroen, "engine", 0xD422, "Battery voltage", "V", 0, 2, 0.01, 0.0));
+        assert!(db.upsert_probe_from_discovery(
+            citroen,
+            "engine",
+            0xD422,
+            "Battery voltage",
+            "V",
+            0,
+            2,
+            0.01,
+            0.0
+        ));
         let auto = db.list_probes(Some(citroen)).pop().unwrap();
         assert_eq!(auto.origin, "discovery");
         assert!(db.delete_discovery_probe(auto.id));
@@ -1866,7 +2325,16 @@ mod tests {
         // A VIN-less car connects: readings recorded with NULL vehicle_id.
         let c_unknown = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.insert_reading(c_unknown, None, "rpm", 900.0);
-        db.insert_dtc_scan(Some(c_unknown), None, true, &["P0204".into()], &[], &[], Some(13.5), None);
+        db.insert_dtc_scan(
+            Some(c_unknown),
+            None,
+            true,
+            &["P0204".into()],
+            &[],
+            &[],
+            Some(13.5),
+            None,
+        );
         // Nothing leaks into the Citroën.
         let report = db.vehicle_report(citroen);
         assert_eq!(report.total_readings, 1);
@@ -1892,7 +2360,16 @@ mod tests {
         let c = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.link_connection_vehicle(c, v);
         db.insert_dtc_scan(Some(c), Some(v), false, &[], &[], &[], Some(13.1), None);
-        db.insert_dtc_scan(Some(c), Some(v), true, &["P0420".into()], &[], &[], Some(13.0), None);
+        db.insert_dtc_scan(
+            Some(c),
+            Some(v),
+            true,
+            &["P0420".into()],
+            &[],
+            &[],
+            Some(13.0),
+            None,
+        );
         let report = db.vehicle_report(v);
         assert_eq!(report.scans_total, 2);
         assert_eq!(report.scans_clean, 1);
@@ -1911,10 +2388,31 @@ mod tests {
         db.link_connection_vehicle(c, v);
         db.insert_reading(c, Some(v), "rpm", 800.0);
         db.insert_reading(c, Some(v), "rpm", 810.0);
-        db.insert_dtc_scan(Some(c), Some(v), true, &["P0420".into()], &[], &[], Some(13.1), None);
+        db.insert_dtc_scan(
+            Some(c),
+            Some(v),
+            true,
+            &["P0420".into()],
+            &[],
+            &[],
+            Some(13.1),
+            None,
+        );
         let module_id = db.upsert_discovered_module(v, "6A8/688", Some("Engine ECU"));
         db.upsert_discovered_did(module_id, 0xD422, "05 78", 2, Some("Battery voltage"));
-        db.upsert_probe_from_discovery(v, "engine", 0xD422, "Battery voltage", "V", 0, 2, 0.01, 0.0);
+        db.upsert_probe_from_discovery(
+            v,
+            "engine",
+            0xD422,
+            "Battery voltage",
+            "V",
+            0,
+            2,
+            0.01,
+            0.0,
+        );
+        db.create_diagnostic_case(v, "MIL illuminated", Some(128_400), Some("Alex"))
+            .unwrap();
         // An unidentified connection: its rows must NOT ship (the cloud's
         // RLS rejects NULL-vehicle facts by design).
         let c2 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
@@ -1928,6 +2426,12 @@ mod tests {
         assert_eq!(batch.probes.len(), 1);
         assert_eq!(batch.discovered_modules.len(), 1);
         assert_eq!(batch.discovered_modules[0].dids.len(), 1);
+        assert_eq!(batch.diagnostic_cases.len(), 1);
+        assert_eq!(batch.diagnostic_cases[0].reference, "JOB-0001");
+        assert_eq!(
+            batch.diagnostic_cases[0].vehicle_cloud_id,
+            batch.vehicles[0].cloud_id
+        );
         assert!(batch.last_reading_id >= 2);
         // Idempotent watermark: nothing new past the watermark.
         let empty = db.sync_batch(batch.last_reading_id, 100);
@@ -1947,5 +2451,47 @@ mod tests {
         db.set_fuel_price(a, 1.62);
         assert_eq!(db.vehicle_report(a).insights.fuel_price, 1.62);
         assert_eq!(db.vehicle_report(b).insights.fuel_price, 1.50); // default untouched
+    }
+
+    #[test]
+    fn diagnostic_cases_are_vehicle_scoped_and_numbered() {
+        let db = test_db();
+        let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+
+        let first = db
+            .create_diagnostic_case(
+                citroen,
+                "Engine warning under load",
+                Some(128_400),
+                Some("Alex"),
+            )
+            .unwrap();
+        let second = db
+            .create_diagnostic_case(citroen, "Intermittent no-start", None, None)
+            .unwrap();
+        db.create_diagnostic_case(peugeot, "ABS warning", Some(201_000), None)
+            .unwrap();
+
+        assert_eq!(first.reference, "JOB-0001");
+        assert_eq!(second.reference, "JOB-0002");
+        assert_eq!(first.status, "open");
+        assert_eq!(first.assigned_to.as_deref(), Some("Alex"));
+        assert_eq!(db.diagnostic_cases(Some(citroen)).len(), 2);
+        assert_eq!(db.diagnostic_cases(Some(peugeot)).len(), 1);
+        assert_eq!(db.diagnostic_cases(None).len(), 3);
+    }
+
+    #[test]
+    fn diagnostic_case_requires_a_real_complaint() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        assert!(db
+            .create_diagnostic_case(vehicle, "   ", None, None)
+            .is_err());
+        assert!(db
+            .create_diagnostic_case(vehicle, "Noise", Some(-1), None)
+            .is_err());
+        assert!(db.diagnostic_cases(Some(vehicle)).is_empty());
     }
 }

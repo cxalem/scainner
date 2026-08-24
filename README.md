@@ -33,6 +33,13 @@ reverse-engineering — CAN addresses, the dongle's connection quirks, how a
 mystery data identifier was confirmed to be battery voltage — is in
 [`UDS_INVESTIGATION_LOG.md`](./UDS_INVESTIGATION_LOG.md).
 
+The long-term product direction—multi-brand diagnostic intelligence for
+independent mechanics, evidence-guided fault classification, sensor
+discovery, mechanic hypotheses, and professional reports—is documented in
+[`docs/product/diagnostic-intelligence.md`](./docs/product/diagnostic-intelligence.md).
+The phased engineering plan is in
+[`docs/product/diagnostic-intelligence-implementation-plan.md`](./docs/product/diagnostic-intelligence-implementation-plan.md).
+
 ## Stack
 
 Tauri 2 + Rust backend (serial driver, SQLite, background polling

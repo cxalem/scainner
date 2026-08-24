@@ -18,8 +18,9 @@
 //! (broadcast probe → physical-address probe → session-open check) works for
 //! any brand.
 //!
-//! READ-ONLY by design: this module only ever sends DiagnosticSessionControl
-//! (0x10 0x03), ReadDataByIdentifier (0x22) and TesterPresent (0x3E), plus
+//! READ-ONLY by default: automatic discovery and ordinary reads only send
+//! ReadDataByIdentifier (0x22). Explicit manual operations may additionally
+//! request DiagnosticSessionControl (0x10 0x03) and TesterPresent (0x3E), plus
 //! ClearDiagnosticInformation (0x14) when the user explicitly asks to clear
 //! codes — the same operation every commercial diagnostic tool performs, and
 //! it can only erase stored records. No writes, no routines, no resets.
@@ -75,9 +76,8 @@ pub fn resolve<'a>(key: &str, custom: &'a [UdsModule]) -> Option<UdsModule> {
         .or_else(|| custom.iter().find(|m| m.key == key).cloned())
 }
 
-/// Point the ELM at one module: fixed CAN 500k/11-bit, physical addressing.
-pub fn setup(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
-    for c in [
+fn addressing_commands(m: &UdsModule) -> [String; 8] {
+    [
         "ATSP6".to_string(),
         "ATCAF1".to_string(),
         "ATH0".to_string(),
@@ -86,24 +86,46 @@ pub fn setup(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
         format!("ATFCSH {}", m.req),
         "ATFCSD 300000".to_string(),
         "ATFCSM 1".to_string(),
-    ] {
+    ]
+}
+
+/// Point the ELM at one module: fixed CAN 500k/11-bit, physical addressing.
+/// This deliberately does not change the ECU's diagnostic session.
+pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
+    for c in addressing_commands(m) {
         drv.cmd(&c, Duration::from_secs(2))?;
     }
-    // Extended diagnostic session; many reads work without it, but it never hurts.
-    let _ = drv.cmd("1003", Duration::from_secs(2));
     Ok(())
+}
+
+/// Enter an extended session only for an explicit, bounded user operation.
+/// The boolean records whether the ECU positively acknowledged the request,
+/// so cleanup never sends a session transition to an ECU we did not open.
+pub fn enter_extended_session(drv: &mut ElmDriver) -> bool {
+    let Ok(raw) = drv.cmd("1003", Duration::from_secs(2)) else {
+        return false;
+    };
+    let lines = parser::clean_response(&raw);
+    let bytes = parser::payload_bytes(&lines, "");
+    bytes.windows(2).any(|w| w == [0x50, 0x03])
 }
 
 /// Restore functional OBD-II addressing so normal PID polling keeps working.
 pub fn teardown(drv: &mut ElmDriver) {
-    // Leave an ECU we explicitly placed in an extended session before
-    // changing the adapter's receive/header filters. Previously we only
-    // restored ELM addressing and left the ECU itself in 10 03 until its
-    // timeout, which can surface as temporary communication warnings.
-    let _ = drv.cmd("1001", Duration::from_millis(800));
     let _ = drv.cmd("ATSH 7DF", Duration::from_secs(2));
     let _ = drv.cmd("ATAR", Duration::from_secs(2));
     let _ = drv.cmd("ATFCSM 0", Duration::from_secs(2));
+}
+
+fn finish_operation(drv: &mut ElmDriver, extended_session_open: bool) {
+    leave_extended_session(drv, extended_session_open);
+    teardown(drv);
+}
+
+fn leave_extended_session(drv: &mut ElmDriver, extended_session_open: bool) {
+    if extended_session_open {
+        let _ = drv.cmd("1001", Duration::from_millis(800));
+    }
 }
 
 /// ReadDataByIdentifier. Ok(Some(bytes)) on 62-response, Ok(None) on negative
@@ -114,7 +136,11 @@ pub fn read_did(drv: &mut ElmDriver, did: u16) -> Result<Option<Vec<u8>>, ElmErr
     read_did_timeout(drv, did, Duration::from_millis(1500))
 }
 
-pub fn read_did_timeout(drv: &mut ElmDriver, did: u16, timeout: Duration) -> Result<Option<Vec<u8>>, ElmError> {
+pub fn read_did_timeout(
+    drv: &mut ElmDriver,
+    did: u16,
+    timeout: Duration,
+) -> Result<Option<Vec<u8>>, ElmError> {
     let raw = match drv.cmd(&format!("22{did:04X}"), timeout) {
         Ok(r) => r,
         Err(ElmError::NoResponse) => return Ok(None),
@@ -123,16 +149,20 @@ pub fn read_did_timeout(drv: &mut ElmDriver, did: u16, timeout: Duration) -> Res
     let lines = parser::clean_response(&raw);
     let bytes = parser::payload_bytes(&lines, "");
     for i in 0..bytes.len().saturating_sub(2) {
-        if bytes[i] == 0x62 && bytes[i + 1] == (did >> 8) as u8 && bytes[i + 2] == (did & 0xFF) as u8 {
+        if bytes[i] == 0x62
+            && bytes[i + 1] == (did >> 8) as u8
+            && bytes[i + 2] == (did & 0xFF) as u8
+        {
             return Ok(Some(bytes[i + 3..].to_vec()));
         }
     }
     Ok(None)
 }
 
-/// Keep the extended session alive during long scans.
+/// Keep an explicitly opened extended session alive without asking the ECU
+/// to transmit a positive response for every heartbeat.
 pub fn tester_present(drv: &mut ElmDriver) {
-    let _ = drv.cmd("3E00", Duration::from_millis(800));
+    let _ = drv.cmd("3E80", Duration::from_millis(800));
 }
 
 /// ReadDTCInformation (0x19 0x02): report DTCs by status mask. Read-only.
@@ -197,8 +227,21 @@ pub struct UdsHit {
 pub fn to_hit(did: u16, data: &[u8]) -> UdsHit {
     UdsHit {
         did,
-        hex: data.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" "),
-        ascii: data.iter().map(|&b| if (32..127).contains(&b) { b as char } else { '.' }).collect(),
+        hex: data
+            .iter()
+            .map(|b| format!("{b:02X}"))
+            .collect::<Vec<_>>()
+            .join(" "),
+        ascii: data
+            .iter()
+            .map(|&b| {
+                if (32..127).contains(&b) {
+                    b as char
+                } else {
+                    '.'
+                }
+            })
+            .collect(),
     }
 }
 
@@ -235,7 +278,13 @@ pub struct ClearOutcome {
 fn custom_modules(db: &Db) -> Vec<UdsModule> {
     db.list_uds_modules()
         .into_iter()
-        .map(|(key, label, req, resp)| UdsModule { key, label, req, resp, builtin: false })
+        .map(|(key, label, req, resp)| UdsModule {
+            key,
+            label,
+            req,
+            resp,
+            builtin: false,
+        })
         .collect()
 }
 
@@ -252,22 +301,35 @@ pub fn clear_module(
 ) -> Result<ClearOutcome, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
-    setup(drv, &m).map_err(|e| e.to_string())?;
+    setup_addressing(drv, &m).map_err(|e| e.to_string())?;
+    let extended_session_open = enter_extended_session(drv);
     let params = serde_json::json!({ "service": "14", "group": "FFFFFF" });
     let codes_json = |v: &Vec<String>| serde_json::json!(v);
     let conn_id = Some(ctx.connection_id);
     let before = match read_dtcs(drv) {
         Ok(b) => b,
         Err(e) => {
-            teardown(drv);
-            return Err(format!("Could not read the faults before clearing, so nothing was cleared: {e}"));
+            finish_operation(drv, extended_session_open);
+            return Err(format!(
+                "Could not read the faults before clearing, so nothing was cleared: {e}"
+            ));
         }
     };
     let accepted = match clear_dtcs(drv) {
         Ok(ok) => ok,
         Err(e) => {
-            db.log_write(conn_id, ctx.vehicle_id, &m.label, "clear_faults", &params, Some(&codes_json(&before)), None, "error", Some(&e.to_string()));
-            teardown(drv);
+            db.log_write(
+                conn_id,
+                ctx.vehicle_id,
+                &m.label,
+                "clear_faults",
+                &params,
+                Some(&codes_json(&before)),
+                None,
+                "error",
+                Some(&e.to_string()),
+            );
+            finish_operation(drv, extended_session_open);
             return Err(e.to_string());
         }
     };
@@ -283,13 +345,17 @@ pub fn clear_module(
                 Some(&codes_json(&before)),
                 None,
                 "error",
-                Some(&format!("clear sent, but the verification read failed: {e}")),
+                Some(&format!(
+                    "clear sent, but the verification read failed: {e}"
+                )),
             );
-            teardown(drv);
-            return Err(format!("The clear was sent, but the verification read failed: {e}"));
+            finish_operation(drv, extended_session_open);
+            return Err(format!(
+                "The clear was sent, but the verification read failed: {e}"
+            ));
         }
     };
-    teardown(drv);
+    finish_operation(drv, extended_session_open);
     let outcome = if !accepted {
         "refused"
     } else if after.is_empty() {
@@ -297,23 +363,42 @@ pub fn clear_module(
     } else {
         "faults_remain"
     };
-    db.log_write(conn_id, ctx.vehicle_id, &m.label, "clear_faults", &params, Some(&codes_json(&before)), Some(&codes_json(&after)), outcome, None);
-    Ok(ClearOutcome { before, accepted, after })
+    db.log_write(
+        conn_id,
+        ctx.vehicle_id,
+        &m.label,
+        "clear_faults",
+        &params,
+        Some(&codes_json(&before)),
+        Some(&codes_json(&after)),
+        outcome,
+        None,
+    );
+    Ok(ClearOutcome {
+        before,
+        accepted,
+        after,
+    })
 }
 
 pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<String>, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
-    setup(drv, &m).map_err(|e| e.to_string())?;
+    setup_addressing(drv, &m).map_err(|e| e.to_string())?;
     let res = read_dtcs(drv).map_err(|e| e.to_string());
     teardown(drv);
     res
 }
 
-pub fn read_one(drv: &mut ElmDriver, db: &Db, module: &str, did: u16) -> Result<Option<UdsHit>, String> {
+pub fn read_one(
+    drv: &mut ElmDriver,
+    db: &Db,
+    module: &str,
+    did: u16,
+) -> Result<Option<UdsHit>, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
-    setup(drv, &m).map_err(|e| e.to_string())?;
+    setup_addressing(drv, &m).map_err(|e| e.to_string())?;
     let res = read_did(drv, did).map_err(|e| e.to_string());
     teardown(drv);
     res.map(|opt| opt.map(|d| to_hit(did, &d)))
@@ -354,31 +439,47 @@ pub fn scan_range(
         }
     };
     let to = to.min(from.saturating_add(255));
-    log::debug!("scan clamped to {from:04X}-{to:04X} ({} DIDs)", to - from + 1);
-    // A manual range scan holds the ECU in the same diagnostic session as
-    // automatic discovery, so it needs the same engine-start protection.
+    log::debug!(
+        "scan clamped to {from:04X}-{to:04X} ({} DIDs)",
+        to - from + 1
+    );
+    // A manual range scan can request an extended session, so retain the
+    // engine-start protection. Automatic discovery never opens one.
     let baseline_voltage = read_voltage(drv);
-    if let Err(e) = setup(drv, &m) {
+    if let Err(e) = setup_addressing(drv, &m) {
         log::warn!("scan setup failed: {e}");
         return Err(e.to_string());
     }
+    // This is an explicit Lab operation. Request extended mode, but continue
+    // in default mode if the ECU refuses it: many useful DIDs are available
+    // there and a refusal must not turn into more session traffic.
+    let extended_session_open = enter_extended_session(drv);
     let total = (to - from + 1) as u32;
     let mut hits = Vec::new();
     let mut errors = 0u32;
     for (i, did) in (from..=to).enumerate() {
         if i % 8 == 0 {
-            log::trace!("scan progress: DID {did:04X} ({i}/{total}), {} hits, {errors} errors", hits.len());
-            let _ = app.emit("uds-scan-progress", serde_json::json!({
-                "current": i as u32,
-                "total": total,
-                "did": format!("{did:04X}"),
-                "hits": hits.len(),
-            }));
+            log::trace!(
+                "scan progress: DID {did:04X} ({i}/{total}), {} hits, {errors} errors",
+                hits.len()
+            );
+            let _ = app.emit(
+                "uds-scan-progress",
+                serde_json::json!({
+                    "current": i as u32,
+                    "total": total,
+                    "did": format!("{did:04X}"),
+                    "hits": hits.len(),
+                }),
+            );
         }
         if cancel_scan.swap(false, Ordering::Relaxed) {
             log::debug!("scan cancelled at DID {did:04X}, {} hits kept", hits.len());
-            teardown(drv);
-            return Err(format!("cancelled at DID {did:04X}; {} hits kept", hits.len()));
+            finish_operation(drv, extended_session_open);
+            return Err(format!(
+                "cancelled at DID {did:04X}; {} hits kept",
+                hits.len()
+            ));
         }
         if i % 20 == 19
             && matches!(
@@ -387,10 +488,10 @@ pub fn scan_range(
             )
         {
             log::warn!("scan auto-stopped at DID {did:04X}: engine start detected");
-            teardown(drv);
+            finish_operation(drv, extended_session_open);
             return Err(format!("engine_started:{did:04X}:{}", hits.len()));
         }
-        if i % 40 == 39 {
+        if extended_session_open && i % 40 == 39 {
             tester_present(drv);
         }
         match read_did_timeout(drv, did, Duration::from_millis(600)) {
@@ -401,19 +502,26 @@ pub fn scan_range(
                 errors += 1;
                 if errors > 10 {
                     log::warn!("scan aborted: too many link errors ({errors}) at DID {did:04X}");
-                    teardown(drv);
-                    return Err(format!("link degraded mid-scan at DID {did:04X}; {} hits so far kept", hits.len()));
+                    finish_operation(drv, extended_session_open);
+                    return Err(format!(
+                        "link degraded mid-scan at DID {did:04X}; {} hits so far kept",
+                        hits.len()
+                    ));
                 }
             }
         }
     }
     log::debug!("scan completed: {} hits, {errors} errors", hits.len());
-    teardown(drv);
+    finish_operation(drv, extended_session_open);
     Ok(hits)
 }
 
 /// Poll all enabled user-defined UDS probes once; record + return values.
-pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx) -> HashMap<String, f64> {
+pub fn poll_probes(
+    drv: &mut ElmDriver,
+    db: &Db,
+    ctx: super::supervisor::ConnCtx,
+) -> HashMap<String, f64> {
     let mut out = HashMap::new();
     // Discovery is read-only inventory, not standing telemetry. Repeatedly
     // opening diagnostic sessions on every discovered ECU while the app was
@@ -434,8 +542,10 @@ pub fn poll_probes(drv: &mut ElmDriver, db: &Db, ctx: super::supervisor::ConnCtx
     }
     let custom = custom_modules(db);
     for (mkey, group) in by_module {
-        let Some(m) = resolve(&mkey, &custom) else { continue };
-        if setup(drv, &m).is_err() {
+        let Some(m) = resolve(&mkey, &custom) else {
+            continue;
+        };
+        if setup_addressing(drv, &m).is_err() {
             teardown(drv);
             continue;
         }
@@ -475,11 +585,10 @@ pub struct DiscoveryReport {
     pub dids_found: u32,
     /// Of `dids_found`, how many the knowledge map had a FULL decode
     /// formula for (offset+len+scale+bias, not just a label) — those are
-    /// promoted straight into `uds_probes` during the same pass, so they
-    /// start polling on the live dashboard immediately. No separate "save
-    /// as probe" step, no re-scanning to see them again: run discovery
-    /// once, the car's sensors behave like standard OBD PIDs from then on
-    /// (owner request, 2026-08-24). Everything else in `dids_found` is
+    /// promoted into `uds_probes` during the same pass so their definitions
+    /// are available to the Live view. Discovery-owned probes remain off
+    /// background polling; reading them requires an explicit user action.
+    /// Everything else in `dids_found` is
     /// unlabeled or label-only — real data, saved, but the map doesn't yet
     /// know how to turn its bytes into a number, so it stays browsable in
     /// the Lab rather than pretending to be a live value.
@@ -493,10 +602,9 @@ pub struct DiscoveryReport {
     /// engine start was detected mid-scan (a voltage jump — see
     /// `engine_likely_started`) — never a guess the user has to notice.
     /// Distinct from a plain user cancel so the UI can explain why and
-    /// point at the real risk: a module held in an extended diagnostic
-    /// session while the engine starts can throw dash warnings/comm
-    /// faults on that module (the U-codes this app's own Module Faults
-    /// card already documents as a routine side effect of scanning).
+    /// point at the real risk: changing vehicle state during a broad
+    /// diagnostic sweep makes bus behavior less predictable. Automatic
+    /// discovery itself stays in the default diagnostic session.
     pub auto_stopped_reason: Option<String>,
     /// True when this pass re-probed only what a PRIOR discovery already
     /// found on this car, instead of the full blind sweep — "a re-scan
@@ -512,14 +620,26 @@ pub struct DiscoveryReport {
 fn ensure_module_key(db: &Db, req: u16, resp: u16, name: Option<&str>) -> String {
     let req_hex = format!("{req:03X}");
     let resp_hex = format!("{resp:03X}");
-    if let Some(m) = builtin_modules().into_iter().find(|m| m.req == req_hex && m.resp == resp_hex) {
+    if let Some(m) = builtin_modules()
+        .into_iter()
+        .find(|m| m.req == req_hex && m.resp == resp_hex)
+    {
         return m.key;
     }
-    if let Some(m) = custom_modules(db).into_iter().find(|m| m.req == req_hex && m.resp == resp_hex) {
+    if let Some(m) = custom_modules(db)
+        .into_iter()
+        .find(|m| m.req == req_hex && m.resp == resp_hex)
+    {
         return m.key;
     }
-    let key = format!("auto_{}_{}", req_hex.to_lowercase(), resp_hex.to_lowercase());
-    let label = name.map(str::to_string).unwrap_or_else(|| format!("Discovered module {req_hex}"));
+    let key = format!(
+        "auto_{}_{}",
+        req_hex.to_lowercase(),
+        resp_hex.to_lowercase()
+    );
+    let label = name
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("Discovered module {req_hex}"));
     // A concurrent discovery pass racing to register the same key is not a
     // realistic scenario (one connection, one scan at a time) — if it ever
     // fails on a duplicate, the key is already usable regardless.
@@ -546,13 +666,24 @@ fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> bool {
         Ok(raw) => {
             let lines = parser::clean_response(&raw);
             let bytes = parser::payload_bytes(&lines, "");
-            bytes.windows(2).any(|w| w[0] == 0x62 || (w[0] == 0x7F && w[1] == 0x22))
+            bytes
+                .windows(2)
+                .any(|w| w[0] == 0x62 || (w[0] == 0x7F && w[1] == 0x22))
         }
     }
 }
 
 fn printable(data: &[u8]) -> Option<String> {
-    let s: String = data.iter().map(|&b| if (32..127).contains(&b) { b as char } else { '.' }).collect();
+    let s: String = data
+        .iter()
+        .map(|&b| {
+            if (32..127).contains(&b) {
+                b as char
+            } else {
+                '.'
+            }
+        })
+        .collect();
     let clean = s.trim_matches('.').to_string();
     if clean.len() >= 4 && clean.chars().filter(|c| c.is_ascii_alphanumeric()).count() >= 3 {
         Some(clean)
@@ -562,7 +693,10 @@ fn printable(data: &[u8]) -> Option<String> {
 }
 
 fn hex_string(data: &[u8]) -> String {
-    data.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
+    data.iter()
+        .map(|b| format!("{b:02X}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// The adapter's own battery voltage (ATRV) — a local command, answered
@@ -612,9 +746,15 @@ fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
         let still_known = resolve(&probe.module, &custom)
             .and_then(|m| Some((uds_map::can11(&m.req)?, uds_map::can11(&m.resp)?)))
             .and_then(|(req, resp)| uds_map::known_did(vin, req, resp, probe.did))
-            .is_some_and(|k| k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some());
+            .is_some_and(|k| {
+                k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some()
+            });
         if !still_known {
-            log::info!("discovery: removing stale auto probe {} / {:04X}", probe.module, probe.did);
+            log::info!(
+                "discovery: removing stale auto probe {} / {:04X}",
+                probe.module,
+                probe.did
+            );
             db.delete_discovery_probe(probe.id);
         }
     }
@@ -630,17 +770,21 @@ pub fn discover(
     full: bool,
 ) -> Result<DiscoveryReport, String> {
     let emit = |phase: &str, current: u32, total: u32, detail: &str, modules: u32, dids: u32| {
-        let _ = app.emit("discovery-progress", serde_json::json!({
-            "phase": phase, "current": current, "total": total,
-            "detail": detail, "modulesFound": modules, "didsFound": dids,
-        }));
+        let _ = app.emit(
+            "discovery-progress",
+            serde_json::json!({
+                "phase": phase, "current": current, "total": total,
+                "detail": detail, "modulesFound": modules, "didsFound": dids,
+            }),
+        );
     };
 
     prune_stale_discovery_probes(db, vehicle_id, vin.as_deref());
 
     let baseline_voltage = {
         for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
-            drv.cmd(c, Duration::from_secs(2)).map_err(|e| e.to_string())?;
+            drv.cmd(c, Duration::from_secs(2))
+                .map_err(|e| e.to_string())?;
         }
         read_voltage(drv)
     };
@@ -657,7 +801,17 @@ pub fn discover(
     // still runs the complete three-phase pass below.
     let known = db.discovered_addresses_and_dids(vehicle_id);
     if !full && !known.is_empty() {
-        return fast_refresh(drv, db, vehicle_id, vin.as_deref(), &known, baseline_voltage, cancel_scan, &emit, &engine_started);
+        return fast_refresh(
+            drv,
+            db,
+            vehicle_id,
+            vin.as_deref(),
+            &known,
+            baseline_voltage,
+            cancel_scan,
+            &emit,
+            &engine_started,
+        );
     }
 
     // Phase 1 — who's on the bus? Addresses come from the map: this
@@ -692,7 +846,14 @@ pub fn discover(
             });
         }
         if i % 4 == 0 {
-            emit("modules", i as u32, total_addrs, &format!("{req:03X}"), present.len() as u32, 0);
+            emit(
+                "modules",
+                i as u32,
+                total_addrs,
+                &format!("{req:03X}"),
+                present.len() as u32,
+                0,
+            );
         }
         if point_at(drv, *req, *resp).is_err() {
             continue;
@@ -713,7 +874,6 @@ pub fn discover(
         if point_at(drv, *req, *resp).is_err() {
             continue;
         }
-        let _ = drv.cmd("1003", Duration::from_secs(1));
         // A name the map already documents beats anything read off the bus.
         let mut name: Option<String> = known_name.clone();
         let mut best_name_rank = usize::MAX;
@@ -745,8 +905,17 @@ pub fn discover(
                     was_fast_refresh: false,
                 });
             }
-            emit("ident", (mi * ident_dids.len() + di) as u32, total_ident, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
-            if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(timings.ident_read)) {
+            emit(
+                "ident",
+                (mi * ident_dids.len() + di) as u32,
+                total_ident,
+                &format!("{req:03X}:{did:04X}"),
+                present.len() as u32,
+                dids_found,
+            );
+            if let Ok(Some(data)) =
+                read_did_timeout(drv, *did, Duration::from_millis(timings.ident_read))
+            {
                 if known_name.is_none() {
                     if let Some(rank) = name_dids.iter().position(|n| n == did) {
                         if rank < best_name_rank {
@@ -760,7 +929,11 @@ pub fn discover(
                 ident_hits.push((*did, data));
             }
         }
-        let module_id = db.upsert_discovered_module(vehicle_id, &format!("{req:03X}/{resp:03X}"), name.as_deref());
+        let module_id = db.upsert_discovered_module(
+            vehicle_id,
+            &format!("{req:03X}/{resp:03X}"),
+            name.as_deref(),
+        );
         for (did, data) in &ident_hits {
             let label = uds_map::map()
                 .standard
@@ -769,7 +942,13 @@ pub fn discover(
                 .find(|d| uds_map::hex16(&d.did) == Some(*did))
                 .map(|d| d.label.clone())
                 .or_else(|| printable(data));
-            db.upsert_discovered_did(module_id, *did, &hex_string(data), data.len() as i64, label.as_deref());
+            db.upsert_discovered_did(
+                module_id,
+                *did,
+                &hex_string(data),
+                data.len() as i64,
+                label.as_deref(),
+            );
             dids_found += 1;
         }
         module_rows.push((module_id, *req, *resp));
@@ -785,13 +964,19 @@ pub fn discover(
         if point_at(drv, *req, *resp).is_err() {
             continue;
         }
-        let _ = drv.cmd("1003", Duration::from_secs(1));
+        // Identification and module enumeration above always run in the
+        // default session. Only an exact VIN + module profile may deepen
+        // the data-band sweep automatically.
+        let extended_session_open = matches!(
+            uds_map::discovery_session_for_module(vin.as_deref(), *req, *resp),
+            uds_map::DiscoverySession::DefaultThenExtended
+        ) && enter_extended_session(drv);
         let mut consecutive_errors = 0u32;
         'bands: for (from, to) in &bands {
             for did in *from..=*to {
                 sweep_i += 1;
                 if cancel_scan.swap(false, Ordering::Relaxed) {
-                    teardown(drv);
+                    finish_operation(drv, extended_session_open);
                     return Ok(DiscoveryReport {
                         modules_found: present.len() as u32,
                         dids_found,
@@ -802,8 +987,8 @@ pub fn discover(
                     });
                 }
                 if sweep_i % 20 == 19 && engine_started(drv) {
-                    log::warn!("discovery: engine start detected mid-sweep — stopping to avoid leaving {req:03X} in a session while it starts");
-                    teardown(drv);
+                    log::warn!("discovery: engine start detected mid-sweep — stopping broad diagnostic traffic on {req:03X}");
+                    finish_operation(drv, extended_session_open);
                     return Ok(DiscoveryReport {
                         modules_found: present.len() as u32,
                         dids_found,
@@ -814,9 +999,16 @@ pub fn discover(
                     });
                 }
                 if sweep_i % 8 == 0 {
-                    emit("sweep", sweep_i, total_sweep, &format!("{req:03X}:{did:04X}"), present.len() as u32, dids_found);
+                    emit(
+                        "sweep",
+                        sweep_i,
+                        total_sweep,
+                        &format!("{req:03X}:{did:04X}"),
+                        present.len() as u32,
+                        dids_found,
+                    );
                 }
-                if sweep_i % 40 == 39 {
+                if extended_session_open && sweep_i % 40 == 39 {
                     tester_present(drv);
                 }
                 match read_did_timeout(drv, did, Duration::from_millis(timings.sweep_read)) {
@@ -842,15 +1034,23 @@ pub fn discover(
                             _ => true,
                         });
                         let label = known.map(|k| k.label.clone());
-                        db.upsert_discovered_did(*module_id, did, &hex_string(&data), data.len() as i64, label.as_deref());
+                        db.upsert_discovered_did(
+                            *module_id,
+                            did,
+                            &hex_string(&data),
+                            data.len() as i64,
+                            label.as_deref(),
+                        );
                         dids_found += 1;
                         // A FULL decode formula (not just a label) means
                         // this isn't just "found," it's a real sensor —
-                        // promote it straight into the continuous poll
-                        // loop. Run discovery once, get standing live data
-                        // forever, same as any OBD PID (owner, 2026-08-24).
+                        // persist its decode definition for explicit live
+                        // reads. Discovery never opts it into background
+                        // polling merely because a formula matched.
                         if let Some(k) = known {
-                            if let (Some(offset), Some(len), Some(scale), Some(bias)) = (k.offset, k.len, k.scale, k.bias) {
+                            if let (Some(offset), Some(len), Some(scale), Some(bias)) =
+                                (k.offset, k.len, k.scale, k.bias)
+                            {
                                 let module_key = ensure_module_key(db, *req, *resp, None);
                                 let added = db.upsert_probe_from_discovery(
                                     vehicle_id,
@@ -882,11 +1082,24 @@ pub fn discover(
                 }
             }
         }
+        // Keep the adapter's discovery addressing/flow-control setup for the
+        // next module; only return this ECU to default here.
+        leave_extended_session(drv, extended_session_open);
     }
 
     teardown(drv);
-    emit("done", total_sweep, total_sweep, "", present.len() as u32, dids_found);
-    log::info!("discovery complete: {} modules, {dids_found} DIDs persisted", present.len());
+    emit(
+        "done",
+        total_sweep,
+        total_sweep,
+        "",
+        present.len() as u32,
+        dids_found,
+    );
+    log::info!(
+        "discovery complete: {} modules, {dids_found} DIDs persisted",
+        present.len()
+    );
     Ok(DiscoveryReport {
         modules_found: present.len() as u32,
         dids_found,
@@ -926,17 +1139,22 @@ fn fast_refresh(
     let mut modules_seen = 0u32;
 
     for (addr, dids) in &by_module {
-        let Some((req, resp)) = parse_module_address(addr) else { continue };
+        let Some((req, resp)) = parse_module_address(addr) else {
+            continue;
+        };
         if point_at(drv, req, resp).is_err() {
             continue;
         }
         let module_id = db.upsert_discovered_module(vehicle_id, addr, None);
         modules_seen += 1;
-        let _ = drv.cmd("1003", Duration::from_secs(1));
+        let extended_session_open = matches!(
+            uds_map::discovery_session_for_module(vin, req, resp),
+            uds_map::DiscoverySession::DefaultThenExtended
+        ) && enter_extended_session(drv);
         for did in dids {
             sweep_i += 1;
             if cancel_scan.swap(false, Ordering::Relaxed) {
-                teardown(drv);
+                finish_operation(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     modules_found: modules_seen,
                     dids_found,
@@ -948,7 +1166,7 @@ fn fast_refresh(
             }
             if sweep_i % 15 == 14 && baseline_voltage.is_some() && engine_started(drv) {
                 log::warn!("fast refresh: engine start detected — stopping");
-                teardown(drv);
+                finish_operation(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     modules_found: modules_seen,
                     dids_found,
@@ -958,21 +1176,49 @@ fn fast_refresh(
                     was_fast_refresh: true,
                 });
             }
-            emit("sweep", sweep_i, total, &format!("{req:03X}:{did:04X}"), modules_seen, dids_found);
+            emit(
+                "sweep",
+                sweep_i,
+                total,
+                &format!("{req:03X}:{did:04X}"),
+                modules_seen,
+                dids_found,
+            );
+            if extended_session_open && sweep_i % 40 == 39 {
+                tester_present(drv);
+            }
             if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(500)) {
-                let known_entry = uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
-                    (Some(offset), Some(len)) => (offset as usize).checked_add(len as usize).is_some_and(|end| end <= data.len()),
-                    _ => true,
-                });
+                let known_entry =
+                    uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
+                        (Some(offset), Some(len)) => (offset as usize)
+                            .checked_add(len as usize)
+                            .is_some_and(|end| end <= data.len()),
+                        _ => true,
+                    });
                 let label = known_entry.map(|k| k.label.clone());
-                db.upsert_discovered_did(module_id, *did, &hex_string(&data), data.len() as i64, label.as_deref());
+                db.upsert_discovered_did(
+                    module_id,
+                    *did,
+                    &hex_string(&data),
+                    data.len() as i64,
+                    label.as_deref(),
+                );
                 dids_found += 1;
                 if let Some(k) = known_entry {
-                    if let (Some(offset), Some(len), Some(scale), Some(bias)) = (k.offset, k.len, k.scale, k.bias) {
+                    if let (Some(offset), Some(len), Some(scale), Some(bias)) =
+                        (k.offset, k.len, k.scale, k.bias)
+                    {
                         let module_key = ensure_module_key(db, req, resp, None);
                         if db.upsert_probe_from_discovery(
-                            vehicle_id, &module_key, *did, &k.label,
-                            k.unit.as_deref().unwrap_or(""), offset as usize, len as usize, scale, bias,
+                            vehicle_id,
+                            &module_key,
+                            *did,
+                            &k.label,
+                            k.unit.as_deref().unwrap_or(""),
+                            offset as usize,
+                            len as usize,
+                            scale,
+                            bias,
                         ) {
                             sensors_added += 1;
                         }
@@ -980,6 +1226,7 @@ fn fast_refresh(
                 }
             }
         }
+        leave_extended_session(drv, extended_session_open);
     }
 
     teardown(drv);
@@ -1014,6 +1261,15 @@ mod tests {
     #[test]
     fn extract_out_of_range() {
         assert_eq!(extract(&[0x01], 1, 1, 1.0, 0.0), None);
+    }
+
+    #[test]
+    fn addressing_setup_never_changes_the_diagnostic_session() {
+        let module = &builtin_modules()[0];
+        let commands = addressing_commands(module);
+        assert!(!commands.iter().any(|command| command == "1003"));
+        assert!(!commands.iter().any(|command| command == "1001"));
+        assert!(commands.iter().any(|command| command == "ATSH 752"));
     }
 
     #[test]
@@ -1077,7 +1333,10 @@ mod tests {
             origin: "discovery".into(),
         };
         assert!(!should_poll_probe(&probe));
-        assert!(should_poll_probe(&crate::db::UdsProbe { origin: "manual".into(), ..probe }));
+        assert!(should_poll_probe(&crate::db::UdsProbe {
+            origin: "manual".into(),
+            ..probe
+        }));
     }
 
     #[test]

@@ -154,7 +154,11 @@ impl ElmDriver {
         let deadline = Instant::now() + timeout;
         while Instant::now() < deadline {
             let n = unsafe {
-                libc::read(self.fd, chunk.as_mut_ptr() as *mut libc::c_void, chunk.len())
+                libc::read(
+                    self.fd,
+                    chunk.as_mut_ptr() as *mut libc::c_void,
+                    chunk.len(),
+                )
             };
             if n < 0 {
                 return Err(ElmError::Io(std::io::Error::last_os_error().to_string()));
@@ -193,7 +197,8 @@ impl ElmDriver {
                 _ => std::thread::sleep(Duration::from_millis(800)),
             }
         }
-        let version = version.ok_or_else(|| ElmError::Handshake("no ELM banner after ATZ".into()))?;
+        let version =
+            version.ok_or_else(|| ElmError::Handshake("no ELM banner after ATZ".into()))?;
         self.cmd("ATE0", Duration::from_secs(3))?;
         self.cmd("ATSP0", Duration::from_secs(3))?;
         Ok(version)
@@ -214,7 +219,10 @@ fn blueutil() -> Command {
 /// the /dev/cu.V-LINK node. Safe to call when already disconnected.
 pub fn bluetooth_cycle(addr: &str) -> Result<(), String> {
     let disc = blueutil().args(["--disconnect", addr]).output();
-    log::trace!("blueutil --disconnect: {:?}", disc.as_ref().map(|o| o.status.code()));
+    log::trace!(
+        "blueutil --disconnect: {:?}",
+        disc.as_ref().map(|o| o.status.code())
+    );
     std::thread::sleep(Duration::from_secs(1));
     let out = blueutil()
         .args(["--connect", addr])
@@ -262,7 +270,10 @@ pub fn bluetooth_repair(addr: &str, pin: &str) -> Result<(), String> {
     }
     std::thread::sleep(Duration::from_secs(1));
     let conn = blueutil().args(["--connect", addr]).output();
-    log::debug!("blueutil --connect (post-pair): {:?}", conn.map(|o| o.status.code()));
+    log::debug!(
+        "blueutil --connect (post-pair): {:?}",
+        conn.map(|o| o.status.code())
+    );
     for _ in 0..15 {
         if std::path::Path::new(&port()).exists() {
             return Ok(());

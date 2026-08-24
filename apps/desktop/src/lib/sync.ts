@@ -83,6 +83,12 @@ type SyncBatch = {
     module_name: string | null; discovered_at: string;
     dids: { did: number; raw_sample: string | null; byte_length: number | null; label: string | null; confidence: string | null; first_seen_at: string }[];
   }[];
+  diagnostic_cases: {
+    cloud_id: string; vehicle_cloud_id: string; reference: string;
+    status: "open" | "in_progress" | "waiting" | "completed" | "cancelled";
+    complaint: string; odometer_km: number | null; assigned_to: string | null;
+    opened_at: string; updated_at: string; closed_at: string | null;
+  }[];
   last_reading_id: number;
 };
 
@@ -186,6 +192,24 @@ async function runSyncOnce(): Promise<void> {
         { onConflict: "id" },
       );
       fail("connections", error);
+    }
+    if (batch.diagnostic_cases.length > 0) {
+      const { error } = await supabase.from("diagnostic_cases").upsert(
+        batch.diagnostic_cases.map((item) => ({
+          client_uuid: item.cloud_id,
+          vehicle_id: item.vehicle_cloud_id,
+          reference: item.reference,
+          status: item.status,
+          complaint: item.complaint,
+          odometer_km: item.odometer_km,
+          assigned_to: item.assigned_to,
+          opened_at: toIso(item.opened_at),
+          updated_at: toIso(item.updated_at),
+          closed_at: item.closed_at ? toIso(item.closed_at) : null,
+        })),
+        { onConflict: "client_uuid" },
+      );
+      fail("diagnostic_cases", error);
     }
     if (batch.scan_events.length > 0) {
       const { error } = await supabase.from("dtc_scan_events").upsert(

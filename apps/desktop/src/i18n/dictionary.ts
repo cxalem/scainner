@@ -37,6 +37,7 @@ export type Dictionary = {
     cloudSignInPrompt: string;
     demoDataTooltip: string;
     nav: {
+      workshop: string;
       overview: string;
       live: string;
       history: string;
@@ -60,6 +61,26 @@ export type Dictionary = {
     // Shared by Shell's own Connect button and ConnectGate (the pre-first-
     // connect screen) — same cycling label, two call sites.
     connectPhrases: [string, string];
+  };
+  workshop: {
+    title: string;
+    subtitle: string;
+    newCase: string;
+    intake: string;
+    vehicle: string;
+    selectVehicle: string;
+    technician: string;
+    optional: string;
+    complaint: string;
+    complaintPlaceholder: string;
+    odometer: string;
+    creating: string;
+    createCase: string;
+    loadError: string;
+    createError: string;
+    emptyTitle: string;
+    emptyBody: string;
+    unknownVehicle: (id: number) => string;
   };
   diagnose: {
     title: string;
