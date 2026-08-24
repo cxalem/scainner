@@ -64,16 +64,37 @@ pub enum Request {
     ReadEcuInfo(Sender<Result<obd::EcuInfo, String>>),
     Readiness(Sender<Result<HashMap<String, bool>, String>>),
     AllSensors(Sender<Result<Vec<obd::SensorReading>, String>>),
-    UdsRead { module: String, did: u16, tx: Sender<Result<Option<uds::UdsHit>, String>> },
-    UdsScan { module: String, from: u16, to: u16, tx: Sender<Result<Vec<uds::UdsHit>, String>> },
+    UdsRead {
+        module: String,
+        did: u16,
+        tx: Sender<Result<Option<uds::UdsHit>, String>>,
+    },
+    UdsScan {
+        module: String,
+        from: u16,
+        to: u16,
+        tx: Sender<Result<Vec<uds::UdsHit>, String>>,
+    },
     /// One-button auto-discovery: no ranges, no addresses, no user input.
-    Discover { full: bool, tx: Sender<Result<uds::DiscoveryReport, String>> },
-    UdsClear { module: String, tx: Sender<Result<uds::ClearOutcome, String>> },
-    UdsModuleDtcs { module: String, tx: Sender<Result<Vec<String>, String>> },
+    Discover {
+        full: bool,
+        tx: Sender<Result<uds::DiscoveryReport, String>>,
+    },
+    UdsClear {
+        module: String,
+        tx: Sender<Result<uds::ClearOutcome, String>>,
+    },
+    UdsModuleDtcs {
+        module: String,
+        tx: Sender<Result<Vec<String>, String>>,
+    },
     /// The "name this car" flow for VIN-less vehicles: creates the vehicles
     /// row, links the live connection, back-stamps everything it already
     /// recorded, and re-emits conn-status with the new identity.
-    NameVehicle { name: String, tx: Sender<Result<i64, String>> },
+    NameVehicle {
+        name: String,
+        tx: Sender<Result<i64, String>>,
+    },
     Stop,
 }
 
@@ -97,7 +118,11 @@ impl Supervisor {
         let status_clone = status.clone();
         let cancel_clone = cancel_scan.clone();
         std::thread::spawn(move || run_loop(app, db, rx, status_clone, cancel_clone));
-        Self { tx, status, cancel_scan }
+        Self {
+            tx,
+            status,
+            cancel_scan,
+        }
     }
 }
 
@@ -138,19 +163,32 @@ fn run_loop(
 ) {
     'outer: loop {
         // ---- (re)connect phase ----
-        set_status(&app, &status, ConnStatus { state: "connecting".into(), ..Default::default() });
+        set_status(
+            &app,
+            &status,
+            ConnStatus {
+                state: "connecting".into(),
+                ..Default::default()
+            },
+        );
         let mut drv = match connect_with_retries(&db) {
             Ok(d) => d,
             Err(e) => {
-                set_status(&app, &status, ConnStatus {
-                    state: "disconnected".into(),
-                    detail: Some(e),
-                    ..Default::default()
-                });
+                set_status(
+                    &app,
+                    &status,
+                    ConnStatus {
+                        state: "disconnected".into(),
+                        detail: Some(e),
+                        ..Default::default()
+                    },
+                );
                 // Wait a bit, but stay responsive to Stop.
                 match rx.recv_timeout(Duration::from_secs(10)) {
                     Ok(Request::Stop) => return,
-                    Ok(req) => { answer_disconnected(req); }
+                    Ok(req) => {
+                        answer_disconnected(req);
+                    }
                     Err(_) => {}
                 }
                 continue;
@@ -159,11 +197,15 @@ fn run_loop(
         let version = match drv.init() {
             Ok(v) => v,
             Err(e) => {
-                set_status(&app, &status, ConnStatus {
-                    state: "disconnected".into(),
-                    detail: Some(e.to_string()),
-                    ..Default::default()
-                });
+                set_status(
+                    &app,
+                    &status,
+                    ConnStatus {
+                        state: "disconnected".into(),
+                        detail: Some(e.to_string()),
+                        ..Default::default()
+                    },
+                );
                 continue;
             }
         };
@@ -214,17 +256,24 @@ fn run_loop(
                 (None, None, false)
             }
         };
-        let mut ctx = ConnCtx { connection_id, vehicle_id };
-        set_status(&app, &status, ConnStatus {
-            state: "connected".into(),
-            elm_version: Some(version.clone()),
-            detail: None,
-            vin: resolved_vin.clone(),
+        let mut ctx = ConnCtx {
+            connection_id,
             vehicle_id,
-            display_name,
-            vehicle_is_new,
-            scanning: false,
-        });
+        };
+        set_status(
+            &app,
+            &status,
+            ConnStatus {
+                state: "connected".into(),
+                elm_version: Some(version.clone()),
+                detail: None,
+                vin: resolved_vin.clone(),
+                vehicle_id,
+                display_name,
+                vehicle_is_new,
+                scanning: false,
+            },
+        );
 
         // Adaptive polling: ask the ECU once which mode-01 PIDs it supports
         // and poll only those. The old Peugeot answers 5 of the poll set's
@@ -245,7 +294,11 @@ fn run_loop(
                 })
                 .map(|p| p.key)
                 .collect();
-            log::info!("ECU supports {} PIDs; polling: {}", supported_pids.len(), polled.join(", "));
+            log::info!(
+                "ECU supports {} PIDs; polling: {}",
+                supported_pids.len(),
+                polled.join(", ")
+            );
         }
 
         let mut consecutive_failures = 0u32;
@@ -269,7 +322,14 @@ fn run_loop(
                     match req {
                         Request::Stop => {
                             db.end_connection(ctx.connection_id);
-                            set_status(&app, &status, ConnStatus { state: "disconnected".into(), ..Default::default() });
+                            set_status(
+                                &app,
+                                &status,
+                                ConnStatus {
+                                    state: "disconnected".into(),
+                                    ..Default::default()
+                                },
+                            );
                             return;
                         }
                         Request::NameVehicle { name, tx } => {
@@ -277,22 +337,28 @@ fn run_loop(
                             if trimmed.is_empty() {
                                 let _ = tx.send(Err("name is empty".into()));
                             } else if ctx.vehicle_id.is_some() {
-                                let _ = tx.send(Err("this connection already has an identified vehicle".into()));
+                                let _ = tx.send(Err(
+                                    "this connection already has an identified vehicle".into(),
+                                ));
                             } else {
                                 let id = db.create_vehicle_named(trimmed);
                                 db.link_connection_vehicle(ctx.connection_id, id);
                                 ctx.vehicle_id = Some(id);
-                                set_status(&app, &status, ConnStatus {
-                                    state: "connected".into(),
-                                    elm_version: Some(version.clone()),
-                                    detail: None,
-                                    vin: None,
-                                    vehicle_id: Some(id),
-                                    display_name: Some(trimmed.to_string()),
-                                    // Naming IS this vehicle's first appearance.
-                                    vehicle_is_new: true,
-                                    scanning: false,
-                                });
+                                set_status(
+                                    &app,
+                                    &status,
+                                    ConnStatus {
+                                        state: "connected".into(),
+                                        elm_version: Some(version.clone()),
+                                        detail: None,
+                                        vin: None,
+                                        vehicle_id: Some(id),
+                                        display_name: Some(trimmed.to_string()),
+                                        // Naming IS this vehicle's first appearance.
+                                        vehicle_is_new: true,
+                                        scanning: false,
+                                    },
+                                );
                                 let _ = tx.send(Ok(id));
                             }
                         }
@@ -317,7 +383,8 @@ fn run_loop(
                 match drv.cmd(pid.pid, Duration::from_secs(3)) {
                     Ok(raw) => {
                         let lines = parser::clean_response(&raw);
-                        let payload = parser::payload_bytes(&lines, &format!("41 {}", &pid.pid[2..]));
+                        let payload =
+                            parser::payload_bytes(&lines, &format!("41 {}", &pid.pid[2..]));
                         if let Some(v) = (pid.decode)(&payload) {
                             values.insert(pid.key.to_string(), v);
                             db.insert_reading(ctx.connection_id, ctx.vehicle_id, pid.key, v);
@@ -350,7 +417,11 @@ fn run_loop(
             // ---- Alerts (once per session each) ----
             if let Some(&t) = values.get("coolant") {
                 if t > 105.0 && alerts_fired.insert("coolant") {
-                    notify(&app, "Coolant overheating", &format!("{t:.0}°C — stop when safe and check"));
+                    notify(
+                        &app,
+                        "Coolant overheating",
+                        &format!("{t:.0}°C — stop when safe and check"),
+                    );
                 }
             }
             if let Some(&v) = values.get("voltage") {
@@ -359,7 +430,11 @@ fn run_loop(
                     low_voltage_streak += 1;
                     // Voltage samples come every ~20-30s; two in a row = sustained.
                     if low_voltage_streak >= 2 && alerts_fired.insert("voltage") {
-                        notify(&app, "Battery voltage low while running", &format!("{v:.1} V — charging system may have a problem"));
+                        notify(
+                            &app,
+                            "Battery voltage low while running",
+                            &format!("{v:.1} V — charging system may have a problem"),
+                        );
                     }
                 } else {
                     low_voltage_streak = 0;
@@ -380,7 +455,11 @@ fn run_loop(
                     let payload = parser::payload_bytes(&lines, "41 01");
                     if let Some(m) = parser::decode_mil(&payload) {
                         if m.mil_on && alerts_fired.insert("mil") {
-                            notify(&app, "Check-engine light is on", &format!("{} code(s) stored — run a scan in Scainner", m.dtc_count));
+                            notify(
+                                &app,
+                                "Check-engine light is on",
+                                &format!("{} code(s) stored — run a scan in Scainner", m.dtc_count),
+                            );
                         }
                     }
                 }
@@ -460,7 +539,11 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                 // fail fast so escalation starts sooner); post-cycle attempts
                 // get two patient tries since fresh links often eat the first
                 // write.
-                let (tries, per_try) = if attempt == 0 { (1, Duration::from_secs(3)) } else { (2, Duration::from_secs(5)) };
+                let (tries, per_try) = if attempt == 0 {
+                    (1, Duration::from_secs(3))
+                } else {
+                    (2, Duration::from_secs(5))
+                };
                 let mut alive = false;
                 for probe_try in 0..tries {
                     let probe = d.cmd("ATZ", per_try);
@@ -494,17 +577,39 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
 fn answer_disconnected(req: Request) {
     let err = "not connected".to_string();
     match req {
-        Request::ScanDtcs(tx) => { let _ = tx.send(Err(err)); }
-        Request::ClearDtcs(tx) => { let _ = tx.send(Err(err)); }
-        Request::ReadEcuInfo(tx) => { let _ = tx.send(Err(err)); }
-        Request::Readiness(tx) => { let _ = tx.send(Err(err)); }
-        Request::AllSensors(tx) => { let _ = tx.send(Err(err)); }
-        Request::UdsRead { tx, .. } => { let _ = tx.send(Err(err)); }
-        Request::UdsScan { tx, .. } => { let _ = tx.send(Err(err)); }
-        Request::Discover { tx, .. } => { let _ = tx.send(Err(err)); }
-        Request::UdsClear { tx, .. } => { let _ = tx.send(Err(err)); }
-        Request::UdsModuleDtcs { tx, .. } => { let _ = tx.send(Err(err)); }
-        Request::NameVehicle { tx, .. } => { let _ = tx.send(Err(err)); }
+        Request::ScanDtcs(tx) => {
+            let _ = tx.send(Err(err));
+        }
+        Request::ClearDtcs(tx) => {
+            let _ = tx.send(Err(err));
+        }
+        Request::ReadEcuInfo(tx) => {
+            let _ = tx.send(Err(err));
+        }
+        Request::Readiness(tx) => {
+            let _ = tx.send(Err(err));
+        }
+        Request::AllSensors(tx) => {
+            let _ = tx.send(Err(err));
+        }
+        Request::UdsRead { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
+        Request::UdsScan { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
+        Request::Discover { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
+        Request::UdsClear { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
+        Request::UdsModuleDtcs { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
+        Request::NameVehicle { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
         Request::Stop => {}
     }
 }
@@ -568,7 +673,11 @@ fn handle_request(
                         a.voltage,
                         a.freeze.as_ref(),
                     );
-                    let verdict = if a.stored.is_empty() && a.pending.is_empty() { "cleared" } else { "faults_remain" };
+                    let verdict = if a.stored.is_empty() && a.pending.is_empty() {
+                        "cleared"
+                    } else {
+                        "faults_remain"
+                    };
                     db.log_write(
                         Some(ctx.connection_id),
                         ctx.vehicle_id,
@@ -582,9 +691,9 @@ fn handle_request(
                     );
                     Ok(outcome)
                 }
-                Err(obd::ClearError::BeforeScanFailed(e)) => {
-                    Err(format!("Could not read the current codes before clearing, so nothing was cleared: {e}"))
-                }
+                Err(obd::ClearError::BeforeScanFailed(e)) => Err(format!(
+                    "Could not read the current codes before clearing, so nothing was cleared: {e}"
+                )),
                 Err(obd::ClearError::ClearFailed { before, error }) => {
                     db.log_write(
                         Some(ctx.connection_id),
@@ -609,7 +718,9 @@ fn handle_request(
                         Some(&dtc_json(&before)),
                         None,
                         "error",
-                        Some(&format!("clear sent, but the verification scan failed: {error}")),
+                        Some(&format!(
+                            "clear sent, but the verification scan failed: {error}"
+                        )),
                     );
                     Err(format!("The clear was sent, but the verification scan failed: {error}. Run a new scan to see the current state."))
                 }
@@ -651,7 +762,12 @@ fn handle_request(
         Request::UdsRead { module, did, tx } => {
             let _ = tx.send(uds::read_one(drv, db, &module, did));
         }
-        Request::UdsScan { module, from, to, tx } => {
+        Request::UdsScan {
+            module,
+            from,
+            to,
+            tx,
+        } => {
             cancel_scan.store(false, Ordering::Relaxed);
             set_scanning(app, status, true);
             let result = uds::scan_range(drv, db, &module, from, to, cancel_scan, app);
@@ -671,7 +787,9 @@ fn handle_request(
                     set_scanning(app, status, false);
                     r
                 }
-                None => Err("name this vehicle first so its findings have somewhere to live".into()),
+                None => {
+                    Err("name this vehicle first so its findings have somewhere to live".into())
+                }
             };
             let _ = tx.send(result);
         }

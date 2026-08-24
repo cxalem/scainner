@@ -32,7 +32,9 @@ fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     match m.lock() {
         Ok(g) => g,
         Err(poisoned) => {
-            log::warn!("recovering from a poisoned mutex (a previous command panicked while holding it)");
+            log::warn!(
+                "recovering from a poisoned mutex (a previous command panicked while holding it)"
+            );
             poisoned.into_inner()
         }
     }
@@ -85,7 +87,8 @@ fn disconnect(state: tauri::State<AppState>) -> Result<(), String> {
     if let Some(sup) = guard.take() {
         // Wake up an in-progress UDS scan first so Stop doesn't sit queued
         // behind it for however long the scan has left to run.
-        sup.cancel_scan.store(true, std::sync::atomic::Ordering::Relaxed);
+        sup.cancel_scan
+            .store(true, std::sync::atomic::Ordering::Relaxed);
         let _ = sup.tx.send(Request::Stop);
     }
     Ok(())
@@ -97,7 +100,8 @@ fn disconnect(state: tauri::State<AppState>) -> Result<(), String> {
 fn uds_cancel_scan(state: tauri::State<AppState>) {
     log::debug!("scan cancel requested from UI");
     if let Some(sup) = lock_or_recover(&state.supervisor).as_ref() {
-        sup.cancel_scan.store(true, std::sync::atomic::Ordering::Relaxed);
+        sup.cancel_scan
+            .store(true, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -134,7 +138,10 @@ fn require_confirmed(confirmed: bool) -> Result<(), String> {
 /// again, and logs the whole thing to `writes_log`. Returns both scans so
 /// the UI can show an honest before/after.
 #[tauri::command]
-async fn clear_dtcs(state: tauri::State<'_, AppState>, confirmed: bool) -> Result<elm::obd::ObdClearOutcome, String> {
+async fn clear_dtcs(
+    state: tauri::State<'_, AppState>,
+    confirmed: bool,
+) -> Result<elm::obd::ObdClearOutcome, String> {
     require_confirmed(confirmed)?;
     ask(&state, Request::ClearDtcs).await
 }
@@ -142,7 +149,11 @@ async fn clear_dtcs(state: tauri::State<'_, AppState>, confirmed: bool) -> Resul
 /// The write audit trail, newest first: everything the app has changed on
 /// the car, with before/after state and outcome.
 #[tauri::command]
-fn writes_log(state: tauri::State<AppState>, vehicle_id: Option<i64>, limit: i64) -> Vec<db::WriteLogRow> {
+fn writes_log(
+    state: tauri::State<AppState>,
+    vehicle_id: Option<i64>,
+    limit: i64,
+) -> Vec<db::WriteLogRow> {
     state.db.writes_log(vehicle_id, limit)
 }
 
@@ -164,17 +175,35 @@ async fn all_sensors(state: tauri::State<'_, AppState>) -> Result<Vec<SensorRead
 #[tauri::command]
 fn uds_modules(state: tauri::State<AppState>) -> Vec<elm::uds::UdsModule> {
     let mut mods = elm::uds::builtin_modules();
-    mods.extend(state.db.list_uds_modules().into_iter().map(|(key, label, req, resp)| {
-        elm::uds::UdsModule { key, label, req, resp, builtin: false }
-    }));
+    mods.extend(
+        state
+            .db
+            .list_uds_modules()
+            .into_iter()
+            .map(|(key, label, req, resp)| elm::uds::UdsModule {
+                key,
+                label,
+                req,
+                resp,
+                builtin: false,
+            }),
+    );
     mods
 }
 
 /// Add a custom module (any brand's CAN request/response IDs, hex strings
 /// like "7E0"/"7E8") so the UDS Lab works beyond the built-in PSA four.
 #[tauri::command]
-fn add_uds_module(state: tauri::State<AppState>, key: String, label: String, req: String, resp: String) -> Result<(), String> {
-    state.db.add_uds_module(&key, &label, &req.to_uppercase(), &resp.to_uppercase())
+fn add_uds_module(
+    state: tauri::State<AppState>,
+    key: String,
+    label: String,
+    req: String,
+    resp: String,
+) -> Result<(), String> {
+    state
+        .db
+        .add_uds_module(&key, &label, &req.to_uppercase(), &resp.to_uppercase())
 }
 
 #[tauri::command]
@@ -183,13 +212,28 @@ fn delete_uds_module(state: tauri::State<AppState>, key: String) {
 }
 
 #[tauri::command]
-async fn uds_read(state: tauri::State<'_, AppState>, module: String, did: u16) -> Result<Option<elm::uds::UdsHit>, String> {
+async fn uds_read(
+    state: tauri::State<'_, AppState>,
+    module: String,
+    did: u16,
+) -> Result<Option<elm::uds::UdsHit>, String> {
     ask(&state, |tx| Request::UdsRead { module, did, tx }).await
 }
 
 #[tauri::command]
-async fn uds_scan(state: tauri::State<'_, AppState>, module: String, from: u16, to: u16) -> Result<Vec<elm::uds::UdsHit>, String> {
-    ask(&state, |tx| Request::UdsScan { module, from, to, tx }).await
+async fn uds_scan(
+    state: tauri::State<'_, AppState>,
+    module: String,
+    from: u16,
+    to: u16,
+) -> Result<Vec<elm::uds::UdsHit>, String> {
+    ask(&state, |tx| Request::UdsScan {
+        module,
+        from,
+        to,
+        tx,
+    })
+    .await
 }
 
 /// One-button auto-discovery. No addresses/ranges to fill in — those come
@@ -200,14 +244,20 @@ async fn uds_scan(state: tauri::State<'_, AppState>, module: String, from: u16, 
 /// brand new car, or checking for newly-covered sensors after a map
 /// update). Cancellable through the existing uds_cancel_scan command.
 #[tauri::command]
-async fn discover_sensors(state: tauri::State<'_, AppState>, full: bool) -> Result<elm::uds::DiscoveryReport, String> {
+async fn discover_sensors(
+    state: tauri::State<'_, AppState>,
+    full: bool,
+) -> Result<elm::uds::DiscoveryReport, String> {
     ask(&state, |tx| Request::Discover { full, tx }).await
 }
 
 /// What previous discovery passes found for a vehicle: one row per module
 /// with its DID counts. Local DB read, no car needed.
 #[tauri::command]
-fn discovered_modules(state: tauri::State<AppState>, vehicle_id: i64) -> Vec<db::DiscoveredModuleRow> {
+fn discovered_modules(
+    state: tauri::State<AppState>,
+    vehicle_id: i64,
+) -> Vec<db::DiscoveredModuleRow> {
     state.db.discovered_summary(vehicle_id)
 }
 
@@ -220,14 +270,21 @@ fn discovered_dids(state: tauri::State<AppState>, module_id: i64) -> Vec<db::Dis
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
 #[tauri::command]
-async fn uds_clear(state: tauri::State<'_, AppState>, module: String, confirmed: bool) -> Result<ClearOutcome, String> {
+async fn uds_clear(
+    state: tauri::State<'_, AppState>,
+    module: String,
+    confirmed: bool,
+) -> Result<ClearOutcome, String> {
     require_confirmed(confirmed)?;
     ask(&state, |tx| Request::UdsClear { module, tx }).await
 }
 
 /// Reads the fault codes currently stored on one module (UDS 19 02, read-only).
 #[tauri::command]
-async fn uds_module_dtcs(state: tauri::State<'_, AppState>, module: String) -> Result<Vec<String>, String> {
+async fn uds_module_dtcs(
+    state: tauri::State<'_, AppState>,
+    module: String,
+) -> Result<Vec<String>, String> {
     ask(&state, |tx| Request::UdsModuleDtcs { module, tx }).await
 }
 
@@ -260,7 +317,10 @@ fn set_vehicle_name(state: tauri::State<AppState>, vehicle_id: i64, name: String
 /// the supervisor so the connection loop can adopt the new identity and
 /// re-emit conn-status (see Request::NameVehicle).
 #[tauri::command]
-async fn name_current_vehicle(state: tauri::State<'_, AppState>, name: String) -> Result<i64, String> {
+async fn name_current_vehicle(
+    state: tauri::State<'_, AppState>,
+    name: String,
+) -> Result<i64, String> {
     ask(&state, |tx| Request::NameVehicle { name, tx }).await
 }
 
@@ -294,12 +354,43 @@ fn toggle_probe(state: tauri::State<AppState>, id: i64, enabled: bool) {
 /// Scan history for one vehicle; `None` means "the current unidentified
 /// connection's scans" (vehicle_id IS NULL rows), never "everything."
 #[tauri::command]
-fn dtc_history(state: tauri::State<AppState>, vehicle_id: Option<i64>, limit: i64) -> Vec<db::DtcScan> {
+fn dtc_history(
+    state: tauri::State<AppState>,
+    vehicle_id: Option<i64>,
+    limit: i64,
+) -> Vec<db::DtcScan> {
     state.db.dtc_history(vehicle_id, limit)
 }
 
 #[tauri::command]
-fn history(state: tauri::State<AppState>, vehicle_id: Option<i64>, key: String, since_hours: f64) -> Vec<db::HistoryPoint> {
+fn diagnostic_cases(
+    state: tauri::State<AppState>,
+    vehicle_id: Option<i64>,
+) -> Vec<db::DiagnosticCase> {
+    state.db.diagnostic_cases(vehicle_id)
+}
+
+#[tauri::command]
+fn create_diagnostic_case(
+    state: tauri::State<AppState>,
+    vehicle_id: i64,
+    complaint: String,
+    odometer_km: Option<i64>,
+    assigned_to: Option<String>,
+) -> Result<db::DiagnosticCase, String> {
+    state
+        .db
+        .create_diagnostic_case(vehicle_id, &complaint, odometer_km, assigned_to.as_deref())
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn history(
+    state: tauri::State<AppState>,
+    vehicle_id: Option<i64>,
+    key: String,
+    since_hours: f64,
+) -> Vec<db::HistoryPoint> {
     state.db.history(vehicle_id, &key, since_hours)
 }
 
@@ -317,7 +408,9 @@ fn db_path(app: tauri::AppHandle) -> String {
 /// sync engine (src/lib/sync.ts) — see db::SyncBatch's doc comment.
 #[tauri::command]
 fn sync_batch(state: tauri::State<AppState>, after_reading_id: i64, limit: i64) -> db::SyncBatch {
-    state.db.sync_batch(after_reading_id, limit.clamp(1, 20_000))
+    state
+        .db
+        .sync_batch(after_reading_id, limit.clamp(1, 20_000))
 }
 
 /// App-level settings kv (sync watermark etc.) — deliberately generic, the
@@ -334,10 +427,20 @@ fn app_setting_set(state: tauri::State<AppState>, key: String, value: String) {
 
 /// Markdown briefing about the car, ready to paste into any AI chat.
 #[tauri::command]
-fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, vehicle_id: Option<i64>, since_hours: f64) -> String {
+fn ai_context(
+    app: tauri::AppHandle,
+    state: tauri::State<AppState>,
+    vehicle_id: Option<i64>,
+    since_hours: f64,
+) -> String {
     let vehicles: Vec<_> = vehicle_id
         .and_then(|id| state.db.vehicle(id))
-        .map(|v| db::VehicleListRow { id: v.id, vin: v.vin, display_name: v.display_name, connections: state.db.connection_count(Some(v.id)) })
+        .map(|v| db::VehicleListRow {
+            id: v.id,
+            vin: v.vin,
+            display_name: v.display_name,
+            connections: state.db.connection_count(Some(v.id)),
+        })
         .into_iter()
         .collect();
     let scans = state.db.dtc_history(vehicle_id, 5);
@@ -355,11 +458,16 @@ fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, vehicle_id: 
     for v in &vehicles {
         let identity = match (&v.display_name, &v.vin) {
             (Some(name), Some(vin)) => format!("{name} (VIN {vin})"),
-            (Some(name), None) => format!("{name} (no VIN — ECU predates Mode 09 or never answered)"),
+            (Some(name), None) => {
+                format!("{name} (no VIN — ECU predates Mode 09 or never answered)")
+            }
             (None, Some(vin)) => format!("VIN {vin}"),
             (None, None) => "unnamed vehicle".to_string(),
         };
-        md.push_str(&format!("- #{}: {} — {} connection(s)\n", v.id, identity, v.connections));
+        md.push_str(&format!(
+            "- #{}: {} — {} connection(s)\n",
+            v.id, identity, v.connections
+        ));
     }
     md.push_str(&format!("- Recorded connections total: {sessions}\n\n"));
 
@@ -384,7 +492,9 @@ fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, vehicle_id: 
         }
     }
 
-    md.push_str(&format!("\n## Sensor stats, last {days:.1} days (min / avg / max)\n\n"));
+    md.push_str(&format!(
+        "\n## Sensor stats, last {days:.1} days (min / avg / max)\n\n"
+    ));
     for st in &stats {
         md.push_str(&format!(
             "- {}: {:.1} / {:.1} / {:.1} ({} samples)\n",
@@ -399,10 +509,7 @@ fn ai_context(app: tauri::AppHandle, state: tauri::State<AppState>, vehicle_id: 
 }
 
 fn data_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .expect("no app data dir");
+    let dir = app.path().app_data_dir().expect("no app data dir");
     std::fs::create_dir_all(&dir).ok();
     dir.join("scainner.sqlite3")
 }
@@ -437,6 +544,8 @@ pub fn run() {
             read_ecu_info,
             readiness,
             dtc_history,
+            diagnostic_cases,
+            create_diagnostic_case,
             history,
             export_json,
             db_path,

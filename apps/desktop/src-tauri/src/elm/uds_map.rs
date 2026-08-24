@@ -87,6 +87,20 @@ pub struct ModuleDef {
     pub req: String,
     pub resp: String,
     pub name: Option<String>,
+    /// Automatic discovery session policy for this exact ECU address pair.
+    /// Missing means default-session only; session changes must be an
+    /// explicit, reviewed map decision rather than inferred from brand or
+    /// address confidence.
+    #[serde(default)]
+    pub discovery_session: DiscoverySession,
+}
+
+#[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DiscoverySession {
+    #[default]
+    DefaultOnly,
+    DefaultThenExtended,
 }
 
 #[derive(Deserialize, Clone)]
@@ -177,7 +191,12 @@ pub fn hex_any(s: &str) -> Option<u32> {
 /// brand simply has fewer modules.
 pub fn extended_modules_for_vin(vin: Option<&str>) -> usize {
     brand_for_vin(vin)
-        .map(|b| b.modules.iter().filter(|m| can11(&m.req).is_none() && hex_any(&m.req).is_some()).count())
+        .map(|b| {
+            b.modules
+                .iter()
+                .filter(|m| can11(&m.req).is_none() && hex_any(&m.req).is_some())
+                .count()
+        })
         .unwrap_or(0)
 }
 
@@ -186,7 +205,28 @@ pub fn extended_modules_for_vin(vin: Option<&str>) -> usize {
 /// bands (slower, still bounded) rather than guessing at one.
 pub fn brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
     let wmi = vin.filter(|v| v.len() >= 3)?[..3].to_uppercase();
-    map().brands.iter().find(|b| b.wmi.iter().any(|w| w.eq_ignore_ascii_case(&wmi)))
+    map()
+        .brands
+        .iter()
+        .find(|b| b.wmi.iter().any(|w| w.eq_ignore_ascii_case(&wmi)))
+}
+
+/// Session policy for one exact, VIN-selected module. Unknown VINs and
+/// address pairs not explicitly present in that brand profile are always
+/// default-only.
+pub fn discovery_session_for_module(
+    vin: Option<&str>,
+    req: u16,
+    resp: u16,
+) -> DiscoverySession {
+    brand_for_vin(vin)
+        .and_then(|brand| {
+            brand.modules.iter().find(|module| {
+                can11(&module.req) == Some(req) && can11(&module.resp) == Some(resp)
+            })
+        })
+        .map(|module| module.discovery_session)
+        .unwrap_or_default()
 }
 
 /// DID neighborhoods to sweep, as (from, to) pairs. Brand-specific when the
@@ -195,7 +235,13 @@ pub fn bands_for_vin(vin: Option<&str>) -> Vec<(u16, u16)> {
     let collect = |b: &Brand| -> Vec<(u8, u16, u16)> {
         b.did_bands
             .iter()
-            .filter_map(|d| Some((confidence_rank(d.confidence.as_deref()), hex16(&d.from)?, hex16(&d.to)?)))
+            .filter_map(|d| {
+                Some((
+                    confidence_rank(d.confidence.as_deref()),
+                    hex16(&d.from)?,
+                    hex16(&d.to)?,
+                ))
+            })
             .collect()
     };
     let mut ranked: Vec<(u8, u16, u16)> = match brand_for_vin(vin) {
@@ -259,11 +305,21 @@ pub fn addresses_to_probe(vin: Option<&str>) -> Vec<(u16, u16, Option<String>)> 
 }
 
 pub fn ident_dids() -> Vec<u16> {
-    map().standard.ident_dids.iter().filter_map(|d| hex16(&d.did)).collect()
+    map()
+        .standard
+        .ident_dids
+        .iter()
+        .filter_map(|d| hex16(&d.did))
+        .collect()
 }
 
 pub fn name_dids() -> Vec<u16> {
-    map().standard.name_dids.iter().filter_map(|d| hex16(d)).collect()
+    map()
+        .standard
+        .name_dids
+        .iter()
+        .filter_map(|d| hex16(d))
+        .collect()
 }
 
 pub fn presence_probe_did() -> u16 {
@@ -273,13 +329,20 @@ pub fn presence_probe_did() -> u16 {
 /// A documented label for a DID on this brand, when the map knows one —
 /// turns a raw discovery hit into a named sensor with no user work.
 pub fn known_did<'a>(vin: Option<&str>, req: u16, resp: u16, did: u16) -> Option<&'a KnownDid> {
-    let mut candidates = brand_for_vin(vin)?.known_dids.iter().filter(|k| hex16(&k.did) == Some(did));
+    let mut candidates = brand_for_vin(vin)?
+        .known_dids
+        .iter()
+        .filter(|k| hex16(&k.did) == Some(did));
     // Prefer an exact module binding. Unscoped entries remain a backwards-
     // compatible fallback while the rest of the multi-brand map is
     // migrated, but newly verified entries should always carry modules.
     candidates
         .clone()
-        .find(|k| k.modules.iter().any(|m| can11(&m.req) == Some(req) && can11(&m.resp) == Some(resp)))
+        .find(|k| {
+            k.modules
+                .iter()
+                .any(|m| can11(&m.req) == Some(req) && can11(&m.resp) == Some(resp))
+        })
         .or_else(|| candidates.find(|k| k.modules.is_empty()))
 }
 
@@ -320,8 +383,20 @@ mod tests {
             for k in &b.known_dids {
                 assert!(hex16(&k.did).is_some(), "{}: bad did {}", b.id, k.did);
                 for m in &k.modules {
-                    assert!(hex_any(&m.req).is_some(), "{} {}: bad module req {}", b.id, k.did, m.req);
-                    assert!(hex_any(&m.resp).is_some(), "{} {}: bad module resp {}", b.id, k.did, m.resp);
+                    assert!(
+                        hex_any(&m.req).is_some(),
+                        "{} {}: bad module req {}",
+                        b.id,
+                        k.did,
+                        m.req
+                    );
+                    assert!(
+                        hex_any(&m.resp).is_some(),
+                        "{} {}: bad module resp {}",
+                        b.id,
+                        k.did,
+                        m.resp
+                    );
                 }
             }
         }
@@ -338,7 +413,10 @@ mod tests {
         let narrowed = bands_for_vin(Some("VR7EXAMPLE0000001"));
         let union = bands_for_vin(None);
         assert!(!narrowed.is_empty());
-        assert!(narrowed.len() < union.len(), "known brand must sweep less than unknown");
+        assert!(
+            narrowed.len() < union.len(),
+            "known brand must sweep less than unknown"
+        );
     }
 
     #[test]
@@ -352,14 +430,41 @@ mod tests {
     fn known_modules_are_probed_before_the_blind_sweep() {
         let addrs = addresses_to_probe(Some("VR7EXAMPLE0000001"));
         let first = addrs.first().expect("at least one address");
-        assert!(first.2.is_some(), "a named brand module should lead the list");
+        assert!(
+            first.2.is_some(),
+            "a named brand module should lead the list"
+        );
         // No address appears twice, even though known modules also fall
         // inside the blind range.
         let mut reqs: Vec<u16> = addrs.iter().map(|(r, _, _)| *r).collect();
         let before = reqs.len();
         reqs.sort_unstable();
         reqs.dedup();
-        assert_eq!(before, reqs.len(), "duplicate addresses would be probed twice");
+        assert_eq!(
+            before,
+            reqs.len(),
+            "duplicate addresses would be probed twice"
+        );
+    }
+
+    #[test]
+    fn automatic_extended_discovery_requires_an_exact_vin_and_module_rule() {
+        assert_eq!(
+            discovery_session_for_module(Some("VR7EXAMPLE0000001"), 0x6A8, 0x688),
+            DiscoverySession::DefaultThenExtended
+        );
+        assert_eq!(
+            discovery_session_for_module(Some("VR7EXAMPLE0000001"), 0x6B5, 0x695),
+            DiscoverySession::DefaultOnly
+        );
+        assert_eq!(
+            discovery_session_for_module(None, 0x6A8, 0x688),
+            DiscoverySession::DefaultOnly
+        );
+        assert_eq!(
+            discovery_session_for_module(Some("WVWEXAMPLE000000"), 0x6A8, 0x688),
+            DiscoverySession::DefaultOnly
+        );
     }
 
     #[test]
@@ -377,7 +482,10 @@ mod tests {
         assert_eq!(hex16("F190"), Some(0xF190));
         assert!(can11("D422").is_none());
         for (_, resp, _) in addresses_to_probe(Some("VR7EXAMPLE0000001")) {
-            assert!(resp <= 0x7FF, "an 11-bit sweep produced an out-of-range response id");
+            assert!(
+                resp <= 0x7FF,
+                "an 11-bit sweep produced an out-of-range response id"
+            );
         }
     }
 
@@ -404,17 +512,33 @@ mod tests {
         let bands = bands_for_vin(Some("VR7EXAMPLE0000001"));
         let pos = |target: u16| bands.iter().position(|(f, _)| *f == target);
         if let (Some(d4), Some(d0)) = (pos(0xD400), pos(0xD000)) {
-            assert!(d4 < d0, "confirmed D4xx must sweep before low-confidence D0xx");
+            assert!(
+                d4 < d0,
+                "confirmed D4xx must sweep before low-confidence D0xx"
+            );
         }
     }
 
     #[test]
     fn researched_map_covers_the_brands_the_owner_asked_for() {
         let ids: Vec<&str> = map().brands.iter().map(|b| b.id.as_str()).collect();
-        for wanted in ["psa", "hyundai_kia", "vag", "seat", "cupra", "bmw", "renault", "ford", "toyota"] {
+        for wanted in [
+            "psa",
+            "hyundai_kia",
+            "vag",
+            "seat",
+            "cupra",
+            "bmw",
+            "renault",
+            "ford",
+            "toyota",
+        ] {
             assert!(ids.contains(&wanted), "missing brand {wanted}");
         }
-        assert!(map().brands.len() >= 20, "expected the researched multi-brand map");
+        assert!(
+            map().brands.len() >= 20,
+            "expected the researched multi-brand map"
+        );
     }
 
     #[test]
@@ -422,7 +546,8 @@ mod tests {
         // Research corrected this: D422 is battery VOLTAGE, not state of
         // charge — proven by this project's own live correlation against
         // PID 0142 (UDS_INVESTIGATION_LOG.md).
-        let k = known_did(Some("VR7EXAMPLE0000001"), 0x6A8, 0x688, 0xD422).expect("D422 documented");
+        let k =
+            known_did(Some("VR7EXAMPLE0000001"), 0x6A8, 0x688, 0xD422).expect("D422 documented");
         assert!(k.label.to_lowercase().contains("battery"));
         assert_eq!(k.unit.as_deref(), Some("V"));
     }

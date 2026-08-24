@@ -19,7 +19,11 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
     for line in lines {
         // multi-frame lines look like "0: 49 02 01 56 52 37"
         let body = match line.split_once(':') {
-            Some((idx, rest)) if idx.trim().chars().all(|c| c.is_ascii_hexdigit()) && idx.trim().len() <= 3 => rest,
+            Some((idx, rest))
+                if idx.trim().chars().all(|c| c.is_ascii_hexdigit()) && idx.trim().len() <= 3 =>
+            {
+                rest
+            }
             _ => line.as_str(),
         };
         let bytes: Vec<u8> = body
@@ -61,7 +65,10 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
     if prefix.is_empty() {
         return out;
     }
-    match out.windows(prefix.len()).position(|w| w == prefix.as_slice()) {
+    match out
+        .windows(prefix.len())
+        .position(|w| w == prefix.as_slice())
+    {
         Some(pos) => out[pos + prefix.len()..].to_vec(),
         None => Vec::new(),
     }
@@ -72,7 +79,11 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
 pub fn decode_dtcs(payload: &[u8]) -> Vec<String> {
     let mut codes = Vec::new();
     // On CAN, first byte after 43 is the number of codes.
-    let data = if !payload.is_empty() { &payload[1..] } else { payload };
+    let data = if !payload.is_empty() {
+        &payload[1..]
+    } else {
+        payload
+    };
     for pair in data.chunks(2) {
         if pair.len() < 2 || (pair[0] == 0 && pair[1] == 0) {
             continue;
@@ -133,22 +144,100 @@ pub struct PidDef {
 }
 
 pub const PIDS: &[PidDef] = &[
-    PidDef { pid: "010C", key: "rpm",          label: "Engine RPM",       unit: "rpm", decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 4.0) },
-    PidDef { pid: "010D", key: "speed",        label: "Vehicle speed",    unit: "km/h", decode: |d| Some(*d.first()? as f64) },
-    PidDef { pid: "0105", key: "coolant",      label: "Coolant temp",     unit: "°C",  decode: |d| Some(*d.first()? as f64 - 40.0) },
-    PidDef { pid: "010F", key: "intake_temp",  label: "Intake air temp",  unit: "°C",  decode: |d| Some(*d.first()? as f64 - 40.0) },
-    PidDef { pid: "0104", key: "load",         label: "Engine load",      unit: "%",   decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0111", key: "throttle",     label: "Throttle",         unit: "%",   decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0106", key: "stft",         label: "Short fuel trim",  unit: "%",   decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0) },
-    PidDef { pid: "0107", key: "ltft",         label: "Long fuel trim",   unit: "%",   decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0) },
-    PidDef { pid: "010B", key: "map",          label: "Manifold pressure", unit: "kPa", decode: |d| Some(*d.first()? as f64) },
-    PidDef { pid: "010E", key: "timing_adv",   label: "Timing advance",   unit: "°",   decode: |d| Some(*d.first()? as f64 / 2.0 - 64.0) },
-    PidDef { pid: "015E", key: "fuel_rate",    label: "Fuel rate",        unit: "L/h", decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 20.0) },
-    PidDef { pid: "012F", key: "fuel_level",   label: "Fuel level",       unit: "%",   decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
+    PidDef {
+        pid: "010C",
+        key: "rpm",
+        label: "Engine RPM",
+        unit: "rpm",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 4.0),
+    },
+    PidDef {
+        pid: "010D",
+        key: "speed",
+        label: "Vehicle speed",
+        unit: "km/h",
+        decode: |d| Some(*d.first()? as f64),
+    },
+    PidDef {
+        pid: "0105",
+        key: "coolant",
+        label: "Coolant temp",
+        unit: "°C",
+        decode: |d| Some(*d.first()? as f64 - 40.0),
+    },
+    PidDef {
+        pid: "010F",
+        key: "intake_temp",
+        label: "Intake air temp",
+        unit: "°C",
+        decode: |d| Some(*d.first()? as f64 - 40.0),
+    },
+    PidDef {
+        pid: "0104",
+        key: "load",
+        label: "Engine load",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0111",
+        key: "throttle",
+        label: "Throttle",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0106",
+        key: "stft",
+        label: "Short fuel trim",
+        unit: "%",
+        decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0),
+    },
+    PidDef {
+        pid: "0107",
+        key: "ltft",
+        label: "Long fuel trim",
+        unit: "%",
+        decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0),
+    },
+    PidDef {
+        pid: "010B",
+        key: "map",
+        label: "Manifold pressure",
+        unit: "kPa",
+        decode: |d| Some(*d.first()? as f64),
+    },
+    PidDef {
+        pid: "010E",
+        key: "timing_adv",
+        label: "Timing advance",
+        unit: "°",
+        decode: |d| Some(*d.first()? as f64 / 2.0 - 64.0),
+    },
+    PidDef {
+        pid: "015E",
+        key: "fuel_rate",
+        label: "Fuel rate",
+        unit: "L/h",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 20.0),
+    },
+    PidDef {
+        pid: "012F",
+        key: "fuel_level",
+        label: "Fuel level",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
     // In the poll set since polling became bitmap-adaptive (2026-08-21):
     // cars whose ECU declares MAF support (the old Peugeot does) get
     // continuous airflow; cars that don't skip it for free.
-    PidDef { pid: "0110", key: "maf",          label: "MAF air flow",     unit: "g/s", decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 100.0) },
+    PidDef {
+        pid: "0110",
+        key: "maf",
+        label: "MAF air flow",
+        unit: "g/s",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 100.0),
+    },
 ];
 
 /// Decode a supported-PID bitmap response (0100/0120/0140/0160 → 4 data bytes).
@@ -168,48 +257,300 @@ pub fn decode_supported_bitmap(base: u8, payload: &[u8]) -> Vec<u8> {
 /// The full standard mode-01 catalog (sensors only — bitmap/status PIDs excluded).
 /// Formulas per SAE J1979.
 pub const FULL_PIDS: &[PidDef] = &[
-    PidDef { pid: "0104", key: "load",          label: "Engine load",            unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0105", key: "coolant",       label: "Coolant temp",           unit: "°C",   decode: |d| Some(*d.first()? as f64 - 40.0) },
-    PidDef { pid: "0106", key: "stft",          label: "Short fuel trim B1",     unit: "%",    decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0) },
-    PidDef { pid: "0107", key: "ltft",          label: "Long fuel trim B1",      unit: "%",    decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0) },
-    PidDef { pid: "010A", key: "fuel_pressure", label: "Fuel pressure (gauge)",  unit: "kPa",  decode: |d| Some(*d.first()? as f64 * 3.0) },
-    PidDef { pid: "010B", key: "map",           label: "Manifold pressure",      unit: "kPa",  decode: |d| Some(*d.first()? as f64) },
-    PidDef { pid: "010C", key: "rpm",           label: "Engine RPM",             unit: "rpm",  decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 4.0) },
-    PidDef { pid: "010D", key: "speed",         label: "Vehicle speed",          unit: "km/h", decode: |d| Some(*d.first()? as f64) },
-    PidDef { pid: "010E", key: "timing_adv",    label: "Timing advance",         unit: "°",    decode: |d| Some(*d.first()? as f64 / 2.0 - 64.0) },
-    PidDef { pid: "010F", key: "intake_temp",   label: "Intake air temp",        unit: "°C",   decode: |d| Some(*d.first()? as f64 - 40.0) },
-    PidDef { pid: "0110", key: "maf",           label: "MAF air flow",           unit: "g/s",  decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 100.0) },
-    PidDef { pid: "0111", key: "throttle",      label: "Throttle position",      unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0114", key: "o2_b1s1",       label: "O₂ B1S1 voltage",        unit: "V",    decode: |d| Some(*d.first()? as f64 / 200.0) },
-    PidDef { pid: "0115", key: "o2_b1s2",       label: "O₂ B1S2 voltage",        unit: "V",    decode: |d| Some(*d.first()? as f64 / 200.0) },
-    PidDef { pid: "011F", key: "run_time",      label: "Run time since start",   unit: "s",    decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) },
-    PidDef { pid: "0121", key: "dist_mil",      label: "Distance with MIL on",   unit: "km",   decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) },
-    PidDef { pid: "0123", key: "rail_pressure", label: "Fuel rail pressure",     unit: "kPa",  decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) * 10.0) },
-    PidDef { pid: "012E", key: "evap_purge",    label: "EVAP purge",             unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "012F", key: "fuel_level",    label: "Fuel level",             unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0130", key: "warmups",       label: "Warm-ups since clear",   unit: "",     decode: |d| Some(*d.first()? as f64) },
-    PidDef { pid: "0131", key: "dist_clear",    label: "Distance since clear",   unit: "km",   decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) },
-    PidDef { pid: "0133", key: "baro",          label: "Barometric pressure",    unit: "kPa",  decode: |d| Some(*d.first()? as f64) },
-    PidDef { pid: "0134", key: "lambda_b1s1",   label: "Lambda B1S1",            unit: "λ",    decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 32768.0) },
-    PidDef { pid: "013C", key: "cat_temp_b1s1", label: "Catalyst temp B1S1",     unit: "°C",   decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 10.0 - 40.0) },
-    PidDef { pid: "013E", key: "cat_temp_b1s2", label: "Catalyst temp B1S2",     unit: "°C",   decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 10.0 - 40.0) },
-    PidDef { pid: "0142", key: "ecu_voltage",   label: "Control module voltage", unit: "V",    decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 1000.0) },
-    PidDef { pid: "0143", key: "abs_load",      label: "Absolute load",          unit: "%",    decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) * 100.0 / 255.0) },
-    PidDef { pid: "0144", key: "lambda_cmd",    label: "Commanded lambda",       unit: "λ",    decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 32768.0) },
-    PidDef { pid: "0145", key: "rel_throttle",  label: "Relative throttle",      unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0146", key: "ambient_temp",  label: "Ambient air temp",       unit: "°C",   decode: |d| Some(*d.first()? as f64 - 40.0) },
-    PidDef { pid: "0147", key: "throttle_b",    label: "Abs throttle B",         unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "0149", key: "pedal_d",       label: "Accel pedal D",          unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "014A", key: "pedal_e",       label: "Accel pedal E",          unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "014C", key: "cmd_throttle",  label: "Commanded throttle",     unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "014D", key: "time_mil",      label: "Time with MIL on",       unit: "min",  decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) },
-    PidDef { pid: "014E", key: "time_clear",    label: "Time since clear",       unit: "min",  decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) },
-    PidDef { pid: "0152", key: "ethanol",       label: "Ethanol fuel",           unit: "%",    decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0) },
-    PidDef { pid: "015C", key: "oil_temp",      label: "Engine oil temp",        unit: "°C",   decode: |d| Some(*d.first()? as f64 - 40.0) },
-    PidDef { pid: "015E", key: "fuel_rate",     label: "Fuel rate",              unit: "L/h",  decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 20.0) },
-    PidDef { pid: "0161", key: "demand_torque", label: "Demanded torque",        unit: "%",    decode: |d| Some(*d.first()? as f64 - 125.0) },
-    PidDef { pid: "0162", key: "actual_torque", label: "Actual torque",          unit: "%",    decode: |d| Some(*d.first()? as f64 - 125.0) },
-    PidDef { pid: "0163", key: "ref_torque",    label: "Reference torque",       unit: "Nm",   decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) },
+    PidDef {
+        pid: "0104",
+        key: "load",
+        label: "Engine load",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0105",
+        key: "coolant",
+        label: "Coolant temp",
+        unit: "°C",
+        decode: |d| Some(*d.first()? as f64 - 40.0),
+    },
+    PidDef {
+        pid: "0106",
+        key: "stft",
+        label: "Short fuel trim B1",
+        unit: "%",
+        decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0),
+    },
+    PidDef {
+        pid: "0107",
+        key: "ltft",
+        label: "Long fuel trim B1",
+        unit: "%",
+        decode: |d| Some((*d.first()? as f64 - 128.0) * 100.0 / 128.0),
+    },
+    PidDef {
+        pid: "010A",
+        key: "fuel_pressure",
+        label: "Fuel pressure (gauge)",
+        unit: "kPa",
+        decode: |d| Some(*d.first()? as f64 * 3.0),
+    },
+    PidDef {
+        pid: "010B",
+        key: "map",
+        label: "Manifold pressure",
+        unit: "kPa",
+        decode: |d| Some(*d.first()? as f64),
+    },
+    PidDef {
+        pid: "010C",
+        key: "rpm",
+        label: "Engine RPM",
+        unit: "rpm",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 4.0),
+    },
+    PidDef {
+        pid: "010D",
+        key: "speed",
+        label: "Vehicle speed",
+        unit: "km/h",
+        decode: |d| Some(*d.first()? as f64),
+    },
+    PidDef {
+        pid: "010E",
+        key: "timing_adv",
+        label: "Timing advance",
+        unit: "°",
+        decode: |d| Some(*d.first()? as f64 / 2.0 - 64.0),
+    },
+    PidDef {
+        pid: "010F",
+        key: "intake_temp",
+        label: "Intake air temp",
+        unit: "°C",
+        decode: |d| Some(*d.first()? as f64 - 40.0),
+    },
+    PidDef {
+        pid: "0110",
+        key: "maf",
+        label: "MAF air flow",
+        unit: "g/s",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 100.0),
+    },
+    PidDef {
+        pid: "0111",
+        key: "throttle",
+        label: "Throttle position",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0114",
+        key: "o2_b1s1",
+        label: "O₂ B1S1 voltage",
+        unit: "V",
+        decode: |d| Some(*d.first()? as f64 / 200.0),
+    },
+    PidDef {
+        pid: "0115",
+        key: "o2_b1s2",
+        label: "O₂ B1S2 voltage",
+        unit: "V",
+        decode: |d| Some(*d.first()? as f64 / 200.0),
+    },
+    PidDef {
+        pid: "011F",
+        key: "run_time",
+        label: "Run time since start",
+        unit: "s",
+        decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64),
+    },
+    PidDef {
+        pid: "0121",
+        key: "dist_mil",
+        label: "Distance with MIL on",
+        unit: "km",
+        decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64),
+    },
+    PidDef {
+        pid: "0123",
+        key: "rail_pressure",
+        label: "Fuel rail pressure",
+        unit: "kPa",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) * 10.0),
+    },
+    PidDef {
+        pid: "012E",
+        key: "evap_purge",
+        label: "EVAP purge",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "012F",
+        key: "fuel_level",
+        label: "Fuel level",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0130",
+        key: "warmups",
+        label: "Warm-ups since clear",
+        unit: "",
+        decode: |d| Some(*d.first()? as f64),
+    },
+    PidDef {
+        pid: "0131",
+        key: "dist_clear",
+        label: "Distance since clear",
+        unit: "km",
+        decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64),
+    },
+    PidDef {
+        pid: "0133",
+        key: "baro",
+        label: "Barometric pressure",
+        unit: "kPa",
+        decode: |d| Some(*d.first()? as f64),
+    },
+    PidDef {
+        pid: "0134",
+        key: "lambda_b1s1",
+        label: "Lambda B1S1",
+        unit: "λ",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 32768.0),
+    },
+    PidDef {
+        pid: "013C",
+        key: "cat_temp_b1s1",
+        label: "Catalyst temp B1S1",
+        unit: "°C",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 10.0 - 40.0),
+    },
+    PidDef {
+        pid: "013E",
+        key: "cat_temp_b1s2",
+        label: "Catalyst temp B1S2",
+        unit: "°C",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 10.0 - 40.0),
+    },
+    PidDef {
+        pid: "0142",
+        key: "ecu_voltage",
+        label: "Control module voltage",
+        unit: "V",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 1000.0),
+    },
+    PidDef {
+        pid: "0143",
+        key: "abs_load",
+        label: "Absolute load",
+        unit: "%",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0144",
+        key: "lambda_cmd",
+        label: "Commanded lambda",
+        unit: "λ",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 32768.0),
+    },
+    PidDef {
+        pid: "0145",
+        key: "rel_throttle",
+        label: "Relative throttle",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0146",
+        key: "ambient_temp",
+        label: "Ambient air temp",
+        unit: "°C",
+        decode: |d| Some(*d.first()? as f64 - 40.0),
+    },
+    PidDef {
+        pid: "0147",
+        key: "throttle_b",
+        label: "Abs throttle B",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "0149",
+        key: "pedal_d",
+        label: "Accel pedal D",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "014A",
+        key: "pedal_e",
+        label: "Accel pedal E",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "014C",
+        key: "cmd_throttle",
+        label: "Commanded throttle",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "014D",
+        key: "time_mil",
+        label: "Time with MIL on",
+        unit: "min",
+        decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64),
+    },
+    PidDef {
+        pid: "014E",
+        key: "time_clear",
+        label: "Time since clear",
+        unit: "min",
+        decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64),
+    },
+    PidDef {
+        pid: "0152",
+        key: "ethanol",
+        label: "Ethanol fuel",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
+    },
+    PidDef {
+        pid: "015C",
+        key: "oil_temp",
+        label: "Engine oil temp",
+        unit: "°C",
+        decode: |d| Some(*d.first()? as f64 - 40.0),
+    },
+    PidDef {
+        pid: "015E",
+        key: "fuel_rate",
+        label: "Fuel rate",
+        unit: "L/h",
+        decode: |d| Some(((*d.first()? as f64) * 256.0 + *d.get(1)? as f64) / 20.0),
+    },
+    PidDef {
+        pid: "0161",
+        key: "demand_torque",
+        label: "Demanded torque",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 - 125.0),
+    },
+    PidDef {
+        pid: "0162",
+        key: "actual_torque",
+        label: "Actual torque",
+        unit: "%",
+        decode: |d| Some(*d.first()? as f64 - 125.0),
+    },
+    PidDef {
+        pid: "0163",
+        key: "ref_torque",
+        label: "Reference torque",
+        unit: "Nm",
+        decode: |d| Some((*d.first()? as f64) * 256.0 + *d.get(1)? as f64),
+    },
 ];
 
 #[cfg(test)]
@@ -287,7 +628,10 @@ mod tests {
         // BE = PIDs 01,03,04,05,06,07 · 3E = 0B,0C,0D,0E,0F · A8 = 11,13,15 · 13 = 1C,1F,20
         assert_eq!(
             pids,
-            vec![0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x11, 0x13, 0x15, 0x1C, 0x1F, 0x20]
+            vec![
+                0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x11, 0x13, 0x15,
+                0x1C, 0x1F, 0x20
+            ]
         );
     }
 

@@ -14,6 +14,7 @@ import { Live } from "@/views/Live";
 import { History } from "@/views/History";
 import { Diagnose } from "@/views/Diagnose";
 import { Lab } from "@/views/Lab";
+import { Workshop } from "@/views/Workshop";
 import type { ConnStatus, Live as LiveMap } from "@scainner/core";
 
 // Code-split: pulls in three.js/@react-three (~450KB gzip) only once
@@ -29,7 +30,7 @@ const DiscoveryFlow = lazy(() =>
 
 export default function App() {
   const queryClient = useQueryClient();
-  const [view, setView] = useState<ViewKey>("overview");
+  const [view, setView] = useState<ViewKey>("workshop");
   const [conn, setConn] = useState<ConnStatus>({ state: "disconnected" });
   const [live, setLive] = useState<LiveMap>({});
   const staleTimer = useRef<number | null>(null);
@@ -124,6 +125,7 @@ export default function App() {
         onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))}
         onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
       >
+        {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}
         {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
         {view === "live" && <Live live={live} connected={connected} scanning={conn.scanning ?? false} />}
         {view === "history" && <History connState={conn.state} vehicleId={currentVehicleId} />}

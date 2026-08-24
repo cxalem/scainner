@@ -7,6 +7,7 @@ import {
   Gauge,
   Languages,
   LayoutDashboard,
+  ClipboardList,
   Plug,
   PlugZap,
   Stethoscope,
@@ -18,7 +19,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import type { ConnStatus } from "@scainner/core";
 import { useLocale, useT, type Locale } from "@/i18n";
 
-export type ViewKey = "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
+export type ViewKey = "workshop" | "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
 
 export function Shell({
   view,
@@ -56,6 +57,7 @@ export function Shell({
   };
 
   const NAV: { key: ViewKey; label: string; icon: typeof Activity; advanced?: boolean }[] = [
+    { key: "workshop", label: t.shell.nav.workshop, icon: ClipboardList },
     { key: "overview", label: t.shell.nav.overview, icon: LayoutDashboard },
     { key: "live", label: t.shell.nav.live, icon: Activity },
     { key: "history", label: t.shell.nav.history, icon: ChartLine },
