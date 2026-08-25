@@ -84,3 +84,10 @@ export function useDiscoveredModules(vehicleId: number | null) {
     enabled: vehicleId != null,
   });
 }
+
+export function useFingerprintExperiment() {
+  return useQuery({
+    queryKey: ["fingerprint_experiment"],
+    queryFn: () => run((device) => device.fingerprintExperiment()),
+  });
+}

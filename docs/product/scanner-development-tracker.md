@@ -17,8 +17,8 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 4 | Central scanner safety and cleanup guard | done | [PR #40](https://github.com/cxalem/scainner/pull/40), 78 Rust tests |
 | 5 | Discovery strategy and coverage accounting | done | [PR #41](https://github.com/cxalem/scainner/pull/41), 80 Rust tests |
 | 6 | Safe 11-bit and 29-bit module enumeration | done | [PR #42](https://github.com/cxalem/scainner/pull/42), 82 Rust tests |
-| 7 | Partial ECU fingerprints | active | Branch `feat/partial-ecu-fingerprints` |
-| 8 | Fingerprint matching experiment, 30–50 vehicles | queued | Depends on fingerprints |
+| 7 | Partial ECU fingerprints | done | [PR #43](https://github.com/cxalem/scainner/pull/43), 84 Rust tests |
+| 8 | Fingerprint matching experiment, 30–50 vehicles | active | Branch `feat/fingerprint-matching-experiment`; field collection remains open |
 | 9 | Workshop module taxonomy and vehicle map | queued | Can begin after fingerprint schema stabilizes |
 | 10 | Unified standard and module DTC scan | queued | Depends on typed outcomes and inventory |
 | 11 | Complaint-to-evidence diagnostic cases | queued | Depends on unified observations |
@@ -162,7 +162,7 @@ Acceptance criteria:
 - Enumeration remains read-only and uses the existing presence DID.
 - Full repository CI passes.
 
-## Active slice: partial ECU fingerprints
+## Completed slice: partial ECU fingerprints
 
 Deliverables:
 
@@ -188,6 +188,34 @@ Acceptance criteria:
 - Re-running discovery updates the same vehicle/module record idempotently.
 - Existing discovery session and request behavior remains unchanged.
 - Full repository CI passes.
+
+## Active slice: fingerprint matching experiment
+
+Implementation deliverables:
+
+- Measure the cohort from persisted discovery evidence rather than manually
+  counting screenshots or vehicles.
+- Produce a VIN-free observation export with cohort-local vehicle pseudonyms.
+- Normalize manufacturer part-number formatting before comparison.
+- Count a repeated ECU family only when the same valid `F187` part number
+  appears on at least two distinct vehicles.
+- Keep weaker hardware/software/system-name overlaps available as observations
+  without claiming they are matches.
+- Show collection progress and repeated-family count in the Lab.
+
+Field acceptance criteria:
+
+- Collect complete discovery evidence from at least 30 vehicles, aiming for 50.
+- Record the number of vehicles and modules that expose at least one family
+  identity field and specifically `F187`.
+- Report repeated-family groups, affected vehicles, and observed hardware and
+  software variants.
+- The exported experiment payload contains no VIN, cloud id, local database
+  id, ECU serial number, or customer-entered vehicle name.
+- A match never comes from address, system name, or AI inference alone.
+- Decide the product gate from the measured repeat rate; do not mark this slice
+  done merely because the harness shipped.
+- Full repository CI passes for the experiment harness.
 
 ## Product gates
 
