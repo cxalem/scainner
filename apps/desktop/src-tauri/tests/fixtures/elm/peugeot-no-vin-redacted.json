@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "name": "Peugeot K-line identity without readable VIN (redacted)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "0902", "response": "NO DATA\r>" },
+    { "command": "ATDPN", "response": "A5\r>" }
+  ]
+}

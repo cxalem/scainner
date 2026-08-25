@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "Transport failure mapping (synthetic)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "NO_RESPONSE", "error": "no_response" },
+    { "command": "IO_FAILURE", "error": "io" },
+    { "command": "HANDSHAKE_FAILURE", "error": "handshake" },
+    {
+      "command": "SLOW_RESPONSE",
+      "response": "OK\r>",
+      "minimum_timeout_ms": 1000
+    }
+  ]
+}
