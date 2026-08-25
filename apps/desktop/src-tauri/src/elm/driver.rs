@@ -61,6 +61,9 @@ pub enum ElmError {
 
 pub struct ElmDriver {
     backend: Backend,
+    /// Set only after an ECU positively acknowledges diagnostic session 03.
+    /// The operation guard reads this shared state during mandatory cleanup.
+    extended_session_open: bool,
 }
 
 enum Backend {
@@ -128,6 +131,7 @@ impl ElmDriver {
         }
         Ok(Self {
             backend: Backend::Serial(fd),
+            extended_session_open: false,
         })
     }
 
@@ -222,6 +226,7 @@ impl ElmDriver {
                 steps: fixture.steps.into(),
                 observed: Vec::new(),
             }),
+            extended_session_open: false,
         })
     }
 
@@ -237,6 +242,14 @@ impl ElmDriver {
             replay.steps.len(),
             replay.observed
         );
+    }
+
+    pub(crate) fn extended_session_open(&self) -> bool {
+        self.extended_session_open
+    }
+
+    pub(crate) fn set_extended_session_open(&mut self, open: bool) {
+        self.extended_session_open = open;
     }
 
     /// ATZ (retried) → ATE0 → ATSP0. Returns the ELM version string.

@@ -29,6 +29,7 @@
 //! docs/workflows/write-caps/plan.md).
 
 use super::driver::{ElmDriver, ElmError};
+use super::operation::{enter_extended_session, ScannerOperation};
 use super::outcome::DiagnosticOutcome;
 use super::parser;
 use super::uds_map;
@@ -155,41 +156,10 @@ pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmErr
     Ok(())
 }
 
-/// Enter an extended session only for an explicit, bounded user operation.
-/// The boolean records whether the ECU positively acknowledged the request,
-/// so cleanup never sends a session transition to an ECU we did not open.
-pub fn enter_extended_session(drv: &mut ElmDriver) -> bool {
-    let Ok(raw) = drv.cmd("1003", Duration::from_secs(2)) else {
-        return false;
-    };
-    let lines = parser::clean_response(&raw);
-    let bytes = parser::payload_bytes(&lines, "");
-    bytes.windows(2).any(|w| w == [0x50, 0x03])
-}
-
-/// Restore functional OBD-II addressing so normal PID polling keeps working.
-///
-/// The protocol reset is not cosmetic. `setup_addressing` pins the adapter to
-/// a specific CAN protocol (6 for 11-bit, 7 for 29-bit), and until this ran
-/// `ATSP0` the setting leaked for the rest of the connection: one visit to the
-/// Lab left a non-CAN car — the repo has a live ISO 14230-4 K-line Peugeot on
-/// record — unable to answer anything afterwards. `ATSP0` puts the adapter
-/// back into automatic detection, which is what `connect` uses.
-pub fn teardown(drv: &mut ElmDriver) {
-    let _ = drv.cmd("ATSP0", Duration::from_secs(2));
-    let _ = drv.cmd("ATSH 7DF", Duration::from_secs(2));
-    let _ = drv.cmd("ATAR", Duration::from_secs(2));
-    let _ = drv.cmd("ATFCSM 0", Duration::from_secs(2));
-}
-
-fn finish_operation(drv: &mut ElmDriver, extended_session_open: bool) {
-    leave_extended_session(drv, extended_session_open);
-    teardown(drv);
-}
-
 fn leave_extended_session(drv: &mut ElmDriver, extended_session_open: bool) {
     if extended_session_open {
         let _ = drv.cmd("1001", Duration::from_millis(800));
+        drv.set_extended_session_open(false);
     }
 }
 
@@ -383,24 +353,24 @@ pub fn clear_module(
 ) -> Result<ClearOutcome, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
-    setup_addressing(drv, &m).map_err(|e| e.to_string())?;
-    let extended_session_open = enter_extended_session(drv);
+    let mut operation = ScannerOperation::new(drv);
+    setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
+    let extended_session_open = operation.enter_extended_session();
     let params = serde_json::json!({ "service": "14", "group": "FFFFFF" });
     let codes_json = |v: &Vec<String>| serde_json::json!(v);
     let conn_id = Some(ctx.connection_id);
-    let before = match read_dtcs(drv) {
+    let before = match read_dtcs(operation.driver()) {
         Ok(b) => b,
         Err(e) => {
-            finish_operation(drv, extended_session_open);
             return Err(format!(
                 "Could not read the faults before clearing, so nothing was cleared: {e}"
             ));
         }
     };
     if extended_session_open {
-        tester_present(drv);
+        tester_present(operation.driver());
     }
-    let decision = match clear_dtcs(drv) {
+    let decision = match clear_dtcs(operation.driver()) {
         Ok(decision) => decision,
         Err(e) => {
             db.log_write(
@@ -414,7 +384,6 @@ pub fn clear_module(
                 "error",
                 Some(&e.to_string()),
             );
-            finish_operation(drv, extended_session_open);
             return Err(e.to_string());
         }
     };
@@ -431,15 +400,15 @@ pub fn clear_module(
     if accepted {
         settle_after_clear();
     }
-    let first_verification = read_dtcs(drv);
+    let first_verification = read_dtcs(operation.driver());
     let verification = match first_verification {
         Ok(after) => Ok(after),
         Err(_) if accepted => {
             if extended_session_open {
-                tester_present(drv);
+                tester_present(operation.driver());
             }
             settle_after_clear();
-            read_dtcs(drv)
+            read_dtcs(operation.driver())
         }
         Err(error) => Err(error),
     };
@@ -459,13 +428,11 @@ pub fn clear_module(
                     "clear sent, but the verification read failed: {e}"
                 )),
             );
-            finish_operation(drv, extended_session_open);
             return Err(format!(
                 "The clear was sent, but the verification read failed: {e}"
             ));
         }
     };
-    finish_operation(drv, extended_session_open);
     let outcome = if !accepted {
         "refused"
     } else if after.is_empty() {
@@ -510,10 +477,9 @@ fn settle_after_clear() {}
 pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<String>, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
-    setup_addressing(drv, &m).map_err(|e| e.to_string())?;
-    let res = read_dtcs(drv).map_err(|e| e.to_string());
-    teardown(drv);
-    res
+    let mut operation = ScannerOperation::new(drv);
+    setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
+    read_dtcs(operation.driver()).map_err(|e| e.to_string())
 }
 
 pub fn read_one(
@@ -524,10 +490,11 @@ pub fn read_one(
 ) -> Result<Option<UdsHit>, String> {
     let custom = custom_modules(db);
     let m = resolve(module, &custom).ok_or("unknown module")?;
-    setup_addressing(drv, &m).map_err(|e| e.to_string())?;
-    let res = read_did(drv, did).map_err(|e| e.to_string());
-    teardown(drv);
-    res.map(|opt| opt.map(|d| to_hit(did, &d)))
+    let mut operation = ScannerOperation::new(drv);
+    setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
+    read_did(operation.driver(), did)
+        .map_err(|e| e.to_string())
+        .map(|opt| opt.map(|d| to_hit(did, &d)))
 }
 
 /// Scan a DID range on one module. Capped at 256 DIDs per call to bound wall-
@@ -572,14 +539,15 @@ pub fn scan_range(
     // A manual range scan can request an extended session, so retain the
     // engine-start protection. Automatic discovery never opens one.
     let baseline_voltage = read_voltage(drv);
-    if let Err(e) = setup_addressing(drv, &m) {
+    let mut operation = ScannerOperation::new(drv);
+    if let Err(e) = setup_addressing(operation.driver(), &m) {
         log::warn!("scan setup failed: {e}");
         return Err(e.to_string());
     }
     // This is an explicit Lab operation. Request extended mode, but continue
     // in default mode if the ECU refuses it: many useful DIDs are available
     // there and a refusal must not turn into more session traffic.
-    let extended_session_open = enter_extended_session(drv);
+    let extended_session_open = operation.enter_extended_session();
     let total = (to - from + 1) as u32;
     let mut hits = Vec::new();
     let mut errors = 0u32;
@@ -601,7 +569,6 @@ pub fn scan_range(
         }
         if cancel_scan.swap(false, Ordering::Relaxed) {
             log::debug!("scan cancelled at DID {did:04X}, {} hits kept", hits.len());
-            finish_operation(drv, extended_session_open);
             return Err(format!(
                 "cancelled at DID {did:04X}; {} hits kept",
                 hits.len()
@@ -609,18 +576,17 @@ pub fn scan_range(
         }
         if i % 20 == 19
             && matches!(
-                (baseline_voltage, read_voltage(drv)),
+                (baseline_voltage, read_voltage(operation.driver())),
                 (Some(base), Some(now)) if engine_likely_started(now, base)
             )
         {
             log::warn!("scan auto-stopped at DID {did:04X}: engine start detected");
-            finish_operation(drv, extended_session_open);
             return Err(format!("engine_started:{did:04X}:{}", hits.len()));
         }
         if extended_session_open && i % 40 == 39 {
-            tester_present(drv);
+            tester_present(operation.driver());
         }
-        match read_did_timeout(drv, did, Duration::from_millis(600)) {
+        match read_did_timeout(operation.driver(), did, Duration::from_millis(600)) {
             Ok(Some(d)) => hits.push(to_hit(did, &d)),
             Ok(None) => {}
             Err(ref e) => {
@@ -628,7 +594,6 @@ pub fn scan_range(
                 errors += 1;
                 if errors > 10 {
                     log::warn!("scan aborted: too many link errors ({errors}) at DID {did:04X}");
-                    finish_operation(drv, extended_session_open);
                     return Err(format!(
                         "link degraded mid-scan at DID {did:04X}; {} hits so far kept",
                         hits.len()
@@ -638,7 +603,6 @@ pub fn scan_range(
         }
     }
     log::debug!("scan completed: {} hits, {errors} errors", hits.len());
-    finish_operation(drv, extended_session_open);
     Ok(hits)
 }
 
@@ -671,12 +635,12 @@ pub fn poll_probes(
         let Some(m) = resolve(&mkey, &custom) else {
             continue;
         };
-        if setup_addressing(drv, &m).is_err() {
-            teardown(drv);
+        let mut operation = ScannerOperation::new(drv);
+        if setup_addressing(operation.driver(), &m).is_err() {
             continue;
         }
         for p in group {
-            if let Ok(Some(data)) = read_did(drv, p.did) {
+            if let Ok(Some(data)) = read_did(operation.driver(), p.did) {
                 if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
                     let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
@@ -684,10 +648,6 @@ pub fn poll_probes(
                 }
             }
         }
-        // Close each module's session while it is still addressed. A final
-        // teardown after the loop only ever reached the last module and left
-        // every earlier ECU waiting for its session timeout.
-        teardown(drv);
     }
     out
 }
@@ -939,6 +899,27 @@ pub fn discover(
     app: &tauri::AppHandle,
     full: bool,
 ) -> Result<DiscoveryReport, String> {
+    let mut operation = ScannerOperation::new(drv);
+    discover_inner(
+        operation.driver(),
+        db,
+        vehicle_id,
+        vin,
+        cancel_scan,
+        app,
+        full,
+    )
+}
+
+fn discover_inner(
+    drv: &mut ElmDriver,
+    db: &Db,
+    vehicle_id: i64,
+    vin: Option<String>,
+    cancel_scan: &AtomicBool,
+    app: &tauri::AppHandle,
+    full: bool,
+) -> Result<DiscoveryReport, String> {
     let emit = |phase: &str, current: u32, total: u32, detail: &str, modules: u32, dids: u32| {
         let _ = app.emit(
             "discovery-progress",
@@ -997,7 +978,6 @@ pub fn discover(
     let mut present: Vec<(u32, u32, Option<String>)> = Vec::new();
     for (i, (req, resp, known_name)) in addrs.iter().enumerate() {
         if cancel_scan.swap(false, Ordering::Relaxed) {
-            teardown(drv);
             return Ok(DiscoveryReport {
                 outcome: DiagnosticOutcome::cancelled(),
                 modules_found: present.len() as u32,
@@ -1010,7 +990,6 @@ pub fn discover(
         }
         if i % 20 == 19 && engine_started(drv) {
             log::warn!("discovery: engine start detected (voltage jump) — stopping to avoid a module mid-session when it starts");
-            teardown(drv);
             return Ok(DiscoveryReport {
                 outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                 modules_found: present.len() as u32,
@@ -1060,7 +1039,6 @@ pub fn discover(
         let mut ident_hits: Vec<(u16, Vec<u8>)> = Vec::new();
         for (di, did) in ident_dids.iter().enumerate() {
             if cancel_scan.swap(false, Ordering::Relaxed) {
-                teardown(drv);
                 // Phase 2 (identification) never promotes probes — that
                 // only happens in phase 3's data sweep — so 0 is exact
                 // here, not a placeholder.
@@ -1076,7 +1054,6 @@ pub fn discover(
             }
             if di % 3 == 2 && engine_started(drv) {
                 log::warn!("discovery: engine start detected mid-identification — stopping");
-                teardown(drv);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     modules_found: present.len() as u32,
@@ -1169,7 +1146,7 @@ pub fn discover(
         'dids: for did in dids.iter().copied() {
             sweep_i += 1;
             if cancel_scan.swap(false, Ordering::Relaxed) {
-                finish_operation(drv, extended_session_open);
+                leave_extended_session(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::cancelled(),
                     modules_found: present.len() as u32,
@@ -1185,7 +1162,7 @@ pub fn discover(
                         "discovery: engine start detected mid-sweep — stopping broad diagnostic traffic on {}",
                         format_can_address(*req)
                     );
-                finish_operation(drv, extended_session_open);
+                leave_extended_session(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     modules_found: present.len() as u32,
@@ -1287,7 +1264,6 @@ pub fn discover(
         leave_extended_session(drv, extended_session_open);
     }
 
-    teardown(drv);
     emit(
         "done",
         total_sweep,
@@ -1356,7 +1332,7 @@ fn fast_refresh(
         for did in dids {
             sweep_i += 1;
             if cancel_scan.swap(false, Ordering::Relaxed) {
-                finish_operation(drv, extended_session_open);
+                leave_extended_session(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::cancelled(),
                     modules_found: modules_seen,
@@ -1369,7 +1345,7 @@ fn fast_refresh(
             }
             if sweep_i % 15 == 14 && baseline_voltage.is_some() && engine_started(drv) {
                 log::warn!("fast refresh: engine start detected — stopping");
-                finish_operation(drv, extended_session_open);
+                leave_extended_session(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     modules_found: modules_seen,
@@ -1433,7 +1409,6 @@ fn fast_refresh(
         leave_extended_session(drv, extended_session_open);
     }
 
-    teardown(drv);
     emit("done", total, total, "", modules_seen, dids_found);
     log::info!("fast refresh complete: {modules_seen} modules, {dids_found} DIDs re-verified");
     Ok(DiscoveryReport {
