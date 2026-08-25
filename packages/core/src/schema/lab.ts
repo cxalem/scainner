@@ -49,8 +49,31 @@ export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
 /// scan stopping ITSELF because it detected the engine starting mid-scan
 /// (a real risk: a module held in an extended session while the engine
 /// starts can throw dash warnings/comm faults on it).
+export class ModuleProbeResult extends Schema.Class<ModuleProbeResult>("ModuleProbeResult")({
+  request_address: Schema.String,
+  response_address: Schema.String,
+  expected_name: Schema.NullOr(Schema.String),
+  profile_candidate: Schema.Boolean,
+  outcome: DiagnosticOutcome,
+}) {}
+
+export class DiscoveryCoverage extends Schema.Class<DiscoveryCoverage>("DiscoveryCoverage")({
+  candidates_total: Schema.Number,
+  candidates_attempted: Schema.Number,
+  candidates_skipped: Schema.Number,
+  profile_candidates: Schema.Number,
+  profile_reached: Schema.Number,
+  reached: Schema.Number,
+  refused: Schema.Number,
+  timed_out: Schema.Number,
+  transport_failed: Schema.Number,
+  malformed: Schema.Number,
+}) {}
+
 export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryReport")({
   outcome: DiagnosticOutcome,
+  coverage: DiscoveryCoverage,
+  module_probes: Schema.mutable(Schema.Array(ModuleProbeResult)),
   modules_found: Schema.Number,
   dids_found: Schema.Number,
   // Of dids_found, how many got a FULL decode formula from the knowledge

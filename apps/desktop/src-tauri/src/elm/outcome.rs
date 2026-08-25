@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use super::driver::ElmError;
+
 /// Machine-readable result of one diagnostic interaction. Human copy belongs
 /// in the UI; `detail` preserves transport/ECU evidence for logs and reports.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -38,6 +40,39 @@ impl DiagnosticOutcome {
             Some(nrc),
             Some(detail.into()),
         )
+    }
+
+    pub fn timed_out(service: impl Into<String>) -> Self {
+        Self::new(DiagnosticStatus::TimedOut, Some(service.into()), None, None)
+    }
+
+    pub fn transport_failed(service: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            DiagnosticStatus::TransportFailed,
+            Some(service.into()),
+            None,
+            Some(detail.into()),
+        )
+    }
+
+    pub fn malformed(service: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self::new(
+            DiagnosticStatus::Malformed,
+            Some(service.into()),
+            None,
+            Some(detail.into()),
+        )
+    }
+
+    pub fn from_elm_error(service: impl Into<String>, error: &ElmError) -> Self {
+        let service = service.into();
+        match error {
+            ElmError::NoResponse => Self::timed_out(service),
+            ElmError::Open(_) | ElmError::Io(_) => {
+                Self::transport_failed(service, error.to_string())
+            }
+            ElmError::Handshake(_) => Self::malformed(service, error.to_string()),
+        }
     }
 
     pub fn cancelled() -> Self {

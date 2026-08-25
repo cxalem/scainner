@@ -326,21 +326,44 @@ pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>
 /// Every request/response pair to try when enumerating the bus, known
 /// brand modules first (so progress shows real finds early), then the full
 /// conventional range from the map's address_scan block.
-pub fn addresses_to_probe(vin: Option<&str>) -> Vec<(u32, u32, Option<String>)> {
+#[derive(Clone, Debug)]
+pub struct AddressCandidate {
+    pub req: u32,
+    pub resp: u32,
+    pub name: Option<String>,
+    /// True when the selected brand profile explicitly documents this pair;
+    /// false when it came from the generic conventional-address sweep.
+    pub profile_candidate: bool,
+}
+
+pub fn addresses_to_probe(vin: Option<&str>) -> Vec<AddressCandidate> {
     let scan = &map().standard.address_scan;
     let from = can11(&scan.req_from).unwrap_or(0x700);
     let to = can11(&scan.req_to).unwrap_or(0x7F6);
     let excluded: Vec<u16> = scan.exclude.iter().filter_map(|e| can11(e)).collect();
 
     let brand = brand_for_vin(vin);
-    let mut out = known_modules_for_vin(vin);
-    let mut seen: Vec<u32> = out.iter().map(|(r, _, _)| *r).collect();
+    let mut out: Vec<AddressCandidate> = known_modules_for_vin(vin)
+        .into_iter()
+        .map(|(req, resp, name)| AddressCandidate {
+            req,
+            resp,
+            name,
+            profile_candidate: true,
+        })
+        .collect();
+    let mut seen: Vec<u32> = out.iter().map(|candidate| candidate.req).collect();
     for req in from..=to {
         if excluded.contains(&req) || seen.contains(&u32::from(req)) {
             continue;
         }
         seen.push(req.into());
-        out.push((req.into(), response_addr(brand, req).into(), None));
+        out.push(AddressCandidate {
+            req: req.into(),
+            resp: response_addr(brand, req).into(),
+            name: None,
+            profile_candidate: false,
+        });
     }
     out
 }
@@ -495,12 +518,12 @@ mod tests {
         let addrs = addresses_to_probe(Some("VR7EXAMPLE0000001"));
         let first = addrs.first().expect("at least one address");
         assert!(
-            first.2.is_some(),
+            first.profile_candidate && first.name.is_some(),
             "a named brand module should lead the list"
         );
         // No address appears twice, even though known modules also fall
         // inside the blind range.
-        let mut reqs: Vec<u32> = addrs.iter().map(|(r, _, _)| *r).collect();
+        let mut reqs: Vec<u32> = addrs.iter().map(|candidate| candidate.req).collect();
         let before = reqs.len();
         reqs.sort_unstable();
         reqs.dedup();
@@ -544,10 +567,10 @@ mod tests {
         assert_eq!(hex16("D422"), Some(0xD422));
         assert_eq!(hex16("F190"), Some(0xF190));
         assert!(can11("D422").is_none());
-        for (req, resp, _) in addresses_to_probe(Some("VR7EXAMPLE0000001")) {
+        for candidate in addresses_to_probe(Some("VR7EXAMPLE0000001")) {
             assert_eq!(
-                req > 0x7FF,
-                resp > 0x7FF,
+                candidate.req > 0x7FF,
+                candidate.resp > 0x7FF,
                 "request and response IDs must use the same CAN width"
             );
         }

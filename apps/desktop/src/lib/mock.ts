@@ -488,6 +488,41 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       emit("conn-status", connState);
       return {
         outcome: { status: "answered", service: "discovery", nrc: null, detail: null },
+        coverage: {
+          candidates_total: 3,
+          candidates_attempted: 3,
+          candidates_skipped: 0,
+          profile_candidates: 2,
+          profile_reached: 2,
+          reached: 2,
+          refused: 1,
+          timed_out: 1,
+          transport_failed: 0,
+          malformed: 0,
+        },
+        module_probes: [
+          {
+            request_address: "6B4",
+            response_address: "694",
+            expected_name: "BSI (body computer)",
+            profile_candidate: true,
+            outcome: { status: "answered", service: "22", nrc: null, detail: null },
+          },
+          {
+            request_address: "6A8",
+            response_address: "688",
+            expected_name: "Engine ECU",
+            profile_candidate: true,
+            outcome: { status: "refused", service: "22", nrc: 0x31, detail: "requestOutOfRange" },
+          },
+          {
+            request_address: "700",
+            response_address: "600",
+            expected_name: null,
+            profile_candidate: false,
+            outcome: { status: "timed_out", service: "22", nrc: null, detail: null },
+          },
+        ],
         modules_found: 1,
         dids_found: 2,
         sensors_added: 1,

@@ -13,9 +13,9 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 0 | Full-repository CI | done | [PR #36](https://github.com/cxalem/scainner/pull/36) |
 | 1 | Deterministic ELM session replay | done | [PR #37](https://github.com/cxalem/scainner/pull/37), 63 Rust tests |
 | 2 | Verified clear outcomes | done | [PR #38](https://github.com/cxalem/scainner/pull/38), 73 Rust tests plus full JS CI passed |
-| 3 | Shared typed diagnostic outcomes | in_review | [PR #39](https://github.com/cxalem/scainner/pull/39) |
-| 4 | Central scanner safety and cleanup guard | active | Branch `feat/scanner-operation-guard` |
-| 5 | Discovery strategy and coverage accounting | queued | Depends on safety guard |
+| 3 | Shared typed diagnostic outcomes | done | [PR #39](https://github.com/cxalem/scainner/pull/39) |
+| 4 | Central scanner safety and cleanup guard | done | [PR #40](https://github.com/cxalem/scainner/pull/40), 78 Rust tests |
+| 5 | Discovery strategy and coverage accounting | active | Branch `feat/discovery-coverage` |
 | 6 | Safe 11-bit and 29-bit module enumeration | queued | Depends on discovery strategy |
 | 7 | Partial ECU fingerprints | queued | Depends on trustworthy module inventory |
 | 8 | Fingerprint matching experiment, 30–50 vehicles | queued | Depends on fingerprints |
@@ -51,7 +51,7 @@ Acceptance criteria:
 - All behavior is reproducible without connected hardware.
 - Full repository CI passes.
 
-## In-review slice: shared typed diagnostic outcomes
+## Completed slice: shared typed diagnostic outcomes
 
 Deliverables:
 
@@ -74,7 +74,7 @@ Acceptance criteria:
 - Existing clear and discovery behavior sends no new vehicle traffic.
 - Full repository CI passes.
 
-## Active slice: central scanner safety and cleanup guard
+## Completed slice: central scanner safety and cleanup guard
 
 Deliverables:
 
@@ -99,6 +99,36 @@ Acceptance criteria:
   flow control active for standard OBD polling.
 - Cleanup failure never overwrites the diagnostic operation's original result.
 - Existing diagnostic requests and their ordering remain unchanged.
+- Full repository CI passes.
+
+## Active slice: discovery strategy and coverage accounting
+
+Deliverables:
+
+- Preserve one typed outcome for every module-address candidate attempted.
+- Keep profile candidates distinct from generic conventional-address sweep
+  candidates even when a profile entry has no display name.
+- Treat positive and negative UDS responses as proof that a module was reached.
+- Distinguish ECU refusal, no response, transport failure, malformed response,
+  cancellation, and safety stop.
+- Derive summary counts from candidate evidence rather than incrementing
+  optimistic counters.
+- Apply the same accounting to a fast refresh without adding diagnostic
+  requests.
+- Show a concise, translated coverage summary in the Lab.
+
+Acceptance criteria:
+
+- `modules_found` never increments merely because adapter addressing setup
+  succeeded.
+- A negative `7F 22 <NRC>` response counts as reached and preserves its NRC.
+- Unattempted candidates after cancellation or a safety stop are counted as
+  skipped, not timed out.
+- A fast refresh distinguishes modules that answered from saved addresses that
+  merely existed in the database.
+- The report exposes candidate-level evidence for future scan persistence and
+  advanced inspection.
+- No extra vehicle request is introduced by coverage accounting.
 - Full repository CI passes.
 
 ## Product gates

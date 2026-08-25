@@ -272,6 +272,8 @@ export const en: Dictionary = {
       cancelledSummary: (modules, dids) => `Stopped. Kept ${modules} modules and ${dids} values found so far.`,
       engineStartedSummary: (modules, dids) =>
         `Stopped automatically because the engine started (kept ${modules} modules and ${dids} values found so far). The module it was talking to may show a brief dashboard warning — that's expected and clears on its own, or check Module Faults.`,
+      coverageSummary: (attempted, total, reached, refused, timedOut, failed, skipped) =>
+        `Coverage: checked ${attempted} of ${total} candidates; reached ${reached} (${refused} refused the presence read), ${timedOut} gave no answer, ${failed} had a transport or malformed response, and ${skipped} were not attempted.`,
       engineWarning: "Don't start the engine while this runs — a module mid-scan can show a dashboard warning if the engine starts.",
       fullRescanToggle: "Full rescan instead (slower, checks for anything new)",
       previousFindings: "Already found on this car",
