@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 7;
+const SCHEMA_VERSION: i64 = 8;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -61,6 +61,7 @@ pub struct DiscoveredModuleRow {
     pub address: String,
     pub name: Option<String>,
     pub discovered_at: String,
+    pub last_seen_at: String,
     pub did_count: i64,
     pub labeled_count: i64,
     pub spare_part_number: Option<String>,
@@ -70,6 +71,57 @@ pub struct DiscoveredModuleRow {
     pub fingerprint_match_key: Option<String>,
     pub fingerprint_fields_answered: i64,
     pub fingerprint_fields_total: i64,
+}
+
+#[derive(Serialize, Clone)]
+pub struct VehicleMapIdentity {
+    pub spare_part_number: Option<String>,
+    pub hardware_version: Option<String>,
+    pub software_version: Option<String>,
+    pub system_name: Option<String>,
+    pub fields_answered: u8,
+    pub fields_total: u8,
+}
+
+#[derive(Serialize, Clone)]
+pub struct VehicleMapDid {
+    pub did: u16,
+    pub raw_sample: Option<String>,
+    pub byte_length: Option<i64>,
+    pub label: Option<String>,
+    pub confidence: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct VehicleMapModule {
+    pub id: i64,
+    pub address: String,
+    pub display_name: Option<String>,
+    pub name_source: Option<String>,
+    pub presence: String,
+    pub first_seen_at: String,
+    pub last_seen_at: String,
+    pub identity: VehicleMapIdentity,
+    pub dids: Vec<VehicleMapDid>,
+    /// Honest placeholder until the unified module-DTC slice persists these.
+    pub module_fault_evidence: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct VehicleMapStandardFaults {
+    pub scanned_at: String,
+    pub mil_on: bool,
+    pub stored: Vec<String>,
+    pub pending: Vec<String>,
+    pub permanent: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct VehicleEvidenceMap {
+    pub vehicle_id: i64,
+    pub evidence_scope: String,
+    pub modules: Vec<VehicleMapModule>,
+    pub latest_standard_faults: Option<VehicleMapStandardFaults>,
 }
 
 #[derive(Serialize)]
@@ -403,6 +455,7 @@ pub struct SyncDiscoveredModule {
     pub module_address: String,
     pub module_name: Option<String>,
     pub discovered_at: String,
+    pub last_seen_at: String,
     pub spare_part_number: Option<String>,
     pub hardware_version: Option<String>,
     pub software_version: Option<String>,
@@ -564,6 +617,7 @@ impl Db {
                 module_address TEXT NOT NULL,
                 module_name TEXT,
                 discovered_at TEXT NOT NULL DEFAULT (datetime('now')),
+                last_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
                 spare_part_number TEXT,
                 hardware_version TEXT,
                 software_version TEXT,
@@ -662,6 +716,16 @@ impl Db {
                 [],
             );
         }
+        // v8: distinguish first discovery from the most recent positive
+        // observation used by the evidence-only vehicle map.
+        let _ = conn.execute(
+            "ALTER TABLE discovered_modules ADD COLUMN last_seen_at TEXT",
+            [],
+        );
+        let _ = conn.execute(
+            "UPDATE discovered_modules SET last_seen_at = discovered_at WHERE last_seen_at IS NULL",
+            [],
+        );
         // v4: provenance makes discovery-owned probes safely
         // reconcilable. Existing rows are conservatively manual because
         // older schemas cannot prove how they were created.
@@ -1201,13 +1265,14 @@ impl Db {
             .ok();
         match existing {
             Some(id) => {
-                // Only ever overwrite a stored name with a real one.
-                if name.is_some() {
-                    let _ = conn.execute(
-                        "UPDATE discovered_modules SET module_name = ?1 WHERE id = ?2",
-                        params![name, id],
-                    );
-                }
+                // Only overwrite a stored name with a real one, but always
+                // record that this module positively answered again.
+                let _ = conn.execute(
+                    "UPDATE discovered_modules SET
+                     module_name = COALESCE(?1, module_name),
+                     last_seen_at = datetime('now') WHERE id = ?2",
+                    params![name, id],
+                );
                 id
             }
             None => {
@@ -1310,6 +1375,7 @@ impl Db {
         let mut stmt = conn
             .prepare(
                 "SELECT m.id, m.module_address, m.module_name, m.discovered_at,
+                        COALESCE(m.last_seen_at, m.discovered_at),
                         COUNT(d.id), SUM(CASE WHEN d.label IS NOT NULL THEN 1 ELSE 0 END),
                         m.spare_part_number, m.hardware_version, m.software_version,
                         m.system_name, m.fingerprint_match_key,
@@ -1329,20 +1395,152 @@ impl Db {
                 address: r.get(1)?,
                 name: r.get(2)?,
                 discovered_at: r.get(3)?,
-                did_count: r.get(4)?,
-                labeled_count: r.get::<_, Option<i64>>(5)?.unwrap_or(0),
-                spare_part_number: r.get(6)?,
-                hardware_version: r.get(7)?,
-                software_version: r.get(8)?,
-                system_name: r.get(9)?,
-                fingerprint_match_key: r.get(10)?,
-                fingerprint_fields_answered: r.get(11)?,
+                last_seen_at: r.get(4)?,
+                did_count: r.get(5)?,
+                labeled_count: r.get::<_, Option<i64>>(6)?.unwrap_or(0),
+                spare_part_number: r.get(7)?,
+                hardware_version: r.get(8)?,
+                software_version: r.get(9)?,
+                system_name: r.get(10)?,
+                fingerprint_match_key: r.get(11)?,
+                fingerprint_fields_answered: r.get(12)?,
                 fingerprint_fields_total: 4,
             })
         })
         .unwrap()
         .filter_map(Result::ok)
         .collect()
+    }
+
+    pub fn vehicle_evidence_map(&self, vehicle_id: i64) -> VehicleEvidenceMap {
+        struct MapRow {
+            id: i64,
+            address: String,
+            stored_name: Option<String>,
+            first_seen: String,
+            last_seen: String,
+            part: Option<String>,
+            hardware: Option<String>,
+            software: Option<String>,
+            system: Option<String>,
+        }
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, module_address, module_name, discovered_at,
+                        COALESCE(last_seen_at, discovered_at), spare_part_number,
+                        hardware_version, software_version, system_name
+                 FROM discovered_modules WHERE vehicle_id = ?1
+                 ORDER BY module_address",
+            )
+            .unwrap();
+        let rows: Vec<MapRow> = stmt
+            .query_map(params![vehicle_id], |row| {
+                Ok(MapRow {
+                    id: row.get(0)?,
+                    address: row.get(1)?,
+                    stored_name: row.get(2)?,
+                    first_seen: row.get(3)?,
+                    last_seen: row.get(4)?,
+                    part: row.get(5)?,
+                    hardware: row.get(6)?,
+                    software: row.get(7)?,
+                    system: row.get(8)?,
+                })
+            })
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect();
+        let modules = rows
+            .into_iter()
+            .map(|row| {
+                let (display_name, name_source) = if row.system.is_some() {
+                    (row.system.clone(), Some("ecu_reported".to_string()))
+                } else if row.stored_name.is_some() && row.stored_name == row.part {
+                    (row.stored_name, Some("ecu_reported_identity".to_string()))
+                } else if row.stored_name.is_some() {
+                    (row.stored_name, Some("documented_profile".to_string()))
+                } else {
+                    (None, None)
+                };
+                let mut did_stmt = conn
+                    .prepare(
+                        "SELECT did, raw_sample, byte_length, label, confidence
+                             FROM discovered_dids WHERE module_id = ?1 ORDER BY did",
+                    )
+                    .unwrap();
+                let dids = did_stmt
+                    .query_map(params![row.id], |row| {
+                        Ok(VehicleMapDid {
+                            did: row.get::<_, i64>(0)? as u16,
+                            raw_sample: row.get(1)?,
+                            byte_length: row.get(2)?,
+                            label: row.get(3)?,
+                            confidence: row.get(4)?,
+                        })
+                    })
+                    .unwrap()
+                    .filter_map(Result::ok)
+                    .collect();
+                let fields_answered = [
+                    row.part.as_ref(),
+                    row.hardware.as_ref(),
+                    row.software.as_ref(),
+                    row.system.as_ref(),
+                ]
+                .iter()
+                .filter(|value| value.is_some())
+                .count() as u8;
+                VehicleMapModule {
+                    id: row.id,
+                    address: row.address,
+                    display_name,
+                    name_source,
+                    presence: "previously_reached".into(),
+                    first_seen_at: row.first_seen,
+                    last_seen_at: row.last_seen,
+                    identity: VehicleMapIdentity {
+                        spare_part_number: row.part,
+                        hardware_version: row.hardware,
+                        software_version: row.software,
+                        system_name: row.system,
+                        fields_answered,
+                        fields_total: 4,
+                    },
+                    dids,
+                    module_fault_evidence: "not_scanned".into(),
+                }
+            })
+            .collect();
+        let latest_standard_faults = conn
+            .query_row(
+                "SELECT ts, mil_on,
+                        (SELECT json_group_array(code) FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status='stored'),
+                        (SELECT json_group_array(code) FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status='pending'),
+                        (SELECT json_group_array(code) FROM dtc_codes c WHERE c.scan_event_id = e.id AND c.status='permanent')
+                 FROM dtc_scan_events e WHERE vehicle_id = ?1 ORDER BY id DESC LIMIT 1",
+                params![vehicle_id],
+                |row| {
+                    Ok(VehicleMapStandardFaults {
+                        scanned_at: row.get(0)?,
+                        mil_on: row.get(1)?,
+                        stored: serde_json::from_str(&row.get::<_, String>(2)?)
+                            .unwrap_or_default(),
+                        pending: serde_json::from_str(&row.get::<_, String>(3)?)
+                            .unwrap_or_default(),
+                        permanent: serde_json::from_str(&row.get::<_, String>(4)?)
+                            .unwrap_or_default(),
+                    })
+                },
+            )
+            .ok();
+
+        VehicleEvidenceMap {
+            vehicle_id,
+            evidence_scope: "persisted_observations".into(),
+            modules,
+            latest_standard_faults,
+        }
     }
 
     /// VIN-free field-trial dataset and conservative reuse measurement. A
@@ -2108,6 +2306,7 @@ impl Db {
             let mut stmt = conn
                 .prepare(
                     "SELECT m.id, m.cloud_id, v.cloud_id, m.module_address, m.module_name, m.discovered_at,
+                            COALESCE(m.last_seen_at, m.discovered_at),
                             m.spare_part_number, m.hardware_version, m.software_version,
                             m.system_name, m.fingerprint_match_key, m.fingerprint_evidence_json
                      FROM discovered_modules m JOIN vehicles v ON v.id = m.vehicle_id
@@ -2124,13 +2323,14 @@ impl Db {
                             module_address: r.get(3)?,
                             module_name: r.get(4)?,
                             discovered_at: r.get(5)?,
-                            spare_part_number: r.get(6)?,
-                            hardware_version: r.get(7)?,
-                            software_version: r.get(8)?,
-                            system_name: r.get(9)?,
-                            fingerprint_match_key: r.get(10)?,
+                            last_seen_at: r.get(6)?,
+                            spare_part_number: r.get(7)?,
+                            hardware_version: r.get(8)?,
+                            software_version: r.get(9)?,
+                            system_name: r.get(10)?,
+                            fingerprint_match_key: r.get(11)?,
                             fingerprint_evidence: r
-                                .get::<_, Option<String>>(11)?
+                                .get::<_, Option<String>>(12)?
                                 .and_then(|json| serde_json::from_str(&json).ok()),
                             dids: Vec::new(),
                         },
@@ -2600,6 +2800,46 @@ mod tests {
         let export = serde_json::to_string(&report).unwrap();
         assert!(!export.contains("VR7EXAMPLE"));
         assert!(export.contains("vehicle_001"));
+    }
+
+    #[test]
+    fn vehicle_map_separates_observed_modules_from_unscanned_module_faults() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module = db.upsert_discovered_module(vehicle, "6A8/688", Some("Engine ECU"));
+        db.0.lock()
+            .unwrap()
+            .execute(
+                "UPDATE discovered_modules SET discovered_at = '2020-01-01 00:00:00',
+                 last_seen_at = '2020-01-01 00:00:00' WHERE id = ?1",
+                params![module],
+            )
+            .unwrap();
+        assert_eq!(
+            db.upsert_discovered_module(vehicle, "6A8/688", None),
+            module
+        );
+        db.upsert_discovered_did(module, 0x1234, "0102", 2, None);
+        db.insert_dtc_scan(
+            None,
+            Some(vehicle),
+            true,
+            &["P0301".into()],
+            &[],
+            &[],
+            Some(12.4),
+            None,
+        );
+
+        let map = db.vehicle_evidence_map(vehicle);
+        assert_eq!(map.evidence_scope, "persisted_observations");
+        assert_eq!(map.modules.len(), 1);
+        assert_eq!(map.modules[0].presence, "previously_reached");
+        assert_eq!(map.modules[0].first_seen_at, "2020-01-01 00:00:00");
+        assert_ne!(map.modules[0].last_seen_at, map.modules[0].first_seen_at);
+        assert_eq!(map.modules[0].module_fault_evidence, "not_scanned");
+        assert_eq!(map.modules[0].dids[0].did, 0x1234);
+        assert_eq!(map.latest_standard_faults.unwrap().stored, vec!["P0301"]);
     }
 
     #[test]

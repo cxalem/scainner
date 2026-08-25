@@ -117,6 +117,7 @@ export class DiscoveredModule extends Schema.Class<DiscoveredModule>("Discovered
   address: Schema.String,
   name: Schema.NullOr(Schema.String),
   discovered_at: Schema.String,
+  last_seen_at: Schema.String,
   did_count: Schema.Number,
   labeled_count: Schema.Number,
   spare_part_number: Schema.NullOr(Schema.String),
@@ -134,6 +135,51 @@ export class DiscoveredDid extends Schema.Class<DiscoveredDid>("DiscoveredDid")(
   byte_length: Schema.NullOr(Schema.Number),
   label: Schema.NullOr(Schema.String),
   confidence: Schema.NullOr(Schema.String),
+}) {}
+
+export class VehicleMapIdentity extends Schema.Class<VehicleMapIdentity>("VehicleMapIdentity")({
+  spare_part_number: Schema.NullOr(Schema.String),
+  hardware_version: Schema.NullOr(Schema.String),
+  software_version: Schema.NullOr(Schema.String),
+  system_name: Schema.NullOr(Schema.String),
+  fields_answered: Schema.Number,
+  fields_total: Schema.Number,
+}) {}
+
+export class VehicleMapDid extends Schema.Class<VehicleMapDid>("VehicleMapDid")({
+  did: Schema.Number,
+  raw_sample: Schema.NullOr(Schema.String),
+  byte_length: Schema.NullOr(Schema.Number),
+  label: Schema.NullOr(Schema.String),
+  confidence: Schema.NullOr(Schema.String),
+}) {}
+
+export class VehicleMapModule extends Schema.Class<VehicleMapModule>("VehicleMapModule")({
+  id: Schema.Number,
+  address: Schema.String,
+  display_name: Schema.NullOr(Schema.String),
+  name_source: Schema.NullOr(Schema.Literal("ecu_reported", "ecu_reported_identity", "documented_profile")),
+  presence: Schema.Literal("previously_reached"),
+  first_seen_at: Schema.String,
+  last_seen_at: Schema.String,
+  identity: VehicleMapIdentity,
+  dids: Schema.mutable(Schema.Array(VehicleMapDid)),
+  module_fault_evidence: Schema.Literal("not_scanned"),
+}) {}
+
+export class VehicleMapStandardFaults extends Schema.Class<VehicleMapStandardFaults>("VehicleMapStandardFaults")({
+  scanned_at: Schema.String,
+  mil_on: Schema.Boolean,
+  stored: Schema.mutable(Schema.Array(Schema.String)),
+  pending: Schema.mutable(Schema.Array(Schema.String)),
+  permanent: Schema.mutable(Schema.Array(Schema.String)),
+}) {}
+
+export class VehicleEvidenceMap extends Schema.Class<VehicleEvidenceMap>("VehicleEvidenceMap")({
+  vehicle_id: Schema.Number,
+  evidence_scope: Schema.Literal("persisted_observations"),
+  modules: Schema.mutable(Schema.Array(VehicleMapModule)),
+  latest_standard_faults: Schema.NullOr(VehicleMapStandardFaults),
 }) {}
 
 export class FingerprintObservation extends Schema.Class<FingerprintObservation>("FingerprintObservation")({

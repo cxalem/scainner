@@ -6,6 +6,7 @@ import { Bot, Car, Copy, Database, RefreshCw } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton, useTransientLabel } from "@/components/ui";
 import { useDbPath, useReadEcuInfo, useVehicleInfo } from "@/features/vehicle/queries";
 import { AccountSyncCard } from "@/views/vehicle/AccountSyncCard";
+import { VehicleEvidenceMap } from "@/views/vehicle/VehicleEvidenceMap";
 import { useT } from "@/i18n";
 
 export function Vehicle({ connected, vehicleId = null }: { connected: boolean; vehicleId?: number | null }) {
@@ -122,6 +123,8 @@ export function Vehicle({ connected, vehicleId = null }: { connected: boolean; v
           </div>
         </CardContent>
       </Card>
+
+      <VehicleEvidenceMap vehicleId={vehicleId} />
 
       <Card>
         <CardHeader>

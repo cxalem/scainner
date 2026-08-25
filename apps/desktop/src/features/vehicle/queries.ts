@@ -37,6 +37,14 @@ export function useVehicleInfo(vehicleId: number | null) {
   });
 }
 
+export function useVehicleEvidenceMap(vehicleId: number | null) {
+  return useQuery({
+    queryKey: ["vehicle_evidence_map", vehicleId],
+    queryFn: () => run((device) => device.vehicleEvidenceMap(vehicleId!)),
+    enabled: vehicleId != null,
+  });
+}
+
 export function useDbPath() {
   return useQuery({
     queryKey: ["db_path"],
