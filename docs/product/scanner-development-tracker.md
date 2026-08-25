@@ -13,8 +13,8 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 0 | Full-repository CI | done | [PR #36](https://github.com/cxalem/scainner/pull/36) |
 | 1 | Deterministic ELM session replay | done | [PR #37](https://github.com/cxalem/scainner/pull/37), 63 Rust tests |
 | 2 | Verified clear outcomes | done | [PR #38](https://github.com/cxalem/scainner/pull/38), 73 Rust tests plus full JS CI passed |
-| 3 | Shared typed diagnostic outcomes | active | Branch `feat/typed-diagnostic-outcomes` |
-| 4 | Central scanner safety and cleanup guard | queued | Depends on typed outcomes |
+| 3 | Shared typed diagnostic outcomes | in_review | [PR #39](https://github.com/cxalem/scainner/pull/39) |
+| 4 | Central scanner safety and cleanup guard | active | Branch `feat/scanner-operation-guard` |
 | 5 | Discovery strategy and coverage accounting | queued | Depends on safety guard |
 | 6 | Safe 11-bit and 29-bit module enumeration | queued | Depends on discovery strategy |
 | 7 | Partial ECU fingerprints | queued | Depends on trustworthy module inventory |
@@ -51,7 +51,7 @@ Acceptance criteria:
 - All behavior is reproducible without connected hardware.
 - Full repository CI passes.
 
-## Active slice: shared typed diagnostic outcomes
+## In-review slice: shared typed diagnostic outcomes
 
 Deliverables:
 
@@ -72,6 +72,33 @@ Acceptance criteria:
 - Discovery cancellation and engine-start protection are machine-readable and
   do not depend on parsing display strings.
 - Existing clear and discovery behavior sends no new vehicle traffic.
+- Full repository CI passes.
+
+## Active slice: central scanner safety and cleanup guard
+
+Deliverables:
+
+- One ownership-based scope controls access to the ELM during bounded UDS
+  operations.
+- Track extended-session state on the driver only after a positive `50 03`
+  response.
+- Close a confirmed extended session before restoring adapter state.
+- Restore automatic protocol selection, functional request headers, receive
+  filtering, and flow-control mode on success and every early exit.
+- Migrate module fault reads, DID reads, manual range scans, probe polling,
+  clears, and discovery behind the guard.
+- Replay tests prove cleanup after transport failure and confirmed session
+  entry without connected hardware.
+
+Acceptance criteria:
+
+- A `?`, cancellation, safety stop, setup failure, or ordinary return cannot
+  bypass cleanup.
+- `10 01` is sent only when this connection received a positive `50 03`.
+- An operation cannot leave protocol 6/7, a physical header/filter, or manual
+  flow control active for standard OBD polling.
+- Cleanup failure never overwrites the diagnostic operation's original result.
+- Existing diagnostic requests and their ordering remain unchanged.
 - Full repository CI passes.
 
 ## Product gates
