@@ -33,6 +33,15 @@ type Result = {
   cancelled: boolean;
   autoStoppedReason: string | null;
   wasFastRefresh: boolean;
+  coverage: {
+    total: number;
+    attempted: number;
+    reached: number;
+    refused: number;
+    timedOut: number;
+    failed: number;
+    skipped: number;
+  };
 };
 
 export function AutoDiscovery({
@@ -81,6 +90,15 @@ export function AutoDiscovery({
         autoStoppedReason:
           r.outcome.status === "skipped_for_safety" ? r.outcome.detail : (r.auto_stopped_reason ?? null),
         wasFastRefresh: r.was_fast_refresh ?? false,
+        coverage: {
+          total: r.coverage.candidates_total,
+          attempted: r.coverage.candidates_attempted,
+          reached: r.coverage.reached,
+          refused: r.coverage.refused,
+          timedOut: r.coverage.timed_out,
+          failed: r.coverage.transport_failed + r.coverage.malformed,
+          skipped: r.coverage.candidates_skipped,
+        },
       });
       void found.refetch();
     } catch (e) {
@@ -163,15 +181,28 @@ export function AutoDiscovery({
         )}
 
         {result != null && (
-          <p className={result.cancelled ? "text-muted-foreground" : "text-foreground"}>
-            {result.autoStoppedReason === "engine_started"
-              ? t.lab.discovery.engineStartedSummary(result.modules, result.dids)
-              : result.cancelled
-                ? t.lab.discovery.cancelledSummary(result.modules, result.dids)
-                : result.wasFastRefresh
-                  ? t.lab.discovery.refreshedSummary(result.modules, result.dids, result.sensorsAdded)
-                  : t.lab.discovery.doneSummary(result.modules, result.dids, result.sensorsAdded)}
-          </p>
+          <div className="flex flex-col gap-1">
+            <p className={result.cancelled ? "text-muted-foreground" : "text-foreground"}>
+              {result.autoStoppedReason === "engine_started"
+                ? t.lab.discovery.engineStartedSummary(result.modules, result.dids)
+                : result.cancelled
+                  ? t.lab.discovery.cancelledSummary(result.modules, result.dids)
+                  : result.wasFastRefresh
+                    ? t.lab.discovery.refreshedSummary(result.modules, result.dids, result.sensorsAdded)
+                    : t.lab.discovery.doneSummary(result.modules, result.dids, result.sensorsAdded)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t.lab.discovery.coverageSummary(
+                result.coverage.attempted,
+                result.coverage.total,
+                result.coverage.reached,
+                result.coverage.refused,
+                result.coverage.timedOut,
+                result.coverage.failed,
+                result.coverage.skipped,
+              )}
+            </p>
+          </div>
         )}
         {error != null && <p className="text-destructive">{error}</p>}
 

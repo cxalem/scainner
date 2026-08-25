@@ -271,6 +271,15 @@ export type Dictionary = {
       refreshedSummary: (modules: number, dids: number, sensorsAdded: number) => string;
       cancelledSummary: (modules: number, dids: number) => string;
       engineStartedSummary: (modules: number, dids: number) => string;
+      coverageSummary: (
+        attempted: number,
+        total: number,
+        reached: number,
+        refused: number,
+        timedOut: number,
+        failed: number,
+        skipped: number,
+      ) => string;
       engineWarning: string;
       fullRescanToggle: string;
       previousFindings: string;

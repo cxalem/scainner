@@ -280,6 +280,8 @@ export const es: Dictionary = {
       cancelledSummary: (modules, dids) => `Detenido. Se guardan ${modules} módulos y ${dids} valores encontrados.`,
       engineStartedSummary: (modules, dids) =>
         `Detenido automáticamente porque el motor arrancó (se guardan ${modules} módulos y ${dids} valores encontrados hasta ahora). El módulo con el que estaba hablando puede mostrar un aviso breve en el cuadro: es normal y desaparece solo, o revísalo en Fallos del módulo.`,
+      coverageSummary: (attempted, total, reached, refused, timedOut, failed, skipped) =>
+        `Cobertura: comprobados ${attempted} de ${total} candidatos; se alcanzaron ${reached} (${refused} rechazaron la lectura de presencia), ${timedOut} no respondieron, ${failed} tuvieron un fallo de transporte o una respuesta no válida y ${skipped} no se intentaron.`,
       engineWarning:
         "No arranques el motor mientras esto se ejecuta: un módulo a mitad de escaneo puede mostrar un aviso en el cuadro si el motor arranca.",
       fullRescanToggle: "Escaneo completo en su lugar (más lento, busca algo nuevo)",

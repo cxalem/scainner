@@ -30,7 +30,7 @@
 
 use super::driver::{ElmDriver, ElmError};
 use super::operation::{enter_extended_session, ScannerOperation};
-use super::outcome::DiagnosticOutcome;
+use super::outcome::{DiagnosticOutcome, DiagnosticStatus};
 use super::parser;
 use super::uds_map;
 use crate::db::Db;
@@ -176,10 +176,20 @@ pub fn read_did_timeout(
     did: u16,
     timeout: Duration,
 ) -> Result<Option<Vec<u8>>, ElmError> {
+    observe_did(drv, did, timeout).map(|(_, data)| data)
+}
+
+fn observe_did(
+    drv: &mut ElmDriver,
+    did: u16,
+    timeout: Duration,
+) -> Result<(DiagnosticOutcome, Option<Vec<u8>>), ElmError> {
     let raw = match drv.cmd(&format!("22{did:04X}"), timeout) {
-        Ok(r) => r,
-        Err(ElmError::NoResponse) => return Ok(None),
-        Err(e) => return Err(e),
+        Ok(raw) => raw,
+        Err(ElmError::NoResponse) => {
+            return Ok((DiagnosticOutcome::timed_out("22"), None));
+        }
+        Err(error) => return Err(error),
     };
     let lines = parser::clean_response(&raw);
     let bytes = parser::payload_bytes(&lines, "");
@@ -188,10 +198,33 @@ pub fn read_did_timeout(
             && bytes[i + 1] == (did >> 8) as u8
             && bytes[i + 2] == (did & 0xFF) as u8
         {
-            return Ok(Some(bytes[i + 3..].to_vec()));
+            return Ok((
+                DiagnosticOutcome::answered("22"),
+                Some(bytes[i + 3..].to_vec()),
+            ));
         }
     }
-    Ok(None)
+    if let Some(response) = bytes
+        .windows(3)
+        .find(|window| window[0] == 0x7F && window[1] == 0x22)
+    {
+        return Ok((
+            DiagnosticOutcome::refused(
+                "22",
+                response[2],
+                parser::negative_response_name(response[2]),
+            ),
+            None,
+        ));
+    }
+    if raw.to_ascii_uppercase().contains("NO DATA") || raw.trim().is_empty() {
+        Ok((DiagnosticOutcome::timed_out("22"), None))
+    } else {
+        Ok((
+            DiagnosticOutcome::malformed("22", "unexpected ReadDataByIdentifier response"),
+            None,
+        ))
+    }
 }
 
 /// Keep an explicitly opened extended session alive without asking the ECU
@@ -666,10 +699,84 @@ fn should_poll_probe(probe: &crate::db::UdsProbe) -> bool {
 // so a pass runs once per car, ever.
 
 #[derive(Serialize, Clone)]
+pub struct ModuleProbeResult {
+    pub request_address: String,
+    pub response_address: String,
+    pub expected_name: Option<String>,
+    pub profile_candidate: bool,
+    pub outcome: DiagnosticOutcome,
+}
+
+#[derive(Serialize, Clone, Default)]
+pub struct DiscoveryCoverage {
+    pub candidates_total: u32,
+    pub candidates_attempted: u32,
+    pub candidates_skipped: u32,
+    pub profile_candidates: u32,
+    pub profile_reached: u32,
+    pub reached: u32,
+    pub refused: u32,
+    pub timed_out: u32,
+    pub transport_failed: u32,
+    pub malformed: u32,
+}
+
+fn coverage_from_probes(
+    probes: &[ModuleProbeResult],
+    candidates_total: u32,
+    profile_candidates: u32,
+) -> DiscoveryCoverage {
+    let mut coverage = DiscoveryCoverage {
+        candidates_total,
+        candidates_attempted: probes.len() as u32,
+        candidates_skipped: candidates_total.saturating_sub(probes.len() as u32),
+        profile_candidates,
+        ..DiscoveryCoverage::default()
+    };
+    for probe in probes {
+        match probe.outcome.status {
+            DiagnosticStatus::Answered => coverage.reached += 1,
+            DiagnosticStatus::Refused | DiagnosticStatus::Unsupported => {
+                coverage.reached += 1;
+                coverage.refused += 1;
+            }
+            DiagnosticStatus::TimedOut => coverage.timed_out += 1,
+            DiagnosticStatus::TransportFailed => coverage.transport_failed += 1,
+            DiagnosticStatus::Malformed => coverage.malformed += 1,
+            DiagnosticStatus::Cancelled | DiagnosticStatus::SkippedForSafety => {}
+        }
+        if probe.profile_candidate
+            && matches!(
+                probe.outcome.status,
+                DiagnosticStatus::Answered
+                    | DiagnosticStatus::Refused
+                    | DiagnosticStatus::Unsupported
+            )
+        {
+            coverage.profile_reached += 1;
+        }
+    }
+    coverage
+}
+
+fn outcome_rank(status: &DiagnosticStatus) -> u8 {
+    match status {
+        DiagnosticStatus::Answered => 5,
+        DiagnosticStatus::Refused | DiagnosticStatus::Unsupported => 4,
+        DiagnosticStatus::TransportFailed => 3,
+        DiagnosticStatus::TimedOut => 2,
+        DiagnosticStatus::Malformed => 1,
+        DiagnosticStatus::Cancelled | DiagnosticStatus::SkippedForSafety => 0,
+    }
+}
+
+#[derive(Serialize, Clone)]
 pub struct DiscoveryReport {
     /// Stable machine-readable result shared by every diagnostic operation.
     /// Legacy discovery fields remain during the UI migration.
     pub outcome: DiagnosticOutcome,
+    pub coverage: DiscoveryCoverage,
+    pub module_probes: Vec<ModuleProbeResult>,
     pub modules_found: u32,
     pub dids_found: u32,
     /// Of `dids_found`, how many the knowledge map had a FULL decode
@@ -784,16 +891,30 @@ fn point_at(
 /// Is anything at this address? A positive (62…) OR a negative (7F 22 …)
 /// reply both prove presence — read_did can't tell those apart from
 /// silence (it maps both non-answers to None), so classify the raw bytes.
-fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> bool {
+fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> DiagnosticOutcome {
     let did = uds_map::presence_probe_did();
     match drv.cmd(&format!("22{did:04X}"), timeout) {
-        Err(_) => false,
+        Err(error) => DiagnosticOutcome::from_elm_error("22", &error),
         Ok(raw) => {
             let lines = parser::clean_response(&raw);
             let bytes = parser::payload_bytes(&lines, "");
-            bytes
-                .windows(2)
-                .any(|w| w[0] == 0x62 || (w[0] == 0x7F && w[1] == 0x22))
+            let positive = [0x62, (did >> 8) as u8, (did & 0xFF) as u8];
+            if bytes.windows(3).any(|window| window == positive) {
+                DiagnosticOutcome::answered("22")
+            } else if let Some(response) = bytes
+                .windows(3)
+                .find(|window| window[0] == 0x7F && window[1] == 0x22)
+            {
+                DiagnosticOutcome::refused(
+                    "22",
+                    response[2],
+                    parser::negative_response_name(response[2]),
+                )
+            } else if raw.to_ascii_uppercase().contains("NO DATA") || raw.trim().is_empty() {
+                DiagnosticOutcome::timed_out("22")
+            } else {
+                DiagnosticOutcome::malformed("22", "unexpected presence-probe response")
+            }
         }
     }
 }
@@ -975,11 +1096,19 @@ fn discover_inner(
     let timings = &uds_map::map().standard.timings_ms;
     let addrs = uds_map::addresses_to_probe(vin.as_deref());
     let total_addrs = addrs.len() as u32;
+    let profile_candidates = addrs
+        .iter()
+        .filter(|candidate| candidate.profile_candidate)
+        .count() as u32;
     let mut present: Vec<(u32, u32, Option<String>)> = Vec::new();
-    for (i, (req, resp, known_name)) in addrs.iter().enumerate() {
+    let mut module_probes = Vec::with_capacity(addrs.len());
+    for (i, candidate) in addrs.iter().enumerate() {
+        let (req, resp, known_name) = (candidate.req, candidate.resp, &candidate.name);
         if cancel_scan.swap(false, Ordering::Relaxed) {
             return Ok(DiscoveryReport {
                 outcome: DiagnosticOutcome::cancelled(),
+                coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+                module_probes,
                 modules_found: present.len() as u32,
                 dids_found: 0,
                 sensors_added: 0,
@@ -992,6 +1121,8 @@ fn discover_inner(
             log::warn!("discovery: engine start detected (voltage jump) — stopping to avoid a module mid-session when it starts");
             return Ok(DiscoveryReport {
                 outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
+                coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+                module_probes,
                 modules_found: present.len() as u32,
                 dids_found: 0,
                 sensors_added: 0,
@@ -1005,21 +1136,33 @@ fn discover_inner(
                 "modules",
                 i as u32,
                 total_addrs,
-                &format_can_address(*req),
+                &format_can_address(req),
                 present.len() as u32,
                 0,
             );
         }
-        if point_at(drv, *req, *resp, &mut addressing).is_err() {
-            continue;
-        }
-        if probe_addr(drv, Duration::from_millis(timings.presence_probe)) {
+        let outcome = match point_at(drv, req, resp, &mut addressing) {
+            Ok(()) => probe_addr(drv, Duration::from_millis(timings.presence_probe)),
+            Err(error) => DiagnosticOutcome::from_elm_error("addressing", &error),
+        };
+        let reached = matches!(
+            outcome.status,
+            DiagnosticStatus::Answered | DiagnosticStatus::Refused | DiagnosticStatus::Unsupported
+        );
+        module_probes.push(ModuleProbeResult {
+            request_address: format_can_address(req),
+            response_address: format_can_address(resp),
+            expected_name: known_name.clone(),
+            profile_candidate: candidate.profile_candidate,
+            outcome,
+        });
+        if reached {
             log::info!(
                 "discovery: module answering at {}/{}",
-                format_can_address(*req),
-                format_can_address(*resp)
+                format_can_address(req),
+                format_can_address(resp)
             );
-            present.push((*req, *resp, known_name.clone()));
+            present.push((req, resp, known_name.clone()));
         }
     }
 
@@ -1044,6 +1187,8 @@ fn discover_inner(
                 // here, not a placeholder.
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::cancelled(),
+                    coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+                    module_probes,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added: 0,
@@ -1056,6 +1201,8 @@ fn discover_inner(
                 log::warn!("discovery: engine start detected mid-identification — stopping");
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
+                    coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+                    module_probes,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added: 0,
@@ -1149,6 +1296,8 @@ fn discover_inner(
                 leave_extended_session(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::cancelled(),
+                    coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+                    module_probes,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added,
@@ -1165,6 +1314,8 @@ fn discover_inner(
                 leave_extended_session(drv, extended_session_open);
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
+                    coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+                    module_probes,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added,
@@ -1278,6 +1429,8 @@ fn discover_inner(
     );
     Ok(DiscoveryReport {
         outcome: DiagnosticOutcome::answered("discovery"),
+        coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
+        module_probes,
         modules_found: present.len() as u32,
         dids_found,
         sensors_added,
@@ -1315,16 +1468,36 @@ fn fast_refresh(
     let mut dids_found = 0u32;
     let mut sensors_added = 0u32;
     let mut modules_seen = 0u32;
+    let candidates_total = by_module.len() as u32;
+    let mut module_probes = Vec::with_capacity(by_module.len());
 
     for (addr, dids) in &by_module {
         let Some((req, resp)) = parse_module_address(addr) else {
+            module_probes.push(ModuleProbeResult {
+                request_address: addr.clone(),
+                response_address: String::new(),
+                expected_name: None,
+                profile_candidate: true,
+                outcome: DiagnosticOutcome::malformed(
+                    "addressing",
+                    "saved module address is invalid",
+                ),
+            });
             continue;
         };
-        if point_at(drv, req, resp, addressing).is_err() {
+        if let Err(error) = point_at(drv, req, resp, addressing) {
+            module_probes.push(ModuleProbeResult {
+                request_address: format_can_address(req),
+                response_address: format_can_address(resp),
+                expected_name: None,
+                profile_candidate: true,
+                outcome: DiagnosticOutcome::from_elm_error("addressing", &error),
+            });
             continue;
         }
         let module_id = db.upsert_discovered_module(vehicle_id, addr, None);
-        modules_seen += 1;
+        let mut module_outcome =
+            DiagnosticOutcome::malformed("22", "no saved identifier was attempted");
         let extended_session_open = matches!(
             uds_map::discovery_session_for_module(vin, req, resp),
             uds_map::DiscoverySession::DefaultThenExtended
@@ -1333,8 +1506,21 @@ fn fast_refresh(
             sweep_i += 1;
             if cancel_scan.swap(false, Ordering::Relaxed) {
                 leave_extended_session(drv, extended_session_open);
+                module_probes.push(ModuleProbeResult {
+                    request_address: format_can_address(req),
+                    response_address: format_can_address(resp),
+                    expected_name: None,
+                    profile_candidate: true,
+                    outcome: DiagnosticOutcome::cancelled(),
+                });
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::cancelled(),
+                    coverage: coverage_from_probes(
+                        &module_probes,
+                        candidates_total,
+                        candidates_total,
+                    ),
+                    module_probes,
                     modules_found: modules_seen,
                     dids_found,
                     sensors_added,
@@ -1346,8 +1532,21 @@ fn fast_refresh(
             if sweep_i % 15 == 14 && baseline_voltage.is_some() && engine_started(drv) {
                 log::warn!("fast refresh: engine start detected — stopping");
                 leave_extended_session(drv, extended_session_open);
+                module_probes.push(ModuleProbeResult {
+                    request_address: format_can_address(req),
+                    response_address: format_can_address(resp),
+                    expected_name: None,
+                    profile_candidate: true,
+                    outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
+                });
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
+                    coverage: coverage_from_probes(
+                        &module_probes,
+                        candidates_total,
+                        candidates_total,
+                    ),
+                    module_probes,
                     modules_found: modules_seen,
                     dids_found,
                     sensors_added,
@@ -1367,7 +1566,15 @@ fn fast_refresh(
             if extended_session_open && sweep_i % 40 == 39 {
                 tester_present(drv);
             }
-            if let Ok(Some(data)) = read_did_timeout(drv, *did, Duration::from_millis(500)) {
+            let observation = observe_did(drv, *did, Duration::from_millis(500));
+            let (outcome, data) = match observation {
+                Ok(observation) => observation,
+                Err(error) => (DiagnosticOutcome::from_elm_error("22", &error), None),
+            };
+            if outcome_rank(&outcome.status) > outcome_rank(&module_outcome.status) {
+                module_outcome = outcome;
+            }
+            if let Some(data) = data {
                 let known_entry =
                     uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
                         (Some(offset), Some(len)) => (offset as usize)
@@ -1407,12 +1614,27 @@ fn fast_refresh(
             }
         }
         leave_extended_session(drv, extended_session_open);
+        if matches!(
+            module_outcome.status,
+            DiagnosticStatus::Answered | DiagnosticStatus::Refused | DiagnosticStatus::Unsupported
+        ) {
+            modules_seen += 1;
+        }
+        module_probes.push(ModuleProbeResult {
+            request_address: format_can_address(req),
+            response_address: format_can_address(resp),
+            expected_name: None,
+            profile_candidate: true,
+            outcome: module_outcome,
+        });
     }
 
     emit("done", total, total, "", modules_seen, dids_found);
     log::info!("fast refresh complete: {modules_seen} modules, {dids_found} DIDs re-verified");
     Ok(DiscoveryReport {
         outcome: DiagnosticOutcome::answered("discovery"),
+        coverage: coverage_from_probes(&module_probes, candidates_total, candidates_total),
+        module_probes,
         modules_found: modules_seen,
         dids_found,
         sensors_added,
@@ -1653,5 +1875,66 @@ mod tests {
         let error = clear_dtcs(&mut driver).expect_err("OK is not a 54 acknowledgement");
         assert!(error.to_string().contains("no valid 54"));
         driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn presence_probe_keeps_refusal_and_timeout_distinct() {
+        let refused = r#"{
+          "schema_version": 1,
+          "name": "presence refused",
+          "contains_vehicle_identifiers": false,
+          "steps": [{ "command": "22F186", "response": "7F 22 31\r>" }]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(refused).unwrap();
+        let outcome = probe_addr(&mut driver, Duration::from_millis(500));
+        assert_eq!(outcome.status, DiagnosticStatus::Refused);
+        assert_eq!(outcome.nrc, Some(0x31));
+        driver.assert_replay_complete();
+
+        let timeout = r#"{
+          "schema_version": 1,
+          "name": "presence timeout",
+          "contains_vehicle_identifiers": false,
+          "steps": [{ "command": "22F186", "error": "no_response" }]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(timeout).unwrap();
+        let outcome = probe_addr(&mut driver, Duration::from_millis(500));
+        assert_eq!(outcome.status, DiagnosticStatus::TimedOut);
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn coverage_is_derived_from_candidate_evidence() {
+        let probes = vec![
+            ModuleProbeResult {
+                request_address: "700".into(),
+                response_address: "708".into(),
+                expected_name: Some("engine".into()),
+                profile_candidate: true,
+                outcome: DiagnosticOutcome::answered("22"),
+            },
+            ModuleProbeResult {
+                request_address: "701".into(),
+                response_address: "709".into(),
+                expected_name: Some("abs".into()),
+                profile_candidate: true,
+                outcome: DiagnosticOutcome::refused("22", 0x31, "requestOutOfRange"),
+            },
+            ModuleProbeResult {
+                request_address: "702".into(),
+                response_address: "70A".into(),
+                expected_name: None,
+                profile_candidate: false,
+                outcome: DiagnosticOutcome::timed_out("22"),
+            },
+        ];
+
+        let coverage = coverage_from_probes(&probes, 5, 2);
+        assert_eq!(coverage.candidates_attempted, 3);
+        assert_eq!(coverage.candidates_skipped, 2);
+        assert_eq!(coverage.reached, 2);
+        assert_eq!(coverage.refused, 1);
+        assert_eq!(coverage.timed_out, 1);
+        assert_eq!(coverage.profile_reached, 2);
     }
 }
