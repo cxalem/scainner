@@ -548,7 +548,8 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "discovered_modules":
       return [{
         id: 1, address: "6B4/694", name: "BSI (body computer)",
-        discovered_at: "2026-08-24 10:00:00", did_count: 2, labeled_count: 1,
+        discovered_at: "2026-08-24 10:00:00", last_seen_at: "2026-08-25 18:30:00",
+        did_count: 2, labeled_count: 1,
         spare_part_number: "98 123 456 80", hardware_version: "HW03",
         software_version: "SW12.4", system_name: "BSI",
         fingerprint_match_key: "F187=98 123 456 80|F191=HW03|F195=SW12.4|F197=BSI",
@@ -568,6 +569,27 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           software_versions: ["SW12.4"], system_names: ["BSI"],
         }],
         observations: [],
+      } as T;
+    case "vehicle_evidence_map":
+      return {
+        vehicle_id: Number(args?.vehicleId ?? 1),
+        evidence_scope: "persisted_observations",
+        modules: [{
+          id: 1, address: "6B4/694", display_name: "BSI",
+          name_source: "ecu_reported", presence: "previously_reached",
+          first_seen_at: "2026-08-24 10:00:00", last_seen_at: "2026-08-25 18:30:00",
+          identity: {
+            spare_part_number: "98 123 456 80", hardware_version: "HW03",
+            software_version: "SW12.4", system_name: "BSI",
+            fields_answered: 4, fields_total: 4,
+          },
+          dids: [{ did: 0xF187, raw_sample: "39383132333435363830", byte_length: 10, label: "Spare part number", confidence: "confirmed" }],
+          module_fault_evidence: "not_scanned",
+        }],
+        latest_standard_faults: {
+          scanned_at: "2026-08-25 18:31:00", mil_on: false,
+          stored: [], pending: [], permanent: [],
+        },
       } as T;
     case "uds_read":
       return null as T;

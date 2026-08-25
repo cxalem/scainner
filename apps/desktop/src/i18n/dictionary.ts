@@ -386,6 +386,25 @@ export type Dictionary = {
       reading: string;
       readFromEcu: string;
     };
+    map: {
+      cardTitle: string;
+      explainer: string;
+      noVehicle: string;
+      noModules: string;
+      moduleCount: (count: number) => string;
+      unknownModule: string;
+      previouslyReached: string;
+      identity: (answered: number, total: number) => string;
+      values: (count: number) => string;
+      firstSeen: string;
+      lastSeen: string;
+      nameSource: { ecu: string; identity: string; documented: string };
+      moduleFaultsNotScanned: string;
+      standardFaults: string;
+      noStandardScan: string;
+      standardFaultCount: (count: number) => string;
+      raw: string;
+    };
     data: {
       cardTitle: string;
       storedLocally: string;

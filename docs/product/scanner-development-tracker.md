@@ -18,8 +18,8 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 5 | Discovery strategy and coverage accounting | done | [PR #41](https://github.com/cxalem/scainner/pull/41), 80 Rust tests |
 | 6 | Safe 11-bit and 29-bit module enumeration | done | [PR #42](https://github.com/cxalem/scainner/pull/42), 82 Rust tests |
 | 7 | Partial ECU fingerprints | done | [PR #43](https://github.com/cxalem/scainner/pull/43), 84 Rust tests |
-| 8 | Fingerprint matching experiment, 30–50 vehicles | active | Branch `feat/fingerprint-matching-experiment`; field collection remains open |
-| 9 | Workshop module taxonomy and vehicle map | queued | Can begin after fingerprint schema stabilizes |
+| 8 | Fingerprint matching experiment, staged 4–6 / 10–15 / 30 vehicles | active | Harness [PR #44](https://github.com/cxalem/scainner/pull/44); field collection runs in parallel |
+| 9 | Evidence-only vehicle map | active | Branch `feat/evidence-vehicle-map`; no workshop taxonomy or inferred labels |
 | 10 | Unified standard and module DTC scan | queued | Depends on typed outcomes and inventory |
 | 11 | Complaint-to-evidence diagnostic cases | queued | Depends on unified observations |
 | 12 | Evidence-linked technical/customer reports | queued | Depends on diagnostic cases |
@@ -216,6 +216,35 @@ Field acceptance criteria:
 - Decide the product gate from the measured repeat rate; do not mark this slice
   done merely because the harness shipped.
 - Full repository CI passes for the experiment harness.
+
+## Active slice: evidence-only vehicle map
+
+Deliverables:
+
+- Build a per-vehicle topology from persisted observations, separate from the
+  deferred Workshop product surface.
+- Show every module discovery positively reached, its exact request/response
+  address, first/last observation, partial identity, and observed DIDs.
+- Attach an explicit source to every friendly module name: ECU-reported
+  identity or documented profile. Leave everything else unknown.
+- Include the latest standard OBD fault snapshot as vehicle-level evidence.
+- Represent unavailable module-level fault evidence as `not_scanned`, never as
+  an empty/clean result.
+- Keep SQLite, Supabase sync, Rust, and TypeScript contracts aligned.
+
+Acceptance criteria:
+
+- The map makes no domain, system, severity, or workshop classification guess.
+- An unlabeled answering address appears as an unknown module rather than being
+  omitted.
+- A historical positive observation is labeled as previously reached, not
+  currently online.
+- First-seen and last-seen timestamps remain distinct and rediscovery advances
+  only the latter.
+- DTCs are shown at the scope where they were actually collected; standard OBD
+  codes cannot be attributed to a discovered UDS module.
+- Missing module DTC evidence is visibly different from a verified clean scan.
+- Full repository CI passes.
 
 ## Product gates
 

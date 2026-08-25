@@ -274,6 +274,13 @@ fn fingerprint_experiment(state: tauri::State<AppState>) -> db::FingerprintExper
     state.db.fingerprint_experiment()
 }
 
+/// Persisted, evidence-only topology for one vehicle. This local read does
+/// not contact the adapter or infer module classifications.
+#[tauri::command]
+fn vehicle_evidence_map(state: tauri::State<AppState>, vehicle_id: i64) -> db::VehicleEvidenceMap {
+    state.db.vehicle_evidence_map(vehicle_id)
+}
+
 /// Clears the fault memory on one module (ABS/engine). Standard, safe
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
@@ -572,6 +579,7 @@ pub fn run() {
             discovered_modules,
             discovered_dids,
             fingerprint_experiment,
+            vehicle_evidence_map,
             uds_clear,
             uds_module_dtcs,
             writes_log,
