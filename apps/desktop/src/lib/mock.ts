@@ -510,7 +510,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         outcome: "cleared",
         error: null,
       });
-      return { before, accepted: true, after: [] } as ClearOutcome as T;
+      return { before, accepted: true, refusal_reason: null, after: [] } as ClearOutcome as T;
     }
     case "writes_log":
       return WRITES.slice(0, Number(args?.limit ?? 20)) as T;

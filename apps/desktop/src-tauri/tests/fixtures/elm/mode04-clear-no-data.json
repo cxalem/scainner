@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "Mode 04 ELM NO DATA response (synthetic)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "04", "response": "NO DATA\r>" }
+  ]
+}

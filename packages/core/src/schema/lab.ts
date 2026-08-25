@@ -37,6 +37,7 @@ export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
 export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
   before: Schema.mutable(Schema.Array(Schema.String)),
   accepted: Schema.Boolean,
+  refusal_reason: Schema.NullOr(Schema.String),
   after: Schema.mutable(Schema.Array(Schema.String)),
 }) {}
 

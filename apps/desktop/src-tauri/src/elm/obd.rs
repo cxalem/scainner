@@ -8,7 +8,7 @@ use super::parser;
 use serde::Serialize;
 use std::time::Duration;
 
-#[derive(Serialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct DtcResult {
     pub mil_on: bool,
     pub dtc_count: u8,
@@ -34,6 +34,7 @@ pub struct ObdClearOutcome {
 /// `BeforeScanFailed` means nothing was sent (not logged as a write),
 /// `ClearFailed` and `VerifyFailed` mean a write was attempted or done and
 /// MUST be logged, with whatever state was captured.
+#[derive(Debug)]
 pub enum ClearError {
     BeforeScanFailed(String),
     ClearFailed { before: DtcResult, error: String },
@@ -45,17 +46,51 @@ pub enum ClearError {
 /// audit trail, so it must not happen.
 pub fn clear_and_verify(drv: &mut ElmDriver) -> Result<ObdClearOutcome, ClearError> {
     let before = scan_dtcs(drv).map_err(ClearError::BeforeScanFailed)?;
-    if let Err(e) = drv.cmd("04", Duration::from_secs(10)) {
-        return Err(ClearError::ClearFailed {
-            before,
-            error: e.to_string(),
-        });
+    if let Err(error) = clear_mode04(drv) {
+        return Err(ClearError::ClearFailed { before, error });
     }
-    match scan_dtcs(drv) {
+    settle_after_clear();
+    let first_verification = scan_dtcs(drv);
+    let verification = match first_verification {
+        Ok(scan) => Ok(scan),
+        Err(_) => {
+            settle_after_clear();
+            scan_dtcs(drv)
+        }
+    };
+    match verification {
         Ok(after) => Ok(ObdClearOutcome { before, after }),
         Err(e) => Err(ClearError::VerifyFailed { before, error: e }),
     }
 }
+
+fn clear_mode04(drv: &mut ElmDriver) -> Result<(), String> {
+    let raw = drv
+        .cmd("04", Duration::from_secs(10))
+        .map_err(|error| error.to_string())?;
+    match parser::diagnostic_response(&raw, 0x04, 0x44) {
+        parser::DiagnosticResponse::Positive => Ok(()),
+        parser::DiagnosticResponse::Negative(code) => Err(format!(
+            "ECU refused service 04: {} (0x{code:02X})",
+            parser::negative_response_name(code)
+        )),
+        parser::DiagnosticResponse::Pending => {
+            Err("ECU left service 04 pending without a final response".into())
+        }
+        parser::DiagnosticResponse::NoData => Err("ELM returned NO DATA for service 04".into()),
+        parser::DiagnosticResponse::Malformed => {
+            Err("service 04 returned no valid 44 acknowledgement".into())
+        }
+    }
+}
+
+#[cfg(not(test))]
+fn settle_after_clear() {
+    std::thread::sleep(Duration::from_millis(750));
+}
+
+#[cfg(test)]
+fn settle_after_clear() {}
 
 #[derive(Serialize, Clone)]
 pub struct EcuInfo {
@@ -318,6 +353,52 @@ mod tests {
         };
 
         assert_eq!(error, "bad 0101 response");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn mode04_requires_a_real_acknowledgement_and_verifies_afterward() {
+        let raw = include_str!("../../tests/fixtures/elm/mode04-clear-success.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let outcome = clear_and_verify(&mut driver).expect("44 must be accepted");
+
+        assert!(outcome.after.stored.is_empty());
+        assert!(outcome.after.pending.is_empty());
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn mode04_decodes_an_ecu_refusal() {
+        let raw = include_str!("../../tests/fixtures/elm/mode04-clear-refused.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let error = clear_mode04(&mut driver).expect_err("7F 04 22 is a refusal");
+
+        assert!(error.contains("conditionsNotCorrect"), "{error}");
+        assert!(error.contains("0x22"), "{error}");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn mode04_no_data_is_not_success() {
+        let raw = include_str!("../../tests/fixtures/elm/mode04-clear-no-data.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let error = clear_mode04(&mut driver).expect_err("NO DATA is not an acknowledgement");
+
+        assert!(error.contains("NO DATA"), "{error}");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn mode04_silence_is_not_success() {
+        let raw = include_str!("../../tests/fixtures/elm/mode04-clear-silence.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let error = clear_mode04(&mut driver).expect_err("silence is not an acknowledgement");
+
+        assert!(error.contains("no response"), "{error}");
         driver.assert_replay_complete();
     }
 }

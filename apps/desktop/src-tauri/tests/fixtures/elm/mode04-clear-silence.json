@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "Mode 04 adapter silence (synthetic)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "04", "error": "no_response" }
+  ]
+}

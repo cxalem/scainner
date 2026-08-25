@@ -273,12 +273,27 @@ pub fn read_dtcs(drv: &mut ElmDriver) -> Result<Vec<String>, ElmError> {
 /// does — it cannot damage anything, it only erases stored fault records.
 /// Gate this behind an explicit user confirmation in the UI, same as the
 /// existing engine-code clear.
-pub fn clear_dtcs(drv: &mut ElmDriver) -> Result<bool, ElmError> {
+#[derive(Debug)]
+enum ClearDecision {
+    Accepted,
+    Refused(u8),
+}
+
+fn clear_dtcs(drv: &mut ElmDriver) -> Result<ClearDecision, ElmError> {
     let raw = drv.cmd("14FFFFFF", Duration::from_secs(5))?;
-    let bytes = parser::clean_response(&raw);
-    let payload = parser::payload_bytes(&bytes, "");
-    // Positive response starts with 0x54; negative with 7F 14 <code>.
-    Ok(payload.first() == Some(&0x54))
+    match parser::diagnostic_response(&raw, 0x14, 0x54) {
+        parser::DiagnosticResponse::Positive => Ok(ClearDecision::Accepted),
+        parser::DiagnosticResponse::Negative(code) => Ok(ClearDecision::Refused(code)),
+        parser::DiagnosticResponse::Pending => Err(ElmError::Handshake(
+            "ECU left service 14 pending without a final response".into(),
+        )),
+        parser::DiagnosticResponse::NoData => Err(ElmError::Handshake(
+            "ELM returned NO DATA for service 14".into(),
+        )),
+        parser::DiagnosticResponse::Malformed => Err(ElmError::Handshake(
+            "service 14 returned no valid 54 acknowledgement".into(),
+        )),
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -334,6 +349,7 @@ pub fn extract(data: &[u8], offset: usize, len: usize, scale: f64, bias: f64) ->
 pub struct ClearOutcome {
     pub before: Vec<String>,
     pub accepted: bool,
+    pub refusal_reason: Option<String>,
     pub after: Vec<String>,
 }
 
@@ -379,8 +395,11 @@ pub fn clear_module(
             ));
         }
     };
-    let accepted = match clear_dtcs(drv) {
-        Ok(ok) => ok,
+    if extended_session_open {
+        tester_present(drv);
+    }
+    let decision = match clear_dtcs(drv) {
+        Ok(decision) => decision,
         Err(e) => {
             db.log_write(
                 conn_id,
@@ -397,7 +416,32 @@ pub fn clear_module(
             return Err(e.to_string());
         }
     };
-    let after = match read_dtcs(drv) {
+    let (accepted, refusal_reason) = match decision {
+        ClearDecision::Accepted => (true, None),
+        ClearDecision::Refused(code) => (
+            false,
+            Some(format!(
+                "{} (0x{code:02X})",
+                parser::negative_response_name(code)
+            )),
+        ),
+    };
+    if accepted {
+        settle_after_clear();
+    }
+    let first_verification = read_dtcs(drv);
+    let verification = match first_verification {
+        Ok(after) => Ok(after),
+        Err(_) if accepted => {
+            if extended_session_open {
+                tester_present(drv);
+            }
+            settle_after_clear();
+            read_dtcs(drv)
+        }
+        Err(error) => Err(error),
+    };
+    let after = match verification {
         Ok(a) => a,
         Err(e) => {
             db.log_write(
@@ -441,9 +485,18 @@ pub fn clear_module(
     Ok(ClearOutcome {
         before,
         accepted,
+        refusal_reason,
         after,
     })
 }
+
+#[cfg(not(test))]
+fn settle_after_clear() {
+    std::thread::sleep(Duration::from_millis(750));
+}
+
+#[cfg(test)]
+fn settle_after_clear() {}
 
 pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<String>, String> {
     let custom = custom_modules(db);
@@ -1553,5 +1606,55 @@ mod tests {
         )
         .expect("decodes");
         assert!((v - 2.25).abs() < 0.001, "got {v}");
+    }
+
+    #[test]
+    fn uds_clear_accepts_single_byte_positive_response() {
+        let raw = include_str!("../../tests/fixtures/elm/uds-clear-success.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        assert!(matches!(
+            clear_dtcs(&mut driver),
+            Ok(ClearDecision::Accepted)
+        ));
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn uds_clear_accepts_pending_followed_by_positive_response() {
+        let raw = include_str!("../../tests/fixtures/elm/uds-clear-pending-success.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        assert!(matches!(
+            clear_dtcs(&mut driver),
+            Ok(ClearDecision::Accepted)
+        ));
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn uds_clear_preserves_the_refusal_code() {
+        let raw = include_str!("../../tests/fixtures/elm/uds-clear-refused.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        assert!(matches!(
+            clear_dtcs(&mut driver),
+            Ok(ClearDecision::Refused(0x22))
+        ));
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn uds_clear_silence_and_malformed_replies_are_errors() {
+        let silence = include_str!("../../tests/fixtures/elm/uds-clear-silence.json");
+        let mut driver = ElmDriver::from_replay_json(silence).unwrap();
+        assert!(matches!(clear_dtcs(&mut driver), Err(ElmError::NoResponse)));
+        driver.assert_replay_complete();
+
+        let malformed = include_str!("../../tests/fixtures/elm/uds-clear-malformed.json");
+        let mut driver = ElmDriver::from_replay_json(malformed).unwrap();
+        let error = clear_dtcs(&mut driver).expect_err("OK is not a 54 acknowledgement");
+        assert!(error.to_string().contains("no valid 54"));
+        driver.assert_replay_complete();
     }
 }
