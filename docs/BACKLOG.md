@@ -18,6 +18,35 @@ concurrently.
 - ⚠️ The working tree currently carries the entire redesign uncommitted.
   Before branching streams, commit a checkpoint on main.
 
+## Priority order (2026-08-25) — supersedes the 2026-08-21 order below
+
+The alpha queue. Full specification in
+`docs/product/vehicle-interaction-architecture.md`. The 2026-08-21 order
+below is kept for its reasoning but is largely spent: I (Effect) and J
+(monorepo) have both landed.
+
+1. **Clear-codes correctness (N)** — first, and ahead of everything
+   architectural. Clearing codes is broken on every car, the root cause is
+   found and reproduced by test, and the negative-response decoder it
+   introduces is a prerequisite for every service function that follows.
+2. **Operations ledger (O)** — depends on N's decoded outcome shape. The
+   raw-byte capture it adds is what would have made N's bug visible months
+   ago instead of invisible.
+3. **Capability model and pack schema (P)** — the structural centre. Touches
+   the UDS engine and both knowledge APIs; nothing else should be mid-flight
+   in `elm/` when it lands.
+4. **Pack distribution (Q)** — depends on P. Until this ships, every
+   learning is trapped behind a full app release.
+5. **Reports (R)** — depends on O for evidence links. Can run in parallel
+   with Q (different files).
+6. **Learning loop (S)** — depends on O and Q.
+7. **Authorization (T)** and **service functions (U)** — post-alpha, gated
+   as described in their entries.
+
+Diagnose/codes UX redesign (A) and the AI agent stream remain real and
+unblocked; they can run alongside the queue above since they do not touch
+`elm/`.
+
 ## Priority order (2026-08-21)
 
 Architectural streams first, deliberately — anything that touches most of
@@ -297,6 +326,116 @@ rather than picking from the section list below by feel.
       Framer-motion vs. plain CSS transition-delay for sequenced/
       staggered reveals is a real open tradeoff, not decided yet. See
       docs/workflows/animation-system/plan.md.
+
+### N. Clear-codes correctness and negative responses (src-tauri/src/elm)
+- [ ] **Clearing codes has never worked on any car.** Root cause found
+      2026-08-25 and reproduced by executable test against main, not
+      inferred. Three defects:
+      (1) `parser.rs` `payload_bytes` discards any single-byte first line
+      as an ISO-TP length prefix. The UDS clear positive response IS a
+      single byte (`54`), so `payload_bytes(["54"])` returns `[]` and
+      `uds.rs`'s `payload.first() == Some(&0x54)` is **always false**. The
+      UDS clear path is structurally incapable of reporting success, and
+      the user is shown "the module refused" on a clear that very likely
+      worked.
+      (2) The `7F 14 78` responsePending sequence also returns false,
+      because the check reads `first()` instead of looking past pending
+      frames.
+      (3) `obd.rs` `clear_and_verify` discards mode 04's response entirely,
+      so `7F 04 22` conditionsNotCorrect, `NO DATA` and `BUS ERROR` are
+      indistinguishable from success — and the UI then blames the car
+      ("codes came straight back, those are active faults").
+      Contributing: no NRC decoding anywhere; adapter error strings not
+      recognised as errors (`clean_response` filters only `SEARCHING...`);
+      no precondition checks (many ECUs refuse a clear with the engine
+      running, which is the app's normal state); no settle delay before
+      verification; no TesterPresent across the clear, with a 6s before-read
+      against a 5s session timer; `1003`'s response ignored; `ATSP6` never
+      undone by teardown, which pins the adapter to CAN for the rest of the
+      connection and breaks the documented K-line Peugeot.
+      Fix list and rationale: `docs/product/vehicle-interaction-architecture.md`
+      section 7. Ships with a unit test per response shape.
+
+### O. Operations ledger (src-tauri/src/db.rs, elm/, supabase/)
+- [ ] Generalize `writes_log` into `operations`: every interaction with a
+      vehicle, read or write, with the **raw request and response bytes**.
+      That omission is why N's bug survived for months — the audit trail
+      recorded the verdict `refused` without ever recording what the module
+      actually said. One table serves the audit trail, the debugging record,
+      the learning corpus, and report evidence. `writes_log` becomes a view
+      so the existing Write history UI keeps working. Needs a retention
+      policy from day one (full capture for writes and failures, bounded
+      window for high-frequency successful reads). Depends on N.
+
+### P. Capability model and pack schema (packages/uds-map, src-tauri/src/elm)
+- [ ] Every operation the app can perform on a vehicle becomes one
+      declarative entry: applicability, request, preconditions,
+      authorization, expected response, known NRCs, risk, reversal,
+      confidence, provenance. Migrate `uds-map.json`'s 21 brands / 180
+      modules / 181 known DIDs into it without loss. One executor in Rust
+      runs any capability. Coverage becomes a query over applicability,
+      which is what `diagnostic-intelligence.md` needs and cannot currently
+      answer. Service functions then stop being a new subsystem and become
+      data — this is what makes the iCarsoft tier a population exercise
+      rather than a rewrite, and it makes the existing write safety rail
+      automatic since `risk`/`reversal` are what ConfirmWrite already
+      demands. Rust and TS must derive from one schema instead of being
+      hand-synced; that drift is already live (Rust silently drops
+      `confidence` on brands/modules/DIDs, and `extract` rejects `len > 4`
+      while `decodeKnownDid` does not).
+
+### Q. Pack distribution (src-tauri, supabase/)
+- [ ] Today `uds-map.json` is compiled in via `include_str!`, so a corrected
+      module address needs a full rebuild and release. **Every learning the
+      product accumulates is trapped behind a release cycle**, which makes
+      the learning loop worthless until this changes. Runtime pack load with
+      the bundled pack as offline fallback, signature verification, a
+      binary-enforced service/privilege ceiling, separate signing roots for
+      read knowledge and authorized operations, atomic activation,
+      anti-rollback, key rotation/revocation, version pinned per scan so a
+      report says which knowledge produced it, and signed emergency rollback
+      without an app release. Depends on P.
+
+### R. Reports (src/features, src-tauri)
+- [ ] Today's reports are a single prompt to markdown in localStorage:
+      not persisted, not versioned, not evidence-linked, owner-register
+      only, no export. Alpha needs persisted versioned reports, evidence
+      links into `operations` and fault observations, technical and
+      customer registers, export, EN/ES. Depends on O.
+
+### S. Learning loop (src-tauri, supabase/)
+- [ ] Plane 3 of the architecture. Candidate labels from correlating unknown
+      DIDs against known values, cross-vehicle agreement raising confidence,
+      contribution **opt-in and VIN-free** (a VIN identifies a vehicle and
+      its owner; raw ECU identity blocks are also excluded because they may
+      contain VINs or stable serial numbers), strict allowlisted fields,
+      review before promotion into a pack. An
+      AI-proposed label stays a candidate. Depends on O and Q.
+
+### T. Authorization / security access (post-alpha)
+- [ ] `0x27` seed/key. **Algorithms are compiled-in code referenced by id;
+      packs select an algorithm, never define one** — a pack carrying an
+      executable transform would introduce arbitrary code if the channel
+      were ever compromised. The binary must additionally bind every
+      algorithm to allowed brands, address families, levels, services, and
+      operation tiers. Designed for in P (the authorization
+      field), populated here. Gated on research cataloguing which algorithms
+      and routine identifiers are genuinely public per brand, with a real
+      source per entry; an entry whose origin cannot be named does not ship.
+      **Immobilizer and key programming are explicitly excluded** and must
+      not be arrived at by drift: it is the one category with a direct
+      theft-enablement path, and needs legal review plus customer
+      verification as its own decision.
+
+### U. Service functions (post-alpha)
+- [ ] The iCarsoft-parity tier: oil/service reset, brake service mode,
+      particulate-filter regeneration, throttle and idle relearn, battery
+      registration, adaptation resets. Each is a `routine` capability behind
+      the existing safety rail with a verified reversal path. Gated on T and
+      on the routine-identifier hunt already scoped in write-caps
+      increment 2. Note BSI is unreachable from the OBD port on the
+      reference car, so PSA body/comfort functions are a hardware wall
+      regardless of authorization.
 
 ## Done log
 

@@ -76,23 +76,79 @@ pub fn resolve<'a>(key: &str, custom: &'a [UdsModule]) -> Option<UdsModule> {
         .or_else(|| custom.iter().find(|m| m.key == key).cloned())
 }
 
-fn addressing_commands(m: &UdsModule) -> [String; 8] {
-    [
+/// True when either side of a module's address pair does not fit in 11 bits,
+/// i.e. the module is addressed with 29-bit extended CAN identifiers
+/// (ISO 15765-2 normal fixed addressing, `18DA<target><source>`).
+fn address_pair(m: &UdsModule) -> Result<(u32, u32, bool), ElmError> {
+    let invalid = || ElmError::Handshake(format!("invalid CAN address pair {}/{}", m.req, m.resp));
+    let req = uds_map::can_address(&m.req).ok_or_else(&invalid)?;
+    let resp = uds_map::can_address(&m.resp).ok_or_else(&invalid)?;
+    let req_extended = req > 0x7FF;
+    if req_extended != (resp > 0x7FF) {
+        return Err(ElmError::Handshake(format!(
+            "mixed 11-bit/29-bit CAN address pair {}/{}",
+            m.req, m.resp
+        )));
+    }
+    Ok((req, resp, req_extended))
+}
+
+fn format_can_address(address: u32) -> String {
+    if address <= 0x7FF {
+        format!("{address:03X}")
+    } else {
+        format!("{address:08X}")
+    }
+}
+
+/// Split a 29-bit identifier into the ELM327's two halves. The ELM sets an
+/// extended header as a priority byte (`AT CP`) plus the remaining three
+/// bytes (`AT SH`) — it does not take one eight-digit value for `AT SH`.
+/// For `18DAC7F1` that is priority `18` and header `DAC7F1`.
+fn split_extended(addr: u32) -> (u8, u32) {
+    (((addr >> 24) & 0xFF) as u8, addr & 0x00FF_FFFF)
+}
+
+fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
+    let (req, resp, extended) = address_pair(m)?;
+
+    // 29-bit extended addressing. Needed for whole classes of modules that
+    // are simply unreachable over 11-bit: PSA/Stellantis TPMS lives at
+    // 18DAC7F1, and the map already records GM's Ultium modules the same
+    // way. Protocol 7 is CAN 29-bit 500k; the receive filter and flow
+    // control header both take the full eight-digit identifier.
+    if extended {
+        let (priority, header) = split_extended(req);
+        return Ok(vec![
+            "ATSP7".to_string(),
+            "ATCAF1".to_string(),
+            "ATH0".to_string(),
+            format!("ATCP {priority:02X}"),
+            format!("ATSH {header:06X}"),
+            format!("ATCRA {resp:08X}"),
+            format!("ATFCSH {req:08X}"),
+            "ATFCSD 300000".to_string(),
+            "ATFCSM 1".to_string(),
+        ]);
+    }
+
+    Ok(vec![
         "ATSP6".to_string(),
         "ATCAF1".to_string(),
         "ATH0".to_string(),
-        format!("ATSH {}", m.req),
-        format!("ATCRA {}", m.resp),
-        format!("ATFCSH {}", m.req),
+        format!("ATSH {req:03X}"),
+        format!("ATCRA {resp:03X}"),
+        format!("ATFCSH {req:03X}"),
         "ATFCSD 300000".to_string(),
         "ATFCSM 1".to_string(),
-    ]
+    ])
 }
 
-/// Point the ELM at one module: fixed CAN 500k/11-bit, physical addressing.
+/// Point the ELM at one module with physical addressing: CAN 500k, 11-bit or
+/// 29-bit depending on the module's recorded address pair.
 /// This deliberately does not change the ECU's diagnostic session.
 pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
-    for c in addressing_commands(m) {
+    for c in addressing_commands(m)? {
         drv.cmd(&c, Duration::from_secs(2))?;
     }
     Ok(())
@@ -111,7 +167,15 @@ pub fn enter_extended_session(drv: &mut ElmDriver) -> bool {
 }
 
 /// Restore functional OBD-II addressing so normal PID polling keeps working.
+///
+/// The protocol reset is not cosmetic. `setup_addressing` pins the adapter to
+/// a specific CAN protocol (6 for 11-bit, 7 for 29-bit), and until this ran
+/// `ATSP0` the setting leaked for the rest of the connection: one visit to the
+/// Lab left a non-CAN car — the repo has a live ISO 14230-4 K-line Peugeot on
+/// record — unable to answer anything afterwards. `ATSP0` puts the adapter
+/// back into automatic detection, which is what `connect` uses.
 pub fn teardown(drv: &mut ElmDriver) {
+    let _ = drv.cmd("ATSP0", Duration::from_secs(2));
     let _ = drv.cmd("ATSH 7DF", Duration::from_secs(2));
     let _ = drv.cmd("ATAR", Duration::from_secs(2));
     let _ = drv.cmd("ATFCSM 0", Duration::from_secs(2));
@@ -617,9 +681,9 @@ pub struct DiscoveryReport {
 /// so an auto-promoted probe has something to hand `uds::setup` — probes
 /// are addressed by module KEY (built-in or custom), never raw hex,
 /// matching the manual save-as-probe path exactly.
-fn ensure_module_key(db: &Db, req: u16, resp: u16, name: Option<&str>) -> String {
-    let req_hex = format!("{req:03X}");
-    let resp_hex = format!("{resp:03X}");
+fn ensure_module_key(db: &Db, req: u32, resp: u32, name: Option<&str>) -> String {
+    let req_hex = format_can_address(req);
+    let resp_hex = format_can_address(resp);
     if let Some(m) = builtin_modules()
         .into_iter()
         .find(|m| m.req == req_hex && m.resp == resp_hex)
@@ -649,10 +713,46 @@ fn ensure_module_key(db: &Db, req: u16, resp: u16, name: Option<&str>) -> String
 
 /// Point physical addressing at one request/response pair without the full
 /// per-module session dance — used while enumerating many addresses.
-fn point_at(drv: &mut ElmDriver, req: u16, resp: u16) -> Result<(), ElmError> {
-    drv.cmd(&format!("ATSH {req:03X}"), Duration::from_secs(2))?;
-    drv.cmd(&format!("ATCRA {resp:03X}"), Duration::from_secs(2))?;
-    drv.cmd(&format!("ATFCSH {req:03X}"), Duration::from_secs(2))?;
+#[derive(Default)]
+struct AddressingState {
+    extended: Option<bool>,
+}
+
+fn point_at(
+    drv: &mut ElmDriver,
+    req: u32,
+    resp: u32,
+    state: &mut AddressingState,
+) -> Result<(), ElmError> {
+    let module = UdsModule {
+        key: String::new(),
+        label: String::new(),
+        req: format_can_address(req),
+        resp: format_can_address(resp),
+        builtin: false,
+    };
+    let (_, _, extended) = address_pair(&module)?;
+    if state.extended != Some(extended) {
+        for command in if extended {
+            ["ATSP7", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"]
+        } else {
+            ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"]
+        } {
+            drv.cmd(command, Duration::from_secs(2))?;
+        }
+        state.extended = Some(extended);
+    }
+    if extended {
+        let (priority, header) = split_extended(req);
+        drv.cmd(&format!("ATCP {priority:02X}"), Duration::from_secs(2))?;
+        drv.cmd(&format!("ATSH {header:06X}"), Duration::from_secs(2))?;
+        drv.cmd(&format!("ATCRA {resp:08X}"), Duration::from_secs(2))?;
+        drv.cmd(&format!("ATFCSH {req:08X}"), Duration::from_secs(2))?;
+    } else {
+        drv.cmd(&format!("ATSH {req:03X}"), Duration::from_secs(2))?;
+        drv.cmd(&format!("ATCRA {resp:03X}"), Duration::from_secs(2))?;
+        drv.cmd(&format!("ATFCSH {req:03X}"), Duration::from_secs(2))?;
+    }
     Ok(())
 }
 
@@ -727,9 +827,9 @@ fn engine_likely_started(current: f64, baseline: f64) -> bool {
 
 /// Parses a "REQ/RESP" module_address string back into addresses — the
 /// exact format `discover()` writes via `upsert_discovered_module`.
-fn parse_module_address(addr: &str) -> Option<(u16, u16)> {
+fn parse_module_address(addr: &str) -> Option<(u32, u32)> {
     let (req, resp) = addr.split_once('/')?;
-    Some((uds_map::hex16(req)?, uds_map::hex16(resp)?))
+    Some((uds_map::can_address(req)?, uds_map::can_address(resp)?))
 }
 
 /// Reconcile only probes discovery owns against the current knowledge map.
@@ -744,7 +844,12 @@ fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
         .filter(|p| p.vehicle_id == Some(vehicle_id) && p.origin == "discovery")
     {
         let still_known = resolve(&probe.module, &custom)
-            .and_then(|m| Some((uds_map::can11(&m.req)?, uds_map::can11(&m.resp)?)))
+            .and_then(|m| {
+                Some((
+                    uds_map::can_address(&m.req)?,
+                    uds_map::can_address(&m.resp)?,
+                ))
+            })
             .and_then(|(req, resp)| uds_map::known_did(vin, req, resp, probe.did))
             .is_some_and(|k| {
                 k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some()
@@ -788,6 +893,9 @@ pub fn discover(
         }
         read_voltage(drv)
     };
+    let mut addressing = AddressingState {
+        extended: Some(false),
+    };
     let engine_started = |drv: &mut ElmDriver| -> bool {
         match (baseline_voltage, read_voltage(drv)) {
             (Some(base), Some(now)) => engine_likely_started(now, base),
@@ -811,6 +919,7 @@ pub fn discover(
             cancel_scan,
             &emit,
             &engine_started,
+            &mut addressing,
         );
     }
 
@@ -820,7 +929,7 @@ pub fn discover(
     let timings = &uds_map::map().standard.timings_ms;
     let addrs = uds_map::addresses_to_probe(vin.as_deref());
     let total_addrs = addrs.len() as u32;
-    let mut present: Vec<(u16, u16, Option<String>)> = Vec::new();
+    let mut present: Vec<(u32, u32, Option<String>)> = Vec::new();
     for (i, (req, resp, known_name)) in addrs.iter().enumerate() {
         if cancel_scan.swap(false, Ordering::Relaxed) {
             teardown(drv);
@@ -850,16 +959,20 @@ pub fn discover(
                 "modules",
                 i as u32,
                 total_addrs,
-                &format!("{req:03X}"),
+                &format_can_address(*req),
                 present.len() as u32,
                 0,
             );
         }
-        if point_at(drv, *req, *resp).is_err() {
+        if point_at(drv, *req, *resp, &mut addressing).is_err() {
             continue;
         }
         if probe_addr(drv, Duration::from_millis(timings.presence_probe)) {
-            log::info!("discovery: module answering at {req:03X}/{resp:03X}");
+            log::info!(
+                "discovery: module answering at {}/{}",
+                format_can_address(*req),
+                format_can_address(*resp)
+            );
             present.push((*req, *resp, known_name.clone()));
         }
     }
@@ -868,10 +981,10 @@ pub fn discover(
     let ident_dids = uds_map::ident_dids();
     let name_dids = uds_map::name_dids();
     let mut dids_found = 0u32;
-    let mut module_rows: Vec<(i64, u16, u16)> = Vec::new();
+    let mut module_rows: Vec<(i64, u32, u32)> = Vec::new();
     let total_ident = (present.len() * ident_dids.len()) as u32;
     for (mi, (req, resp, known_name)) in present.iter().enumerate() {
-        if point_at(drv, *req, *resp).is_err() {
+        if point_at(drv, *req, *resp, &mut addressing).is_err() {
             continue;
         }
         // A name the map already documents beats anything read off the bus.
@@ -909,7 +1022,7 @@ pub fn discover(
                 "ident",
                 (mi * ident_dids.len() + di) as u32,
                 total_ident,
-                &format!("{req:03X}:{did:04X}"),
+                &format!("{}:{did:04X}", format_can_address(*req)),
                 present.len() as u32,
                 dids_found,
             );
@@ -931,7 +1044,7 @@ pub fn discover(
         }
         let module_id = db.upsert_discovered_module(
             vehicle_id,
-            &format!("{req:03X}/{resp:03X}"),
+            &format!("{}/{}", format_can_address(*req), format_can_address(*resp)),
             name.as_deref(),
         );
         for (did, data) in &ident_hits {
@@ -956,12 +1069,24 @@ pub fn discover(
 
     // Phase 3 — the brand's data neighborhoods, from the map.
     let bands = uds_map::bands_for_vin(vin.as_deref());
-    let per_module: u32 = bands.iter().map(|(a, b)| (b - a + 1) as u32).sum();
-    let total_sweep = per_module * module_rows.len() as u32;
+    let module_plans: Vec<_> = module_rows
+        .into_iter()
+        .map(|(module_id, req, resp)| {
+            let mut dids: Vec<u16> = bands.iter().flat_map(|(from, to)| *from..=*to).collect();
+            dids.extend(uds_map::known_dids_for_module(vin.as_deref(), req, resp));
+            dids.sort_unstable();
+            dids.dedup();
+            (module_id, req, resp, dids)
+        })
+        .collect();
+    let total_sweep = module_plans
+        .iter()
+        .map(|(_, _, _, dids)| dids.len() as u32)
+        .sum();
     let mut sweep_i = 0u32;
     let mut sensors_added = 0u32;
-    for (module_id, req, resp) in &module_rows {
-        if point_at(drv, *req, *resp).is_err() {
+    for (module_id, req, resp, dids) in &module_plans {
+        if point_at(drv, *req, *resp, &mut addressing).is_err() {
             continue;
         }
         // Identification and module enumeration above always run in the
@@ -972,112 +1097,116 @@ pub fn discover(
             uds_map::DiscoverySession::DefaultThenExtended
         ) && enter_extended_session(drv);
         let mut consecutive_errors = 0u32;
-        'bands: for (from, to) in &bands {
-            for did in *from..=*to {
-                sweep_i += 1;
-                if cancel_scan.swap(false, Ordering::Relaxed) {
-                    finish_operation(drv, extended_session_open);
-                    return Ok(DiscoveryReport {
-                        modules_found: present.len() as u32,
-                        dids_found,
-                        sensors_added,
-                        cancelled: true,
-                        auto_stopped_reason: None,
-                        was_fast_refresh: false,
-                    });
-                }
-                if sweep_i % 20 == 19 && engine_started(drv) {
-                    log::warn!("discovery: engine start detected mid-sweep — stopping broad diagnostic traffic on {req:03X}");
-                    finish_operation(drv, extended_session_open);
-                    return Ok(DiscoveryReport {
-                        modules_found: present.len() as u32,
-                        dids_found,
-                        sensors_added,
-                        cancelled: true,
-                        auto_stopped_reason: Some("engine_started".into()),
-                        was_fast_refresh: false,
-                    });
-                }
-                if sweep_i % 8 == 0 {
-                    emit(
-                        "sweep",
-                        sweep_i,
-                        total_sweep,
-                        &format!("{req:03X}:{did:04X}"),
-                        present.len() as u32,
-                        dids_found,
+        'dids: for did in dids.iter().copied() {
+            sweep_i += 1;
+            if cancel_scan.swap(false, Ordering::Relaxed) {
+                finish_operation(drv, extended_session_open);
+                return Ok(DiscoveryReport {
+                    modules_found: present.len() as u32,
+                    dids_found,
+                    sensors_added,
+                    cancelled: true,
+                    auto_stopped_reason: None,
+                    was_fast_refresh: false,
+                });
+            }
+            if sweep_i % 20 == 19 && engine_started(drv) {
+                log::warn!(
+                        "discovery: engine start detected mid-sweep — stopping broad diagnostic traffic on {}",
+                        format_can_address(*req)
                     );
-                }
-                if extended_session_open && sweep_i % 40 == 39 {
-                    tester_present(drv);
-                }
-                match read_did_timeout(drv, did, Duration::from_millis(timings.sweep_read)) {
-                    Ok(Some(data)) => {
-                        consecutive_errors = 0;
-                        // A hit the map already documents arrives named —
-                        // that is the whole point of researching the map:
-                        // discovery on a known brand yields labeled
-                        // sensors, not anonymous hex.
-                        let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
-                        // Module-aware lookup above is the primary guard;
-                        // payload shape is the independent second guard.
-                        // Never label or promote a formula that cannot
-                        // read the bytes this ECU returned, even if the
-                        // map's address binding itself is correct.
-                        let known = known.filter(|k| match (k.offset, k.len) {
-                            (Some(offset), Some(len)) => (offset as usize)
-                                .checked_add(len as usize)
-                                .is_some_and(|end| end <= data.len()),
-                            // Label-only knowledge has no byte shape to
-                            // validate, so retain its browsable label. It
-                            // can never be auto-promoted below.
-                            _ => true,
-                        });
-                        let label = known.map(|k| k.label.clone());
-                        db.upsert_discovered_did(
-                            *module_id,
-                            did,
-                            &hex_string(&data),
-                            data.len() as i64,
-                            label.as_deref(),
-                        );
-                        dids_found += 1;
-                        // A FULL decode formula (not just a label) means
-                        // this isn't just "found," it's a real sensor —
-                        // persist its decode definition for explicit live
-                        // reads. Discovery never opts it into background
-                        // polling merely because a formula matched.
-                        if let Some(k) = known {
-                            if let (Some(offset), Some(len), Some(scale), Some(bias)) =
-                                (k.offset, k.len, k.scale, k.bias)
-                            {
-                                let module_key = ensure_module_key(db, *req, *resp, None);
-                                let added = db.upsert_probe_from_discovery(
-                                    vehicle_id,
-                                    &module_key,
-                                    did,
-                                    &k.label,
-                                    k.unit.as_deref().unwrap_or(""),
-                                    offset as usize,
-                                    len as usize,
-                                    scale,
-                                    bias,
-                                );
-                                if added {
-                                    sensors_added += 1;
-                                }
+                finish_operation(drv, extended_session_open);
+                return Ok(DiscoveryReport {
+                    modules_found: present.len() as u32,
+                    dids_found,
+                    sensors_added,
+                    cancelled: true,
+                    auto_stopped_reason: Some("engine_started".into()),
+                    was_fast_refresh: false,
+                });
+            }
+            if sweep_i % 8 == 0 {
+                emit(
+                    "sweep",
+                    sweep_i,
+                    total_sweep,
+                    &format!("{}:{did:04X}", format_can_address(*req)),
+                    present.len() as u32,
+                    dids_found,
+                );
+            }
+            if extended_session_open && sweep_i % 40 == 39 {
+                tester_present(drv);
+            }
+            match read_did_timeout(drv, did, Duration::from_millis(timings.sweep_read)) {
+                Ok(Some(data)) => {
+                    consecutive_errors = 0;
+                    // A hit the map already documents arrives named —
+                    // that is the whole point of researching the map:
+                    // discovery on a known brand yields labeled
+                    // sensors, not anonymous hex.
+                    let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
+                    // Module-aware lookup above is the primary guard;
+                    // payload shape is the independent second guard.
+                    // Never label or promote a formula that cannot
+                    // read the bytes this ECU returned, even if the
+                    // map's address binding itself is correct.
+                    let known = known.filter(|k| match (k.offset, k.len) {
+                        (Some(offset), Some(len)) => (offset as usize)
+                            .checked_add(len as usize)
+                            .is_some_and(|end| end <= data.len()),
+                        // Label-only knowledge has no byte shape to
+                        // validate, so retain its browsable label. It
+                        // can never be auto-promoted below.
+                        _ => true,
+                    });
+                    let label = known.map(|k| k.label.clone());
+                    db.upsert_discovered_did(
+                        *module_id,
+                        did,
+                        &hex_string(&data),
+                        data.len() as i64,
+                        label.as_deref(),
+                    );
+                    dids_found += 1;
+                    // A FULL decode formula (not just a label) means
+                    // this isn't just "found," it's a real sensor —
+                    // persist its decode definition for explicit live
+                    // reads. Discovery never opts it into background
+                    // polling merely because a formula matched.
+                    if let Some(k) = known {
+                        if let (Some(offset), Some(len), Some(scale), Some(bias)) =
+                            (k.offset, k.len, k.scale, k.bias)
+                        {
+                            let module_key = ensure_module_key(db, *req, *resp, None);
+                            let added = db.upsert_probe_from_discovery(
+                                vehicle_id,
+                                &module_key,
+                                did,
+                                &k.label,
+                                k.unit.as_deref().unwrap_or(""),
+                                offset as usize,
+                                len as usize,
+                                scale,
+                                bias,
+                            );
+                            if added {
+                                sensors_added += 1;
                             }
                         }
                     }
-                    Ok(None) => consecutive_errors = 0,
-                    Err(_) => {
-                        consecutive_errors += 1;
-                        // A module that stops responding entirely isn't worth
-                        // grinding through — move to the next one.
-                        if consecutive_errors > 10 {
-                            log::warn!("discovery: link degraded on {req:03X}, skipping its remaining bands");
-                            break 'bands;
-                        }
+                }
+                Ok(None) => consecutive_errors = 0,
+                Err(_) => {
+                    consecutive_errors += 1;
+                    // A module that stops responding entirely isn't worth
+                    // grinding through — move to the next one.
+                    if consecutive_errors > 10 {
+                        log::warn!(
+                            "discovery: link degraded on {}, skipping its remaining DIDs",
+                            format_can_address(*req)
+                        );
+                        break 'dids;
                     }
                 }
             }
@@ -1127,6 +1256,7 @@ fn fast_refresh(
     cancel_scan: &AtomicBool,
     emit: &dyn Fn(&str, u32, u32, &str, u32, u32),
     engine_started: &dyn Fn(&mut ElmDriver) -> bool,
+    addressing: &mut AddressingState,
 ) -> Result<DiscoveryReport, String> {
     let mut by_module: HashMap<String, Vec<u16>> = HashMap::new();
     for (addr, did) in known {
@@ -1142,7 +1272,7 @@ fn fast_refresh(
         let Some((req, resp)) = parse_module_address(addr) else {
             continue;
         };
-        if point_at(drv, req, resp).is_err() {
+        if point_at(drv, req, resp, addressing).is_err() {
             continue;
         }
         let module_id = db.upsert_discovered_module(vehicle_id, addr, None);
@@ -1180,7 +1310,7 @@ fn fast_refresh(
                 "sweep",
                 sweep_i,
                 total,
-                &format!("{req:03X}:{did:04X}"),
+                &format!("{}:{did:04X}", format_can_address(req)),
                 modules_seen,
                 dids_found,
             );
@@ -1266,7 +1396,7 @@ mod tests {
     #[test]
     fn addressing_setup_never_changes_the_diagnostic_session() {
         let module = &builtin_modules()[0];
-        let commands = addressing_commands(module);
+        let commands = addressing_commands(module).expect("valid built-in addresses");
         assert!(!commands.iter().any(|command| command == "1003"));
         assert!(!commands.iter().any(|command| command == "1001"));
         assert!(commands.iter().any(|command| command == "ATSH 752"));
@@ -1344,5 +1474,84 @@ mod tests {
         assert_eq!(parse_module_address("6B4/694"), Some((0x6B4, 0x694)));
         assert_eq!(parse_module_address("garbage"), None);
         assert_eq!(parse_module_address("ZZZ/694"), None);
+    }
+
+    fn module(req: &str, resp: &str) -> UdsModule {
+        UdsModule {
+            key: "t".into(),
+            label: "t".into(),
+            req: req.into(),
+            resp: resp.into(),
+            builtin: false,
+        }
+    }
+
+    #[test]
+    fn eleven_bit_modules_keep_the_original_setup() {
+        let cmds = addressing_commands(&module("6A8", "688")).unwrap();
+        assert_eq!(cmds[0], "ATSP6");
+        assert!(cmds.iter().any(|c| c == "ATSH 6A8"));
+        assert!(cmds.iter().any(|c| c == "ATCRA 688"));
+        assert!(!cmds.iter().any(|c| c.starts_with("ATCP")));
+    }
+
+    #[test]
+    fn twenty_nine_bit_modules_switch_protocol_and_split_the_header() {
+        // PSA/Stellantis TPMS: ISO 15765-2 normal fixed addressing.
+        let cmds = addressing_commands(&module("18DAC7F1", "18DAF1C7")).unwrap();
+        assert_eq!(cmds[0], "ATSP7");
+        // The ELM takes a 29-bit header as priority byte + three bytes,
+        // never as one eight-digit value.
+        assert!(cmds.iter().any(|c| c == "ATCP 18"), "{cmds:?}");
+        assert!(cmds.iter().any(|c| c == "ATSH DAC7F1"), "{cmds:?}");
+        // Receive filter and flow-control header do take the full identifier.
+        assert!(cmds.iter().any(|c| c == "ATCRA 18DAF1C7"), "{cmds:?}");
+        assert!(cmds.iter().any(|c| c == "ATFCSH 18DAC7F1"), "{cmds:?}");
+    }
+
+    #[test]
+    fn address_pairs_must_be_valid_and_use_one_can_width() {
+        assert_eq!(address_pair(&module("6AD", "68D")).unwrap().2, false);
+        assert_eq!(
+            address_pair(&module("18DAC7F1", "18DAF1C7")).unwrap().2,
+            true
+        );
+        assert!(address_pair(&module("6AD", "18DAF1C7")).is_err());
+        assert!(address_pair(&module("20000000", "18DAF1C7")).is_err());
+        assert!(address_pair(&module("not-hex", "68D")).is_err());
+    }
+
+    #[test]
+    fn split_extended_separates_priority_from_header() {
+        assert_eq!(split_extended(0x18DAC7F1), (0x18, 0xDAC7F1));
+        assert_eq!(split_extended(0x14DACBF1), (0x14, 0xDACBF1));
+    }
+
+    #[test]
+    fn psa_tpms_is_in_the_map_and_addressable() {
+        // A Citroen VIN must resolve the 29-bit TPMS module and its DIDs.
+        let vin = Some("VR7EXAMPLE0000001");
+        let tpms = uds_map::known_modules_for_vin(vin)
+            .into_iter()
+            .find(|(req, _, _)| *req == 0x18DAC7F1)
+            .expect("TPMS module present");
+        assert_eq!(tpms.1, 0x18DAF1C7);
+        assert!(address_pair(&module("18DAC7F1", "18DAF1C7")).unwrap().2);
+        assert!(uds_map::known_dids_for_module(vin, tpms.0, tpms.1).contains(&0x013C));
+
+        // Pressure DID decodes bar from a 16-bit big-endian value / 1000.
+        let did = uds_map::known_did(vin, 0x18DAC7F1, 0x18DAF1C7, 0x013C)
+            .expect("front-left pressure DID present");
+        assert_eq!(did.unit.as_deref(), Some("bar"));
+        // 0x08CA = 2250 -> 2.250 bar, a normal cold front tyre pressure.
+        let v = extract(
+            &[0x08, 0xCA, 0x1E],
+            did.offset.expect("offset") as usize,
+            did.len.expect("len") as usize,
+            did.scale.expect("scale"),
+            did.bias.unwrap_or(0.0),
+        )
+        .expect("decodes");
+        assert!((v - 2.25).abs() < 0.001, "got {v}");
     }
 }
