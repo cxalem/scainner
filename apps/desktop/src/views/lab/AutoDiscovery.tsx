@@ -77,8 +77,9 @@ export function AutoDiscovery({
         modules: r.modules_found,
         dids: r.dids_found,
         sensorsAdded: r.sensors_added,
-        cancelled: r.cancelled,
-        autoStoppedReason: r.auto_stopped_reason ?? null,
+        cancelled: r.outcome.status === "cancelled" || r.cancelled,
+        autoStoppedReason:
+          r.outcome.status === "skipped_for_safety" ? r.outcome.detail : (r.auto_stopped_reason ?? null),
         wasFastRefresh: r.was_fast_refresh ?? false,
       });
       void found.refetch();
