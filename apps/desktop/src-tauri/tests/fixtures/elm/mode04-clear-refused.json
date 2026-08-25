@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "Mode 04 conditions-not-correct refusal (synthetic)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "04", "response": "7F 04 22\r>" }
+  ]
+}

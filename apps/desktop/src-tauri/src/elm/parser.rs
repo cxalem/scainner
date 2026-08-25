@@ -74,6 +74,99 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagnosticResponse {
+    Positive,
+    Negative(u8),
+    Pending,
+    NoData,
+    Malformed,
+}
+
+/// Classify a service acknowledgement without using `payload_bytes`: clear
+/// services commonly answer with a single byte (`44` or `54`), while the
+/// general payload parser deliberately treats some one-token lines as ISO-TP
+/// length prefixes. A response-pending frame may precede the final positive
+/// response in the same ELM buffer.
+pub fn diagnostic_response(raw: &str, service: u8, positive: u8) -> DiagnosticResponse {
+    let lines = clean_response(raw);
+    if lines
+        .iter()
+        .any(|line| line.eq_ignore_ascii_case("NO DATA"))
+    {
+        return DiagnosticResponse::NoData;
+    }
+
+    let mut bytes = Vec::new();
+    for line in &lines {
+        let body = match line.split_once(':') {
+            Some((index, rest))
+                if index.trim().chars().all(|c| c.is_ascii_hexdigit())
+                    && index.trim().len() <= 3 =>
+            {
+                rest
+            }
+            _ => line.as_str(),
+        };
+        let tokens: Vec<&str> = body.split_whitespace().collect();
+        // ISO-TP length-only lines use three or more hex digits (`014`). A
+        // real one-byte clear acknowledgement is exactly two (`54`).
+        if tokens.len() == 1 && tokens[0].len() > 2 {
+            continue;
+        }
+        bytes.extend(
+            tokens
+                .into_iter()
+                .filter(|token| token.len() == 2)
+                .filter_map(|token| u8::from_str_radix(token, 16).ok()),
+        );
+    }
+
+    let mut pending = false;
+    for frame in bytes.windows(3) {
+        if frame[0] == 0x7F && frame[1] == service {
+            if frame[2] == 0x78 {
+                pending = true;
+            } else {
+                return DiagnosticResponse::Negative(frame[2]);
+            }
+        }
+    }
+    if bytes.contains(&positive) {
+        return DiagnosticResponse::Positive;
+    }
+    if pending {
+        DiagnosticResponse::Pending
+    } else {
+        DiagnosticResponse::Malformed
+    }
+}
+
+pub fn negative_response_name(code: u8) -> &'static str {
+    match code {
+        0x10 => "generalReject",
+        0x11 => "serviceNotSupported",
+        0x12 => "subFunctionNotSupported",
+        0x13 => "incorrectMessageLengthOrInvalidFormat",
+        0x21 => "busyRepeatRequest",
+        0x22 => "conditionsNotCorrect",
+        0x24 => "requestSequenceError",
+        0x31 => "requestOutOfRange",
+        0x33 => "securityAccessDenied",
+        0x35 => "invalidKey",
+        0x36 => "exceedNumberOfAttempts",
+        0x37 => "requiredTimeDelayNotExpired",
+        0x70 => "uploadDownloadNotAccepted",
+        0x71 => "transferDataSuspended",
+        0x72 => "generalProgrammingFailure",
+        0x73 => "wrongBlockSequenceCounter",
+        0x78 => "responsePending",
+        0x7E => "subFunctionNotSupportedInActiveSession",
+        0x7F => "serviceNotSupportedInActiveSession",
+        _ => "unknownNegativeResponse",
+    }
+}
+
 /// Decode DTC bytes (pairs) from a mode 03/07/0A response payload.
 /// Payload starts after `43`/`47`/`4A`; first byte may be a count (CAN format).
 pub fn decode_dtcs(payload: &[u8]) -> Vec<String> {
@@ -640,5 +733,41 @@ mod tests {
         // C1560 EPB code: 0x55 0x60 -> C1560
         let p = payload_bytes(&lines("43 01 55 60"), "43");
         assert_eq!(decode_dtcs(&p), vec!["C1560"]);
+    }
+
+    #[test]
+    fn classifies_single_byte_and_pending_clear_responses() {
+        assert_eq!(
+            diagnostic_response("54\r>", 0x14, 0x54),
+            DiagnosticResponse::Positive
+        );
+        assert_eq!(
+            diagnostic_response("7F 14 78\r54\r>", 0x14, 0x54),
+            DiagnosticResponse::Positive
+        );
+        assert_eq!(
+            diagnostic_response("7F 14 78\r>", 0x14, 0x54),
+            DiagnosticResponse::Pending
+        );
+    }
+
+    #[test]
+    fn classifies_refusal_no_data_and_malformed_clear_responses() {
+        assert_eq!(
+            diagnostic_response("7F 14 22\r>", 0x14, 0x54),
+            DiagnosticResponse::Negative(0x22)
+        );
+        assert_eq!(
+            diagnostic_response("7F 04 44\r>", 0x04, 0x44),
+            DiagnosticResponse::Negative(0x44)
+        );
+        assert_eq!(
+            diagnostic_response("NO DATA\r>", 0x14, 0x54),
+            DiagnosticResponse::NoData
+        );
+        assert_eq!(
+            diagnostic_response("OK\r>", 0x14, 0x54),
+            DiagnosticResponse::Malformed
+        );
     }
 }

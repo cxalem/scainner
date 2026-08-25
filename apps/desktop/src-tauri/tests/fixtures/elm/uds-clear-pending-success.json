@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "UDS clear pending followed by positive response (synthetic)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "14FFFFFF", "response": "7F 14 78\r54\r>" }
+  ]
+}

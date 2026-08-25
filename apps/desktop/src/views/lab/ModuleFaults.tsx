@@ -118,6 +118,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
             {t.lab.moduleFaults.refused}
+            {outcome.refusal_reason && ` ${outcome.refusal_reason}`}
           </p>
         )}
 

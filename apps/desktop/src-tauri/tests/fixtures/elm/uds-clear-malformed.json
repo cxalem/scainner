@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "UDS clear malformed acknowledgement (synthetic)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "14FFFFFF", "response": "OK\r>" }
+  ]
+}
