@@ -45,6 +45,7 @@ describe("discovery coverage wire contract", () => {
           outcome: { status: "refused", service: "22", nrc: 0x31, detail: "requestOutOfRange" },
         },
       ],
+      fingerprints: [],
       modules_found: 1,
       dids_found: 0,
       sensors_added: 0,

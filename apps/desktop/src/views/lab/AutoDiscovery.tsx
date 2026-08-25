@@ -211,12 +211,22 @@ export function AutoDiscovery({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">{t.lab.discovery.previousFindings}</p>
             <ul className="flex flex-col gap-1">
               {found.data.map((m) => (
-                <li key={m.id} className="flex items-center gap-2">
+                <li key={m.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2">
                   <span className="font-mono text-xs">{m.address}</span>
                   <span className="truncate">{m.name ?? t.lab.discovery.unnamedModule}</span>
-                  <span className="ml-auto shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                     {t.lab.discovery.didCount(m.did_count, m.labeled_count)}
                   </span>
+                  {m.fingerprint_fields_answered > 0 && (
+                    <span className="col-start-2 col-end-4 truncate text-xs text-muted-foreground">
+                      {t.lab.discovery.fingerprintSummary(
+                        m.fingerprint_fields_answered,
+                        m.fingerprint_fields_total,
+                      )}
+                      {m.spare_part_number != null ? ` · ${m.spare_part_number}` : ""}
+                      {m.software_version != null ? ` · ${m.software_version}` : ""}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

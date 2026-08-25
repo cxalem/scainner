@@ -22,7 +22,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 6;
+const SCHEMA_VERSION: i64 = 7;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -62,6 +62,13 @@ pub struct DiscoveredModuleRow {
     pub discovered_at: String,
     pub did_count: i64,
     pub labeled_count: i64,
+    pub spare_part_number: Option<String>,
+    pub hardware_version: Option<String>,
+    pub software_version: Option<String>,
+    pub system_name: Option<String>,
+    pub fingerprint_match_key: Option<String>,
+    pub fingerprint_fields_answered: i64,
+    pub fingerprint_fields_total: i64,
 }
 
 #[derive(Serialize)]
@@ -346,6 +353,12 @@ pub struct SyncDiscoveredModule {
     pub module_address: String,
     pub module_name: Option<String>,
     pub discovered_at: String,
+    pub spare_part_number: Option<String>,
+    pub hardware_version: Option<String>,
+    pub software_version: Option<String>,
+    pub system_name: Option<String>,
+    pub fingerprint_match_key: Option<String>,
+    pub fingerprint_evidence: Option<serde_json::Value>,
     pub dids: Vec<SyncDiscoveredDid>,
 }
 
@@ -500,7 +513,13 @@ impl Db {
                 vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
                 module_address TEXT NOT NULL,
                 module_name TEXT,
-                discovered_at TEXT NOT NULL DEFAULT (datetime('now'))
+                discovered_at TEXT NOT NULL DEFAULT (datetime('now')),
+                spare_part_number TEXT,
+                hardware_version TEXT,
+                software_version TEXT,
+                system_name TEXT,
+                fingerprint_match_key TEXT,
+                fingerprint_evidence_json TEXT
             );
             CREATE TABLE IF NOT EXISTS discovered_dids (
                 id INTEGER PRIMARY KEY,
@@ -578,6 +597,21 @@ impl Db {
             "ALTER TABLE discovered_modules ADD COLUMN cloud_id TEXT",
             [],
         );
+        // v7: partial ISO 14229 ECU fingerprints. Each ALTER is idempotent
+        // for existing databases; fresh databases already have the columns.
+        for column in [
+            "spare_part_number TEXT",
+            "hardware_version TEXT",
+            "software_version TEXT",
+            "system_name TEXT",
+            "fingerprint_match_key TEXT",
+            "fingerprint_evidence_json TEXT",
+        ] {
+            let _ = conn.execute(
+                &format!("ALTER TABLE discovered_modules ADD COLUMN {column}"),
+                [],
+            );
+        }
         // v4: provenance makes discovery-owned probes safely
         // reconcilable. Existing rows are conservatively manual because
         // older schemas cannot prove how they were created.
@@ -1137,6 +1171,47 @@ impl Db {
         }
     }
 
+    pub fn update_ecu_fingerprint(
+        &self,
+        module_id: i64,
+        fingerprint: &crate::elm::uds::EcuFingerprint,
+    ) {
+        let evidence = serde_json::to_string(&fingerprint.evidence).ok();
+        let conn = self.0.lock().unwrap();
+        let _ = conn.execute(
+            "UPDATE discovered_modules SET
+             spare_part_number = COALESCE(?1, spare_part_number),
+             hardware_version = COALESCE(?2, hardware_version),
+             software_version = COALESCE(?3, software_version),
+             system_name = COALESCE(?4, system_name),
+             fingerprint_evidence_json = ?5
+             WHERE id = ?6",
+            params![
+                fingerprint.spare_part_number,
+                fingerprint.hardware_version,
+                fingerprint.software_version,
+                fingerprint.system_name,
+                evidence,
+                module_id,
+            ],
+        );
+        // Rebuild from every proven field retained on the module, not only
+        // from this pass. An intermittent refusal must not make a stable ECU
+        // family appear to become a different, less-complete family.
+        let _ = conn.execute(
+            "UPDATE discovered_modules SET fingerprint_match_key = NULLIF(
+               RTRIM(
+                 CASE WHEN spare_part_number IS NOT NULL THEN 'F187=' || spare_part_number || '|' ELSE '' END ||
+                 CASE WHEN hardware_version IS NOT NULL THEN 'F191=' || hardware_version || '|' ELSE '' END ||
+                 CASE WHEN software_version IS NOT NULL THEN 'F195=' || software_version || '|' ELSE '' END ||
+                 CASE WHEN system_name IS NOT NULL THEN 'F197=' || system_name || '|' ELSE '' END,
+                 '|'
+               ), '')
+             WHERE id = ?1",
+            params![module_id],
+        );
+    }
+
     pub fn upsert_discovered_did(
         &self,
         module_id: i64,
@@ -1185,7 +1260,13 @@ impl Db {
         let mut stmt = conn
             .prepare(
                 "SELECT m.id, m.module_address, m.module_name, m.discovered_at,
-                        COUNT(d.id), SUM(CASE WHEN d.label IS NOT NULL THEN 1 ELSE 0 END)
+                        COUNT(d.id), SUM(CASE WHEN d.label IS NOT NULL THEN 1 ELSE 0 END),
+                        m.spare_part_number, m.hardware_version, m.software_version,
+                        m.system_name, m.fingerprint_match_key,
+                        CASE WHEN m.spare_part_number IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN m.hardware_version IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN m.software_version IS NOT NULL THEN 1 ELSE 0 END +
+                        CASE WHEN m.system_name IS NOT NULL THEN 1 ELSE 0 END
                  FROM discovered_modules m
                  LEFT JOIN discovered_dids d ON d.module_id = m.id
                  WHERE m.vehicle_id = ?1
@@ -1200,6 +1281,13 @@ impl Db {
                 discovered_at: r.get(3)?,
                 did_count: r.get(4)?,
                 labeled_count: r.get::<_, Option<i64>>(5)?.unwrap_or(0),
+                spare_part_number: r.get(6)?,
+                hardware_version: r.get(7)?,
+                software_version: r.get(8)?,
+                system_name: r.get(9)?,
+                fingerprint_match_key: r.get(10)?,
+                fingerprint_fields_answered: r.get(11)?,
+                fingerprint_fields_total: 4,
             })
         })
         .unwrap()
@@ -1839,7 +1927,9 @@ impl Db {
         let discovered_modules = {
             let mut stmt = conn
                 .prepare(
-                    "SELECT m.id, m.cloud_id, v.cloud_id, m.module_address, m.module_name, m.discovered_at
+                    "SELECT m.id, m.cloud_id, v.cloud_id, m.module_address, m.module_name, m.discovered_at,
+                            m.spare_part_number, m.hardware_version, m.software_version,
+                            m.system_name, m.fingerprint_match_key, m.fingerprint_evidence_json
                      FROM discovered_modules m JOIN vehicles v ON v.id = m.vehicle_id
                      WHERE m.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
                 )
@@ -1854,6 +1944,14 @@ impl Db {
                             module_address: r.get(3)?,
                             module_name: r.get(4)?,
                             discovered_at: r.get(5)?,
+                            spare_part_number: r.get(6)?,
+                            hardware_version: r.get(7)?,
+                            software_version: r.get(8)?,
+                            system_name: r.get(9)?,
+                            fingerprint_match_key: r.get(10)?,
+                            fingerprint_evidence: r
+                                .get::<_, Option<String>>(11)?
+                                .and_then(|json| serde_json::from_str(&json).ok()),
                             dids: Vec::new(),
                         },
                     ))
@@ -2239,6 +2337,51 @@ mod tests {
         assert_eq!(probes[0].label, "Battery voltage (refined)");
         assert_eq!(probes[0].scale, 0.02);
         assert_eq!(probes[0].origin, "discovery");
+    }
+
+    #[test]
+    fn partial_ecu_fingerprint_updates_the_existing_module() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module = db.upsert_discovered_module(vehicle, "6A8/688", Some("Engine ECU"));
+        let fingerprint = crate::elm::uds::EcuFingerprint {
+            request_address: "6A8".into(),
+            response_address: "688".into(),
+            spare_part_number: Some("981234".into()),
+            hardware_version: None,
+            software_version: Some("SW12".into()),
+            system_name: None,
+            match_key: Some("F187=981234|F195=SW12".into()),
+            fields_answered: 2,
+            fields_total: 4,
+            evidence: Vec::new(),
+        };
+
+        db.update_ecu_fingerprint(module, &fingerprint);
+        db.update_ecu_fingerprint(
+            module,
+            &crate::elm::uds::EcuFingerprint {
+                request_address: "6A8".into(),
+                response_address: "688".into(),
+                spare_part_number: None,
+                hardware_version: None,
+                software_version: None,
+                system_name: None,
+                match_key: None,
+                fields_answered: 0,
+                fields_total: 4,
+                evidence: Vec::new(),
+            },
+        );
+
+        let modules = db.discovered_summary(vehicle);
+        assert_eq!(modules.len(), 1);
+        assert_eq!(modules[0].spare_part_number.as_deref(), Some("981234"));
+        assert_eq!(modules[0].fingerprint_fields_answered, 2);
+        assert_eq!(
+            modules[0].fingerprint_match_key.as_deref(),
+            Some("F187=981234|F195=SW12")
+        );
     }
 
     #[test]

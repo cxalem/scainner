@@ -279,6 +279,7 @@ export const en: Dictionary = {
       previousFindings: "Already found on this car",
       unnamedModule: "Unnamed module",
       didCount: (total, labeled) => (labeled > 0 ? `${total} values (${labeled} named)` : `${total} values`),
+      fingerprintSummary: (answered, total) => `ECU identity ${answered}/${total}`,
     },
     advanced: {
       title: "Advanced: manual tools",
