@@ -23,6 +23,15 @@ pub struct UdsMap {
 }
 
 #[derive(Deserialize)]
+struct KnowledgeOverlay {
+    id: String,
+    version: u32,
+    license: String,
+    source: String,
+    brands: Vec<Brand>,
+}
+
+#[derive(Deserialize)]
 pub struct Standard {
     pub ident_dids: Vec<IdentDid>,
     /// DIDs whose payload is worth using as a module's display name, best first.
@@ -155,10 +164,25 @@ pub struct ModuleRef {
 }
 
 const RAW: &str = include_str!("../../../../../packages/uds-map/data/uds-map.json");
+const OBDB_CITROEN_RAW: &str =
+    include_str!("../../../../../packages/uds-map/data/packs/obdb-citroen.json");
 
 pub fn map() -> &'static UdsMap {
     static MAP: OnceLock<UdsMap> = OnceLock::new();
     MAP.get_or_init(|| serde_json::from_str(RAW).expect("data/uds-map.json is malformed"))
+}
+
+fn obdb_citroen() -> &'static KnowledgeOverlay {
+    static PACK: OnceLock<KnowledgeOverlay> = OnceLock::new();
+    PACK.get_or_init(|| {
+        let pack: KnowledgeOverlay = serde_json::from_str(OBDB_CITROEN_RAW)
+            .expect("data/packs/obdb-citroen.json is malformed");
+        assert_eq!(pack.id, "obdb-citroen");
+        assert!(pack.version > 0, "overlay versions must be positive");
+        assert_eq!(pack.license, "CC-BY-SA-4.0");
+        assert!(pack.source.starts_with("https://github.com/OBDb/"));
+        pack
+    })
 }
 
 /// Parse a 16-bit hex value — used for DIDs, which span the full 0000-FFFF
@@ -180,10 +204,17 @@ pub fn can11(s: &str) -> Option<u16> {
     }
 }
 
-/// Any hex width — for validating the data file, where 29-bit addresses
-/// are legitimate content.
+/// Parse a valid CAN identifier of either supported width.
+pub fn can_address(s: &str) -> Option<u32> {
+    match u32::from_str_radix(s.trim(), 16) {
+        Ok(v) if v <= 0x1FFF_FFFF => Some(v),
+        _ => None,
+    }
+}
+
+/// Kept for callers that need general map validation.
 pub fn hex_any(s: &str) -> Option<u32> {
-    u32::from_str_radix(s.trim(), 16).ok()
+    can_address(s)
 }
 
 /// Modules this brand has that the engine cannot address yet (29-bit).
@@ -211,19 +242,25 @@ pub fn brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
         .find(|b| b.wmi.iter().any(|w| w.eq_ignore_ascii_case(&wmi)))
 }
 
+fn overlay_brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
+    let wmi = vin.filter(|v| v.len() >= 3)?[..3].to_uppercase();
+    obdb_citroen().brands.iter().find(|b| {
+        b.wmi
+            .iter()
+            .any(|candidate| candidate.eq_ignore_ascii_case(&wmi))
+    })
+}
+
 /// Session policy for one exact, VIN-selected module. Unknown VINs and
 /// address pairs not explicitly present in that brand profile are always
 /// default-only.
-pub fn discovery_session_for_module(
-    vin: Option<&str>,
-    req: u16,
-    resp: u16,
-) -> DiscoverySession {
+pub fn discovery_session_for_module(vin: Option<&str>, req: u32, resp: u32) -> DiscoverySession {
     brand_for_vin(vin)
-        .and_then(|brand| {
-            brand.modules.iter().find(|module| {
-                can11(&module.req) == Some(req) && can11(&module.resp) == Some(resp)
-            })
+        .into_iter()
+        .chain(overlay_brand_for_vin(vin))
+        .flat_map(|brand| &brand.modules)
+        .find(|module| {
+            can_address(&module.req) == Some(req) && can_address(&module.resp) == Some(resp)
         })
         .map(|module| module.discovery_session)
         .unwrap_or_default()
@@ -271,21 +308,25 @@ pub fn response_addr(brand: Option<&Brand>, req: u16) -> u16 {
 
 /// Module address pairs this brand is known to use, tried before the blind
 /// address sweep so a recognized car finds its modules in seconds.
-pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u16, u16, Option<String>)> {
+pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>)> {
     brand_for_vin(vin)
-        .map(|b| {
-            b.modules
-                .iter()
-                .filter_map(|m| Some((can11(&m.req)?, can11(&m.resp)?, m.name.clone())))
-                .collect()
+        .into_iter()
+        .chain(overlay_brand_for_vin(vin))
+        .flat_map(|brand| &brand.modules)
+        .filter_map(|module| {
+            Some((
+                can_address(&module.req)?,
+                can_address(&module.resp)?,
+                module.name.clone(),
+            ))
         })
-        .unwrap_or_default()
+        .collect()
 }
 
 /// Every request/response pair to try when enumerating the bus, known
 /// brand modules first (so progress shows real finds early), then the full
 /// conventional range from the map's address_scan block.
-pub fn addresses_to_probe(vin: Option<&str>) -> Vec<(u16, u16, Option<String>)> {
+pub fn addresses_to_probe(vin: Option<&str>) -> Vec<(u32, u32, Option<String>)> {
     let scan = &map().standard.address_scan;
     let from = can11(&scan.req_from).unwrap_or(0x700);
     let to = can11(&scan.req_to).unwrap_or(0x7F6);
@@ -293,13 +334,13 @@ pub fn addresses_to_probe(vin: Option<&str>) -> Vec<(u16, u16, Option<String>)> 
 
     let brand = brand_for_vin(vin);
     let mut out = known_modules_for_vin(vin);
-    let mut seen: Vec<u16> = out.iter().map(|(r, _, _)| *r).collect();
+    let mut seen: Vec<u32> = out.iter().map(|(r, _, _)| *r).collect();
     for req in from..=to {
-        if excluded.contains(&req) || seen.contains(&req) {
+        if excluded.contains(&req) || seen.contains(&u32::from(req)) {
             continue;
         }
-        seen.push(req);
-        out.push((req, response_addr(brand, req), None));
+        seen.push(req.into());
+        out.push((req.into(), response_addr(brand, req).into(), None));
     }
     out
 }
@@ -328,10 +369,14 @@ pub fn presence_probe_did() -> u16 {
 
 /// A documented label for a DID on this brand, when the map knows one —
 /// turns a raw discovery hit into a named sensor with no user work.
-pub fn known_did<'a>(vin: Option<&str>, req: u16, resp: u16, did: u16) -> Option<&'a KnownDid> {
-    let mut candidates = brand_for_vin(vin)?
-        .known_dids
-        .iter()
+/// `req`/`resp` are u32 rather than u16 so a 29-bit module (PSA's TPMS at
+/// 18DAC7F1, GM's Ultium modules) can be scoped like any other. An 11-bit
+/// caller just widens its address.
+pub fn known_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> Option<&'static KnownDid> {
+    let mut candidates = brand_for_vin(vin)
+        .into_iter()
+        .chain(overlay_brand_for_vin(vin))
+        .flat_map(|brand| &brand.known_dids)
         .filter(|k| hex16(&k.did) == Some(did));
     // Prefer an exact module binding. Unscoped entries remain a backwards-
     // compatible fallback while the rest of the multi-brand map is
@@ -341,9 +386,28 @@ pub fn known_did<'a>(vin: Option<&str>, req: u16, resp: u16, did: u16) -> Option
         .find(|k| {
             k.modules
                 .iter()
-                .any(|m| can11(&m.req) == Some(req) && can11(&m.resp) == Some(resp))
+                .any(|m| can_address(&m.req) == Some(req) && can_address(&m.resp) == Some(resp))
         })
         .or_else(|| candidates.find(|k| k.modules.is_empty()))
+}
+
+/// Exact documented DIDs for one module. These are added to that module's
+/// brand-band sweep without widening the sweep for every other ECU.
+pub fn known_dids_for_module(vin: Option<&str>, req: u32, resp: u32) -> Vec<u16> {
+    let mut dids: Vec<u16> = brand_for_vin(vin)
+        .into_iter()
+        .chain(overlay_brand_for_vin(vin))
+        .flat_map(|brand| &brand.known_dids)
+        .filter(|known| {
+            known.modules.iter().any(|module| {
+                can_address(&module.req) == Some(req) && can_address(&module.resp) == Some(resp)
+            })
+        })
+        .filter_map(|known| hex16(&known.did))
+        .collect();
+    dids.sort_unstable();
+    dids.dedup();
+    dids
 }
 
 #[cfg(test)]
@@ -436,7 +500,7 @@ mod tests {
         );
         // No address appears twice, even though known modules also fall
         // inside the blind range.
-        let mut reqs: Vec<u16> = addrs.iter().map(|(r, _, _)| *r).collect();
+        let mut reqs: Vec<u32> = addrs.iter().map(|(r, _, _)| *r).collect();
         let before = reqs.len();
         reqs.sort_unstable();
         reqs.dedup();
@@ -468,11 +532,10 @@ mod tests {
     }
 
     #[test]
-    fn extended_29bit_addresses_are_skipped_not_misaddressed() {
+    fn extended_29bit_addresses_are_preserved_not_truncated() {
         // GM's 14DACBF1 is a real 29-bit address. It must not parse as an
-        // 11-bit one (that would point the ELM somewhere wrong), must be
-        // valid data, and must be counted so the UI can say why GM finds
-        // fewer modules than its map lists.
+        // 11-bit one (that would point the ELM somewhere wrong) and must
+        // remain a full-width value for protocol-7 addressing.
         assert!(can11("14DACBF1").is_none());
         assert_eq!(hex_any("14DACBF1"), Some(0x14DACBF1));
         assert!(can11("7E0").is_some());
@@ -481,10 +544,11 @@ mod tests {
         assert_eq!(hex16("D422"), Some(0xD422));
         assert_eq!(hex16("F190"), Some(0xF190));
         assert!(can11("D422").is_none());
-        for (_, resp, _) in addresses_to_probe(Some("VR7EXAMPLE0000001")) {
-            assert!(
-                resp <= 0x7FF,
-                "an 11-bit sweep produced an out-of-range response id"
+        for (req, resp, _) in addresses_to_probe(Some("VR7EXAMPLE0000001")) {
+            assert_eq!(
+                req > 0x7FF,
+                resp > 0x7FF,
+                "request and response IDs must use the same CAN width"
             );
         }
     }

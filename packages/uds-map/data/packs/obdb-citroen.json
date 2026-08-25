@@ -1,0 +1,74 @@
+{
+  "id": "obdb-citroen",
+  "version": 1,
+  "license": "CC-BY-SA-4.0",
+  "source": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+  "brands": [
+    {
+      "id": "psa",
+      "name": "OBDb Citroen TPMS overlay",
+      "wmi": ["VF7", "VR7"],
+      "modules": [
+        {
+          "req": "18DAC7F1",
+          "resp": "18DAF1C7",
+          "name": "TPMS / tyre pressure (OBDb, 29-bit target C7)"
+        }
+      ],
+      "did_bands": [],
+      "known_dids": [
+        {
+          "did": "012F",
+          "label": "TPMS per-wheel validity flags",
+          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "unit": "",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0
+        },
+        {
+          "did": "013C",
+          "label": "Tyre pressure front left",
+          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "unit": "bar",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001,
+          "bias": 0.0
+        },
+        {
+          "did": "013D",
+          "label": "Tyre pressure front right",
+          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "unit": "bar",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001,
+          "bias": 0.0
+        },
+        {
+          "did": "013E",
+          "label": "Tyre pressure rear left",
+          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "unit": "bar",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001,
+          "bias": 0.0
+        },
+        {
+          "did": "013F",
+          "label": "Tyre pressure rear right",
+          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "unit": "bar",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.001,
+          "bias": 0.0
+        }
+      ],
+      "resp_offsets": []
+    }
+  ]
+}
