@@ -17,6 +17,7 @@
 
 use rusqlite::{params, Connection};
 use serde::Serialize;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -78,6 +79,55 @@ pub struct DiscoveredDidRow {
     pub byte_length: Option<i64>,
     pub label: Option<String>,
     pub confidence: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct FingerprintObservation {
+    /// Cohort-local pseudonym. It is deliberately unrelated to VIN, cloud id,
+    /// or the local database id.
+    pub vehicle_ref: String,
+    pub module_address: String,
+    pub spare_part_number: Option<String>,
+    pub hardware_version: Option<String>,
+    pub software_version: Option<String>,
+    pub system_name: Option<String>,
+    pub fields_answered: u8,
+}
+
+#[derive(Serialize, Clone)]
+pub struct FingerprintMatchGroup {
+    pub family_key: String,
+    pub part_number: String,
+    pub vehicle_count: u32,
+    pub module_count: u32,
+    pub hardware_versions: Vec<String>,
+    pub software_versions: Vec<String>,
+    pub system_names: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct FingerprintExperimentReport {
+    pub target_vehicles: u32,
+    pub vehicles_scanned: u32,
+    pub vehicles_with_fingerprints: u32,
+    pub modules_observed: u32,
+    pub modules_with_fingerprints: u32,
+    pub modules_with_part_number: u32,
+    pub repeated_family_groups: u32,
+    pub vehicles_with_repeated_family: u32,
+    pub cohort_target_reached: bool,
+    pub match_groups: Vec<FingerprintMatchGroup>,
+    pub observations: Vec<FingerprintObservation>,
+}
+
+fn normalized_part_number(value: &str) -> Option<String> {
+    let normalized: String = value
+        .chars()
+        .filter(|character| character.is_ascii_alphanumeric())
+        .flat_map(char::to_uppercase)
+        .collect();
+    (!matches!(normalized.as_str(), "" | "NA" | "NONE" | "UNKNOWN") && normalized.len() >= 4)
+        .then_some(normalized)
 }
 
 #[derive(Serialize, serde::Deserialize, Clone)]
@@ -1295,6 +1345,136 @@ impl Db {
         .collect()
     }
 
+    /// VIN-free field-trial dataset and conservative reuse measurement. A
+    /// repeated family requires the same normalized F187 part number on at
+    /// least two different vehicles; weaker overlaps are retained in the
+    /// observations but never promoted to a match.
+    pub fn fingerprint_experiment(&self) -> FingerprintExperimentReport {
+        #[derive(Clone)]
+        struct Row {
+            vehicle_id: i64,
+            address: String,
+            part: Option<String>,
+            hardware: Option<String>,
+            software: Option<String>,
+            system: Option<String>,
+        }
+
+        let conn = self.0.lock().unwrap();
+        let vehicles_scanned = conn
+            .query_row(
+                "SELECT COUNT(DISTINCT vehicle_id) FROM discovered_modules",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap_or(0) as u32;
+        let modules_observed = conn
+            .query_row("SELECT COUNT(*) FROM discovered_modules", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap_or(0) as u32;
+        let mut stmt = conn
+            .prepare(
+                "SELECT vehicle_id, module_address, spare_part_number,
+                        hardware_version, software_version, system_name
+                 FROM discovered_modules
+                 WHERE spare_part_number IS NOT NULL OR hardware_version IS NOT NULL
+                    OR software_version IS NOT NULL OR system_name IS NOT NULL
+                 ORDER BY vehicle_id, module_address",
+            )
+            .unwrap();
+        let rows: Vec<Row> = stmt
+            .query_map([], |row| {
+                Ok(Row {
+                    vehicle_id: row.get(0)?,
+                    address: row.get(1)?,
+                    part: row.get(2)?,
+                    hardware: row.get(3)?,
+                    software: row.get(4)?,
+                    system: row.get(5)?,
+                })
+            })
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect();
+
+        let vehicle_ids: BTreeSet<i64> = rows.iter().map(|row| row.vehicle_id).collect();
+        let vehicle_refs: BTreeMap<i64, String> = vehicle_ids
+            .iter()
+            .enumerate()
+            .map(|(index, id)| (*id, format!("vehicle_{:03}", index + 1)))
+            .collect();
+        let observations: Vec<FingerprintObservation> = rows
+            .iter()
+            .map(|row| FingerprintObservation {
+                vehicle_ref: vehicle_refs[&row.vehicle_id].clone(),
+                module_address: row.address.clone(),
+                spare_part_number: row.part.clone(),
+                hardware_version: row.hardware.clone(),
+                software_version: row.software.clone(),
+                system_name: row.system.clone(),
+                fields_answered: [
+                    row.part.as_ref(),
+                    row.hardware.as_ref(),
+                    row.software.as_ref(),
+                    row.system.as_ref(),
+                ]
+                .iter()
+                .filter(|value| value.is_some())
+                .count() as u8,
+            })
+            .collect();
+
+        let mut families: BTreeMap<String, Vec<&Row>> = BTreeMap::new();
+        for row in &rows {
+            if let Some(key) = row.part.as_deref().and_then(normalized_part_number) {
+                families.entry(key).or_default().push(row);
+            }
+        }
+        let modules_with_part_number = families.values().map(Vec::len).sum::<usize>() as u32;
+        let mut repeated_vehicles = BTreeSet::new();
+        let mut match_groups = Vec::new();
+        for (family_key, members) in families {
+            let vehicle_ids: BTreeSet<i64> =
+                members.iter().map(|member| member.vehicle_id).collect();
+            if vehicle_ids.len() < 2 {
+                continue;
+            }
+            repeated_vehicles.extend(vehicle_ids.iter().copied());
+            let values = |select: fn(&Row) -> Option<&String>| {
+                members
+                    .iter()
+                    .filter_map(|member| select(member).cloned())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect()
+            };
+            match_groups.push(FingerprintMatchGroup {
+                family_key,
+                part_number: members[0].part.clone().unwrap_or_default(),
+                vehicle_count: vehicle_ids.len() as u32,
+                module_count: members.len() as u32,
+                hardware_versions: values(|row| row.hardware.as_ref()),
+                software_versions: values(|row| row.software.as_ref()),
+                system_names: values(|row| row.system.as_ref()),
+            });
+        }
+
+        FingerprintExperimentReport {
+            target_vehicles: 30,
+            vehicles_scanned,
+            vehicles_with_fingerprints: vehicle_ids.len() as u32,
+            modules_observed,
+            modules_with_fingerprints: rows.len() as u32,
+            modules_with_part_number,
+            repeated_family_groups: match_groups.len() as u32,
+            vehicles_with_repeated_family: repeated_vehicles.len() as u32,
+            cohort_target_reached: vehicle_ids.len() >= 30,
+            match_groups,
+            observations,
+        }
+    }
+
     /// Every (module address, did) pair already found on this vehicle —
     /// the fast re-scan path's input: re-probe exactly these instead of
     /// blindly sweeping the whole bus/band range again. Owner call
@@ -2382,6 +2562,44 @@ mod tests {
             modules[0].fingerprint_match_key.as_deref(),
             Some("F187=981234|F195=SW12")
         );
+    }
+
+    #[test]
+    fn fingerprint_experiment_matches_part_numbers_across_vehicles_without_vins() {
+        let db = test_db();
+        for (vin, address, part) in [
+            ("VR7EXAMPLE0000001", "6A8/688", "98 12-34"),
+            ("VF3EXAMPLE0000002", "7E0/7E8", "981234"),
+            ("TMAEXAMPLE0000003", "7E1/7E9", "OTHER-99"),
+        ] {
+            let (vehicle, _) = db.ensure_vehicle(vin);
+            let module = db.upsert_discovered_module(vehicle, address, None);
+            db.update_ecu_fingerprint(
+                module,
+                &crate::elm::uds::EcuFingerprint {
+                    request_address: address.split('/').next().unwrap().into(),
+                    response_address: address.split('/').nth(1).unwrap().into(),
+                    spare_part_number: Some(part.into()),
+                    hardware_version: None,
+                    software_version: None,
+                    system_name: None,
+                    match_key: Some(format!("F187={part}")),
+                    fields_answered: 1,
+                    fields_total: 4,
+                    evidence: Vec::new(),
+                },
+            );
+        }
+
+        let report = db.fingerprint_experiment();
+        assert_eq!(report.vehicles_scanned, 3);
+        assert_eq!(report.vehicles_with_fingerprints, 3);
+        assert_eq!(report.repeated_family_groups, 1);
+        assert_eq!(report.vehicles_with_repeated_family, 2);
+        assert_eq!(report.match_groups[0].family_key, "981234");
+        let export = serde_json::to_string(&report).unwrap();
+        assert!(!export.contains("VR7EXAMPLE"));
+        assert!(export.contains("vehicle_001"));
     }
 
     #[test]

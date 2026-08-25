@@ -14,7 +14,7 @@ import type { InvokeError } from "../errors";
 import type { ConnStatus } from "../schema/connection";
 import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/vehicle";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
-import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, UdsHit, UdsModule, UdsProbe } from "../schema/lab";
+import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
 import type { HistoryPoint } from "../schema/history";
 
@@ -69,6 +69,7 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly discoverSensors: (full: boolean) => Effect.Effect<DiscoveryReport, InvokeError | ParseResult.ParseError>;
     readonly discoveredModules: (vehicleId: number) => Effect.Effect<DiscoveredModule[], InvokeError | ParseResult.ParseError>;
     readonly discoveredDids: (moduleId: number) => Effect.Effect<DiscoveredDid[], InvokeError | ParseResult.ParseError>;
+    readonly fingerprintExperiment: () => Effect.Effect<FingerprintExperimentReport, InvokeError | ParseResult.ParseError>;
     readonly udsClear: (module: string) => Effect.Effect<ClearOutcome, InvokeError | ParseResult.ParseError>;
     readonly udsModuleDtcs: (module: string) => Effect.Effect<string[], InvokeError>;
     // Probes are per-vehicle (2026-08-24): a probe found on one car must

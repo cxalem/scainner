@@ -286,6 +286,15 @@ export type Dictionary = {
       unnamedModule: string;
       didCount: (total: number, labeled: number) => string;
       fingerprintSummary: (answered: number, total: number) => string;
+      fingerprintExperimentTitle: string;
+      fingerprintExperimentProgress: (
+        scanned: number,
+        target: number,
+        fingerprinted: number,
+        repeatedFamilies: number,
+      ) => string;
+      fingerprintExperimentCopy: string;
+      fingerprintExperimentCopied: string;
     };
     advanced: {
       title: string;

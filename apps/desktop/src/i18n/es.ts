@@ -289,6 +289,11 @@ export const es: Dictionary = {
       unnamedModule: "Módulo sin nombre",
       didCount: (total, labeled) => (labeled > 0 ? `${total} valores (${labeled} con nombre)` : `${total} valores`),
       fingerprintSummary: (answered, total) => `Identidad ECU ${answered}/${total}`,
+      fingerprintExperimentTitle: "Experimento de familias ECU",
+      fingerprintExperimentProgress: (scanned, target, fingerprinted, repeatedFamilies) =>
+        `${scanned}/${target} vehículos · ${fingerprinted} con huellas · ${repeatedFamilies} familias repetidas`,
+      fingerprintExperimentCopy: "Copiar datos sin VIN",
+      fingerprintExperimentCopied: "Datos copiados",
     },
     advanced: {
       title: "Avanzado: herramientas manuales",

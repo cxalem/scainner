@@ -556,6 +556,19 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       }] as T;
     case "discovered_dids":
       return [] as T;
+    case "fingerprint_experiment":
+      return {
+        target_vehicles: 30, vehicles_scanned: 3, vehicles_with_fingerprints: 2,
+        modules_observed: 12, modules_with_fingerprints: 8, modules_with_part_number: 5,
+        repeated_family_groups: 1, vehicles_with_repeated_family: 2,
+        cohort_target_reached: false,
+        match_groups: [{
+          family_key: "9812345680", part_number: "98 123 456 80",
+          vehicle_count: 2, module_count: 2, hardware_versions: ["HW03"],
+          software_versions: ["SW12.4"], system_names: ["BSI"],
+        }],
+        observations: [],
+      } as T;
     case "uds_read":
       return null as T;
     case "uds_module_dtcs":

@@ -280,6 +280,11 @@ export const en: Dictionary = {
       unnamedModule: "Unnamed module",
       didCount: (total, labeled) => (labeled > 0 ? `${total} values (${labeled} named)` : `${total} values`),
       fingerprintSummary: (answered, total) => `ECU identity ${answered}/${total}`,
+      fingerprintExperimentTitle: "ECU family experiment",
+      fingerprintExperimentProgress: (scanned, target, fingerprinted, repeatedFamilies) =>
+        `${scanned}/${target} vehicles · ${fingerprinted} fingerprinted · ${repeatedFamilies} repeated families`,
+      fingerprintExperimentCopy: "Copy VIN-free dataset",
+      fingerprintExperimentCopied: "Dataset copied",
     },
     advanced: {
       title: "Advanced: manual tools",

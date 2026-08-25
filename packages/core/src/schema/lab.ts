@@ -135,3 +135,37 @@ export class DiscoveredDid extends Schema.Class<DiscoveredDid>("DiscoveredDid")(
   label: Schema.NullOr(Schema.String),
   confidence: Schema.NullOr(Schema.String),
 }) {}
+
+export class FingerprintObservation extends Schema.Class<FingerprintObservation>("FingerprintObservation")({
+  vehicle_ref: Schema.String,
+  module_address: Schema.String,
+  spare_part_number: Schema.NullOr(Schema.String),
+  hardware_version: Schema.NullOr(Schema.String),
+  software_version: Schema.NullOr(Schema.String),
+  system_name: Schema.NullOr(Schema.String),
+  fields_answered: Schema.Number,
+}) {}
+
+export class FingerprintMatchGroup extends Schema.Class<FingerprintMatchGroup>("FingerprintMatchGroup")({
+  family_key: Schema.String,
+  part_number: Schema.String,
+  vehicle_count: Schema.Number,
+  module_count: Schema.Number,
+  hardware_versions: Schema.mutable(Schema.Array(Schema.String)),
+  software_versions: Schema.mutable(Schema.Array(Schema.String)),
+  system_names: Schema.mutable(Schema.Array(Schema.String)),
+}) {}
+
+export class FingerprintExperimentReport extends Schema.Class<FingerprintExperimentReport>("FingerprintExperimentReport")({
+  target_vehicles: Schema.Number,
+  vehicles_scanned: Schema.Number,
+  vehicles_with_fingerprints: Schema.Number,
+  modules_observed: Schema.Number,
+  modules_with_fingerprints: Schema.Number,
+  modules_with_part_number: Schema.Number,
+  repeated_family_groups: Schema.Number,
+  vehicles_with_repeated_family: Schema.Number,
+  cohort_target_reached: Schema.Boolean,
+  match_groups: Schema.mutable(Schema.Array(FingerprintMatchGroup)),
+  observations: Schema.mutable(Schema.Array(FingerprintObservation)),
+}) {}

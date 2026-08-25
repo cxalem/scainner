@@ -266,6 +266,14 @@ fn discovered_dids(state: tauri::State<AppState>, module_id: i64) -> Vec<db::Dis
     state.db.discovered_dids(module_id)
 }
 
+/// Local, VIN-free cohort measurement for the 30–50 vehicle fingerprint
+/// experiment. No adapter connection is required and no vehicle traffic is
+/// generated.
+#[tauri::command]
+fn fingerprint_experiment(state: tauri::State<AppState>) -> db::FingerprintExperimentReport {
+    state.db.fingerprint_experiment()
+}
+
 /// Clears the fault memory on one module (ABS/engine). Standard, safe
 /// diagnostic operation — cannot damage anything, only erases stored codes.
 /// Returns a verified before/after so the UI can show what actually happened.
@@ -563,6 +571,7 @@ pub fn run() {
             discover_sensors,
             discovered_modules,
             discovered_dids,
+            fingerprint_experiment,
             uds_clear,
             uds_module_dtcs,
             writes_log,

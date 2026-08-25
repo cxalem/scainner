@@ -14,7 +14,7 @@ import { listen } from "@/lib/tauri";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import { useDiscoveredModules } from "@/features/lab/queries";
+import { useDiscoveredModules, useFingerprintExperiment } from "@/features/lab/queries";
 import { useT } from "@/i18n";
 
 type Progress = {
@@ -65,8 +65,10 @@ export function AutoDiscovery({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const found = useDiscoveredModules(vehicleId);
+  const experiment = useFingerprintExperiment();
   const hasPriorFindings = (found.data?.length ?? 0) > 0;
   const [forceFull, setForceFull] = useState(false);
+  const [experimentCopied, setExperimentCopied] = useState(false);
 
   useEffect(() => {
     const un = listen<Progress>("discovery-progress", (e) => setProgress(e.payload));
@@ -101,6 +103,7 @@ export function AutoDiscovery({
         },
       });
       void found.refetch();
+      void experiment.refetch();
     } catch (e) {
       setError(String(e instanceof Error ? e.message : e));
     } finally {
@@ -110,6 +113,13 @@ export function AutoDiscovery({
   };
 
   const cancel = () => void runPromise(Effect.flatMap(DeviceService, (d) => d.udsCancelScan()));
+
+  const copyExperiment = async () => {
+    if (experiment.data == null) return;
+    await navigator.clipboard.writeText(JSON.stringify(experiment.data, null, 2));
+    setExperimentCopied(true);
+    window.setTimeout(() => setExperimentCopied(false), 2000);
+  };
 
   const pct = progress != null && progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
   const phaseLabel = progress != null ? t.lab.discovery.phases[progress.phase] : "";
@@ -230,6 +240,26 @@ export function AutoDiscovery({
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {experiment.data != null && experiment.data.vehicles_scanned > 0 && (
+          <div className="border-t pt-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              {t.lab.discovery.fingerprintExperimentTitle}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t.lab.discovery.fingerprintExperimentProgress(
+                experiment.data.vehicles_scanned,
+                experiment.data.target_vehicles,
+                experiment.data.vehicles_with_fingerprints,
+                experiment.data.repeated_family_groups,
+              )}
+            </p>
+            <Button className="mt-2 h-8 text-xs" variant="outline" onClick={() => void copyExperiment()}>
+              {experimentCopied
+                ? t.lab.discovery.fingerprintExperimentCopied
+                : t.lab.discovery.fingerprintExperimentCopy}
+            </Button>
           </div>
         )}
       </CardContent>
