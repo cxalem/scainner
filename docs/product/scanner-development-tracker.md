@@ -16,8 +16,8 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 3 | Shared typed diagnostic outcomes | done | [PR #39](https://github.com/cxalem/scainner/pull/39) |
 | 4 | Central scanner safety and cleanup guard | done | [PR #40](https://github.com/cxalem/scainner/pull/40), 78 Rust tests |
 | 5 | Discovery strategy and coverage accounting | done | [PR #41](https://github.com/cxalem/scainner/pull/41), 80 Rust tests |
-| 6 | Safe 11-bit and 29-bit module enumeration | active | Branch `feat/safe-module-enumeration` |
-| 7 | Partial ECU fingerprints | queued | Depends on trustworthy module inventory |
+| 6 | Safe 11-bit and 29-bit module enumeration | done | [PR #42](https://github.com/cxalem/scainner/pull/42), 82 Rust tests |
+| 7 | Partial ECU fingerprints | active | Branch `feat/partial-ecu-fingerprints` |
 | 8 | Fingerprint matching experiment, 30–50 vehicles | queued | Depends on fingerprints |
 | 9 | Workshop module taxonomy and vehicle map | queued | Can begin after fingerprint schema stabilizes |
 | 10 | Unified standard and module DTC scan | queued | Depends on typed outcomes and inventory |
@@ -131,7 +131,7 @@ Acceptance criteria:
 - No extra vehicle request is introduced by coverage accounting.
 - Full repository CI passes.
 
-## Active slice: safe 11-bit and 29-bit module enumeration
+## Completed slice: safe 11-bit and 29-bit module enumeration
 
 Deliverables:
 
@@ -160,6 +160,33 @@ Acceptance criteria:
 - An unknown VIN degrades to conventional 11-bit plus standard normal-fixed
   29-bit enumeration rather than silently omitting either class.
 - Enumeration remains read-only and uses the existing presence DID.
+- Full repository CI passes.
+
+## Active slice: partial ECU fingerprints
+
+Deliverables:
+
+- Turn the existing ISO 14229 identity-block reads into explicit per-module
+  fingerprint evidence without adding vehicle traffic.
+- Preserve answered, refused, unsupported, timed-out, malformed, and transport
+  outcomes for every identity DID instead of retaining positive values only.
+- Store part number, hardware version, software version, and system name as
+  independently optional fields.
+- Produce canonical comparison material from the fields that answered while
+  excluding VIN and ECU serial number from cross-vehicle matching.
+- Persist the partial fingerprint locally and in the private Supabase
+  operational schema.
+- Expose fingerprint completeness in the discovered-module contract and Lab.
+
+Acceptance criteria:
+
+- A module remains fingerprintable when only one identity field answers.
+- Missing or refused fields are evidence, never empty-string values or guessed
+  identifiers.
+- Fingerprints from separate physical ECUs can match when their family identity
+  agrees; serial number and VIN cannot make otherwise identical families differ.
+- Re-running discovery updates the same vehicle/module record idempotently.
+- Existing discovery session and request behavior remains unchanged.
 - Full repository CI passes.
 
 ## Product gates

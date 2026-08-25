@@ -81,6 +81,9 @@ type SyncBatch = {
   discovered_modules: {
     cloud_id: string; vehicle_cloud_id: string; module_address: string;
     module_name: string | null; discovered_at: string;
+    spare_part_number: string | null; hardware_version: string | null;
+    software_version: string | null; system_name: string | null;
+    fingerprint_match_key: string | null; fingerprint_evidence: unknown | null;
     dids: { did: number; raw_sample: string | null; byte_length: number | null; label: string | null; confidence: string | null; first_seen_at: string }[];
   }[];
   diagnostic_cases: {
@@ -289,6 +292,10 @@ async function runSyncOnce(): Promise<void> {
         batch.discovered_modules.map((m) => ({
           id: m.cloud_id, vehicle_id: m.vehicle_cloud_id, module_address: m.module_address,
           module_name: m.module_name, discovered_at: toIso(m.discovered_at),
+          spare_part_number: m.spare_part_number, hardware_version: m.hardware_version,
+          software_version: m.software_version, system_name: m.system_name,
+          fingerprint_match_key: m.fingerprint_match_key,
+          fingerprint_evidence: m.fingerprint_evidence,
         })),
         { onConflict: "id" },
       );

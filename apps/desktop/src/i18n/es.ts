@@ -288,6 +288,7 @@ export const es: Dictionary = {
       previousFindings: "Ya encontrado en este coche",
       unnamedModule: "Módulo sin nombre",
       didCount: (total, labeled) => (labeled > 0 ? `${total} valores (${labeled} con nombre)` : `${total} valores`),
+      fingerprintSummary: (answered, total) => `Identidad ECU ${answered}/${total}`,
     },
     advanced: {
       title: "Avanzado: herramientas manuales",

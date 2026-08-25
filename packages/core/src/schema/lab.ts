@@ -58,6 +58,27 @@ export class ModuleProbeResult extends Schema.Class<ModuleProbeResult>("ModulePr
   outcome: DiagnosticOutcome,
 }) {}
 
+export class EcuIdentityEvidence extends Schema.Class<EcuIdentityEvidence>("EcuIdentityEvidence")({
+  did: Schema.Number,
+  label: Schema.String,
+  outcome: DiagnosticOutcome,
+  raw_value: Schema.NullOr(Schema.String),
+  decoded_value: Schema.NullOr(Schema.String),
+}) {}
+
+export class EcuFingerprint extends Schema.Class<EcuFingerprint>("EcuFingerprint")({
+  request_address: Schema.String,
+  response_address: Schema.String,
+  spare_part_number: Schema.NullOr(Schema.String),
+  hardware_version: Schema.NullOr(Schema.String),
+  software_version: Schema.NullOr(Schema.String),
+  system_name: Schema.NullOr(Schema.String),
+  match_key: Schema.NullOr(Schema.String),
+  fields_answered: Schema.Number,
+  fields_total: Schema.Number,
+  evidence: Schema.mutable(Schema.Array(EcuIdentityEvidence)),
+}) {}
+
 export class DiscoveryCoverage extends Schema.Class<DiscoveryCoverage>("DiscoveryCoverage")({
   candidates_total: Schema.Number,
   candidates_attempted: Schema.Number,
@@ -75,6 +96,7 @@ export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryRep
   outcome: DiagnosticOutcome,
   coverage: DiscoveryCoverage,
   module_probes: Schema.mutable(Schema.Array(ModuleProbeResult)),
+  fingerprints: Schema.mutable(Schema.Array(EcuFingerprint)),
   modules_found: Schema.Number,
   dids_found: Schema.Number,
   // Of dids_found, how many got a FULL decode formula from the knowledge
@@ -97,6 +119,13 @@ export class DiscoveredModule extends Schema.Class<DiscoveredModule>("Discovered
   discovered_at: Schema.String,
   did_count: Schema.Number,
   labeled_count: Schema.Number,
+  spare_part_number: Schema.NullOr(Schema.String),
+  hardware_version: Schema.NullOr(Schema.String),
+  software_version: Schema.NullOr(Schema.String),
+  system_name: Schema.NullOr(Schema.String),
+  fingerprint_match_key: Schema.NullOr(Schema.String),
+  fingerprint_fields_answered: Schema.Number,
+  fingerprint_fields_total: Schema.Number,
 }) {}
 
 export class DiscoveredDid extends Schema.Class<DiscoveredDid>("DiscoveredDid")({

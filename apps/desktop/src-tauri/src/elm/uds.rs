@@ -708,6 +708,88 @@ pub struct ModuleProbeResult {
     pub outcome: DiagnosticOutcome,
 }
 
+/// One ISO 14229 identity read. Keeping negative outcomes is essential: a
+/// partial fingerprint is evidence, not an assertion that every ECU exposes
+/// the whole standard identity block.
+#[derive(Serialize, Clone)]
+pub struct EcuIdentityEvidence {
+    pub did: u16,
+    pub label: String,
+    pub outcome: DiagnosticOutcome,
+    pub raw_value: Option<String>,
+    pub decoded_value: Option<String>,
+}
+
+#[derive(Serialize, Clone, Default)]
+pub struct EcuFingerprint {
+    pub request_address: String,
+    pub response_address: String,
+    pub spare_part_number: Option<String>,
+    pub hardware_version: Option<String>,
+    pub software_version: Option<String>,
+    pub system_name: Option<String>,
+    /// Stable comparison material. ECU serial number and VIN are deliberately
+    /// excluded because they identify an individual unit/vehicle and prevent
+    /// knowledge from matching the same ECU family in another car.
+    pub match_key: Option<String>,
+    pub fields_answered: u8,
+    pub fields_total: u8,
+    pub evidence: Vec<EcuIdentityEvidence>,
+}
+
+fn identity_value(data: &[u8]) -> String {
+    printable(data).unwrap_or_else(|| hex_string(data))
+}
+
+fn build_fingerprint(
+    request_address: String,
+    response_address: String,
+    evidence: Vec<EcuIdentityEvidence>,
+) -> EcuFingerprint {
+    let value = |did| {
+        evidence
+            .iter()
+            .find(|item| item.did == did)
+            .and_then(|item| item.decoded_value.clone())
+    };
+    let spare_part_number = value(0xF187);
+    let hardware_version = value(0xF191);
+    let software_version = value(0xF195);
+    let system_name = value(0xF197);
+    let (fields_answered, match_key) = {
+        let comparable = [
+            ("F187", spare_part_number.as_deref()),
+            ("F191", hardware_version.as_deref()),
+            ("F195", software_version.as_deref()),
+            ("F197", system_name.as_deref()),
+        ];
+        let answered = comparable
+            .iter()
+            .filter(|(_, value)| value.is_some())
+            .count() as u8;
+        let key = (answered > 0).then(|| {
+            comparable
+                .iter()
+                .filter_map(|(did, value)| value.map(|value| format!("{did}={value}")))
+                .collect::<Vec<_>>()
+                .join("|")
+        });
+        (answered, key)
+    };
+    EcuFingerprint {
+        request_address,
+        response_address,
+        spare_part_number,
+        hardware_version,
+        software_version,
+        system_name,
+        match_key,
+        fields_answered,
+        fields_total: 4,
+        evidence,
+    }
+}
+
 #[derive(Serialize, Clone, Default)]
 pub struct DiscoveryCoverage {
     pub candidates_total: u32,
@@ -778,6 +860,9 @@ pub struct DiscoveryReport {
     pub outcome: DiagnosticOutcome,
     pub coverage: DiscoveryCoverage,
     pub module_probes: Vec<ModuleProbeResult>,
+    /// Identity evidence from modules reached during this full pass. Fast
+    /// refreshes intentionally do not re-read the identity block.
+    pub fingerprints: Vec<EcuFingerprint>,
     pub modules_found: u32,
     pub dids_found: u32,
     /// Of `dids_found`, how many the knowledge map had a FULL decode
@@ -1110,6 +1195,7 @@ fn discover_inner(
                 outcome: DiagnosticOutcome::cancelled(),
                 coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
                 module_probes,
+                fingerprints: Vec::new(),
                 modules_found: present.len() as u32,
                 dids_found: 0,
                 sensors_added: 0,
@@ -1124,6 +1210,7 @@ fn discover_inner(
                 outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                 coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
                 module_probes,
+                fingerprints: Vec::new(),
                 modules_found: present.len() as u32,
                 dids_found: 0,
                 sensors_added: 0,
@@ -1173,6 +1260,7 @@ fn discover_inner(
     let name_dids = uds_map::name_dids();
     let mut dids_found = 0u32;
     let mut module_rows: Vec<(i64, u32, u32)> = Vec::new();
+    let mut fingerprints = Vec::with_capacity(present.len());
     let total_ident = (present.len() * ident_dids.len()) as u32;
     for (mi, (req, resp, known_name)) in present.iter().enumerate() {
         if point_at(drv, *req, *resp, &mut addressing).is_err() {
@@ -1182,6 +1270,7 @@ fn discover_inner(
         let mut name: Option<String> = known_name.clone();
         let mut best_name_rank = usize::MAX;
         let mut ident_hits: Vec<(u16, Vec<u8>)> = Vec::new();
+        let mut identity_evidence = Vec::with_capacity(ident_dids.len());
         for (di, did) in ident_dids.iter().enumerate() {
             if cancel_scan.swap(false, Ordering::Relaxed) {
                 // Phase 2 (identification) never promotes probes — that
@@ -1191,6 +1280,7 @@ fn discover_inner(
                     outcome: DiagnosticOutcome::cancelled(),
                     coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
                     module_probes,
+                    fingerprints,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added: 0,
@@ -1205,6 +1295,7 @@ fn discover_inner(
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
                     module_probes,
+                    fingerprints,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added: 0,
@@ -1221,9 +1312,26 @@ fn discover_inner(
                 present.len() as u32,
                 dids_found,
             );
-            if let Ok(Some(data)) =
-                read_did_timeout(drv, *did, Duration::from_millis(timings.ident_read))
-            {
+            let label = uds_map::map()
+                .standard
+                .ident_dids
+                .iter()
+                .find(|entry| uds_map::hex16(&entry.did) == Some(*did))
+                .map(|entry| entry.label.clone())
+                .unwrap_or_else(|| format!("DID {did:04X}"));
+            let (outcome, data) =
+                match observe_did(drv, *did, Duration::from_millis(timings.ident_read)) {
+                    Ok(observation) => observation,
+                    Err(error) => (DiagnosticOutcome::from_elm_error("22", &error), None),
+                };
+            identity_evidence.push(EcuIdentityEvidence {
+                did: *did,
+                label,
+                outcome,
+                raw_value: data.as_ref().map(|data| hex_string(data)),
+                decoded_value: data.as_ref().map(|data| identity_value(data)),
+            });
+            if let Some(data) = data {
                 if known_name.is_none() {
                     if let Some(rank) = name_dids.iter().position(|n| n == did) {
                         if rank < best_name_rank {
@@ -1237,11 +1345,18 @@ fn discover_inner(
                 ident_hits.push((*did, data));
             }
         }
+        let fingerprint = build_fingerprint(
+            format_can_address(*req),
+            format_can_address(*resp),
+            identity_evidence,
+        );
         let module_id = db.upsert_discovered_module(
             vehicle_id,
             &format!("{}/{}", format_can_address(*req), format_can_address(*resp)),
             name.as_deref(),
         );
+        db.update_ecu_fingerprint(module_id, &fingerprint);
+        fingerprints.push(fingerprint);
         for (did, data) in &ident_hits {
             let label = uds_map::map()
                 .standard
@@ -1300,6 +1415,7 @@ fn discover_inner(
                     outcome: DiagnosticOutcome::cancelled(),
                     coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
                     module_probes,
+                    fingerprints,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added,
@@ -1318,6 +1434,7 @@ fn discover_inner(
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
                     module_probes,
+                    fingerprints,
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added,
@@ -1433,6 +1550,7 @@ fn discover_inner(
         outcome: DiagnosticOutcome::answered("discovery"),
         coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
         module_probes,
+        fingerprints,
         modules_found: present.len() as u32,
         dids_found,
         sensors_added,
@@ -1526,6 +1644,7 @@ fn fast_refresh(
                         candidates_total,
                     ),
                     module_probes,
+                    fingerprints: Vec::new(),
                     modules_found: modules_seen,
                     dids_found,
                     sensors_added,
@@ -1553,6 +1672,7 @@ fn fast_refresh(
                         candidates_total,
                     ),
                     module_probes,
+                    fingerprints: Vec::new(),
                     modules_found: modules_seen,
                     dids_found,
                     sensors_added,
@@ -1642,6 +1762,7 @@ fn fast_refresh(
         outcome: DiagnosticOutcome::answered("discovery"),
         coverage: coverage_from_probes(&module_probes, candidates_total, candidates_total),
         module_probes,
+        fingerprints: Vec::new(),
         modules_found: modules_seen,
         dids_found,
         sensors_added,
@@ -1946,5 +2067,40 @@ mod tests {
         assert_eq!(coverage.refused, 1);
         assert_eq!(coverage.timed_out, 1);
         assert_eq!(coverage.profile_reached, 2);
+    }
+
+    #[test]
+    fn partial_fingerprint_uses_only_answered_family_identity() {
+        let evidence = vec![
+            EcuIdentityEvidence {
+                did: 0xF187,
+                label: "Spare part number".into(),
+                outcome: DiagnosticOutcome::answered("22"),
+                raw_value: Some("393831323334".into()),
+                decoded_value: Some("981234".into()),
+            },
+            EcuIdentityEvidence {
+                did: 0xF191,
+                label: "Hardware version".into(),
+                outcome: DiagnosticOutcome::refused("22", 0x31, "requestOutOfRange"),
+                raw_value: None,
+                decoded_value: None,
+            },
+            // A serial number is useful evidence but must never participate
+            // in the cross-vehicle family match key.
+            EcuIdentityEvidence {
+                did: 0xF18C,
+                label: "ECU serial number".into(),
+                outcome: DiagnosticOutcome::answered("22"),
+                raw_value: Some("53455249414C31".into()),
+                decoded_value: Some("SERIAL1".into()),
+            },
+        ];
+
+        let fingerprint = build_fingerprint("6A8".into(), "688".into(), evidence);
+        assert_eq!(fingerprint.fields_answered, 1);
+        assert_eq!(fingerprint.fields_total, 4);
+        assert_eq!(fingerprint.match_key.as_deref(), Some("F187=981234"));
+        assert!(!fingerprint.match_key.unwrap().contains("SERIAL1"));
     }
 }

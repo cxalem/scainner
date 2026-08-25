@@ -526,6 +526,18 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
             outcome: { status: "timed_out", service: "22", nrc: null, detail: null },
           },
         ],
+        fingerprints: [{
+          request_address: "6B4",
+          response_address: "694",
+          spare_part_number: "98 123 456 80",
+          hardware_version: "HW03",
+          software_version: "SW12.4",
+          system_name: "BSI",
+          match_key: "F187=98 123 456 80|F191=HW03|F195=SW12.4|F197=BSI",
+          fields_answered: 4,
+          fields_total: 4,
+          evidence: [],
+        }],
         modules_found: 1,
         dids_found: 2,
         sensors_added: 1,
@@ -534,7 +546,14 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         was_fast_refresh: false,
       } as T;
     case "discovered_modules":
-      return [{ id: 1, address: "6B4/694", name: "BSI (body computer)", discovered_at: "2026-08-24 10:00:00", did_count: 2, labeled_count: 1 }] as T;
+      return [{
+        id: 1, address: "6B4/694", name: "BSI (body computer)",
+        discovered_at: "2026-08-24 10:00:00", did_count: 2, labeled_count: 1,
+        spare_part_number: "98 123 456 80", hardware_version: "HW03",
+        software_version: "SW12.4", system_name: "BSI",
+        fingerprint_match_key: "F187=98 123 456 80|F191=HW03|F195=SW12.4|F197=BSI",
+        fingerprint_fields_answered: 4, fingerprint_fields_total: 4,
+      }] as T;
     case "discovered_dids":
       return [] as T;
     case "uds_read":

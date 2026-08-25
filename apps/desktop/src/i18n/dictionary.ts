@@ -285,6 +285,7 @@ export type Dictionary = {
       previousFindings: string;
       unnamedModule: string;
       didCount: (total: number, labeled: number) => string;
+      fingerprintSummary: (answered: number, total: number) => string;
     };
     advanced: {
       title: string;
