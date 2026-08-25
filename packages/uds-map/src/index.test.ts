@@ -125,14 +125,33 @@ describe("addressesToProbe / responseAddr", () => {
   });
 
   it("every 11-bit sweep response stays in range", () => {
-    for (const { resp } of addressesToProbe(CITROEN_VIN)) {
-      expect(resp).toBeLessThanOrEqual(0x7ff);
+    for (const candidate of addressesToProbe(CITROEN_VIN).filter((entry) => entry.source === "conventional_11bit")) {
+      expect(candidate.resp).toBeLessThanOrEqual(0x7ff);
     }
+  });
+
+  it("builds all physical normal-fixed 29-bit target pairs for an unknown VIN", () => {
+    const extended = addressesToProbe(undefined).filter((candidate) => candidate.source === "normal_fixed_29bit");
+    expect(extended).toHaveLength(253);
+    for (const candidate of extended) {
+      const target = (candidate.req >>> 8) & 0xff;
+      expect(candidate.req).toBe(0x18da00f1 | (target << 8));
+      expect(candidate.resp).toBe(0x18daf100 | target);
+      expect([0xf1, 0xfe, 0xff]).not.toContain(target);
+    }
+  });
+
+  it("honors data-driven brand scan policies", () => {
+    expect(addressesToProbe("5YJEXAMPLE0000000")).toHaveLength(0);
+    expect(addressesToProbe("JA3EXAMPLE0000000")).toHaveLength(0);
+    const volvo = addressesToProbe("YV1EXAMPLE0000000");
+    expect(volvo.length).toBeGreaterThan(0);
+    expect(volvo.every((candidate) => candidate.req > 0x7ff)).toBe(true);
   });
 });
 
 describe("extendedModulesForVin", () => {
-  it("counts 29-bit modules the 11-bit engine can't drive, without crashing", () => {
+  it("counts documented 29-bit modules without crashing", () => {
     // GM ships 29-bit addresses (14DACBF1) — real data the map correctly
     // records; this must be countable, not silently dropped or fatal.
     const gm = getMap().brands.find((b) => b.id === "gm");

@@ -704,6 +704,7 @@ pub struct ModuleProbeResult {
     pub response_address: String,
     pub expected_name: Option<String>,
     pub profile_candidate: bool,
+    pub source: uds_map::CandidateSource,
     pub outcome: DiagnosticOutcome,
 }
 
@@ -1154,6 +1155,7 @@ fn discover_inner(
             response_address: format_can_address(resp),
             expected_name: known_name.clone(),
             profile_candidate: candidate.profile_candidate,
+            source: candidate.source,
             outcome,
         });
         if reached {
@@ -1478,6 +1480,7 @@ fn fast_refresh(
                 response_address: String::new(),
                 expected_name: None,
                 profile_candidate: true,
+                source: uds_map::CandidateSource::Profile,
                 outcome: DiagnosticOutcome::malformed(
                     "addressing",
                     "saved module address is invalid",
@@ -1491,6 +1494,7 @@ fn fast_refresh(
                 response_address: format_can_address(resp),
                 expected_name: None,
                 profile_candidate: true,
+                source: uds_map::CandidateSource::Profile,
                 outcome: DiagnosticOutcome::from_elm_error("addressing", &error),
             });
             continue;
@@ -1511,6 +1515,7 @@ fn fast_refresh(
                     response_address: format_can_address(resp),
                     expected_name: None,
                     profile_candidate: true,
+                    source: uds_map::CandidateSource::Profile,
                     outcome: DiagnosticOutcome::cancelled(),
                 });
                 return Ok(DiscoveryReport {
@@ -1537,6 +1542,7 @@ fn fast_refresh(
                     response_address: format_can_address(resp),
                     expected_name: None,
                     profile_candidate: true,
+                    source: uds_map::CandidateSource::Profile,
                     outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                 });
                 return Ok(DiscoveryReport {
@@ -1625,6 +1631,7 @@ fn fast_refresh(
             response_address: format_can_address(resp),
             expected_name: None,
             profile_candidate: true,
+            source: uds_map::CandidateSource::Profile,
             outcome: module_outcome,
         });
     }
@@ -1911,6 +1918,7 @@ mod tests {
                 response_address: "708".into(),
                 expected_name: Some("engine".into()),
                 profile_candidate: true,
+                source: uds_map::CandidateSource::Profile,
                 outcome: DiagnosticOutcome::answered("22"),
             },
             ModuleProbeResult {
@@ -1918,6 +1926,7 @@ mod tests {
                 response_address: "709".into(),
                 expected_name: Some("abs".into()),
                 profile_candidate: true,
+                source: uds_map::CandidateSource::Profile,
                 outcome: DiagnosticOutcome::refused("22", 0x31, "requestOutOfRange"),
             },
             ModuleProbeResult {
@@ -1925,6 +1934,7 @@ mod tests {
                 response_address: "70A".into(),
                 expected_name: None,
                 profile_candidate: false,
+                source: uds_map::CandidateSource::Conventional11bit,
                 outcome: DiagnosticOutcome::timed_out("22"),
             },
         ];

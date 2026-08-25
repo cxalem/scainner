@@ -12,7 +12,7 @@
 //!
 //! Embedded with `include_str!` so the shipped binary is self-contained and
 //! a malformed map fails the build, not the car.
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
 #[derive(Deserialize)]
@@ -82,6 +82,25 @@ pub struct Brand {
     /// one number.
     #[serde(default)]
     pub resp_offsets: Vec<RespOffset>,
+    /// Optional override for generic enumeration. `auto` derives the safe
+    /// strategies from documented module pairs; exceptions such as Tesla are
+    /// explicit data, never hardcoded brand checks in the scanner.
+    #[serde(default)]
+    pub scan_policy: ScanPolicy,
+}
+
+#[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ScanPolicy {
+    #[default]
+    Auto,
+    None,
+    #[serde(rename = "conventional_11bit")]
+    Conventional11bit,
+    #[serde(rename = "normal_fixed_29bit")]
+    NormalFixed29bit,
+    #[serde(rename = "conventional_11bit_and_normal_fixed_29bit")]
+    Conventional11bitAndNormalFixed29bit,
 }
 
 #[derive(Deserialize, Clone)]
@@ -326,6 +345,16 @@ pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>
 /// Every request/response pair to try when enumerating the bus, known
 /// brand modules first (so progress shows real finds early), then the full
 /// conventional range from the map's address_scan block.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CandidateSource {
+    Profile,
+    #[serde(rename = "conventional_11bit")]
+    Conventional11bit,
+    #[serde(rename = "normal_fixed_29bit")]
+    NormalFixed29bit,
+}
+
 #[derive(Clone, Debug)]
 pub struct AddressCandidate {
     pub req: u32,
@@ -334,6 +363,34 @@ pub struct AddressCandidate {
     /// True when the selected brand profile explicitly documents this pair;
     /// false when it came from the generic conventional-address sweep.
     pub profile_candidate: bool,
+    pub source: CandidateSource,
+}
+
+fn normal_fixed_29bit_target(req: u32, resp: u32) -> Option<u8> {
+    if req & 0xFFFF_00FF != 0x18DA_00F1 || resp & 0xFFFF_FF00 != 0x18DA_F100 {
+        return None;
+    }
+    let target = ((req >> 8) & 0xFF) as u8;
+    (resp & 0xFF == u32::from(target)).then_some(target)
+}
+
+fn scan_strategies(vin: Option<&str>, known: &[(u32, u32, Option<String>)]) -> (bool, bool) {
+    let Some(brand) = brand_for_vin(vin) else {
+        // Missing/unknown VIN must degrade to broader read-only discovery.
+        return (true, true);
+    };
+    match brand.scan_policy {
+        ScanPolicy::None => (false, false),
+        ScanPolicy::Conventional11bit => (true, false),
+        ScanPolicy::NormalFixed29bit => (false, true),
+        ScanPolicy::Conventional11bitAndNormalFixed29bit => (true, true),
+        ScanPolicy::Auto => (
+            true,
+            known
+                .iter()
+                .any(|(req, resp, _)| normal_fixed_29bit_target(*req, *resp).is_some()),
+        ),
+    }
 }
 
 pub fn addresses_to_probe(vin: Option<&str>) -> Vec<AddressCandidate> {
@@ -343,27 +400,55 @@ pub fn addresses_to_probe(vin: Option<&str>) -> Vec<AddressCandidate> {
     let excluded: Vec<u16> = scan.exclude.iter().filter_map(|e| can11(e)).collect();
 
     let brand = brand_for_vin(vin);
-    let mut out: Vec<AddressCandidate> = known_modules_for_vin(vin)
-        .into_iter()
+    let known = known_modules_for_vin(vin);
+    let (scan_11bit, scan_29bit) = scan_strategies(vin, &known);
+    let mut out: Vec<AddressCandidate> = known
+        .iter()
+        .cloned()
         .map(|(req, resp, name)| AddressCandidate {
             req,
             resp,
             name,
             profile_candidate: true,
+            source: CandidateSource::Profile,
         })
         .collect();
     let mut seen: Vec<u32> = out.iter().map(|candidate| candidate.req).collect();
-    for req in from..=to {
-        if excluded.contains(&req) || seen.contains(&u32::from(req)) {
-            continue;
+    if scan_11bit {
+        for req in from..=to {
+            if excluded.contains(&req) || seen.contains(&u32::from(req)) {
+                continue;
+            }
+            seen.push(req.into());
+            out.push(AddressCandidate {
+                req: req.into(),
+                resp: response_addr(brand, req).into(),
+                name: None,
+                profile_candidate: false,
+                source: CandidateSource::Conventional11bit,
+            });
         }
-        seen.push(req.into());
-        out.push(AddressCandidate {
-            req: req.into(),
-            resp: response_addr(brand, req).into(),
-            name: None,
-            profile_candidate: false,
-        });
+    }
+    if scan_29bit {
+        for target in 0u32..=0xFF {
+            // F1 is this tester; FE/FF are functional/broadcast targets, not
+            // physical ECUs. Enumeration must remain physically addressed.
+            if matches!(target, 0xF1 | 0xFE | 0xFF) {
+                continue;
+            }
+            let req = 0x18DA_00F1 | (target << 8);
+            if seen.contains(&req) {
+                continue;
+            }
+            seen.push(req);
+            out.push(AddressCandidate {
+                req,
+                resp: 0x18DA_F100 | target,
+                name: None,
+                profile_candidate: false,
+                source: CandidateSource::NormalFixed29bit,
+            });
+        }
     }
     out
 }
@@ -532,6 +617,50 @@ mod tests {
             reqs.len(),
             "duplicate addresses would be probed twice"
         );
+    }
+
+    #[test]
+    fn normal_fixed_29bit_targets_are_physical_unique_and_correctly_paired() {
+        assert_eq!(
+            serde_json::to_value(CandidateSource::NormalFixed29bit).unwrap(),
+            "normal_fixed_29bit"
+        );
+        let candidates = addresses_to_probe(None);
+        let extended: Vec<_> = candidates
+            .iter()
+            .filter(|candidate| candidate.source == CandidateSource::NormalFixed29bit)
+            .collect();
+        assert_eq!(
+            extended.len(),
+            253,
+            "three non-physical targets are excluded"
+        );
+        for candidate in extended {
+            let target = normal_fixed_29bit_target(candidate.req, candidate.resp)
+                .expect("standard request/response pair");
+            assert!(!matches!(target, 0xF1 | 0xFE | 0xFF));
+        }
+        let mut requests: Vec<_> = candidates.iter().map(|candidate| candidate.req).collect();
+        let before = requests.len();
+        requests.sort_unstable();
+        requests.dedup();
+        assert_eq!(requests.len(), before, "no request is sent twice");
+    }
+
+    #[test]
+    fn brand_policy_prevents_known_unsafe_generic_sweeps() {
+        assert!(addresses_to_probe(Some("5YJEXAMPLE0000000")).is_empty());
+        assert!(addresses_to_probe(Some("JA3EXAMPLE0000000")).is_empty());
+
+        let volvo = addresses_to_probe(Some("YV1EXAMPLE0000000"));
+        assert!(!volvo.is_empty());
+        assert!(volvo.iter().all(|candidate| candidate.req > 0x7FF));
+        assert!(volvo
+            .iter()
+            .any(|candidate| candidate.source == CandidateSource::Profile));
+        assert!(volvo
+            .iter()
+            .any(|candidate| candidate.source == CandidateSource::NormalFixed29bit));
     }
 
     #[test]

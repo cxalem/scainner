@@ -41,6 +41,7 @@ describe("discovery coverage wire contract", () => {
           response_address: "708",
           expected_name: "Engine ECU",
           profile_candidate: true,
+          source: "profile",
           outcome: { status: "refused", service: "22", nrc: 0x31, detail: "requestOutOfRange" },
         },
       ],

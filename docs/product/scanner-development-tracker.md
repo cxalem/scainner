@@ -15,8 +15,8 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 2 | Verified clear outcomes | done | [PR #38](https://github.com/cxalem/scainner/pull/38), 73 Rust tests plus full JS CI passed |
 | 3 | Shared typed diagnostic outcomes | done | [PR #39](https://github.com/cxalem/scainner/pull/39) |
 | 4 | Central scanner safety and cleanup guard | done | [PR #40](https://github.com/cxalem/scainner/pull/40), 78 Rust tests |
-| 5 | Discovery strategy and coverage accounting | active | Branch `feat/discovery-coverage` |
-| 6 | Safe 11-bit and 29-bit module enumeration | queued | Depends on discovery strategy |
+| 5 | Discovery strategy and coverage accounting | done | [PR #41](https://github.com/cxalem/scainner/pull/41), 80 Rust tests |
+| 6 | Safe 11-bit and 29-bit module enumeration | active | Branch `feat/safe-module-enumeration` |
 | 7 | Partial ECU fingerprints | queued | Depends on trustworthy module inventory |
 | 8 | Fingerprint matching experiment, 30–50 vehicles | queued | Depends on fingerprints |
 | 9 | Workshop module taxonomy and vehicle map | queued | Can begin after fingerprint schema stabilizes |
@@ -101,7 +101,7 @@ Acceptance criteria:
 - Existing diagnostic requests and their ordering remain unchanged.
 - Full repository CI passes.
 
-## Active slice: discovery strategy and coverage accounting
+## Completed slice: discovery strategy and coverage accounting
 
 Deliverables:
 
@@ -129,6 +129,37 @@ Acceptance criteria:
 - The report exposes candidate-level evidence for future scan persistence and
   advanced inspection.
 - No extra vehicle request is introduced by coverage accounting.
+- Full repository CI passes.
+
+## Active slice: safe 11-bit and 29-bit module enumeration
+
+Deliverables:
+
+- Represent documented, conventional 11-bit, and standard normal-fixed 29-bit
+  candidates as distinct scan-plan sources.
+- Enumerate physical `18DA<target>F1` requests with matching
+  `18DAF1<target>` responses while excluding tester and broadcast targets.
+- Preserve documented non-standard 29-bit pairs such as GM Ultium as exact
+  profile candidates instead of forcing them into the standard formula.
+- Use data-driven brand scan policies for transports that must not receive a
+  generic UDS sweep.
+- Fall back to both standard read-only strategies when VIN is unavailable or
+  unknown.
+- Keep Rust and the published `@scainner/uds-map` package behavior aligned.
+- Surface the candidate source in discovery evidence.
+
+Acceptance criteria:
+
+- Every generated request/response pair uses one CAN width and is unique.
+- The 29-bit plan contains all physical target bytes except `F1`, `FE`, and
+  `FF`, with the response target byte matching the request.
+- Profile candidates are always attempted before generic candidates.
+- A known Tesla or Mitsubishi VIN produces no generic UDS sweep.
+- A modern Volvo/Polestar profile uses its documented/standard 29-bit path and
+  does not receive a conventional 11-bit sweep.
+- An unknown VIN degrades to conventional 11-bit plus standard normal-fixed
+  29-bit enumeration rather than silently omitting either class.
+- Enumeration remains read-only and uses the existing presence DID.
 - Full repository CI passes.
 
 ## Product gates

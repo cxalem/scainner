@@ -110,9 +110,7 @@ export function bandsForVin(vin: string | null | undefined): [number, number][] 
 }
 
 /** Module address pairs this brand is known to use, tried before a
- * blind bus sweep so a recognized car finds its real modules in
- * seconds. 29-bit addresses (see `can11`) are skipped here — see
- * `extendedModulesForVin`. */
+ * generic sweep so a recognized car finds its real modules first. */
 export function knownModulesForVin(
   vin: string | null | undefined,
 ): { req: number; resp: number; name: string | null }[] {
@@ -120,17 +118,14 @@ export function knownModulesForVin(
   if (!brand) return [];
   const out: { req: number; resp: number; name: string | null }[] = [];
   for (const m of brand.modules ?? []) {
-    const req = can11(m.req);
-    const resp = can11(m.resp);
+    const req = hexAny(m.req);
+    const resp = hexAny(m.resp);
     if (req !== undefined && resp !== undefined) out.push({ req, resp, name: m.name ?? null });
   }
   return out;
 }
 
-/** How many of this brand's documented modules use a 29-bit extended
- * address the engine can't drive yet (11-bit only) — counted so a UI
- * can say why a brand shows fewer reachable modules than its map lists,
- * instead of silently looking like it simply has fewer modules. */
+/** How many documented modules use 29-bit addressing. */
 export function extendedModulesForVin(vin: string | null | undefined): number {
   const brand = brandForVin(vin);
   if (!brand) return 0;
@@ -155,25 +150,74 @@ export function responseAddr(brand: Brand | undefined, req: number): number {
   return req + getMap().standard.address_scan.resp_offset;
 }
 
-/** Every request/response pair worth trying when enumerating the bus:
- * this brand's documented modules first (so real finds show up
- * immediately), then the full conventional 11-bit range behind them,
- * with response addresses derived per-brand. */
+export type CandidateSource = "profile" | "conventional_11bit" | "normal_fixed_29bit";
+export type AddressCandidate = {
+  req: number;
+  resp: number;
+  name: string | null;
+  profile_candidate: boolean;
+  source: CandidateSource;
+};
+
+function normalFixed29bitTarget(req: number, resp: number): number | undefined {
+  if ((req & 0xffff00ff) !== 0x18da00f1 || (resp & 0xffffff00) !== 0x18daf100) return undefined;
+  const target = (req >>> 8) & 0xff;
+  return (resp & 0xff) === target ? target : undefined;
+}
+
+function scanStrategies(
+  brand: Brand | undefined,
+  known: { req: number; resp: number }[],
+): { scan11bit: boolean; scan29bit: boolean } {
+  if (!brand) return { scan11bit: true, scan29bit: true };
+  switch (brand.scan_policy ?? "auto") {
+    case "none":
+      return { scan11bit: false, scan29bit: false };
+    case "conventional_11bit":
+      return { scan11bit: true, scan29bit: false };
+    case "normal_fixed_29bit":
+      return { scan11bit: false, scan29bit: true };
+    case "conventional_11bit_and_normal_fixed_29bit":
+      return { scan11bit: true, scan29bit: true };
+    case "auto":
+      return { scan11bit: true, scan29bit: known.some(({ req, resp }) => normalFixed29bitTarget(req, resp) !== undefined) };
+  }
+}
+
+/** Build an evidence-driven enumeration plan: documented pairs first, then
+ * only the generic addressing schemes allowed by this brand's policy. */
 export function addressesToProbe(
   vin: string | null | undefined,
-): { req: number; resp: number; name: string | null }[] {
+): AddressCandidate[] {
   const scan = getMap().standard.address_scan;
   const from = can11(scan.req_from) ?? 0x700;
   const to = can11(scan.req_to) ?? 0x7f6;
   const excluded = new Set((scan.exclude ?? []).map((e) => can11(e)).filter((v): v is number => v !== undefined));
 
   const brand = brandForVin(vin);
-  const out = knownModulesForVin(vin);
+  const known = knownModulesForVin(vin);
+  const strategies = scanStrategies(brand, known);
+  const out: AddressCandidate[] = known.map((candidate) => ({
+    ...candidate,
+    profile_candidate: true,
+    source: "profile",
+  }));
   const seen = new Set(out.map((m) => m.req));
-  for (let req = from; req <= to; req++) {
-    if (excluded.has(req) || seen.has(req)) continue;
-    seen.add(req);
-    out.push({ req, resp: responseAddr(brand, req), name: null });
+  if (strategies.scan11bit) {
+    for (let req = from; req <= to; req++) {
+      if (excluded.has(req) || seen.has(req)) continue;
+      seen.add(req);
+      out.push({ req, resp: responseAddr(brand, req), name: null, profile_candidate: false, source: "conventional_11bit" });
+    }
+  }
+  if (strategies.scan29bit) {
+    for (let target = 0; target <= 0xff; target++) {
+      if (target === 0xf1 || target === 0xfe || target === 0xff) continue;
+      const req = 0x18da00f1 | (target << 8);
+      if (seen.has(req)) continue;
+      seen.add(req);
+      out.push({ req, resp: 0x18daf100 | target, name: null, profile_candidate: false, source: "normal_fixed_29bit" });
+    }
   }
   return out;
 }

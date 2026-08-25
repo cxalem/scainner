@@ -4,6 +4,12 @@
 // both — see RESEARCH.md for the map's provenance and confidence notes).
 
 export type Confidence = "confirmed" | "high" | "medium" | "low";
+export type ScanPolicy =
+  | "auto"
+  | "none"
+  | "conventional_11bit"
+  | "normal_fixed_29bit"
+  | "conventional_11bit_and_normal_fixed_29bit";
 
 export interface IdentDid {
   did: string;
@@ -81,6 +87,7 @@ export interface Brand {
   did_bands?: Band[];
   known_dids?: KnownDid[];
   resp_offsets?: RespOffset[];
+  scan_policy?: ScanPolicy;
 }
 
 export interface UdsMap {
