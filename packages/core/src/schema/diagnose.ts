@@ -1,6 +1,7 @@
 // Response types for the DTC/diagnose surface (Diagnose.tsx, its detail
 // modal, WriteHistory.tsx's audit trail).
 import { Schema } from "effect";
+import { DiagnosticOutcome } from "./diagnostic-outcome";
 
 const dtcResultFields = {
   mil_on: Schema.Boolean,
@@ -37,6 +38,7 @@ export class DtcScanRow extends Schema.Class<DtcScanRow>("DtcScanRow")({
 export class ObdClearOutcome extends Schema.Class<ObdClearOutcome>("ObdClearOutcome")({
   before: DtcResult,
   after: DtcResult,
+  outcome: DiagnosticOutcome,
 }) {}
 // One row of the write audit trail (writes_log table) — covers writes from
 // both this feature (clear_dtcs) and lab (uds_clear); it lives here because

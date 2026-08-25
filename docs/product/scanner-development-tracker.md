@@ -12,8 +12,8 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 |---:|---|---|---|
 | 0 | Full-repository CI | done | [PR #36](https://github.com/cxalem/scainner/pull/36) |
 | 1 | Deterministic ELM session replay | done | [PR #37](https://github.com/cxalem/scainner/pull/37), 63 Rust tests |
-| 2 | Verified clear outcomes | ready | Branch `fix/verified-clear-outcomes`; 73 Rust tests plus full JS CI passed |
-| 3 | Shared typed diagnostic outcomes | queued | Depends on the concrete clear-response model from slice 2 |
+| 2 | Verified clear outcomes | done | [PR #38](https://github.com/cxalem/scainner/pull/38), 73 Rust tests plus full JS CI passed |
+| 3 | Shared typed diagnostic outcomes | active | Branch `feat/typed-diagnostic-outcomes` |
 | 4 | Central scanner safety and cleanup guard | queued | Depends on typed outcomes |
 | 5 | Discovery strategy and coverage accounting | queued | Depends on safety guard |
 | 6 | Safe 11-bit and 29-bit module enumeration | queued | Depends on discovery strategy |
@@ -26,7 +26,7 @@ Status values: `done`, `in_review`, `active`, `ready`, `queued`, `blocked`.
 | 13 | Signed knowledge distribution and review loop | queued | Depends on stable knowledge schema |
 | 14 | Five-workshop alpha | queued | Depends on slices 0–12 |
 
-## Active slice: verified clear outcomes
+## Completed slice: verified clear outcomes
 
 Deliverables:
 
@@ -49,6 +49,29 @@ Acceptance criteria:
 - Verification distinguishes refusal from acknowledgement followed by faults
   remaining.
 - All behavior is reproducible without connected hardware.
+- Full repository CI passes.
+
+## Active slice: shared typed diagnostic outcomes
+
+Deliverables:
+
+- One serialized diagnostic status vocabulary shared by Rust and TypeScript.
+- Structured service, negative-response-code, and evidence fields without
+  embedding UI prose in scanner results.
+- Mode 04, UDS clear, and discovery results use the shared envelope.
+- The Lab consumes typed cancellation and safety-stop states while legacy
+  discovery fields remain temporarily compatible.
+- Replay and schema tests lock the wire contract before later scanner paths
+  adopt it.
+
+Acceptance criteria:
+
+- The wire vocabulary distinguishes answered, unsupported, refused, timed out,
+  transport failed, cancelled, skipped for safety, and malformed outcomes.
+- A UDS refusal preserves its numeric NRC and decoded name.
+- Discovery cancellation and engine-start protection are machine-readable and
+  do not depend on parsing display strings.
+- Existing clear and discovery behavior sends no new vehicle traffic.
 - Full repository CI passes.
 
 ## Product gates

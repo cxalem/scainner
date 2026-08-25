@@ -4,6 +4,7 @@
 //! knowledge required. (Manufacturer-specific access lives in `uds.rs`.)
 
 use super::driver::ElmDriver;
+use super::outcome::DiagnosticOutcome;
 use super::parser;
 use serde::Serialize;
 use std::time::Duration;
@@ -27,6 +28,7 @@ pub struct DtcResult {
 pub struct ObdClearOutcome {
     pub before: DtcResult,
     pub after: DtcResult,
+    pub outcome: DiagnosticOutcome,
 }
 
 /// How a verified clear can fail. The caller needs to know which phase died
@@ -59,7 +61,11 @@ pub fn clear_and_verify(drv: &mut ElmDriver) -> Result<ObdClearOutcome, ClearErr
         }
     };
     match verification {
-        Ok(after) => Ok(ObdClearOutcome { before, after }),
+        Ok(after) => Ok(ObdClearOutcome {
+            before,
+            after,
+            outcome: DiagnosticOutcome::answered("04"),
+        }),
         Err(e) => Err(ClearError::VerifyFailed { before, error: e }),
     }
 }

@@ -1,6 +1,7 @@
 // Response types for the UDS/Lab surface (Lab.tsx and its cards:
 // DidReader, RangeScanner, ModuleFaults, ModuleManager, ProbeManager).
 import { Schema } from "effect";
+import { DiagnosticOutcome } from "./diagnostic-outcome";
 
 export class UdsModule extends Schema.Class<UdsModule>("UdsModule")({
   key: Schema.String,
@@ -39,6 +40,7 @@ export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
   accepted: Schema.Boolean,
   refusal_reason: Schema.NullOr(Schema.String),
   after: Schema.mutable(Schema.Array(Schema.String)),
+  outcome: DiagnosticOutcome,
 }) {}
 
 /// Result of one auto-discovery pass (uds::DiscoveryReport). `cancelled`
@@ -48,6 +50,7 @@ export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
 /// (a real risk: a module held in an extended session while the engine
 /// starts can throw dash warnings/comm faults on it).
 export class DiscoveryReport extends Schema.Class<DiscoveryReport>("DiscoveryReport")({
+  outcome: DiagnosticOutcome,
   modules_found: Schema.Number,
   dids_found: Schema.Number,
   // Of dids_found, how many got a FULL decode formula from the knowledge

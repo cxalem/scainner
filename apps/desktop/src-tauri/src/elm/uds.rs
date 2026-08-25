@@ -29,6 +29,7 @@
 //! docs/workflows/write-caps/plan.md).
 
 use super::driver::{ElmDriver, ElmError};
+use super::outcome::DiagnosticOutcome;
 use super::parser;
 use super::uds_map;
 use crate::db::Db;
@@ -273,7 +274,7 @@ pub fn read_dtcs(drv: &mut ElmDriver) -> Result<Vec<String>, ElmError> {
 /// does — it cannot damage anything, it only erases stored fault records.
 /// Gate this behind an explicit user confirmation in the UI, same as the
 /// existing engine-code clear.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum ClearDecision {
     Accepted,
     Refused(u8),
@@ -351,6 +352,7 @@ pub struct ClearOutcome {
     pub accepted: bool,
     pub refusal_reason: Option<String>,
     pub after: Vec<String>,
+    pub outcome: DiagnosticOutcome,
 }
 
 /// Custom modules from the DB, converted to `UdsModule`. A tiny adapter so
@@ -482,11 +484,18 @@ pub fn clear_module(
         outcome,
         None,
     );
+    let outcome = match decision {
+        ClearDecision::Accepted => DiagnosticOutcome::answered("14"),
+        ClearDecision::Refused(code) => {
+            DiagnosticOutcome::refused("14", code, parser::negative_response_name(code))
+        }
+    };
     Ok(ClearOutcome {
         before,
         accepted,
         refusal_reason,
         after,
+        outcome,
     })
 }
 
@@ -698,6 +707,9 @@ fn should_poll_probe(probe: &crate::db::UdsProbe) -> bool {
 
 #[derive(Serialize, Clone)]
 pub struct DiscoveryReport {
+    /// Stable machine-readable result shared by every diagnostic operation.
+    /// Legacy discovery fields remain during the UI migration.
+    pub outcome: DiagnosticOutcome,
     pub modules_found: u32,
     pub dids_found: u32,
     /// Of `dids_found`, how many the knowledge map had a FULL decode
@@ -987,6 +999,7 @@ pub fn discover(
         if cancel_scan.swap(false, Ordering::Relaxed) {
             teardown(drv);
             return Ok(DiscoveryReport {
+                outcome: DiagnosticOutcome::cancelled(),
                 modules_found: present.len() as u32,
                 dids_found: 0,
                 sensors_added: 0,
@@ -999,6 +1012,7 @@ pub fn discover(
             log::warn!("discovery: engine start detected (voltage jump) — stopping to avoid a module mid-session when it starts");
             teardown(drv);
             return Ok(DiscoveryReport {
+                outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                 modules_found: present.len() as u32,
                 dids_found: 0,
                 sensors_added: 0,
@@ -1051,6 +1065,7 @@ pub fn discover(
                 // only happens in phase 3's data sweep — so 0 is exact
                 // here, not a placeholder.
                 return Ok(DiscoveryReport {
+                    outcome: DiagnosticOutcome::cancelled(),
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added: 0,
@@ -1063,6 +1078,7 @@ pub fn discover(
                 log::warn!("discovery: engine start detected mid-identification — stopping");
                 teardown(drv);
                 return Ok(DiscoveryReport {
+                    outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added: 0,
@@ -1155,6 +1171,7 @@ pub fn discover(
             if cancel_scan.swap(false, Ordering::Relaxed) {
                 finish_operation(drv, extended_session_open);
                 return Ok(DiscoveryReport {
+                    outcome: DiagnosticOutcome::cancelled(),
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added,
@@ -1170,6 +1187,7 @@ pub fn discover(
                     );
                 finish_operation(drv, extended_session_open);
                 return Ok(DiscoveryReport {
+                    outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     modules_found: present.len() as u32,
                     dids_found,
                     sensors_added,
@@ -1283,6 +1301,7 @@ pub fn discover(
         present.len()
     );
     Ok(DiscoveryReport {
+        outcome: DiagnosticOutcome::answered("discovery"),
         modules_found: present.len() as u32,
         dids_found,
         sensors_added,
@@ -1339,6 +1358,7 @@ fn fast_refresh(
             if cancel_scan.swap(false, Ordering::Relaxed) {
                 finish_operation(drv, extended_session_open);
                 return Ok(DiscoveryReport {
+                    outcome: DiagnosticOutcome::cancelled(),
                     modules_found: modules_seen,
                     dids_found,
                     sensors_added,
@@ -1351,6 +1371,7 @@ fn fast_refresh(
                 log::warn!("fast refresh: engine start detected — stopping");
                 finish_operation(drv, extended_session_open);
                 return Ok(DiscoveryReport {
+                    outcome: DiagnosticOutcome::skipped_for_safety("engine_started"),
                     modules_found: modules_seen,
                     dids_found,
                     sensors_added,
@@ -1416,6 +1437,7 @@ fn fast_refresh(
     emit("done", total, total, "", modules_seen, dids_found);
     log::info!("fast refresh complete: {modules_seen} modules, {dids_found} DIDs re-verified");
     Ok(DiscoveryReport {
+        outcome: DiagnosticOutcome::answered("discovery"),
         modules_found: modules_seen,
         dids_found,
         sensors_added,

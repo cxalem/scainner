@@ -446,7 +446,11 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         outcome: after.stored.length + after.pending.length === 0 ? "cleared" : "faults_remain",
         error: null,
       });
-      return { before, after } as ObdClearOutcome as T;
+      return {
+        before,
+        after,
+        outcome: { status: "answered", service: "04", nrc: null, detail: null },
+      } as ObdClearOutcome as T;
     }
     case "reading_keys":
       return ["fuel_level"] as T;
@@ -482,7 +486,15 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       await delay(600);
       connState = { ...connState, scanning: false };
       emit("conn-status", connState);
-      return { modules_found: 1, dids_found: 2, sensors_added: 1, cancelled: false, auto_stopped_reason: null, was_fast_refresh: false } as T;
+      return {
+        outcome: { status: "answered", service: "discovery", nrc: null, detail: null },
+        modules_found: 1,
+        dids_found: 2,
+        sensors_added: 1,
+        cancelled: false,
+        auto_stopped_reason: null,
+        was_fast_refresh: false,
+      } as T;
     case "discovered_modules":
       return [{ id: 1, address: "6B4/694", name: "BSI (body computer)", discovered_at: "2026-08-24 10:00:00", did_count: 2, labeled_count: 1 }] as T;
     case "discovered_dids":
@@ -510,7 +522,13 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         outcome: "cleared",
         error: null,
       });
-      return { before, accepted: true, refusal_reason: null, after: [] } as ClearOutcome as T;
+      return {
+        before,
+        accepted: true,
+        refusal_reason: null,
+        after: [],
+        outcome: { status: "answered", service: "14", nrc: null, detail: null },
+      } as ClearOutcome as T;
     }
     case "writes_log":
       return WRITES.slice(0, Number(args?.limit ?? 20)) as T;
