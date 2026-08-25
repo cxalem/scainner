@@ -54,6 +54,7 @@ export class ModuleProbeResult extends Schema.Class<ModuleProbeResult>("ModulePr
   response_address: Schema.String,
   expected_name: Schema.NullOr(Schema.String),
   profile_candidate: Schema.Boolean,
+  source: Schema.Literal("profile", "conventional_11bit", "normal_fixed_29bit"),
   outcome: DiagnosticOutcome,
 }) {}
 

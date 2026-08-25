@@ -506,6 +506,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
             response_address: "694",
             expected_name: "BSI (body computer)",
             profile_candidate: true,
+            source: "profile",
             outcome: { status: "answered", service: "22", nrc: null, detail: null },
           },
           {
@@ -513,6 +514,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
             response_address: "688",
             expected_name: "Engine ECU",
             profile_candidate: true,
+            source: "profile",
             outcome: { status: "refused", service: "22", nrc: 0x31, detail: "requestOutOfRange" },
           },
           {
@@ -520,6 +522,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
             response_address: "600",
             expected_name: null,
             profile_candidate: false,
+            source: "conventional_11bit",
             outcome: { status: "timed_out", service: "22", nrc: null, detail: null },
           },
         ],
