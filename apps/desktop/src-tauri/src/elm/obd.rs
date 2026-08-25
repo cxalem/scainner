@@ -273,3 +273,51 @@ pub fn read_all_sensors(drv: &mut ElmDriver) -> Result<Vec<SensorReading>, Strin
     }
     Ok(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replays_a_complete_redacted_citroen_scan() {
+        let raw = include_str!("../../tests/fixtures/elm/citroen-clean-redacted.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let scan = scan_dtcs(&mut driver).expect("captured scan should decode");
+
+        assert!(!scan.mil_on);
+        assert_eq!(scan.dtc_count, 0);
+        assert!(scan.stored.is_empty());
+        assert!(scan.pending.is_empty());
+        assert!(scan.permanent.is_empty());
+        assert_eq!(scan.voltage, Some(12.6));
+        assert!(scan.freeze.is_none());
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn missing_vin_still_returns_the_detected_kline_protocol() {
+        let raw = include_str!("../../tests/fixtures/elm/peugeot-no-vin-redacted.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let info = read_ecu_info(&mut driver).expect("missing VIN is not a transport failure");
+
+        assert!(info.vin.is_empty());
+        assert_eq!(info.protocol, "ISO 14230-4 KWP (fast init)");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn malformed_mil_capture_fails_the_scan_honestly() {
+        let raw = include_str!("../../tests/fixtures/elm/malformed-mil-redacted.json");
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+
+        let error = match scan_dtcs(&mut driver) {
+            Ok(_) => panic!("short MIL payload must fail"),
+            Err(error) => error,
+        };
+
+        assert_eq!(error, "bad 0101 response");
+        driver.assert_replay_complete();
+    }
+}

@@ -22,6 +22,9 @@ use std::os::unix::io::RawFd;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
+#[cfg(test)]
+use serde::Deserialize;
+
 // Defaults match the author's own vGate iCar Pro — override via env vars for
 // any other dongle/pairing. `port()` and `bt_addr()` are the functions
 // everything else in this module and `supervisor.rs` actually call; the
@@ -57,7 +60,13 @@ pub enum ElmError {
 }
 
 pub struct ElmDriver {
-    fd: RawFd,
+    backend: Backend,
+}
+
+enum Backend {
+    Serial(RawFd),
+    #[cfg(test)]
+    Replay(ReplayBackend),
 }
 
 // The fd is only touched from the supervisor thread.
@@ -65,7 +74,13 @@ unsafe impl Send for ElmDriver {}
 
 impl Drop for ElmDriver {
     fn drop(&mut self) {
-        unsafe { libc::close(self.fd) };
+        match &self.backend {
+            Backend::Serial(fd) => unsafe {
+                libc::close(*fd);
+            },
+            #[cfg(test)]
+            Backend::Replay(_) => {}
+        }
     }
 }
 
@@ -111,11 +126,23 @@ impl ElmDriver {
             }
             libc::tcflush(fd, libc::TCIOFLUSH);
         }
-        Ok(Self { fd })
+        Ok(Self {
+            backend: Backend::Serial(fd),
+        })
     }
 
     /// Send a command, read until the ELM `>` prompt or timeout.
     pub fn cmd(&mut self, c: &str, timeout: Duration) -> Result<String, ElmError> {
+        #[cfg(test)]
+        if let Backend::Replay(replay) = &mut self.backend {
+            return replay.cmd(c, timeout);
+        }
+
+        let fd = match &self.backend {
+            Backend::Serial(fd) => *fd,
+            #[cfg(test)]
+            Backend::Replay(_) => unreachable!("the replay backend is handled above"),
+        };
         // Discard anything already sitting unread in the input buffer before
         // writing — a previous command whose response arrived after this
         // struct's own deadline gave up on it (still returned Ok/Err, but
@@ -130,14 +157,14 @@ impl ElmDriver {
         // that doesn't match its expected prefix — including a stale one
         // from a prior command — now yields no reading instead of a wrong
         // one, rather than relying on this flush alone).
-        unsafe { libc::tcflush(self.fd, libc::TCIFLUSH) };
+        unsafe { libc::tcflush(fd, libc::TCIFLUSH) };
         let msg = format!("{c}\r");
         let bytes = msg.as_bytes();
         let mut written = 0usize;
         while written < bytes.len() {
             let n = unsafe {
                 libc::write(
-                    self.fd,
+                    fd,
                     bytes[written..].as_ptr() as *const libc::c_void,
                     bytes.len() - written,
                 )
@@ -147,19 +174,13 @@ impl ElmDriver {
             }
             written += n as usize;
         }
-        unsafe { libc::tcdrain(self.fd) };
+        unsafe { libc::tcdrain(fd) };
 
         let mut buf: Vec<u8> = Vec::new();
         let mut chunk = [0u8; 256];
         let deadline = Instant::now() + timeout;
         while Instant::now() < deadline {
-            let n = unsafe {
-                libc::read(
-                    self.fd,
-                    chunk.as_mut_ptr() as *mut libc::c_void,
-                    chunk.len(),
-                )
-            };
+            let n = unsafe { libc::read(fd, chunk.as_mut_ptr() as *mut libc::c_void, chunk.len()) };
             if n < 0 {
                 return Err(ElmError::Io(std::io::Error::last_os_error().to_string()));
             }
@@ -177,6 +198,45 @@ impl ElmDriver {
             return Err(ElmError::NoResponse);
         }
         Ok(String::from_utf8_lossy(&buf).into_owned())
+    }
+
+    #[cfg(test)]
+    pub fn from_replay_json(raw: &str) -> Result<Self, String> {
+        let fixture: ReplayFixture = serde_json::from_str(raw)
+            .map_err(|error| format!("invalid replay fixture: {error}"))?;
+        if fixture.schema_version != 1 {
+            return Err(format!(
+                "unsupported replay schema version {}",
+                fixture.schema_version
+            ));
+        }
+        if fixture.contains_vehicle_identifiers {
+            return Err("replay fixtures must not contain vehicle identifiers".into());
+        }
+        if fixture.steps.is_empty() {
+            return Err("replay fixture has no steps".into());
+        }
+        Ok(Self {
+            backend: Backend::Replay(ReplayBackend {
+                name: fixture.name,
+                steps: fixture.steps.into(),
+                observed: Vec::new(),
+            }),
+        })
+    }
+
+    #[cfg(test)]
+    pub fn assert_replay_complete(&self) {
+        let Backend::Replay(replay) = &self.backend else {
+            panic!("assert_replay_complete called on a serial driver")
+        };
+        assert!(
+            replay.steps.is_empty(),
+            "replay {:?} ended with {} unconsumed steps after commands {:?}",
+            replay.name,
+            replay.steps.len(),
+            replay.observed
+        );
     }
 
     /// ATZ (retried) → ATE0 → ATSP0. Returns the ELM version string.
@@ -202,6 +262,87 @@ impl ElmDriver {
         self.cmd("ATE0", Duration::from_secs(3))?;
         self.cmd("ATSP0", Duration::from_secs(3))?;
         Ok(version)
+    }
+}
+
+#[cfg(test)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReplayFixture {
+    schema_version: u32,
+    name: String,
+    /// A fixture is rejected unless its author explicitly confirms that VINs,
+    /// ECU serials, registration numbers, and adapter MACs were removed.
+    contains_vehicle_identifiers: bool,
+    steps: Vec<ReplayStep>,
+}
+
+#[cfg(test)]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReplayStep {
+    command: String,
+    #[serde(default)]
+    response: Option<String>,
+    #[serde(default)]
+    error: Option<ReplayError>,
+    #[serde(default)]
+    minimum_timeout_ms: Option<u64>,
+}
+
+#[cfg(test)]
+#[derive(Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum ReplayError {
+    NoResponse,
+    Io,
+    Handshake,
+}
+
+#[cfg(test)]
+struct ReplayBackend {
+    name: String,
+    steps: std::collections::VecDeque<ReplayStep>,
+    observed: Vec<String>,
+}
+
+#[cfg(test)]
+impl ReplayBackend {
+    fn cmd(&mut self, command: &str, timeout: Duration) -> Result<String, ElmError> {
+        self.observed.push(command.to_string());
+        let Some(step) = self.steps.pop_front() else {
+            return Err(ElmError::Handshake(format!(
+                "replay {:?} received unexpected command {command:?}",
+                self.name
+            )));
+        };
+        if step.command != command {
+            return Err(ElmError::Handshake(format!(
+                "replay {:?} expected command {:?}, got {command:?}",
+                self.name, step.command
+            )));
+        }
+        if let Some(minimum) = step.minimum_timeout_ms {
+            if timeout < Duration::from_millis(minimum) {
+                return Err(ElmError::Handshake(format!(
+                    "replay {:?} command {command:?} requires at least {minimum}ms, got {}ms",
+                    self.name,
+                    timeout.as_millis()
+                )));
+            }
+        }
+        match (step.response, step.error) {
+            (Some(response), None) => Ok(response),
+            (None, Some(ReplayError::NoResponse)) => Err(ElmError::NoResponse),
+            (None, Some(ReplayError::Io)) => Err(ElmError::Io("replayed I/O failure".into())),
+            (None, Some(ReplayError::Handshake)) => {
+                Err(ElmError::Handshake("replayed handshake failure".into()))
+            }
+            _ => Err(ElmError::Handshake(format!(
+                "replay {:?} step {command:?} must define exactly one of response or error",
+                self.name
+            ))),
+        }
     }
 }
 
@@ -282,4 +423,64 @@ pub fn bluetooth_repair(addr: &str, pin: &str) -> Result<(), String> {
     }
     // Port node sometimes needs one extra cycle after a re-pair.
     bluetooth_cycle(addr)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TRANSPORT_FAILURES: &str =
+        include_str!("../../tests/fixtures/elm/transport-failures.json");
+
+    #[test]
+    fn replay_preserves_transport_failure_categories_and_time_requirements() {
+        let mut driver = ElmDriver::from_replay_json(TRANSPORT_FAILURES).unwrap();
+
+        assert!(matches!(
+            driver.cmd("NO_RESPONSE", Duration::from_secs(1)),
+            Err(ElmError::NoResponse)
+        ));
+        assert!(matches!(
+            driver.cmd("IO_FAILURE", Duration::from_secs(1)),
+            Err(ElmError::Io(_))
+        ));
+        assert!(matches!(
+            driver.cmd("HANDSHAKE_FAILURE", Duration::from_secs(1)),
+            Err(ElmError::Handshake(_))
+        ));
+        assert!(matches!(
+            driver.cmd("SLOW_RESPONSE", Duration::from_millis(999)),
+            Err(ElmError::Handshake(_))
+        ));
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn replay_rejects_out_of_order_commands() {
+        let raw = r#"{
+            "schema_version": 1,
+            "name": "ordered",
+            "contains_vehicle_identifiers": false,
+            "steps": [{"command": "0101", "response": "41 01 00 00 00 00\\r>"}]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(raw).unwrap();
+        let error = driver
+            .cmd("03", Duration::from_secs(1))
+            .expect_err("the wrong command must fail");
+        assert!(error.to_string().contains("expected command"));
+    }
+
+    #[test]
+    fn replay_rejects_unreviewed_vehicle_identifiers() {
+        let raw = r#"{
+            "schema_version": 1,
+            "name": "unsafe capture",
+            "contains_vehicle_identifiers": true,
+            "steps": [{"command": "0902", "response": "REDACT ME"}]
+        }"#;
+        let error = ElmDriver::from_replay_json(raw)
+            .err()
+            .expect("privacy-marked fixture must be rejected");
+        assert!(error.contains("vehicle identifiers"));
+    }
 }

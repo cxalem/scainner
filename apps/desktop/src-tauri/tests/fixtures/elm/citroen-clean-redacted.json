@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "Citroen clean standard-DTC scan (redacted)",
+  "contains_vehicle_identifiers": false,
+  "steps": [
+    { "command": "0101", "response": "41 01 00 07 E1 00\r>" },
+    { "command": "03", "response": "43 00\r>" },
+    { "command": "07", "response": "47 00\r>" },
+    { "command": "0A", "error": "no_response" },
+    { "command": "ATRV", "response": "12.6V\r>" }
+  ]
+}
