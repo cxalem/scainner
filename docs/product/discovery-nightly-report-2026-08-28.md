@@ -141,11 +141,14 @@ the learning-state switch and the matched/enabled path; the existing
 
 ### A7 — `discovery/identity.rs`
 
-`record_identity(db, module_id, &EcuFingerprint) -> Option<(IdentityFit,
-reads)>`: hashes the fingerprint `match_key` (FNV-1a 64, written out so a
-toolchain change cannot flip persisted hashes; serial and VIN never enter
-it) and applies `next_identity_fit` through `Db::record_identity`. A
-fingerprint without comparison material does not count as a read. Not wired
+`record_identity(db, module_id, &EcuFingerprint, connection_id) ->
+Option<(IdentityFit, reads)>`: hashes the fingerprint `match_key` (FNV-1a
+64, written out so a toolchain change cannot flip persisted hashes; serial
+and VIN never enter it) and applies `next_identity_fit` through
+`Db::record_identity`. Stable requires the same bytes on a *different*
+connection (`identity_connection_id`); a repeat inside the same session
+stays provisional. A fingerprint without comparison material does not count
+as a read. Not wired
 into the supervisor (outside ownership) — see follow-ups.
 
 ## Tests
@@ -284,13 +287,16 @@ Not blocking.
 
 1. `supervisor.rs`, right after `db.update_ecu_fingerprint(module_id,
    &fingerprint)`: add
-   `crate::elm::discovery::identity::record_identity(&db, module_id, &fingerprint);`
-   (one line). Then `identity_fit` moves provisional → stable on the second
-   connection and the coverage `remaining` line about it disappears.
-2. `uds.rs` `psa_identity_fingerprint`: map F080 ref 2 → `hardware_version`
-   and `F0FE` bytes 21–23 → `software_version`, as the correction in
-   `parked-vehicle-verification.md` describes (the stored rows were fixed by
-   hand; the parser was not). Until then fresh fingerprints match Weak.
+   `crate::elm::discovery::identity::record_identity(&db, module_id, &fingerprint, connection_id);`
+   (one line; the connection id is the current `connections` row). Then
+   `identity_fit` moves provisional → stable on the second connection and
+   the coverage `remaining` line about it disappears.
+2. `uds.rs` `psa_identity_fingerprint`: F080 ref 2 → `hardware_version`,
+   `F0FE` bytes 21–23 → `software_version`. This fix now exists as PR #53
+   (`fix/psa-fingerprint-parser`). Once #53 merges, fresh fingerprints carry
+   the `F0FE` software reference and match **Strong**; until then a module
+   fingerprinted afresh matches Weak (right part, software ref not in the
+   family list).
 3. `supervisor.rs`: the S5 hypothesis poll — read `activation = learning`
    hypotheses round-robin and call `db.insert_hypothesis_sample(...)` with
    the nearest standard-PID readings as `refs_json`.
@@ -315,3 +321,66 @@ Not blocking.
   `uds_map.rs` or the uds-map data.
 - Commits on the branch: uds-map v8 + TS mirror; knowledge layer (family,
   state, identity, join, coverage, db); API + Python client; this report.
+
+## Review fixes (2026-08-28, same branch)
+
+An independent review of the branch found the items below; all are fixed on
+`feat/discovery-knowledge-layer` (PR #52 stays open, not merged). `cargo
+test` 126 → 128; clippy, fmt, tsc and vitest unchanged.
+
+1. **Labels survive a re-join.** `upsert_hypothesis` now sets `label` only
+   when the stored label is NULL; a user's PATCHed label is never overwritten
+   by a family label. Idempotency test asserts a PATCHed label on D400 is
+   intact after a second join.
+2. **ASCII-serial rule narrowed.** Serial-like now means ≥ 10 printable
+   bytes with at least half letters. A 6-byte block of 2-byte values in the
+   printable range passes; `D611 "0000178734"` and `D619
+   "DSGiRESC00.1170001"` are still excluded (by the D6xx band rule and the
+   letter rule respectively).
+3. **Entropy rule scoped.** No entropy rule below 16 bytes; 16–31 bytes need
+   ≥ 90 % distinct bytes; ≥ 32 bytes excluded by length alone. The
+   "no sample ⇒ exclude if long" shortcut is gone (unknown is not excluded).
+   Tests: a 12-byte block of six measurements passes; the 18-byte
+   `D636–D639`-style blobs are excluded in and out of band.
+4. **400 vs 409.** `PATCH /hypotheses/{id}` returns 400 for
+   `unknown_state_value` (a value outside the vocabulary) and 409 for the
+   transition rules. Router test covers both.
+5. **Shared part references.** `match_family` considers every family whose
+   `hardware_refs` contain the part; the one also listing the software
+   reference wins (Strong), else the first is Weak. `uds_map::
+   families_for_hardware_ref` returns the whole set. Test with two families
+   sharing a part.
+6. **Run-id truncation flagged.** Evidence run ids are read up to 1000
+   (`RUN_ID_LIMIT`); hitting the limit appends
+   `"evidence run ids truncated at 1000 (newest first)"` to
+   `routes.limitations`.
+7. **Weak matches are research candidates.** Only a Strong match carries the
+   family decode's `knowledge_state` onto the hypothesis; Weak and NameOnly
+   create `research_candidate` rows. The family's own state travels in
+   `decode_json.inherited_knowledge_state` (renamed from `family_state`).
+   Join tests updated.
+8. **NameOnly is exact.** Case-insensitive, trimmed equality on the family
+   name; no substring matching, and a supplier alone never matches.
+9. **Learning-state cascade.** `PUT /learning-state {"on": false}` runs one
+   `UPDATE hypotheses SET activation='disabled' WHERE activation='learning'`
+   across every vehicle and answers `{"on": false, "disabled": N}`. Router
+   test asserts the count and the resulting rows.
+10. **Guided vs passive tests.** `coverage::is_guided_step(test)` — false
+    when the text starts with `drive:` or mentions a learning drive /
+    passive. `learning.guided_steps` holds the human steps and the new
+    `learning.passive_tests` the drive ones. On the seeded C4: 12 guided
+    (pedals, wheel, reverse, clutch, voltage, DSGi distance), 4 passive
+    (wheel speeds).
+11. **Identity needs an independent connection.** New idempotent column
+    `discovered_modules.identity_connection_id`; `record_identity(module_id,
+    hash, connection_id)`: first read → provisional; same hash on a
+    different connection → stable; same hash on the same connection → still
+    provisional; mismatch → conflicted (sticky). Rows hashed before the
+    column existed count as "unknown connection" so the next real read can
+    make them stable. State, db, identity and join tests updated; the A7 and
+    follow-up #1 text above now names the extra argument.
+12. **D6xx–D7xx exclusion narrowed.** Only config-shaped answers in the band
+    are excluded (payload ≥ 3 bytes, or ASCII/serial-like); 1- and 2-byte
+    values become hypotheses, so engine D6xx measurements are tracked. The
+    seeded C4 gains an engine `D622 = 00 07` hypothesis (21 hypotheses
+    total, 5 unknown); `D619`, `D611` and `D701` stay excluded.

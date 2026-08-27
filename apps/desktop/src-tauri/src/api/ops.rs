@@ -501,11 +501,20 @@ pub fn learning_state(state: &AppState) -> bool {
         .unwrap_or(false)
 }
 
-pub fn set_learning_state(state: &AppState, on: bool) {
+/// Switch the learning state. Turning it off cascades: every hypothesis
+/// polled as `learning` (on any vehicle) goes back to `disabled`, so the
+/// supervisor never keeps reading DIDs the flag no longer allows. Returns
+/// how many hypotheses were disabled.
+pub fn set_learning_state(state: &AppState, on: bool) -> usize {
     state.db.setting_set(
         discovery::state::LEARNING_STATE_SETTING,
         if on { "on" } else { "off" },
     );
+    if on {
+        0
+    } else {
+        state.db.disable_learning_hypotheses()
+    }
 }
 
 /// State transition with the rules enforced; `Err` is the violated rule.

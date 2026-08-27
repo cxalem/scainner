@@ -225,20 +225,25 @@ pub fn check_activation(
     }
 }
 
-/// The identity-confidence rule. `previous_hash` is what the module last
-/// answered (None on the first read); returns the new fit and read count.
+/// The identity-confidence rule. `previous` is what the module last
+/// answered and on which connection (None on the first read). Stable needs
+/// the same material on an *independent* connection: a repeat inside the
+/// same session only proves the ELM buffer, not the ECU.
 pub fn next_identity_fit(
     current: Option<IdentityFit>,
     reads: i64,
-    previous_hash: Option<&str>,
+    previous: Option<(&str, i64)>,
     new_hash: &str,
+    connection_id: i64,
 ) -> (IdentityFit, i64) {
     let reads = reads.max(0) + 1;
-    match (current, previous_hash) {
+    match (current, previous) {
         // Once conflicted, stays conflicted until a human clears it.
         (Some(IdentityFit::Conflicted), _) => (IdentityFit::Conflicted, reads),
-        (_, Some(prev)) if prev == new_hash => (IdentityFit::Stable, reads),
-        (_, Some(_)) => (IdentityFit::Conflicted, reads),
+        (_, Some((prev, _))) if prev != new_hash => (IdentityFit::Conflicted, reads),
+        (Some(IdentityFit::Stable), Some(_)) => (IdentityFit::Stable, reads),
+        (_, Some((_, prev_conn))) if prev_conn != connection_id => (IdentityFit::Stable, reads),
+        (_, Some(_)) => (IdentityFit::Provisional, reads),
         (_, None) => (IdentityFit::Provisional, reads),
     }
 }
@@ -257,28 +262,37 @@ pub fn is_hypothesis_candidate(did: u16, payload_len: usize, payload_sample: &[u
     if payload_len == 0 {
         return false;
     }
-    if (0xF000..=0xF1FF).contains(&did) || (0xD600..=0xD7FF).contains(&did) {
+    if (0xF000..=0xF1FF).contains(&did) {
+        return false;
+    }
+    // `D6xx`/`D7xx`: on the C4's ABS only identifiers, flags and blobs live
+    // here, but the engine ECU keeps 1–2-byte measurements in the same
+    // band. Exclude the config-shaped answers (3+ bytes or text), keep the
+    // short values; per-module bands in the map are the real fix.
+    if (0xD600..=0xD7FF).contains(&did)
+        && (payload_len >= 3 || looks_like_ascii_serial(payload_sample))
+    {
         return false;
     }
     // Security/checksum-like material: long blocks are never a live value.
-    if payload_len >= 16 {
+    if payload_len >= 32 {
         return false;
-    }
-    if payload_sample.is_empty() {
-        return payload_len < 10;
     }
     if looks_like_ascii_serial(payload_sample) {
         return false;
     }
-    if payload_len >= 10 && is_high_entropy(payload_sample) {
+    // Opaque blobs: 16–31 bytes with (almost) every byte different. Shorter
+    // blocks are left alone — six 2-byte measurements look "random" too.
+    if (16..32).contains(&payload_len) && is_high_entropy(payload_sample) {
         return false;
     }
     true
 }
 
-/// Six or more bytes, all printable ASCII (or NUL padding at the end), with
-/// at least one letter or digit: a part number, a software identifier, a
-/// serial — never a measurement.
+/// Ten or more printable-ASCII bytes (NUL/space padding trimmed) of which at
+/// least half are letters: a software identifier, a system name — never a
+/// measurement. Digit-only strings are left to the band rules, because a
+/// block of small 2-byte values sits in the printable range by accident.
 fn looks_like_ascii_serial(bytes: &[u8]) -> bool {
     let trimmed: Vec<u8> = bytes
         .iter()
@@ -289,14 +303,18 @@ fn looks_like_ascii_serial(bytes: &[u8]) -> bool {
         .into_iter()
         .rev()
         .collect();
-    trimmed.len() >= 6
+    let letters = trimmed.iter().filter(|b| b.is_ascii_alphabetic()).count();
+    trimmed.len() >= 10
         && trimmed.iter().all(|b| (0x20..=0x7E).contains(b))
-        && trimmed.iter().any(|b| b.is_ascii_alphanumeric())
+        && letters * 2 >= trimmed.len()
 }
 
-/// Distinct-byte ratio as a cheap entropy proxy: a 10-byte checksum has
-/// ~10 distinct values, a 10-byte measurement block repeats bytes.
+/// At least 90 % distinct bytes — checksum or key material. An empty sample
+/// (no payload retained) is never high-entropy: unknown is not excluded.
 fn is_high_entropy(bytes: &[u8]) -> bool {
+    if bytes.is_empty() {
+        return false;
+    }
     let mut seen = [false; 256];
     let mut distinct = 0usize;
     for b in bytes {
@@ -305,7 +323,7 @@ fn is_high_entropy(bytes: &[u8]) -> bool {
             distinct += 1;
         }
     }
-    distinct * 10 >= bytes.len() * 7
+    distinct * 10 >= bytes.len() * 9
 }
 
 #[cfg(test)]
@@ -358,20 +376,28 @@ mod tests {
     }
 
     #[test]
-    fn identity_is_provisional_then_stable_on_a_byte_identical_repeat() {
-        let (fit, reads) = next_identity_fit(None, 0, None, "h1");
+    fn identity_is_provisional_until_an_independent_connection_repeats_it() {
+        let (fit, reads) = next_identity_fit(None, 0, None, "h1", 1);
         assert_eq!((fit, reads), (IdentityFit::Provisional, 1));
-        let (fit, reads) = next_identity_fit(Some(fit), reads, Some("h1"), "h1");
-        assert_eq!((fit, reads), (IdentityFit::Stable, 2));
-        let (fit, reads) = next_identity_fit(Some(fit), reads, Some("h1"), "h1");
+        // Same connection: still provisional.
+        let (fit, reads) = next_identity_fit(Some(fit), reads, Some(("h1", 1)), "h1", 1);
+        assert_eq!((fit, reads), (IdentityFit::Provisional, 2));
+        // A different connection with the same bytes: stable.
+        let (fit, reads) = next_identity_fit(Some(fit), reads, Some(("h1", 1)), "h1", 2);
         assert_eq!((fit, reads), (IdentityFit::Stable, 3));
+        // Stable stays stable on the same connection again.
+        let (fit, reads) = next_identity_fit(Some(fit), reads, Some(("h1", 2)), "h1", 2);
+        assert_eq!((fit, reads), (IdentityFit::Stable, 4));
     }
 
     #[test]
     fn identity_conflicts_on_a_mismatch_and_stays_conflicted() {
-        let (fit, _) = next_identity_fit(Some(IdentityFit::Stable), 2, Some("h1"), "h2");
+        let (fit, _) = next_identity_fit(Some(IdentityFit::Stable), 2, Some(("h1", 1)), "h2", 2);
         assert_eq!(fit, IdentityFit::Conflicted);
-        let (fit, reads) = next_identity_fit(Some(fit), 3, Some("h2"), "h2");
+        let (fit, _) =
+            next_identity_fit(Some(IdentityFit::Provisional), 1, Some(("h1", 1)), "h2", 1);
+        assert_eq!(fit, IdentityFit::Conflicted);
+        let (fit, reads) = next_identity_fit(Some(fit), 3, Some(("h2", 1)), "h2", 4);
         assert_eq!((fit, reads), (IdentityFit::Conflicted, 4));
         assert!(!fit.joinable());
         assert!(IdentityFit::Provisional.joinable());
@@ -389,31 +415,49 @@ mod tests {
             4,
             &[0x00, 0x8C, 0x00, 0x8C]
         ));
-        // Identity / config bands.
+        // Identity band, always.
         assert!(!is_hypothesis_candidate(0xF080, 12, &[0x98; 12]));
         assert!(!is_hypothesis_candidate(0xF18C, 8, b"ABCD1234"));
+        assert!(!is_hypothesis_candidate(0xF190, 2, &[0x00, 0x01]));
+        // D6xx/D7xx: config-shaped answers out, short values in (the engine
+        // ECU keeps 2-byte measurements there).
         assert!(!is_hypothesis_candidate(0xD619, 18, b"DSGiRESC00.1170001"));
+        assert!(!is_hypothesis_candidate(0xD611, 10, b"0000178734"));
         assert!(!is_hypothesis_candidate(0xD701, 3, &[0x00, 0x0B, 0x40]));
-        // Serial-like ASCII outside the bands.
-        assert!(!is_hypothesis_candidate(0xD4F0, 10, b"0000178734"));
-        // Opaque high-entropy blob (checksum / key material).
-        assert!(!is_hypothesis_candidate(
+        assert!(is_hypothesis_candidate(0xD622, 2, &[0x00, 0x07]));
+        assert!(is_hypothesis_candidate(0xD612, 1, &[0x01]));
+        assert!(is_hypothesis_candidate(0xD640, 2, &[]));
+        // Serial-like ASCII outside the bands: ten+ printable with half letters.
+        assert!(!is_hypothesis_candidate(0xD4F0, 14, b"DSGiRESCv1.170"));
+        // Printable-range bytes that are really 2-byte values must pass.
+        assert!(is_hypothesis_candidate(
             0xD4F1,
+            6,
+            &[0x30, 0x41, 0x30, 0x42, 0x31, 0x43]
+        ));
+        assert!(is_hypothesis_candidate(0xD4F2, 8, b"0102ABCD"));
+        // Six 2-byte measurements are not a blob, whatever their entropy.
+        assert!(is_hypothesis_candidate(
+            0xD4F3,
             12,
             &[0x3A, 0x91, 0xC4, 0x07, 0xEE, 0x52, 0xB8, 0x1D, 0x6F, 0xA0, 0x29, 0xD3]
         ));
-        // A 10-byte block that repeats bytes is still a candidate.
-        assert!(is_hypothesis_candidate(
-            0xD4F2,
-            10,
-            &[0x00, 0x10, 0x00, 0x10, 0x00, 0x10, 0x00, 0x10, 0x00, 0x11]
-        ));
-        // Security-like length.
-        assert!(!is_hypothesis_candidate(0xD4F3, 16, &[0x11; 16]));
+        // The C4's D636–D639 blobs: 18 bytes, every byte different. Out of
+        // band the entropy rule catches them; in band the length does.
+        let blob = [
+            0x3A, 0x91, 0xC4, 0x07, 0xEE, 0x52, 0xB8, 0x1D, 0x6F, 0xA0, 0x29, 0xD3, 0x44, 0x5F,
+            0x81, 0x9C, 0x02, 0xE7,
+        ];
+        assert!(!is_hypothesis_candidate(0xD636, 18, &blob));
+        assert!(!is_hypothesis_candidate(0xD4F4, 18, &blob));
+        // 16–31 bytes with repeats is not a blob.
+        assert!(is_hypothesis_candidate(0xD4F5, 16, &[0x11; 16]));
+        // 32+ bytes is security-like regardless of content.
+        assert!(!is_hypothesis_candidate(0xD4F6, 32, &[0x11; 32]));
         // Empty answers are not hypotheses.
-        assert!(!is_hypothesis_candidate(0xD4F4, 0, &[]));
-        // No sample retained: short answers pass, long ones do not.
-        assert!(is_hypothesis_candidate(0xD4F5, 2, &[]));
-        assert!(!is_hypothesis_candidate(0xD4F6, 12, &[]));
+        assert!(!is_hypothesis_candidate(0xD4F7, 0, &[]));
+        // No sample retained: unknown is not excluded on entropy.
+        assert!(is_hypothesis_candidate(0xD4F8, 2, &[]));
+        assert!(is_hypothesis_candidate(0xD4F9, 18, &[]));
     }
 }

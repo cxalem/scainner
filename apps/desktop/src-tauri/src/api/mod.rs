@@ -811,10 +811,19 @@ async fn patch_hypothesis(
             StatusCode::NOT_FOUND,
             format!("no hypothesis #{id}"),
         )),
-        Err(violation) => Err(ApiError::new(
-            StatusCode::CONFLICT,
-            json!({ "error": violation.reason, "rule": violation.rule }),
-        )),
+        // A value outside the vocabulary is a malformed request (400); a
+        // real transition rule is a conflict with the row's state (409).
+        Err(violation) => {
+            let status = if violation.rule == "unknown_state_value" {
+                StatusCode::BAD_REQUEST
+            } else {
+                StatusCode::CONFLICT
+            };
+            Err(ApiError::new(
+                status,
+                json!({ "error": violation.reason, "rule": violation.rule }),
+            ))
+        }
     }
 }
 
@@ -829,8 +838,8 @@ struct LearningStateBody {
 
 async fn set_learning_state(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let b: LearningStateBody = parse_required(&body)?;
-    ops::set_learning_state(&api.state, b.on);
-    ok(json!({ "on": b.on }))
+    let disabled = ops::set_learning_state(&api.state, b.on);
+    ok(json!({ "on": b.on, "disabled": disabled }))
 }
 
 async fn fingerprint_experiment(State(api): State<Arc<ApiState>>) -> ApiResult {
@@ -1154,7 +1163,7 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::OK, "{body}");
         assert_eq!(body["inherited_created"], 16);
-        assert_eq!(body["unknown_created"], 4);
+        assert_eq!(body["unknown_created"], 5);
 
         let (status, body) = call(
             &api,
@@ -1180,7 +1189,7 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::OK);
         let rows = body.as_array().unwrap();
-        assert_eq!(rows.len(), 20);
+        assert_eq!(rows.len(), 21);
         let d400 = rows
             .iter()
             .find(|h| h["module_id"] == c4.abs && h["did"] == 0xD400)
@@ -1233,6 +1242,44 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::OK, "{body}");
         assert_eq!(body["activation"], "learning");
+
+        // A value outside the vocabulary is a 400, not a 409.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"vehicle_fit": "maybe"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(body["rule"], "unknown_state_value");
+
+        // Switching learning off cascades to every learning hypothesis.
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/learning-state",
+            Some(TOKEN),
+            Some(r#"{"on": false}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["on"], false);
+        assert_eq!(body["disabled"], 1);
+        let (_, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/hypotheses"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert!(body
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|h| h["activation"] == "disabled"));
 
         // Confirming on this car unlocks enabled.
         let (status, body) = call(

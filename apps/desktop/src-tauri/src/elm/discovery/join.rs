@@ -67,7 +67,7 @@ fn decode_json(decode: &FamilyDecode, family_id: &str, m: &FamilyMatch) -> Strin
         "unit": decode.unit,
         "family_id": family_id,
         "family_match": m.as_str(),
-        "family_state": decode.knowledge_state,
+        "inherited_knowledge_state": decode.knowledge_state,
         "vehicles_confirmed": decode.vehicles_confirmed,
         "evidence": decode.evidence,
     })
@@ -128,9 +128,12 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
                             continue;
                         };
                         family_dids.push(did);
-                        // Byte-level matches carry the world's state for the
-                        // decode; a name-only match only earns a candidate.
-                        let knowledge = if m.is_byte_level() {
+                        // Only a Strong (part + software) match carries the
+                        // world's state for the decode. A Weak match (software
+                        // differs or unknown) and a name-only match earn a
+                        // research candidate; the family's own state travels
+                        // inside decode_json as `inherited_knowledge_state`.
+                        let knowledge = if matches!(m, FamilyMatch::Strong { .. }) {
                             KnowledgeState::parse(&decode.knowledge_state)
                                 .unwrap_or(KnowledgeState::ResearchCandidate)
                         } else {
@@ -259,6 +262,8 @@ pub(crate) mod fixtures {
         db.upsert_discovered_did(abs, 0xD636, "3A 91 C4 07 EE 52 B8 1D 6F A0 29 D3", 12, None);
         db.upsert_discovered_did(engine, 0xD422, "00 8C", 2, Some("Battery voltage"));
         db.upsert_discovered_did(engine, 0xD4A0, "12 34 00", 3, None);
+        // Engine D6xx measurement (2 bytes): in the band, but not config-shaped.
+        db.upsert_discovered_did(engine, 0xD622, "00 07", 2, None);
         db.upsert_discovered_did(camera, 0xD404, "00", 1, None);
         SeededC4 {
             vehicle_id,
@@ -331,6 +336,10 @@ mod tests {
             .unwrap();
         assert_eq!(d400.knowledge_state, "locally_confirmed");
         assert_eq!(d400.label.as_deref(), Some("Wheel speed rear-left"));
+        let decode: serde_json::Value =
+            serde_json::from_str(d400.decode_json.as_deref().unwrap()).unwrap();
+        assert_eq!(decode["inherited_knowledge_state"], "locally_confirmed");
+        assert_eq!(decode["family_match"], "strong");
         let d40c = rows
             .iter()
             .find(|h| h.module_id == c4.abs && h.did == 0xD40C)
@@ -353,9 +362,13 @@ mod tests {
             .filter(|h| h.knowledge_state == "unknown")
             .map(|h| h.did)
             .collect();
-        // D435 (ABS), D422 + D4A0 (engine), D404 (camera) pass; F080, D619
-        // and the D636 blob do not.
-        assert_eq!(unknown.len(), 4, "{unknown:04X?}");
+        // D435 (ABS), D422 + D4A0 + D622 (engine), D404 (camera) pass; F080,
+        // D619 and the D636 blob do not.
+        assert_eq!(unknown.len(), 5, "{unknown:04X?}");
+        assert!(
+            unknown.contains(&0xD622),
+            "engine D6xx 2-byte value is a hypothesis"
+        );
         assert!(unknown.contains(&0xD435));
         assert!(unknown.contains(&0xD422));
         assert!(unknown.contains(&0xD4A0));
@@ -389,6 +402,7 @@ mod tests {
             &crate::db::HypothesisPatch {
                 vehicle_fit: Some("matched".into()),
                 activation: Some("enabled".into()),
+                label: Some("RL wheel (my label)".into()),
                 ..Default::default()
             },
             false,
@@ -405,6 +419,11 @@ mod tests {
         let d400 = db.hypothesis(d400.id).unwrap();
         assert_eq!(d400.vehicle_fit, "matched");
         assert_eq!(d400.activation, "enabled");
+        assert_eq!(
+            d400.label.as_deref(),
+            Some("RL wheel (my label)"),
+            "a re-join must not overwrite a user-set label"
+        );
     }
 
     #[test]
@@ -419,9 +438,14 @@ mod tests {
         for h in db.list_hypotheses(vehicle_id) {
             assert_eq!(h.activation, "disabled");
             assert_eq!(h.vehicle_fit, "untested");
+            // Weak: the world's state is not claimed here, only recorded.
+            assert_eq!(h.knowledge_state, "research_candidate");
             let decode: serde_json::Value =
                 serde_json::from_str(h.decode_json.as_deref().unwrap()).unwrap();
             assert_eq!(decode["family_match"], "weak");
+            if h.did == 0xD400 {
+                assert_eq!(decode["inherited_knowledge_state"], "locally_confirmed");
+            }
         }
     }
 
@@ -453,8 +477,8 @@ mod tests {
             .iter()
             .all(|h| h.knowledge_state == "research_candidate"));
 
-        db.record_identity(abs, "h1");
-        db.record_identity(abs, "h2");
+        db.record_identity(abs, "h1", 1);
+        db.record_identity(abs, "h2", 2);
         let summary = join_vehicle(&db, uds_map::map(), vehicle_id);
         assert!(summary.modules[0]
             .skipped

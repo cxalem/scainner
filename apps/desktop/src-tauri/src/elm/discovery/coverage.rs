@@ -121,8 +121,19 @@ pub struct LearningLine {
     /// Hypotheses a passive learning drive would test: they carry an
     /// inherited decode the correlation engine can check against references.
     pub passive_would_validate: Vec<i64>,
-    /// Hypotheses that need a person: their discriminating test is known.
+    /// Hypotheses that need a person: their discriminating test is a
+    /// physical step (`is_guided_step`).
     pub guided_steps: Vec<GuidedStep>,
+    /// Hypotheses whose discriminating test is a drive — passive data.
+    pub passive_tests: Vec<GuidedStep>,
+}
+
+/// Whether a discriminating test needs a person (pedal, wheel, reverse) or
+/// is satisfied by ordinary driving. The catalogue marks passive tests with
+/// a `drive:` prefix or by naming a learning/passive drive.
+pub fn is_guided_step(test: &str) -> bool {
+    let t = test.trim().to_ascii_lowercase();
+    !(t.starts_with("drive:") || t.contains("learning drive") || t.contains("passive"))
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -147,6 +158,9 @@ pub struct CoverageReport {
     pub status: &'static str,
     pub remaining: Vec<String>,
 }
+
+/// Newest verification runs listed as evidence; the report flags truncation.
+const RUN_ID_LIMIT: i64 = 1000;
 
 fn push(bucket: &mut DecodeBucket, id: i64) {
     bucket.count += 1;
@@ -204,7 +218,7 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
 
     let modules = db.discovered_summary(vehicle_id);
     let module_ids: Vec<i64> = modules.iter().map(|m| m.id).collect();
-    let routes = RoutesLine {
+    let mut routes = RoutesLine {
         reached: modules.len(),
         module_ids: module_ids.clone(),
         states_stored: vec![RouteState::Reached.as_str()],
@@ -287,6 +301,7 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
     let mut decodes = DecodesLine::default();
     let mut passive = Vec::new();
     let mut guided = Vec::new();
+    let mut passive_tests = Vec::new();
     let mut hypotheses = Vec::new();
     for h in &rows {
         classify(h, &mut decodes);
@@ -295,13 +310,18 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
         }
         if h.vehicle_fit != "matched" {
             if let Some(test) = &h.discriminating_test {
-                guided.push(GuidedStep {
+                let step = GuidedStep {
                     hypothesis_id: h.id,
                     address: h.module_address.clone(),
                     did: format!("{:04X}", h.did),
                     label: h.label.clone(),
                     test: test.clone(),
-                });
+                };
+                if is_guided_step(test) {
+                    guided.push(step);
+                } else {
+                    passive_tests.push(step);
+                }
             }
         }
         hypotheses.push(HypothesisSummary {
@@ -342,10 +362,15 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
         .map(|v| v == "on")
         .unwrap_or(false);
     let run_ids: Vec<i64> = db
-        .list_verification_runs(Some(vehicle_id), None, 200)
+        .list_verification_runs(Some(vehicle_id), None, RUN_ID_LIMIT)
         .into_iter()
         .map(|r| r.id)
         .collect();
+    if run_ids.len() as i64 >= RUN_ID_LIMIT {
+        routes.limitations.push(format!(
+            "evidence run ids truncated at {RUN_ID_LIMIT} (newest first)"
+        ));
+    }
     let hypothesis_ids: Vec<i64> = rows.iter().map(|h| h.id).collect();
 
     let status = if remaining.is_empty() {
@@ -364,6 +389,7 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
             learning_state_on,
             passive_would_validate: passive,
             guided_steps: guided,
+            passive_tests,
         },
         evidence: EvidenceLine {
             run_ids,
@@ -405,16 +431,28 @@ mod tests {
         assert_eq!(report.identified.total, 4);
         assert_eq!(report.identified.family_matches, 3);
         assert_eq!(report.decodes.inherited_untested.count, 16);
-        assert_eq!(report.decodes.unknown.count, 4);
+        assert_eq!(report.decodes.unknown.count, 5);
         assert_eq!(report.decodes.matched.count, 0);
-        assert_eq!(report.decodes.total, 20);
-        assert_eq!(report.hypotheses.len(), 20);
+        assert_eq!(report.decodes.total, 21);
+        assert_eq!(report.hypotheses.len(), 21);
         assert_eq!(report.learning.passive_would_validate.len(), 16);
-        assert_eq!(report.learning.guided_steps.len(), 16);
+        // The four wheel-speed tests are "drive:" steps, not human ones.
+        assert_eq!(report.learning.guided_steps.len(), 12);
+        assert_eq!(report.learning.passive_tests.len(), 4);
+        assert!(report
+            .learning
+            .passive_tests
+            .iter()
+            .all(|g| g.test.starts_with("drive:")));
+        assert!(!report
+            .routes
+            .limitations
+            .iter()
+            .any(|l| l.contains("truncated")));
         assert!(!report.learning.learning_state_on);
         assert_eq!(report.evidence.run_ids, vec![run]);
         assert_eq!(report.evidence.module_ids.len(), 4);
-        assert_eq!(report.evidence.hypothesis_ids.len(), 20);
+        assert_eq!(report.evidence.hypothesis_ids.len(), 21);
         assert_eq!(report.status, "partial");
         assert!(report
             .remaining
@@ -462,6 +500,18 @@ mod tests {
             .guided_steps
             .iter()
             .any(|g| g.hypothesis_id == d400.id));
+    }
+
+    #[test]
+    fn guided_steps_are_physical_and_drive_tests_are_passive() {
+        assert!(is_guided_step(
+            "stationary: press and release the brake pedal three times"
+        ));
+        assert!(is_guided_step("roll backwards a metre"));
+        assert!(!is_guided_step("drive: wheel-speed array vs OBD speed"));
+        assert!(!is_guided_step("Drive: anything"));
+        assert!(!is_guided_step("resolved by the next learning drive"));
+        assert!(!is_guided_step("passive correlation against rpm"));
     }
 
     #[test]

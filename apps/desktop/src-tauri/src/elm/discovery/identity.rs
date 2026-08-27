@@ -1,7 +1,7 @@
 //! Identity confidence write-back (plan A7). The supervisor's fingerprint
 //! write-back is not owned by this track, so the entry point lives here and
 //! is wired in as a one-line follow-up:
-//! `discovery::identity::record_identity(&db, module_id, &fingerprint)`
+//! `discovery::identity::record_identity(&db, module_id, &fingerprint, connection_id)`
 //! right after `db.update_ecu_fingerprint(...)`.
 //!
 //! Until that line lands nothing in the binary calls this module (only the
@@ -37,17 +37,19 @@ pub fn hash_key(key: &str) -> String {
     format!("{h:016x}")
 }
 
-/// Record one identity read for a module. Returns the resulting fit, or
-/// None when the fingerprint carries no comparison material (a silent or
-/// refused identity block must not count as a read) or the module is
-/// unknown.
+/// Record one identity read for a module on `connection_id`. Stable needs
+/// the same material on a second, independent connection. Returns the
+/// resulting fit, or None when the fingerprint carries no comparison
+/// material (a silent or refused identity block must not count as a read)
+/// or the module is unknown.
 pub fn record_identity(
     db: &Db,
     module_id: i64,
     fingerprint: &EcuFingerprint,
+    connection_id: i64,
 ) -> Option<(IdentityFit, i64)> {
     let hash = fingerprint_key_hash(fingerprint)?;
-    db.record_identity(module_id, &hash)
+    db.record_identity(module_id, &hash, connection_id)
 }
 
 #[cfg(test)]
@@ -70,27 +72,34 @@ mod tests {
     }
 
     #[test]
-    fn two_identical_reads_make_identity_stable_and_a_mismatch_conflicts() {
+    fn identity_is_stable_only_after_an_independent_connection_repeats_it() {
         let db = Db::open(std::path::Path::new(":memory:")).unwrap();
         let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let module = db.upsert_discovered_module(vehicle, "6AD/68D", Some("ABS / ESP"));
         let fp = fingerprint(Some("part=9846124980|sw=9695041580"));
+        let first = db.start_connection("ELM327", "test");
+        let second = db.start_connection("ELM327", "test");
         assert_eq!(
-            record_identity(&db, module, &fp),
+            record_identity(&db, module, &fp, first),
             Some((IdentityFit::Provisional, 1))
         );
+        // Same session again: only proves the buffer, still provisional.
         assert_eq!(
-            record_identity(&db, module, &fp),
-            Some((IdentityFit::Stable, 2))
+            record_identity(&db, module, &fp, first),
+            Some((IdentityFit::Provisional, 2))
+        );
+        assert_eq!(
+            record_identity(&db, module, &fp, second),
+            Some((IdentityFit::Stable, 3))
         );
         let other = fingerprint(Some("part=9846124980|sw=9600000080"));
         assert_eq!(
-            record_identity(&db, module, &other),
-            Some((IdentityFit::Conflicted, 3))
+            record_identity(&db, module, &other, second),
+            Some((IdentityFit::Conflicted, 4))
         );
         let row = &db.discovered_summary(vehicle)[0];
         assert_eq!(row.identity_fit.as_deref(), Some("conflicted"));
-        assert_eq!(row.identity_reads, 3);
+        assert_eq!(row.identity_reads, 4);
     }
 
     #[test]
@@ -98,10 +107,13 @@ mod tests {
         let db = Db::open(std::path::Path::new(":memory:")).unwrap();
         let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let module = db.upsert_discovered_module(vehicle, "6AD/68D", None);
-        assert_eq!(record_identity(&db, module, &fingerprint(None)), None);
-        assert_eq!(record_identity(&db, module, &fingerprint(Some("  "))), None);
+        assert_eq!(record_identity(&db, module, &fingerprint(None), 1), None);
         assert_eq!(
-            record_identity(&db, 999, &fingerprint(Some("part=1"))),
+            record_identity(&db, module, &fingerprint(Some("  ")), 1),
+            None
+        );
+        assert_eq!(
+            record_identity(&db, 999, &fingerprint(Some("part=1")), 1),
             None
         );
         assert_eq!(db.discovered_summary(vehicle)[0].identity_reads, 0);

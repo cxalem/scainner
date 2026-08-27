@@ -597,18 +597,21 @@ pub fn known_dids_for_module(vin: Option<&str>, req: u32, resp: u32) -> Vec<u16>
     dids
 }
 
-/// The family whose hardware references contain this exact part reference —
-/// the byte-level lookup behind the protocol's S3 join. Takes the map
-/// explicitly so the discovery layer and its tests can pass a fixture;
-/// production callers pass `map()`.
-pub fn family_for_hardware_ref<'a>(map: &'a UdsMap, hardware_ref: &str) -> Option<&'a EcuFamily> {
+/// Every family whose hardware references contain this exact part reference,
+/// in map order — the byte-level lookup behind the protocol's S3 join. More
+/// than one family can share a part (a software change that moved DIDs is
+/// itself a family); the caller disambiguates by software reference. Takes
+/// the map explicitly so the discovery layer and its tests can pass a
+/// fixture; production callers pass `map()`.
+pub fn families_for_hardware_ref<'a>(map: &'a UdsMap, hardware_ref: &str) -> Vec<&'a EcuFamily> {
     let wanted = hardware_ref.trim();
     if wanted.is_empty() {
-        return None;
+        return Vec::new();
     }
     map.ecu_families
         .iter()
-        .find(|f| f.hardware_refs.iter().any(|r| r == wanted))
+        .filter(|f| f.hardware_refs.iter().any(|r| r == wanted))
+        .collect()
 }
 
 /// A family by id (the `family_id` stored on modules and hypotheses).
@@ -645,22 +648,19 @@ mod tests {
             }
         }
         let m = map();
-        let abs = family_for_hardware_ref(m, "9846124980").expect("C4 ABS family");
-        assert_eq!(abs.id, "cont_esp_mk100_psa");
-        assert_eq!(abs.decodes.len(), 12);
+        let abs = families_for_hardware_ref(m, "9846124980");
+        assert_eq!(abs.len(), 1, "one family carries the C4 ABS part");
+        assert_eq!(abs[0].id, "cont_esp_mk100_psa");
+        assert_eq!(abs[0].decodes.len(), 12);
         assert_eq!(
-            family_for_hardware_ref(m, "9844551780")
-                .unwrap()
-                .decodes
-                .len(),
+            families_for_hardware_ref(m, "9844551780")[0].decodes.len(),
             4
         );
-        assert!(family_for_hardware_ref(m, "9817137180")
-            .unwrap()
+        assert!(families_for_hardware_ref(m, "9817137180")[0]
             .decodes
             .is_empty());
-        assert!(family_for_hardware_ref(m, "0000000000").is_none());
-        assert!(family_for_hardware_ref(m, "").is_none());
+        assert!(families_for_hardware_ref(m, "0000000000").is_empty());
+        assert!(families_for_hardware_ref(m, "").is_empty());
         assert_eq!(family_by_id(m, "cvm3_psa").unwrap().family, "CVM3");
         assert!(family_by_id(m, "nope").is_none());
     }

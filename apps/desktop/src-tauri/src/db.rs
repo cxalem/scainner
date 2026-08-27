@@ -835,6 +835,7 @@ impl Db {
             "identity_fit TEXT",
             "identity_reads INTEGER NOT NULL DEFAULT 0",
             "identity_hash TEXT",
+            "identity_connection_id INTEGER",
             "route_json TEXT",
             "family_id TEXT",
             "family_match TEXT",
@@ -1671,27 +1672,54 @@ impl Db {
         &self,
         module_id: i64,
         identity_hash: &str,
+        connection_id: i64,
     ) -> Option<(crate::elm::discovery::state::IdentityFit, i64)> {
         use crate::elm::discovery::state::{next_identity_fit, IdentityFit};
         let conn = self.0.lock().unwrap();
-        let (fit, reads, previous): (Option<String>, i64, Option<String>) = conn
+        let (fit, reads, previous_hash, previous_conn): (
+            Option<String>,
+            i64,
+            Option<String>,
+            Option<i64>,
+        ) = conn
             .query_row(
-                "SELECT identity_fit, COALESCE(identity_reads, 0), identity_hash
+                "SELECT identity_fit, COALESCE(identity_reads, 0), identity_hash,
+                        identity_connection_id
                  FROM discovered_modules WHERE id = ?1",
                 params![module_id],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
             )
             .ok()?;
         let current = fit.as_deref().and_then(IdentityFit::parse);
-        let (next, reads) = next_identity_fit(current, reads, previous.as_deref(), identity_hash);
+        // A row hashed before the connection column existed counts as seen
+        // on an unknown (-1) connection: the next real read can make it stable.
+        let previous = previous_hash
+            .as_deref()
+            .map(|h| (h, previous_conn.unwrap_or(-1)));
+        let (next, reads) =
+            next_identity_fit(current, reads, previous, identity_hash, connection_id);
         conn.execute(
             "UPDATE discovered_modules SET identity_fit = ?1, identity_reads = ?2,
-             identity_hash = CASE WHEN ?1 = 'conflicted' THEN identity_hash ELSE ?3 END
-             WHERE id = ?4",
-            params![next.as_str(), reads, identity_hash, module_id],
+             identity_hash = CASE WHEN ?1 = 'conflicted' THEN identity_hash ELSE ?3 END,
+             identity_connection_id = CASE WHEN ?1 = 'conflicted' THEN identity_connection_id ELSE ?4 END
+             WHERE id = ?5",
+            params![next.as_str(), reads, identity_hash, connection_id, module_id],
         )
         .ok()?;
         Some((next, reads))
+    }
+
+    /// `PUT /learning-state {"on": false}` cascade: every hypothesis that was
+    /// polled as `learning`, on every vehicle, goes back to `disabled` in
+    /// one statement. Returns how many rows changed.
+    pub fn disable_learning_hypotheses(&self) -> usize {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE hypotheses SET activation = 'disabled', updated_at = datetime('now')
+             WHERE activation = 'learning'",
+            [],
+        )
+        .unwrap_or(0)
     }
 
     /// Store the S3 join result on the module (idempotent).
@@ -1745,7 +1773,7 @@ impl Db {
                        knowledge_state = CASE
                          WHEN knowledge_state IN ('locally_confirmed','community_verified','oem_confirmed')
                          THEN knowledge_state ELSE ?1 END,
-                       label = COALESCE(?2, label),
+                       label = CASE WHEN label IS NULL THEN ?2 ELSE label END,
                        decode_json = COALESCE(?3, decode_json),
                        discriminating_test = COALESCE(?4, discriminating_test),
                        family_id = COALESCE(?5, family_id),

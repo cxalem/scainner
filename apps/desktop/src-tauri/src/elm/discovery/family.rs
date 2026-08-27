@@ -5,7 +5,7 @@
 //! address, so the same Continental MK100 matches on a Peugeot, an Opel or a
 //! Citroën — and so nothing in the key can identify an individual car.
 
-use crate::elm::uds_map::{family_by_id, family_for_hardware_ref, EcuFamily, UdsMap};
+use crate::elm::uds_map::{families_for_hardware_ref, family_by_id, EcuFamily, UdsMap};
 use serde::{Deserialize, Serialize};
 
 /// The comparison material of one module, built from its fingerprint.
@@ -103,48 +103,50 @@ impl FamilyMatch {
             Self::None => "none",
         }
     }
-
-    /// Inherited decodes are only created for byte-level matches.
-    pub fn is_byte_level(&self) -> bool {
-        matches!(self, Self::Strong { .. } | Self::Weak { .. })
-    }
 }
 
+/// Exact, case-insensitive, whitespace-trimmed equality. No substring
+/// matching: "MK100" must not claim every family whose name mentions it.
 fn name_matches(key: Option<&str>, candidate: Option<&str>) -> bool {
     match (key, candidate) {
         (Some(k), Some(c)) => {
-            let (k, c) = (k.trim().to_lowercase(), c.trim().to_lowercase());
-            !k.is_empty() && !c.is_empty() && (k == c || k.contains(&c) || c.contains(&k))
+            let (k, c) = (k.trim(), c.trim());
+            !k.is_empty() && k.eq_ignore_ascii_case(c)
         }
         _ => false,
     }
 }
 
 /// Match a key against every family in the map. Byte-level matches win
-/// over name matches; the first family in map order wins ties.
+/// over name matches. When several families share the hardware reference,
+/// the one that also lists the software reference wins (Strong); otherwise
+/// the first of them in map order is a Weak match.
 pub fn match_family(key: &CompatibilityKey, map: &UdsMap) -> FamilyMatch {
     if let Some(hw) = key.hardware_ref.as_deref() {
-        if let Some(family) = family_for_hardware_ref(map, hw) {
-            let sw_known = key
-                .software_ref
-                .as_deref()
-                .map(|sw| family.software_refs.iter().any(|r| r == sw))
-                .unwrap_or(false);
-            return if sw_known {
-                FamilyMatch::Strong {
-                    family_id: family.id.clone(),
-                }
-            } else {
-                FamilyMatch::Weak {
-                    family_id: family.id.clone(),
-                }
+        let sharing = families_for_hardware_ref(map, hw);
+        if let Some(sw) = key.software_ref.as_deref() {
+            if let Some(strong) = sharing
+                .iter()
+                .find(|f| f.software_refs.iter().any(|r| r == sw))
+            {
+                return FamilyMatch::Strong {
+                    family_id: strong.id.clone(),
+                };
+            }
+        }
+        if let Some(first) = sharing.first() {
+            return FamilyMatch::Weak {
+                family_id: first.id.clone(),
             };
         }
     }
-    if let Some(family) = map.ecu_families.iter().find(|f| {
-        name_matches(key.family.as_deref(), Some(f.family.as_str()))
-            || name_matches(key.supplier.as_deref(), f.supplier.as_deref())
-    }) {
+    // Name-only: the family name must match exactly; a supplier on its own
+    // (Bosch makes many ESP generations) never identifies a family.
+    if let Some(family) = map
+        .ecu_families
+        .iter()
+        .find(|f| name_matches(key.family.as_deref(), Some(f.family.as_str())))
+    {
         return FamilyMatch::NameOnly {
             family_id: family.id.clone(),
         };
@@ -175,7 +177,6 @@ mod tests {
                 family_id: "cont_esp_mk100_psa".into()
             }
         );
-        assert!(m.is_byte_level());
         assert_eq!(
             matched_family(uds_map::map(), &m).unwrap().decodes.len(),
             12
@@ -201,12 +202,58 @@ mod tests {
                 family_id: "cont_esp_mk100_psa".into()
             }
         );
-        assert!(!m.is_byte_level());
+        // Exact equality only: a substring or a supplier alone is nothing.
+        let k = CompatibilityKey::from_fingerprint(None, None, Some("MK100"), None);
+        assert_eq!(match_family(&k, uds_map::map()), FamilyMatch::None);
         let k = CompatibilityKey {
             supplier: Some("continental/ate".into()),
             ..Default::default()
         };
+        assert_eq!(match_family(&k, uds_map::map()), FamilyMatch::None);
+        let k = CompatibilityKey::from_fingerprint(None, None, Some("  esp mk100 "), None);
         assert_eq!(match_family(&k, uds_map::map()).as_str(), "name_only");
+    }
+
+    #[test]
+    fn two_families_sharing_a_part_are_split_by_software_reference() {
+        let map: UdsMap = serde_json::from_value(serde_json::json!({
+            "version": 8,
+            "standard": {
+                "ident_dids": [], "name_dids": [], "presence_probe_did": "F186",
+                "address_scan": {"req_from": "700", "req_to": "7F6", "resp_offset": 8, "exclude": []},
+                "timings_ms": {"presence_probe": 1, "ident_read": 1, "sweep_read": 1}
+            },
+            "brands": [],
+            "ecu_families": [
+                {"id": "gen1", "family": "X", "hardware_refs": ["1111111111"],
+                 "software_refs": ["2222222222"], "modules_seen_on": [], "decodes": []},
+                {"id": "gen2", "family": "X", "hardware_refs": ["1111111111"],
+                 "software_refs": ["3333333333"], "modules_seen_on": [], "decodes": []}
+            ]
+        }))
+        .unwrap();
+        assert_eq!(
+            match_family(&key(Some("1111111111"), Some("3333333333")), &map),
+            FamilyMatch::Strong {
+                family_id: "gen2".into()
+            }
+        );
+        assert_eq!(
+            match_family(&key(Some("1111111111"), Some("2222222222")), &map),
+            FamilyMatch::Strong {
+                family_id: "gen1".into()
+            }
+        );
+        assert_eq!(
+            match_family(&key(Some("1111111111"), Some("9999999999")), &map),
+            FamilyMatch::Weak {
+                family_id: "gen1".into()
+            }
+        );
+        assert_eq!(
+            match_family(&key(Some("1111111111"), None), &map).as_str(),
+            "weak"
+        );
     }
 
     #[test]
