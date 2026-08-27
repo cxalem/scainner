@@ -478,6 +478,57 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "delete_uds_module":
     case "uds_cancel_scan":
       return undefined as T;
+    case "correlation_capture": {
+      await delay(600);
+      const a = args as { dids?: number[]; condition?: string; step?: string; planVersion?: string; repeats?: number };
+      const condition = a.condition ?? "baseline";
+      return {
+        run_id: 21,
+        plan_version: a.planVersion ?? "mock-corr-v1",
+        route: "6AD→68D",
+        step: a.step ?? "baseline",
+        condition,
+        repeats: a.repeats ?? 3,
+        safety: "read-only",
+        readings: (a.dids ?? [0xd435, 0xd436, 0xd437, 0xd438, 0xd410]).map((did) => {
+          const moved = condition === "brake_held" && did === 0xd435;
+          const value = moved ? "0B" : did === 0xd410 ? "29" : "07";
+          return { did: did.toString(16).toUpperCase().padStart(4, "0"), payloads: [value, value, value], stable: true, outcome: { status: "answered", service: "22", nrc: null, detail: null } };
+        }),
+      } as T;
+    }
+    case "parked_verification":
+      await delay(500);
+      return {
+        run_id: 12,
+        plan_version: "citroen-c41-v3",
+        safety: "parked, read-only 0x22 requests, default diagnostic session",
+        targets: [
+          {
+            key: "cvm3",
+            label: "Windscreen camera",
+            expected_family: "CVM3",
+            route: "74A→64A",
+            evidence_source: "research_candidate; requires vehicle verification",
+            summary: null,
+            observations: [
+              { did: "F186", purpose: "active diagnostic session", outcome: { status: "answered", service: "22", nrc: null, detail: null }, payload_hex: "01", printable: null, raw_response: "62 F1 86 01\r>" },
+              { did: "F187", purpose: "spare part number", outcome: { status: "refused", service: "22", nrc: 49, detail: "request out of range" }, payload_hex: null, printable: null, raw_response: "7F 22 31\r>" },
+            ],
+          },
+          {
+            key: "tpms_740",
+            label: "Tyre pressure (legacy 740 generation)",
+            expected_family: "PSA legacy TPMS candidate",
+            route: "740→4C0",
+            evidence_source: "research_candidate; requires vehicle verification",
+            summary: null,
+            observations: [
+              { did: "A0F1", purpose: "wheel pressure candidate 1", outcome: { status: "timed_out", service: "22", nrc: null, detail: null }, payload_hex: null, printable: null, raw_response: "NO DATA\r>" },
+            ],
+          },
+        ],
+      } as T;
     case "discover_sensors":
       // Mirror the backend's global status broadcast so switching between
       // Lab and Live during a demo scan exercises the real architecture.
@@ -533,7 +584,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           hardware_version: "HW03",
           software_version: "SW12.4",
           system_name: "BSI",
-          match_key: "F187=98 123 456 80|F191=HW03|F195=SW12.4|F197=BSI",
+          match_key: "part=98 123 456 80|hw=HW03|sw=SW12.4|sys=BSI",
           fields_answered: 4,
           fields_total: 4,
           evidence: [],
@@ -552,7 +603,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         did_count: 2, labeled_count: 1,
         spare_part_number: "98 123 456 80", hardware_version: "HW03",
         software_version: "SW12.4", system_name: "BSI",
-        fingerprint_match_key: "F187=98 123 456 80|F191=HW03|F195=SW12.4|F197=BSI",
+        fingerprint_match_key: "part=98 123 456 80|hw=HW03|sw=SW12.4|sys=BSI",
         fingerprint_fields_answered: 4, fingerprint_fields_total: 4,
       }] as T;
     case "discovered_dids":

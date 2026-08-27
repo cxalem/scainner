@@ -60,6 +60,10 @@ impl Drop for ScannerOperation<'_> {
         // Restore the adapter state expected by standard OBD polling. Cleanup
         // is best-effort: the original operation result must remain intact if
         // a disconnected adapter cannot acknowledge one of these commands.
+        // ATCEA with no argument disables ISO-TP extended addressing. It is
+        // harmless when unused and essential after probing a LIN child such
+        // as PSA's CDPL rain/light sensor through its CAN gateway.
+        let _ = self.driver.cmd("ATCEA", Duration::from_secs(2));
         let _ = self.driver.cmd("ATSP0", Duration::from_secs(2));
         let _ = self.driver.cmd("ATSH 7DF", Duration::from_secs(2));
         let _ = self.driver.cmd("ATAR", Duration::from_secs(2));
@@ -79,6 +83,7 @@ mod tests {
           "contains_vehicle_identifiers": false,
           "steps": [
             { "command": "22F190", "error": "io" },
+            { "command": "ATCEA", "response": "OK\r>" },
             { "command": "ATSP0", "response": "OK\r>" },
             { "command": "ATSH 7DF", "response": "OK\r>" },
             { "command": "ATAR", "response": "OK\r>" },
@@ -105,6 +110,7 @@ mod tests {
           "steps": [
             { "command": "1003", "response": "50 03\r>" },
             { "command": "1001", "response": "50 01\r>" },
+            { "command": "ATCEA", "response": "OK\r>" },
             { "command": "ATSP0", "response": "OK\r>" },
             { "command": "ATSH 7DF", "response": "OK\r>" },
             { "command": "ATAR", "response": "OK\r>" },
@@ -127,6 +133,7 @@ mod tests {
           "contains_vehicle_identifiers": false,
           "steps": [
             { "command": "1003", "response": "7F 10 12\r>" },
+            { "command": "ATCEA", "response": "OK\r>" },
             { "command": "ATSP0", "response": "OK\r>" },
             { "command": "ATSH 7DF", "response": "OK\r>" },
             { "command": "ATAR", "response": "OK\r>" },

@@ -7,6 +7,8 @@ import { AutoDiscovery } from "@/views/lab/AutoDiscovery";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
 import { ProbeManager } from "@/views/lab/ProbeManager";
 import { RangeScanner } from "@/views/lab/RangeScanner";
+import { ParkedVerification } from "@/views/lab/ParkedVerification";
+import { GuidedCorrelation } from "@/views/lab/GuidedCorrelation";
 import { useT } from "@/i18n";
 
 /// Manufacturer-specific diagnostics (UDS beyond standard OBD2). Reads plus
@@ -56,6 +58,8 @@ export function Lab({
       <p className="text-sm text-muted-foreground">{t.lab.explainer}</p>
 
       <AutoDiscovery connected={connected} vehicleId={vehicleId} scanning={scanning} />
+      <ParkedVerification connected={connected} vehicleId={vehicleId} />
+      <GuidedCorrelation connected={connected} vehicleId={vehicleId} />
 
       {/* Manual tools, demoted below auto-discovery: for a brand it
           doesn't cover yet, for reading a specific address by hand, or

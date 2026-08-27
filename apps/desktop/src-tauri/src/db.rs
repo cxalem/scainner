@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 8;
+const SCHEMA_VERSION: i64 = 9;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -686,6 +686,19 @@ impl Db {
                 ON diagnostic_cases(status, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_diagnostic_cases_vehicle_updated
                 ON diagnostic_cases(vehicle_id, updated_at DESC);
+            -- Read-only, reproducible in-car research runs. The full result
+            -- stays intact as JSON so new decoders can replay old evidence;
+            -- vehicle/connection columns prevent cross-car attribution.
+            CREATE TABLE IF NOT EXISTS verification_runs (
+                id INTEGER PRIMARY KEY,
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                connection_id INTEGER NOT NULL REFERENCES connections(id),
+                plan_version TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_verification_runs_vehicle_created
+                ON verification_runs(vehicle_id, created_at DESC);
             "#,
         )?;
         // v3 (cloud sync): client-generated uuids on every syncable row —
@@ -779,6 +792,32 @@ impl Db {
 
     fn new_cloud_id() -> String {
         uuid::Uuid::new_v4().to_string()
+    }
+
+    pub fn insert_verification_run(
+        &self,
+        vehicle_id: i64,
+        connection_id: i64,
+        plan_version: &str,
+        result_json: &str,
+    ) -> rusqlite::Result<i64> {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "INSERT INTO verification_runs (vehicle_id, connection_id, plan_version, result_json) VALUES (?1, ?2, ?3, ?4)",
+            params![vehicle_id, connection_id, plan_version, result_json],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
+
+    /// Re-store a run's JSON once its row id is known, so an exported report
+    /// names the evidence run it came from without consulting the table.
+    pub fn update_verification_run_json(&self, id: i64, result_json: &str) -> rusqlite::Result<()> {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE verification_runs SET result_json = ?1 WHERE id = ?2",
+            params![result_json, id],
+        )?;
+        Ok(())
     }
 
     // ---------- vehicles ----------
@@ -1316,10 +1355,10 @@ impl Db {
         let _ = conn.execute(
             "UPDATE discovered_modules SET fingerprint_match_key = NULLIF(
                RTRIM(
-                 CASE WHEN spare_part_number IS NOT NULL THEN 'F187=' || spare_part_number || '|' ELSE '' END ||
-                 CASE WHEN hardware_version IS NOT NULL THEN 'F191=' || hardware_version || '|' ELSE '' END ||
-                 CASE WHEN software_version IS NOT NULL THEN 'F195=' || software_version || '|' ELSE '' END ||
-                 CASE WHEN system_name IS NOT NULL THEN 'F197=' || system_name || '|' ELSE '' END,
+                 CASE WHEN spare_part_number IS NOT NULL THEN 'part=' || spare_part_number || '|' ELSE '' END ||
+                 CASE WHEN hardware_version IS NOT NULL THEN 'hw=' || hardware_version || '|' ELSE '' END ||
+                 CASE WHEN software_version IS NOT NULL THEN 'sw=' || software_version || '|' ELSE '' END ||
+                 CASE WHEN system_name IS NOT NULL THEN 'sys=' || system_name || '|' ELSE '' END,
                  '|'
                ), '')
              WHERE id = ?1",
@@ -2468,6 +2507,36 @@ mod tests {
     }
 
     #[test]
+    fn verification_evidence_is_scoped_to_vehicle_and_connection() {
+        let db = test_db();
+        let (vehicle_id, _) = db.ensure_vehicle("VF7TEST0000000001");
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        let id = db
+            .insert_verification_run(
+                vehicle_id,
+                connection_id,
+                "citroen-c41-v1",
+                r#"{"targets":[]}"#,
+            )
+            .unwrap();
+        let stored: (i64, i64, String, String) = db
+            .0
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT vehicle_id, connection_id, plan_version, result_json FROM verification_runs WHERE id = ?1",
+                params![id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(stored.0, vehicle_id);
+        assert_eq!(stored.1, connection_id);
+        assert_eq!(stored.2, "citroen-c41-v1");
+        assert_eq!(stored.3, r#"{"targets":[]}"#);
+    }
+
+    #[test]
     fn writes_log_round_trip() {
         let db = test_db();
         let id = db.log_write(
@@ -2731,7 +2800,7 @@ mod tests {
             hardware_version: None,
             software_version: Some("SW12".into()),
             system_name: None,
-            match_key: Some("F187=981234|F195=SW12".into()),
+            match_key: Some("part=981234|sw=SW12".into()),
             fields_answered: 2,
             fields_total: 4,
             evidence: Vec::new(),
@@ -2760,7 +2829,7 @@ mod tests {
         assert_eq!(modules[0].fingerprint_fields_answered, 2);
         assert_eq!(
             modules[0].fingerprint_match_key.as_deref(),
-            Some("F187=981234|F195=SW12")
+            Some("part=981234|sw=SW12")
         );
     }
 
@@ -2783,7 +2852,7 @@ mod tests {
                     hardware_version: None,
                     software_version: None,
                     system_name: None,
-                    match_key: Some(format!("F187={part}")),
+                    match_key: Some(format!("part={part}")),
                     fields_answered: 1,
                     fields_total: 4,
                     evidence: Vec::new(),

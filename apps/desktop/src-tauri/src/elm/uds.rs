@@ -50,6 +50,42 @@ pub struct UdsModule {
     pub builtin: bool,
 }
 
+#[derive(Serialize, Clone)]
+pub struct VerificationObservation {
+    pub did: String,
+    pub purpose: String,
+    pub outcome: DiagnosticOutcome,
+    /// Complete application payload after `62 <DID>`, never a three-byte
+    /// preview. This is the evidence needed to develop and validate decoders.
+    pub payload_hex: Option<String>,
+    pub printable: Option<String>,
+    /// Exact adapter response, including `NO DATA`, headers and framing.
+    /// Kept privately with the vehicle run so parser changes can be replayed.
+    pub raw_response: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct VerificationTargetResult {
+    pub key: String,
+    pub label: String,
+    pub expected_family: String,
+    pub route: String,
+    pub evidence_source: String,
+    pub observations: Vec<VerificationObservation>,
+    /// For sweep targets: how many identifiers were tried and how each
+    /// outcome class was distributed. Individual observations only record
+    /// answered identifiers so a 768-DID sweep stays reviewable.
+    pub summary: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct ParkedVerificationReport {
+    pub run_id: Option<i64>,
+    pub plan_version: String,
+    pub safety: String,
+    pub targets: Vec<VerificationTargetResult>,
+}
+
 pub fn builtin_modules() -> Vec<UdsModule> {
     [
         ("bsi", "BSI (body computer)", "752", "652"),
@@ -111,7 +147,10 @@ fn split_extended(addr: u32) -> (u8, u32) {
     (((addr >> 24) & 0xFF) as u8, addr & 0x00FF_FFFF)
 }
 
-fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
+fn addressing_commands_for_route(
+    m: &UdsModule,
+    address_extension: Option<u8>,
+) -> Result<Vec<String>, ElmError> {
     let (req, resp, extended) = address_pair(m)?;
 
     // 29-bit extended addressing. Needed for whole classes of modules that
@@ -120,6 +159,11 @@ fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
     // way. Protocol 7 is CAN 29-bit 500k; the receive filter and flow
     // control header both take the full eight-digit identifier.
     if extended {
+        if address_extension.is_some() {
+            return Err(ElmError::Handshake(
+                "ISO-TP address extension is only supported on 11-bit routes".into(),
+            ));
+        }
         let (priority, header) = split_extended(req);
         return Ok(vec![
             "ATSP7".to_string(),
@@ -134,16 +178,27 @@ fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
         ]);
     }
 
-    Ok(vec![
+    let mut commands = vec![
         "ATSP6".to_string(),
         "ATCAF1".to_string(),
         "ATH0".to_string(),
         format!("ATSH {req:03X}"),
         format!("ATCRA {resp:03X}"),
         format!("ATFCSH {req:03X}"),
-        "ATFCSD 300000".to_string(),
+        match address_extension {
+            Some(extension) => format!("ATFCSD {extension:02X} 30 00 00"),
+            None => "ATFCSD 300000".to_string(),
+        },
         "ATFCSM 1".to_string(),
-    ])
+    ];
+    if let Some(extension) = address_extension {
+        commands.push(format!("ATCEA {extension:02X}"));
+    }
+    Ok(commands)
+}
+
+fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
+    addressing_commands_for_route(m, None)
 }
 
 /// Point the ELM at one module with physical addressing: CAN 500k, 11-bit or
@@ -152,6 +207,20 @@ fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
 pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
     for c in addressing_commands(m)? {
         drv.cmd(&c, Duration::from_secs(2))?;
+    }
+    Ok(())
+}
+
+fn setup_addressing_with_extension(
+    drv: &mut ElmDriver,
+    m: &UdsModule,
+    address_extension: Option<u8>,
+) -> Result<(), ElmError> {
+    // A prior target may have enabled extended addressing. Disable it before
+    // configuring every route so state can never leak between candidates.
+    drv.cmd("ATCEA", Duration::from_secs(2))?;
+    for command in addressing_commands_for_route(m, address_extension)? {
+        drv.cmd(&command, Duration::from_secs(2))?;
     }
     Ok(())
 }
@@ -184,10 +253,28 @@ fn observe_did(
     did: u16,
     timeout: Duration,
 ) -> Result<(DiagnosticOutcome, Option<Vec<u8>>), ElmError> {
+    observe_did_evidence(drv, did, timeout).map(|evidence| (evidence.outcome, evidence.data))
+}
+
+struct DidEvidence {
+    outcome: DiagnosticOutcome,
+    data: Option<Vec<u8>>,
+    raw_response: Option<String>,
+}
+
+fn observe_did_evidence(
+    drv: &mut ElmDriver,
+    did: u16,
+    timeout: Duration,
+) -> Result<DidEvidence, ElmError> {
     let raw = match drv.cmd(&format!("22{did:04X}"), timeout) {
         Ok(raw) => raw,
         Err(ElmError::NoResponse) => {
-            return Ok((DiagnosticOutcome::timed_out("22"), None));
+            return Ok(DidEvidence {
+                outcome: DiagnosticOutcome::timed_out("22"),
+                data: None,
+                raw_response: None,
+            });
         }
         Err(error) => return Err(error),
     };
@@ -198,33 +285,427 @@ fn observe_did(
             && bytes[i + 1] == (did >> 8) as u8
             && bytes[i + 2] == (did & 0xFF) as u8
         {
-            return Ok((
-                DiagnosticOutcome::answered("22"),
-                Some(bytes[i + 3..].to_vec()),
-            ));
+            return Ok(DidEvidence {
+                outcome: DiagnosticOutcome::answered("22"),
+                data: Some(bytes[i + 3..].to_vec()),
+                raw_response: Some(raw),
+            });
         }
     }
     if let Some(response) = bytes
         .windows(3)
         .find(|window| window[0] == 0x7F && window[1] == 0x22)
     {
-        return Ok((
-            DiagnosticOutcome::refused(
+        return Ok(DidEvidence {
+            outcome: DiagnosticOutcome::refused(
                 "22",
                 response[2],
                 parser::negative_response_name(response[2]),
             ),
-            None,
-        ));
+            data: None,
+            raw_response: Some(raw),
+        });
     }
     if raw.to_ascii_uppercase().contains("NO DATA") || raw.trim().is_empty() {
-        Ok((DiagnosticOutcome::timed_out("22"), None))
+        Ok(DidEvidence {
+            outcome: DiagnosticOutcome::timed_out("22"),
+            data: None,
+            raw_response: Some(raw),
+        })
     } else {
-        Ok((
-            DiagnosticOutcome::malformed("22", "unexpected ReadDataByIdentifier response"),
-            None,
-        ))
+        Ok(DidEvidence {
+            outcome: DiagnosticOutcome::malformed("22", "unexpected ReadDataByIdentifier response"),
+            data: None,
+            raw_response: Some(raw),
+        })
     }
+}
+
+/// A reproducible, parked-car evidence pass for the unresolved Citroen C4
+/// C41 candidates. Every vehicle-facing request is ReadDataByIdentifier
+/// (0x22) in the ECU's default session. The plan never opens 10 03, controls
+/// an actuator, starts a routine, clears a fault, or writes configuration.
+pub fn parked_verification(drv: &mut ElmDriver) -> ParkedVerificationReport {
+    struct Target {
+        key: &'static str,
+        label: &'static str,
+        family: &'static str,
+        req: &'static str,
+        resp: &'static str,
+        extension: Option<u8>,
+        dids: &'static [(u16, &'static str)],
+        /// Inclusive identifier ranges read one by one after `dids`. Only
+        /// answered identifiers become observations; the counts go in
+        /// `summary`.
+        sweep: &'static [(u16, u16)],
+        source: &'static str,
+    }
+
+    // v3: v2 proved F080 and F0FE answer on every reachable ECU and that
+    // F08A/F08E are either empty (camera) or absent (ABS, steering). Repeat
+    // only the identity reads that carry information, so each run keeps
+    // refreshing the part-number evidence the fingerprint columns are built
+    // from.
+    const PSA_IDENTITY: &[(u16, &str)] = &[
+        (0xF186, "active diagnostic session"),
+        (0xF18C, "ECU serial number"),
+        (0xF080, "PSA identity payload (BCD part references)"),
+        (0xF0FE, "PSA identity candidate F0FE"),
+    ];
+    // Four TPMS address hypotheses (29-bit, DSG 6AF, legacy 740, legacy 742)
+    // were silent in v1/v2 and the BSI is unreachable from the OBD pins. The
+    // remaining evidence-based route for tyre pressure is the ABS/ESP itself,
+    // so sweep the PSA data ranges where this car's engine ECU already keeps
+    // its live values (D4xx) and the range the earlier BSI hunt targeted.
+    const ABS_SWEEP: &[(u16, u16)] = &[(0xD000, 0xD1FF), (0xD400, 0xD4FF)];
+    let targets = [
+        Target {
+            key: "cvm3",
+            label: "Windscreen camera",
+            family: "CVM3",
+            req: "74A",
+            resp: "64A",
+            extension: None,
+            dids: PSA_IDENTITY,
+            sweep: &[],
+            source: "verified_on_vehicle route; PSA identity DIDs answered in v2",
+        },
+        Target {
+            key: "abs",
+            label: "ABS / ESP",
+            family: "ESPMK100_UDS",
+            req: "6AD",
+            resp: "68D",
+            extension: None,
+            dids: PSA_IDENTITY,
+            sweep: &[],
+            source: "verified_on_vehicle route; exact-platform community family; PSA identity DIDs answered in v2",
+        },
+        Target {
+            key: "steering",
+            label: "Power steering",
+            family: "DAE_UDS2",
+            req: "6B5",
+            resp: "695",
+            extension: None,
+            dids: PSA_IDENTITY,
+            sweep: &[],
+            source: "verified_on_vehicle route; exact-platform community family; PSA identity DIDs answered in v2",
+        },
+        Target {
+            key: "abs_sweep",
+            label: "ABS / ESP data sweep (tyre pressure search)",
+            family: "ESPMK100_UDS",
+            req: "6AD",
+            resp: "68D",
+            extension: None,
+            dids: &[],
+            sweep: ABS_SWEEP,
+            source: "hypothesis: TPMS values served by ABS/ESP after four silent TPMS routes; bounded 0x22 sweep, default session",
+        },
+    ];
+
+    let mut operation = ScannerOperation::new(drv);
+    let mut results = Vec::new();
+    for target in targets {
+        let module = UdsModule {
+            key: target.key.into(),
+            label: target.label.into(),
+            req: target.req.into(),
+            resp: target.resp.into(),
+            builtin: false,
+        };
+        let route = match target.extension {
+            Some(ext) => format!("{}→{} + {:02X}", target.req, target.resp, ext),
+            None => format!("{}→{}", target.req, target.resp),
+        };
+        let mut observations = Vec::new();
+        let mut summary = None;
+        if let Err(error) =
+            setup_addressing_with_extension(operation.driver(), &module, target.extension)
+        {
+            observations.push(VerificationObservation {
+                did: "route".into(),
+                purpose: "configure diagnostic route".into(),
+                outcome: DiagnosticOutcome::from_elm_error("route", &error),
+                payload_hex: None,
+                printable: None,
+                raw_response: None,
+            });
+        } else {
+            for (did, purpose) in target.dids {
+                let evidence =
+                    observe_did_evidence(operation.driver(), *did, Duration::from_millis(1800));
+                let (outcome, data, raw_response) = match evidence {
+                    Ok(value) => (value.outcome, value.data, value.raw_response),
+                    Err(error) => (DiagnosticOutcome::from_elm_error("22", &error), None, None),
+                };
+                observations.push(VerificationObservation {
+                    did: format!("{did:04X}"),
+                    purpose: (*purpose).into(),
+                    payload_hex: data.as_deref().map(hex_string),
+                    printable: data.as_deref().and_then(printable),
+                    raw_response,
+                    outcome,
+                });
+            }
+            if !target.sweep.is_empty() {
+                summary = Some(sweep_identifiers(
+                    operation.driver(),
+                    target.sweep,
+                    &mut observations,
+                ));
+            }
+        }
+        results.push(VerificationTargetResult {
+            key: target.key.into(),
+            label: target.label.into(),
+            expected_family: target.family.into(),
+            route,
+            evidence_source: target.source.into(),
+            observations,
+            summary,
+        });
+    }
+    ParkedVerificationReport {
+        run_id: None,
+        plan_version: "citroen-c41-v3".into(),
+        safety: "parked, read-only 0x22 requests, default diagnostic session".into(),
+        targets: results,
+    }
+}
+
+/// Read every identifier in the given inclusive ranges once, in the current
+/// (default) session. Answered identifiers are appended as observations with
+/// their complete payload; refusals and silence are only counted, because a
+/// 768-row table of `7F 22 31` is not evidence anyone can review. Stops early
+/// when the link itself degrades so a dead adapter cannot masquerade as 700
+/// silent identifiers.
+fn sweep_identifiers(
+    drv: &mut ElmDriver,
+    ranges: &[(u16, u16)],
+    observations: &mut Vec<VerificationObservation>,
+) -> String {
+    let (mut tried, mut answered, mut refused, mut silent, mut link_errors) = (0u32, 0u32, 0u32, 0u32, 0u32);
+    let mut aborted_at = None;
+    'ranges: for (from, to) in ranges {
+        for did in *from..=*to {
+            tried += 1;
+            match observe_did_evidence(drv, did, Duration::from_millis(600)) {
+                Ok(evidence) => match evidence.outcome.status {
+                    DiagnosticStatus::Answered => {
+                        answered += 1;
+                        observations.push(VerificationObservation {
+                            did: format!("{did:04X}"),
+                            purpose: "sweep hit; meaning unknown until correlated".into(),
+                            payload_hex: evidence.data.as_deref().map(hex_string),
+                            printable: evidence.data.as_deref().and_then(printable),
+                            raw_response: evidence.raw_response,
+                            outcome: evidence.outcome,
+                        });
+                    }
+                    DiagnosticStatus::Refused => refused += 1,
+                    _ => silent += 1,
+                },
+                Err(_) => {
+                    link_errors += 1;
+                    if link_errors > 10 {
+                        aborted_at = Some(did);
+                        break 'ranges;
+                    }
+                }
+            }
+        }
+    }
+    let ranges = ranges
+        .iter()
+        .map(|(from, to)| format!("{from:04X}–{to:04X}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let mut summary = format!(
+        "swept {ranges}: {tried} identifiers tried, {answered} answered, {refused} refused, {silent} silent, {link_errors} link errors"
+    );
+    if let Some(did) = aborted_at {
+        summary.push_str(&format!("; aborted at {did:04X} because the link degraded"));
+    }
+    summary
+}
+
+#[derive(Serialize, Clone)]
+pub struct CorrelationReading {
+    pub did: String,
+    /// One complete payload per repeat, `None` when that repeat did not
+    /// answer. Round-robin order (all identifiers once, then again) so a
+    /// value that drifts between repeats shows up as noise instead of being
+    /// hidden by three back-to-back reads.
+    pub payloads: Vec<Option<String>>,
+    /// True when every repeat answered with the same payload.
+    pub stable: bool,
+    /// Outcome of the last repeat, for refusals and timeouts.
+    pub outcome: DiagnosticOutcome,
+}
+
+#[derive(Serialize, Clone)]
+pub struct CorrelationCapture {
+    pub run_id: Option<i64>,
+    pub plan_version: String,
+    pub route: String,
+    pub step: String,
+    pub condition: String,
+    pub repeats: u8,
+    pub safety: String,
+    pub readings: Vec<CorrelationReading>,
+}
+
+/// One guided-correlation capture: read every identifier `repeats` times in
+/// the default session while the operator holds one physical condition. The
+/// meaning of a byte is never inferred here; this only produces the samples a
+/// diff against the baseline capture can be made from.
+pub fn correlation_capture(
+    drv: &mut ElmDriver,
+    req: &str,
+    resp: &str,
+    dids: &[u16],
+    repeats: u8,
+) -> Result<Vec<CorrelationReading>, String> {
+    let module = UdsModule {
+        key: format!("corr_{}", req.to_ascii_lowercase()),
+        label: format!("Correlation {req}"),
+        req: req.into(),
+        resp: resp.into(),
+        builtin: false,
+    };
+    let mut operation = ScannerOperation::new(drv);
+    setup_addressing_with_extension(operation.driver(), &module, None)
+        .map_err(|error| format!("could not configure route {req}→{resp}: {error}"))?;
+    let repeats = repeats.clamp(1, 10);
+    let mut payloads: Vec<Vec<Option<String>>> = vec![Vec::new(); dids.len()];
+    let mut outcomes: Vec<DiagnosticOutcome> =
+        vec![DiagnosticOutcome::timed_out("22"); dids.len()];
+    let mut link_errors = 0u32;
+    for _ in 0..repeats {
+        for (index, did) in dids.iter().enumerate() {
+            match observe_did_evidence(operation.driver(), *did, Duration::from_millis(800)) {
+                Ok(evidence) => {
+                    payloads[index].push(evidence.data.as_deref().map(hex_string));
+                    outcomes[index] = evidence.outcome;
+                }
+                Err(error) => {
+                    link_errors += 1;
+                    payloads[index].push(None);
+                    outcomes[index] = DiagnosticOutcome::from_elm_error("22", &error);
+                    if link_errors > 10 {
+                        return Err(format!(
+                            "link degraded during capture at {did:04X}; nothing was saved"
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    Ok(dids
+        .iter()
+        .enumerate()
+        .map(|(index, did)| {
+            let samples = std::mem::take(&mut payloads[index]);
+            let stable = samples.iter().all(|sample| sample.is_some())
+                && samples.windows(2).all(|pair| pair[0] == pair[1]);
+            CorrelationReading {
+                did: format!("{did:04X}"),
+                payloads: samples,
+                stable,
+                outcome: outcomes[index].clone(),
+            }
+        })
+        .collect())
+}
+
+/// PSA/Stellantis `F080` identity payloads carry the module's references as
+/// packed BCD, five bytes per ten-digit number (`98 17 13 71 80` is the part
+/// reference `9817137180` printed on the ECU label). The first reference
+/// starts at byte 0 and the second at byte 7, with two bytes between them.
+/// Returns only groups whose every nibble is a decimal digit, so `FF`
+/// padding or a differently laid out payload yields nothing instead of a
+/// fabricated number.
+pub fn decode_psa_references(payload: &[u8]) -> Vec<String> {
+    const GROUP_OFFSETS: [usize; 2] = [0, 7];
+    GROUP_OFFSETS
+        .iter()
+        .filter_map(|&offset| {
+            let group = payload.get(offset..offset + 5)?;
+            let mut digits = String::with_capacity(10);
+            for byte in group {
+                let (high, low) = (byte >> 4, byte & 0x0F);
+                if high > 9 || low > 9 {
+                    return None;
+                }
+                digits.push(char::from(b'0' + high));
+                digits.push(char::from(b'0' + low));
+            }
+            Some(digits)
+        })
+        .collect()
+}
+
+/// Build a comparable fingerprint for a verification target from the PSA
+/// identity evidence it answered. Returns None when the target did not yield
+/// a decodable `F080` reference, so nothing is written for silent routes.
+///
+/// The first reference is stored as the spare part number and the second as
+/// the software reference. That ordering follows the community reading of
+/// PSA `F080` and has not yet been confirmed against a label on this vehicle;
+/// the evidence entries name the source DID so the assumption stays visible.
+pub fn psa_identity_fingerprint(target: &VerificationTargetResult) -> Option<EcuFingerprint> {
+    let (req, resp) = target.route.split_once('→')?;
+    let f080 = target
+        .observations
+        .iter()
+        .find(|item| item.did == "F080" && item.outcome.status == DiagnosticStatus::Answered)?;
+    let payload: Vec<u8> = f080
+        .payload_hex
+        .as_deref()?
+        .split_whitespace()
+        .filter_map(|pair| u8::from_str_radix(pair, 16).ok())
+        .collect();
+    let references = decode_psa_references(&payload);
+    let spare_part_number = references.first().cloned()?;
+    let software_version = references.get(1).cloned();
+    let mut evidence = vec![EcuIdentityEvidence {
+        did: 0xF080,
+        label: "PSA identity payload; reference 1 stored as part number, reference 2 as software reference (order unconfirmed on vehicle)".into(),
+        outcome: f080.outcome.clone(),
+        raw_value: f080.payload_hex.clone(),
+        decoded_value: Some(references.join(" / ")),
+    }];
+    if let Some(serial) = target
+        .observations
+        .iter()
+        .find(|item| item.did == "F18C" && item.outcome.status == DiagnosticStatus::Answered)
+    {
+        evidence.push(EcuIdentityEvidence {
+            did: 0xF18C,
+            label: "ECU serial number (excluded from the match key)".into(),
+            outcome: serial.outcome.clone(),
+            raw_value: serial.payload_hex.clone(),
+            decoded_value: serial.printable.clone(),
+        });
+    }
+    let mut key = format!("part={spare_part_number}");
+    if let Some(software) = &software_version {
+        key.push_str(&format!("|sw={software}"));
+    }
+    Some(EcuFingerprint {
+        request_address: req.trim().into(),
+        response_address: resp.split(" + ").next().unwrap_or(resp).trim().into(),
+        fields_answered: 1 + u8::from(software_version.is_some()),
+        spare_part_number: Some(spare_part_number),
+        hardware_version: None,
+        software_version,
+        system_name: None,
+        match_key: Some(key),
+        fields_total: 4,
+        evidence,
+    })
 }
 
 /// Keep an explicitly opened extended session alive without asking the ECU
@@ -757,11 +1238,14 @@ fn build_fingerprint(
     let software_version = value(0xF195);
     let system_name = value(0xF197);
     let (fields_answered, match_key) = {
+        // Labels name the field, not the DID it came from, so an ISO F187
+        // part number and a PSA F080 reference for the same ECU family
+        // compare equal instead of being split by their source.
         let comparable = [
-            ("F187", spare_part_number.as_deref()),
-            ("F191", hardware_version.as_deref()),
-            ("F195", software_version.as_deref()),
-            ("F197", system_name.as_deref()),
+            ("part", spare_part_number.as_deref()),
+            ("hw", hardware_version.as_deref()),
+            ("sw", software_version.as_deref()),
+            ("sys", system_name.as_deref()),
         ];
         let answered = comparable
             .iter()
@@ -1896,6 +2380,20 @@ mod tests {
     }
 
     #[test]
+    fn lin_child_route_configures_extended_addressing_and_flow_control() {
+        let cmds = addressing_commands_for_route(&module("730", "710"), Some(0x70)).unwrap();
+        assert!(cmds.iter().any(|c| c == "ATFCSD 70 30 00 00"), "{cmds:?}");
+        assert_eq!(cmds.last().map(String::as_str), Some("ATCEA 70"));
+    }
+
+    #[test]
+    fn extended_addressing_is_rejected_for_29_bit_routes() {
+        assert!(
+            addressing_commands_for_route(&module("18DAC7F1", "18DAF1C7"), Some(0x70)).is_err()
+        );
+    }
+
+    #[test]
     fn twenty_nine_bit_modules_switch_protocol_and_split_the_header() {
         // PSA/Stellantis TPMS: ISO 15765-2 normal fixed addressing.
         let cmds = addressing_commands(&module("18DAC7F1", "18DAF1C7")).unwrap();
@@ -2032,6 +2530,39 @@ mod tests {
     }
 
     #[test]
+    fn verification_evidence_preserves_complete_adapter_responses() {
+        let replay = r#"{
+          "schema_version": 1,
+          "name": "raw DID evidence",
+          "contains_vehicle_identifiers": false,
+          "steps": [
+            { "command": "22F080", "response": "62 F0 80 98 17 13 71 80 00 0F 98 42 72 50 80\r>" },
+            { "command": "22A0F1", "response": "NO DATA\r>" }
+          ]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(replay).unwrap();
+        let answered =
+            observe_did_evidence(&mut driver, 0xF080, Duration::from_millis(500)).unwrap();
+        assert_eq!(answered.outcome.status, DiagnosticStatus::Answered);
+        assert_eq!(
+            answered.data,
+            Some(vec![
+                0x98, 0x17, 0x13, 0x71, 0x80, 0x00, 0x0F, 0x98, 0x42, 0x72, 0x50, 0x80
+            ])
+        );
+        assert!(answered
+            .raw_response
+            .as_deref()
+            .is_some_and(|raw| raw.contains("98 42 72 50 80")));
+
+        let no_data =
+            observe_did_evidence(&mut driver, 0xA0F1, Duration::from_millis(500)).unwrap();
+        assert_eq!(no_data.outcome.status, DiagnosticStatus::TimedOut);
+        assert_eq!(no_data.raw_response.as_deref(), Some("NO DATA\r>"));
+        driver.assert_replay_complete();
+    }
+
+    #[test]
     fn coverage_is_derived_from_candidate_evidence() {
         let probes = vec![
             ModuleProbeResult {
@@ -2100,7 +2631,113 @@ mod tests {
         let fingerprint = build_fingerprint("6A8".into(), "688".into(), evidence);
         assert_eq!(fingerprint.fields_answered, 1);
         assert_eq!(fingerprint.fields_total, 4);
-        assert_eq!(fingerprint.match_key.as_deref(), Some("F187=981234"));
+        assert_eq!(fingerprint.match_key.as_deref(), Some("part=981234"));
         assert!(!fingerprint.match_key.unwrap().contains("SERIAL1"));
+    }
+
+    #[test]
+    fn correlation_capture_reads_round_robin_and_flags_drift() {
+        // Two repeats over two identifiers: D435 holds, D410 drifts between
+        // repeats and must come back as noisy (stable = false), never as a
+        // change.
+        let replay = r#"{
+          "schema_version": 1,
+          "name": "correlation round robin",
+          "contains_vehicle_identifiers": false,
+          "steps": [
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP6", "response": "OK\r>" },
+            { "command": "ATCAF1", "response": "OK\r>" },
+            { "command": "ATH0", "response": "OK\r>" },
+            { "command": "ATSH 6AD", "response": "OK\r>" },
+            { "command": "ATCRA 68D", "response": "OK\r>" },
+            { "command": "ATFCSH 6AD", "response": "OK\r>" },
+            { "command": "ATFCSD 300000", "response": "OK\r>" },
+            { "command": "ATFCSM 1", "response": "OK\r>" },
+            { "command": "22D435", "response": "62 D4 35 07\r>" },
+            { "command": "22D410", "response": "62 D4 10 29\r>" },
+            { "command": "22D435", "response": "62 D4 35 07\r>" },
+            { "command": "22D410", "response": "62 D4 10 2A\r>" },
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP0", "response": "OK\r>" },
+            { "command": "ATSH 7DF", "response": "OK\r>" },
+            { "command": "ATAR", "response": "OK\r>" },
+            { "command": "ATFCSM 0", "response": "OK\r>" }
+          ]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(replay).unwrap();
+        let readings = correlation_capture(&mut driver, "6AD", "68D", &[0xD435, 0xD410], 2)
+            .expect("route configured");
+        assert_eq!(readings.len(), 2);
+        assert_eq!(readings[0].did, "D435");
+        assert!(readings[0].stable);
+        assert_eq!(readings[0].payloads, vec![Some("07".into()), Some("07".into())]);
+        assert_eq!(readings[1].did, "D410");
+        assert!(!readings[1].stable);
+        assert_eq!(readings[1].payloads, vec![Some("29".into()), Some("2A".into())]);
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn psa_f080_references_decode_only_valid_bcd_groups() {
+        // Camera payload captured on the C4 in evidence run #2.
+        let camera = [
+            0x98, 0x17, 0x13, 0x71, 0x80, 0x00, 0x0F, 0x98, 0x42, 0x72, 0x50, 0x80, 0xFF, 0x71,
+        ];
+        assert_eq!(decode_psa_references(&camera), vec!["9817137180", "9842725080"]);
+        // FF padding is not a number; a short payload yields nothing.
+        assert_eq!(decode_psa_references(&[0xFF; 12]), Vec::<String>::new());
+        assert_eq!(decode_psa_references(&[0x98, 0x17]), Vec::<String>::new());
+        // A valid first group with a padded second group keeps only the first.
+        let partial = [0x98, 0x46, 0x12, 0x49, 0x80, 0x00, 0x0D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        assert_eq!(decode_psa_references(&partial), vec!["9846124980"]);
+    }
+
+    #[test]
+    fn verification_target_yields_fingerprint_without_serial_in_key() {
+        let observation = |did: &str, payload: &str, printable: Option<&str>| VerificationObservation {
+            did: did.into(),
+            purpose: String::new(),
+            outcome: DiagnosticOutcome::answered("22"),
+            payload_hex: Some(payload.into()),
+            printable: printable.map(Into::into),
+            raw_response: None,
+        };
+        let target = VerificationTargetResult {
+            key: "abs".into(),
+            label: "ABS / ESP".into(),
+            expected_family: "ESPMK100_UDS".into(),
+            route: "6AD→68D".into(),
+            evidence_source: String::new(),
+            observations: vec![
+                observation("F18C", "32 38 35", Some("285")),
+                observation("F080", "98 46 12 49 80 00 0D 98 20 60 93 80 70 12", None),
+            ],
+            summary: None,
+        };
+        let fingerprint = psa_identity_fingerprint(&target).expect("F080 answered");
+        assert_eq!(fingerprint.request_address, "6AD");
+        assert_eq!(fingerprint.response_address, "68D");
+        assert_eq!(fingerprint.spare_part_number.as_deref(), Some("9846124980"));
+        assert_eq!(fingerprint.software_version.as_deref(), Some("9820609380"));
+        assert_eq!(
+            fingerprint.match_key.as_deref(),
+            Some("part=9846124980|sw=9820609380")
+        );
+        assert_eq!(fingerprint.fields_answered, 2);
+        assert!(!fingerprint.match_key.unwrap().contains("285"));
+
+        let silent = VerificationTargetResult {
+            observations: vec![VerificationObservation {
+                did: "F080".into(),
+                purpose: String::new(),
+                outcome: DiagnosticOutcome::timed_out("22"),
+                payload_hex: None,
+                printable: None,
+                raw_response: None,
+            }],
+            ..target
+        };
+        assert!(psa_identity_fingerprint(&silent).is_none());
     }
 }

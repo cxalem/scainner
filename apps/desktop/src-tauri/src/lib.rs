@@ -251,6 +251,41 @@ async fn discover_sensors(
     ask(&state, |tx| Request::Discover { full, tx }).await
 }
 
+/// Reproducible parked-car research pass. Read-only 0x22 requests only; the
+/// complete evidence is attached to this vehicle and connection in SQLite.
+#[tauri::command]
+async fn parked_verification(
+    state: tauri::State<'_, AppState>,
+) -> Result<elm::uds::ParkedVerificationReport, String> {
+    ask(&state, Request::ParkedVerification).await
+}
+
+/// One step of a guided correlation session: the operator holds a physical
+/// condition, the app reads the given identifiers `repeats` times. Read-only.
+#[tauri::command]
+async fn correlation_capture(
+    state: tauri::State<'_, AppState>,
+    req: String,
+    resp: String,
+    dids: Vec<u16>,
+    step: String,
+    condition: String,
+    plan_version: String,
+    repeats: u8,
+) -> Result<elm::uds::CorrelationCapture, String> {
+    ask(&state, |tx| Request::CorrelationCapture {
+        req,
+        resp,
+        dids,
+        step,
+        condition,
+        plan_version,
+        repeats,
+        tx,
+    })
+    .await
+}
+
 /// What previous discovery passes found for a vehicle: one row per module
 /// with its DID counts. Local DB read, no car needed.
 #[tauri::command]
@@ -576,6 +611,8 @@ pub fn run() {
             uds_scan,
             uds_cancel_scan,
             discover_sensors,
+            parked_verification,
+            correlation_capture,
             discovered_modules,
             discovered_dids,
             fingerprint_experiment,
