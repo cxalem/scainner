@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "scainner": {
+      "command": "uv",
+      "args": ["run", "scripts/scainner_mcp.py"],
+      "env": {}
+    }
+  }
+}

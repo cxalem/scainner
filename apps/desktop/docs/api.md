@@ -235,3 +235,19 @@ print(c.diff_captures(a1, a2))    # noise floor — should be {}
 - `src-tauri/src/api/openapi.rs`: the route table + OpenAPI document. A test
   hits every documented route through the router and fails on 404/405.
 - Tests: `cargo test api::`.
+
+
+## MCP server (agents)
+
+`scripts/scainner_mcp.py` exposes every route above as MCP tools over stdio
+(`uv run scripts/scainner_mcp.py`; the repo's `.mcp.json` registers it as
+`scainner` for Claude Code). It uses the same token discovery as the Python
+client and the same confirm gate on `dtc_clear` / `uds_clear`.
+
+## Probe polling interval
+
+The supervisor polls enabled probes every `probe_interval_ticks` ticks (one
+tick ≈ 250 ms; default 120 ≈ 30–60 s, minimum 4 ≈ 1 s, maximum 2400). Set it
+with `PUT /settings/probe_interval_ticks {"value": "8"}` before a physical
+test and put it back afterwards; the change applies within ~10 s without
+reconnecting. Lower intervals add UDS traffic on every polled module.
