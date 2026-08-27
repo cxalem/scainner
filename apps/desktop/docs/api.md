@@ -122,6 +122,7 @@ sc -X POST $API/dtc/clear -d '{"confirmed": true}'  # actually clears
 | `POST /uds/modules` `{"key","label","req","resp"}` | add a custom module (hex CAN ids like `"752"`/`"652"`) |
 | `DELETE /uds/modules/{key}` | remove a custom module |
 | `POST /uds/read` `{"module","did"}` | read one DID (0x22); `null` if the module does not answer |
+| `POST /uds/read-many` `{"module","dids":[…]}` | read up to 64 DIDs with the route set once — use this for physical tests; a single `/uds/read` costs ~1.3 s |
 | `POST /uds/scan` `{"module","from","to"}` | range scan (DIDs as integers) — minutes |
 | `POST /uds/scan/cancel` | abort the running scan / discovery |
 | `POST /uds/discover` `{"full": false}` | one-button auto-discovery (`full` = blind sweep) |

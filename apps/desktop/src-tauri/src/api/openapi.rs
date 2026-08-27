@@ -74,6 +74,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/uds/modules", "Add a custom module", &[], Some(r#"{"key": "bsi", "label": "Body computer", "req": "752", "resp": "652"}"#), false, false),
     r("DELETE", "/uds/modules/{key}", "Delete a custom module", &[], None, false, false),
     r("POST", "/uds/read", "Read one DID (0x22) from a module; null when the module does not answer", &[], Some(r#"{"module": "abs", "did": 53504}"#), true, false),
+    r("POST", "/uds/read-many", "Read up to 64 DIDs from one module with the route configured once (fast enough for physical tests); unanswered DIDs are omitted", &[], Some(r#"{"module": "abs", "dids": [54272, 54273, 54303]}"#), true, false),
     r("POST", "/uds/scan", "Scan a DID range on one module (minutes; watch /events uds-scan-progress)", &[], Some(r#"{"module": "abs", "from": 53504, "to": 53759}"#), true, false),
     r("POST", "/uds/scan/cancel", "Abort the running range scan / discovery within one DID timeout", &[], None, false, false),
     r("POST", "/uds/discover", "One-button auto-discovery; full=true forces the blind sweep", &[], Some(r#"{"full": false}"#), true, false),

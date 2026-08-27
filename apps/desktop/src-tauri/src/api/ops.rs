@@ -236,6 +236,14 @@ pub async fn uds_read(
     ask(state, |tx| Request::UdsRead { module, did, tx }).await
 }
 
+pub async fn uds_read_many(
+    state: &AppState,
+    module: String,
+    dids: Vec<u16>,
+) -> Result<Vec<elm::uds::UdsHit>, String> {
+    ask(state, |tx| Request::UdsReadMany { module, dids, tx }).await
+}
+
 pub async fn uds_scan(
     state: &AppState,
     module: String,

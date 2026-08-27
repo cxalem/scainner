@@ -147,6 +147,9 @@ class Client:
         return self.post("/uds/modules", {"key": key, "label": label, "req": req, "resp": resp})
     def delete_uds_module(self, key): return self.request("DELETE", f"/uds/modules/{key}")
     def uds_read(self, module: str, did: int): return self.post("/uds/read", {"module": module, "did": did})
+    def uds_read_many(self, module: str, dids: list[int]):
+        """Read up to 64 DIDs with the route configured once (~10 Hz per DID). Returns hits only."""
+        return self.post("/uds/read-many", {"module": module, "dids": list(dids)})
     def uds_scan(self, module: str, start: int, end: int):
         return self.post("/uds/scan", {"module": module, "from": start, "to": end})
     def uds_scan_cancel(self): return self.post("/uds/scan/cancel")

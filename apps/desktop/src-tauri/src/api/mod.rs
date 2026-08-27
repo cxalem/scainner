@@ -301,6 +301,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         )
         .route("/uds/modules/{key}/dtcs", get(uds_module_dtcs))
         .route("/uds/read", post(uds_read))
+        .route("/uds/read-many", post(uds_read_many))
         .route("/uds/scan", post(uds_scan))
         .route("/uds/scan/cancel", post(uds_scan_cancel))
         .route("/uds/discover", post(uds_discover))
@@ -552,6 +553,25 @@ async fn uds_module_dtcs(State(api): State<Arc<ApiState>>, Path(key): Path<Strin
 struct UdsReadBody {
     module: String,
     did: u16,
+}
+
+#[derive(Deserialize)]
+struct UdsReadManyBody {
+    module: String,
+    dids: Vec<u16>,
+}
+
+async fn uds_read_many(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: UdsReadManyBody = parse_required(&body)?;
+    if b.dids.is_empty() || b.dids.len() > 64 {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "dids must contain between 1 and 64 identifiers",
+        ));
+    }
+    ok(ops::uds_read_many(&api.state, b.module, b.dids)
+        .await
+        .map_err(op_err)?)
 }
 
 async fn uds_read(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
@@ -1055,6 +1075,7 @@ mod tests {
             "/uds/modules",
             "/uds/modules/{key}",
             "/uds/read",
+            "/uds/read-many",
             "/uds/scan",
             "/uds/scan/cancel",
             "/uds/discover",

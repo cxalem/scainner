@@ -1,7 +1,7 @@
 {
-  "version": 5,
-  "generated": "2026-08-25",
-  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, which diagnostic session an exact module may use during automatic discovery, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. Editing this file needs no code change: the discovery engine reads every per-brand value from here. v5 (2026-08-25) adds data-driven generic enumeration policies and standard 29-bit normal-fixed target enumeration while explicitly suppressing generic sweeps for known non-sweepable brands. v4 (2026-08-24) adds opt-in, exact-module discovery session policies; missing policies are default-session only. v3 (2026-08-23) verification+extension pass: re-derived high-confidence PSA/VAG/BMW/Ford/Hyundai/Nissan entries against primary sources directly (found and fixed a Nissan module misattribution, a BMW target-byte error and a wrong DID formula, a VAG module mix-up), fixed a live Renault resp_offset bug for EVC/DCM/BCB/PEB, added newer-model coverage (Mercedes EQB, VAG MEB battery DIDs, Volvo/Polestar CMA platform, Toyota 5th-gen THS), and confirmed Tesla and Mitsubishi are genuinely not OBD-port-UDS-reachable with the specific mechanism documented rather than left a mystery.",
+  "version": 6,
+  "generated": "2026-08-27",
+  "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, which diagnostic session an exact module may use during automatic discovery, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. v6 (2026-08-27) adds twelve ABS/ESP (6AD/68D) live-data decodes from the C4 III evidence sessions, each with an evidence note; verified on one vehicle unless stated. Editing this file needs no code change: the discovery engine reads every per-brand value from here. v5 (2026-08-25) adds data-driven generic enumeration policies and standard 29-bit normal-fixed target enumeration while explicitly suppressing generic sweeps for known non-sweepable brands. v4 (2026-08-24) adds opt-in, exact-module discovery session policies; missing policies are default-session only. v3 (2026-08-23) verification+extension pass: re-derived high-confidence PSA/VAG/BMW/Ford/Hyundai/Nissan entries against primary sources directly (found and fixed a Nissan module misattribution, a BMW target-byte error and a wrong DID formula, a VAG module mix-up), fixed a live Renault resp_offset bug for EVC/DCM/BCB/PEB, added newer-model coverage (Mercedes EQB, VAG MEB battery DIDs, Volvo/Polestar CMA platform, Toyota 5th-gen THS), and confirmed Tesla and Mitsubishi are genuinely not OBD-port-UDS-reachable with the specific mechanism documented rather than left a mystery.",
   "standard": {
     "note": "ISO 14229-1 identification block, genuinely universal, the one part of UDS as standard as OBD PIDs. Kept here rather than in code so every value the engine uses lives in one queryable place.",
     "ident_dids": [
@@ -489,6 +489,210 @@
             }
           ],
           "confidence": "confirmed"
+        },
+        {
+          "did": "D400",
+          "label": "Wheel speed rear-left",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "km/h",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; side and axle by cornering (right side faster in left turns, front leads mid-corner), scale by regression vs OBD speed (slope 99/km/h, n=93)"
+        },
+        {
+          "did": "D401",
+          "label": "Wheel speed rear-right",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "km/h",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; as D400"
+        },
+        {
+          "did": "D402",
+          "label": "Wheel speed front-left",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "km/h",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; as D400"
+        },
+        {
+          "did": "D403",
+          "label": "Wheel speed front-right",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "km/h",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.01,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; as D400"
+        },
+        {
+          "did": "D405",
+          "label": "ABS ECU supply voltage",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "V",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; 14.0–14.1 vs OBD PID 42 14.1 V engine running, 12.6 engine off"
+        },
+        {
+          "did": "D406",
+          "label": "Brake pedal switch (1 = pedal pressed)",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "flag",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; 1 in every deceleration phase of a 196-cycle drive and in stationary pedal tests, 0 otherwise"
+        },
+        {
+          "did": "D40C",
+          "label": "Brake (master-cylinder) pressure",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "bar",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "high",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; 0 at rest, 1–14 normal braking, 28–46 firm pedal; bar unit from a Diagbox-derived table (MP_PRESSION_DE_FREINAGE), magnitudes consistent, not calibrated against a gauge; FF = invalid"
+        },
+        {
+          "did": "D41F",
+          "label": "Steering wheel angle (positive = left)",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "°",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -1250.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; ±500° at full lock, sign by cornering vs wheel speeds"
+        },
+        {
+          "did": "D42E",
+          "label": "Clutch pedal position",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "%",
+          "offset": 0,
+          "len": 1,
+          "scale": 0.5,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; C8 (100%) while selecting reverse, 00 otherwise; manual gearbox"
+        },
+        {
+          "did": "D46D",
+          "label": "Rear-left wheel rolling backwards (1 = reverse rotation)",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "flag",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "high",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; 1 only while the car actually rolled backwards (not when R was merely selected); wheel position from the Diagbox-derived table, not separately verified"
+        },
+        {
+          "did": "D479",
+          "label": "Brake-servo vacuum (depression)",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "hPa",
+          "offset": 0,
+          "len": 1,
+          "scale": 5.0,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (Continental ESP MK100, part 9846124980), 2026-08-27, sessions in apps/desktop/docs/workflows/parked-vehicle-verification.md; 780 hPa reserve fell to 20 hPa over six pedal pumps with the engine off and stayed there; drops a few units per braking while driving"
+        },
+        {
+          "did": "D412",
+          "label": "Distance since indirect-TPMS (DSGi) reset",
+          "modules": [
+            {
+              "req": "6AD",
+              "resp": "68D"
+            }
+          ],
+          "unit": "km",
+          "offset": 0,
+          "len": 2,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "low",
+          "evidence": "Diagbox-derived table only (jyseojys/diag-server, unlicensed); read 2697 on the C4 on 2026-08-27; not verified"
         }
       ],
       "resp_offsets": [

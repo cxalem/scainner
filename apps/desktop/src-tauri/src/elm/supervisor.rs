@@ -69,6 +69,11 @@ pub enum Request {
         did: u16,
         tx: Sender<Result<Option<uds::UdsHit>, String>>,
     },
+    UdsReadMany {
+        module: String,
+        dids: Vec<u16>,
+        tx: Sender<Result<Vec<uds::UdsHit>, String>>,
+    },
     UdsScan {
         module: String,
         from: u16,
@@ -608,6 +613,9 @@ fn answer_disconnected(req: Request) {
         Request::UdsRead { tx, .. } => {
             let _ = tx.send(Err(err));
         }
+        Request::UdsReadMany { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
         Request::UdsScan { tx, .. } => {
             let _ = tx.send(Err(err));
         }
@@ -780,6 +788,9 @@ fn handle_request(
         }
         Request::UdsRead { module, did, tx } => {
             let _ = tx.send(uds::read_one(drv, db, &module, did));
+        }
+        Request::UdsReadMany { module, dids, tx } => {
+            let _ = tx.send(uds::read_many(drv, db, &module, &dids));
         }
         Request::UdsScan {
             module,

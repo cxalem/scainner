@@ -54,6 +54,8 @@ export interface Band {
 }
 
 export interface KnownDid {
+  /** How this decode was established (vehicle sessions, sources, caveats). */
+  evidence?: string;
   did: string;
   label: string;
   /** Exact ECU address pairs this DID meaning/formula belongs to. */

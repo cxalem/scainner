@@ -187,6 +187,22 @@ This is the only brand with first-party empirical data. Sources:
 3. [meatpiHQ/wican-fw](https://github.com/meatpiHQ/wican-fw) `vehicle_profiles/fiat/600e.json`
    for the Stellantis EV battery DIDs on `6B4/694`.
 
+4. **ABS/ESP live-data decodes (v6, 2026-08-27).** Twelve `known_dids` on `6AD/68D`
+   from the C4 III evidence sessions #2–#49 (parked verification v2/v3, guided
+   correlation, a 200 m drive logged against OBD speed, and session 2 through the
+   agent API). Every entry carries an `evidence` note. `confirmed` means verified on
+   this one vehicle by physical correlation (wheel speeds by regression and
+   cornering, steering angle by lock and cornering, servo vacuum by pumping the pedal
+   engine-off, clutch by selecting reverse, brake switch across 196 drive cycles);
+   `high` means the shape/magnitude is verified but the unit or wheel position comes
+   from a Diagbox-derived table; `low` is table-only. The ABS is a Continental/ATE
+   ESP MK100 (`9846124980`, software `9695041580`), so these decodes should transfer
+   to 208 II / 2008 II / Corsa F / Mokka units with the same part — that is the
+   pending second-vehicle check before any of them is called community-verified.
+   Provenance and licence caveats for the table: `apps/desktop/docs/research/c41-abs-did-research.md`
+   (the `jyseojys/diag-server` definitions are unlicensed and were used only as
+   hypotheses; nothing was copied from them beyond the hypothesis being tested).
+
 **Correction to the task brief.** The brief states the C4's battery *state of
 charge* lives at `D422`. The project's own log disagrees and the log is right:
 `D422` is the engine ECU's **battery voltage** sensor, confirmed by a live

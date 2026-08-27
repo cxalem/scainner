@@ -996,6 +996,32 @@ pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<Str
     read_dtcs(operation.driver()).map_err(|e| e.to_string())
 }
 
+/// Read several DIDs from one module with the route configured once. A
+/// single `read_one` costs ~1.3 s through the API because addressing is
+/// set up per call; a physical test (steering, pedals, wheels) needs the
+/// whole set in well under a second. Unanswered DIDs are simply absent
+/// from the result. Read-only, default session.
+pub fn read_many(
+    drv: &mut ElmDriver,
+    db: &Db,
+    module: &str,
+    dids: &[u16],
+) -> Result<Vec<UdsHit>, String> {
+    let custom = custom_modules(db);
+    let m = resolve(module, &custom).ok_or("unknown module")?;
+    let mut operation = ScannerOperation::new(drv);
+    setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
+    let mut hits = Vec::with_capacity(dids.len());
+    for did in dids.iter().take(64) {
+        if let Some(data) = read_did_timeout(operation.driver(), *did, Duration::from_millis(600))
+            .map_err(|e| e.to_string())?
+        {
+            hits.push(to_hit(*did, &data));
+        }
+    }
+    Ok(hits)
+}
+
 pub fn read_one(
     drv: &mut ElmDriver,
     db: &Db,
