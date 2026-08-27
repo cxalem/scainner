@@ -348,6 +348,18 @@ pub struct HistoryPoint {
     pub value: f64,
 }
 
+/// Index row of `verification_runs` (agent API): everything but the JSON
+/// body, which is fetched per run.
+#[derive(Serialize, Clone, Debug)]
+pub struct VerificationRunRow {
+    pub id: i64,
+    pub vehicle_id: i64,
+    pub connection_id: i64,
+    pub plan_version: String,
+    pub created_at: String,
+    pub result_bytes: i64,
+}
+
 // ---------- cloud sync feed (docs/workflows/data-core/plan.md) ----------
 // The frontend sync engine pulls one of these, pushes it to Supabase under
 // the signed-in user's JWT, then advances the reading watermark. Only rows
@@ -818,6 +830,65 @@ impl Db {
             params![result_json, id],
         )?;
         Ok(())
+    }
+
+    /// Run index for the agent API (`GET /verification/runs`): metadata only,
+    /// newest first — the JSON body can be megabytes, so it is fetched per
+    /// run through `verification_run`. `vehicle_id`/`plan_version` filter;
+    /// `None` means no filter (an agent listing every car's evidence).
+    pub fn list_verification_runs(
+        &self,
+        vehicle_id: Option<i64>,
+        plan_version: Option<&str>,
+        limit: i64,
+    ) -> Vec<VerificationRunRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, vehicle_id, connection_id, plan_version, created_at, length(result_json)
+                 FROM verification_runs
+                 WHERE (?1 IS NULL OR vehicle_id = ?1) AND (?2 IS NULL OR plan_version = ?2)
+                 ORDER BY id DESC LIMIT ?3",
+            )
+            .unwrap();
+        stmt.query_map(params![vehicle_id, plan_version, limit.max(1)], |r| {
+            Ok(VerificationRunRow {
+                id: r.get(0)?,
+                vehicle_id: r.get(1)?,
+                connection_id: r.get(2)?,
+                plan_version: r.get(3)?,
+                created_at: r.get(4)?,
+                result_bytes: r.get(5)?,
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
+    }
+
+    /// One run with its complete stored JSON (a `ParkedVerificationReport`
+    /// or a `CorrelationCapture`, distinguishable by their fields).
+    pub fn verification_run(&self, id: i64) -> Option<(VerificationRunRow, String)> {
+        let conn = self.0.lock().unwrap();
+        conn.query_row(
+            "SELECT id, vehicle_id, connection_id, plan_version, created_at, length(result_json), result_json
+             FROM verification_runs WHERE id = ?1",
+            params![id],
+            |r| {
+                Ok((
+                    VerificationRunRow {
+                        id: r.get(0)?,
+                        vehicle_id: r.get(1)?,
+                        connection_id: r.get(2)?,
+                        plan_version: r.get(3)?,
+                        created_at: r.get(4)?,
+                        result_bytes: r.get(5)?,
+                    },
+                    r.get(6)?,
+                ))
+            },
+        )
+        .ok()
     }
 
     // ---------- vehicles ----------
@@ -1864,6 +1935,20 @@ impl Db {
             )
             .map(|n| n > 0)
             .unwrap_or(false)
+    }
+
+    /// Edit a probe's decode formula in place (agent API `PATCH /probes/:id`).
+    /// Identity (id, vehicle, origin) never changes; only how the answer is
+    /// read. Returns false when no such probe exists.
+    pub fn update_probe_decode(&self, id: i64, p: &UdsProbe) -> bool {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE uds_probes SET module = ?2, did = ?3, label = ?4, unit = ?5, offset = ?6,
+                 len = ?7, scale = ?8, bias = ?9, enabled = ?10 WHERE id = ?1",
+            params![id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled],
+        )
+        .map(|n| n > 0)
+        .unwrap_or(false)
     }
 
     pub fn toggle_probe(&self, id: i64, enabled: bool) {
