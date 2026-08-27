@@ -39,3 +39,4 @@ target/
 # The active scene uses apps/desktop/public/models/ which IS committed.
 apps/desktop/public/models-preview/
 __pycache__/
+.claude/worktrees/

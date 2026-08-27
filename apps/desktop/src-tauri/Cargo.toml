@@ -38,4 +38,15 @@ tauri-plugin-process = "2"
 # creation that becomes its Postgres primary key, making sync pushes
 # idempotent/retry-safe (docs/workflows/data-core/plan.md, sync section).
 uuid = { version = "1", features = ["v4"] }
+# The embedded agent API (docs/api.md): an HTTP/JSON server in the SAME
+# process as the Tauri app so it shares the one serial connection, the
+# supervisor and the SQLite handle. tokio is already in the tree via Tauri;
+# the explicit features are what axum's listener and the event relay need.
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
 

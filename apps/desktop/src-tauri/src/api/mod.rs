@@ -1,0 +1,1111 @@
+//! The embedded agent API: an HTTP/JSON server on 127.0.0.1 living INSIDE the
+//! Tauri process, so an agent (or curl) shares the app's one serial
+//! connection, supervisor and SQLite handle. Every handler is an adapter over
+//! `ops` — the same functions the Tauri commands call — so the UI and the
+//! API can never disagree about what a request does to the car.
+//!
+//! Auth: `Authorization: Bearer <token>` on every route but `GET /health`.
+//! The token is generated once and stored in `app_settings.api_token`, and
+//! mirrored to `<app data dir>/api-token` (0600) for local agents to read.
+//! Safety: read-only by default; `POST /dtc/clear` and `POST /uds/clear`
+//! refuse (409, with the before-state) unless the body says
+//! `{"confirmed": true}`. Nothing here can send UDS 2E/2F/31/11/27 — the
+//! supervisor has no such request.
+//!
+//! Full route list + curl examples: `apps/desktop/docs/api.md`.
+
+pub mod openapi;
+pub mod ops;
+
+use axum::body::Bytes;
+use axum::extract::{Path, Query, State};
+use axum::http::{header, HeaderMap, Request, StatusCode};
+use axum::middleware::{self, Next};
+use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use ops::AppState;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::convert::Infallible;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
+use tokio::sync::broadcast;
+use tokio_stream::{Stream, StreamExt};
+
+pub const DEFAULT_PORT: u16 = 47811;
+pub const TOKEN_SETTING: &str = "api_token";
+pub const PORT_SETTING: &str = "api_port";
+/// Tauri events the supervisor already broadcasts to the UI, relayed as-is
+/// over `GET /events` (SSE `event:` name = Tauri event name).
+const RELAYED_EVENTS: &[&str] = &[
+    "conn-status",
+    "live-update",
+    "uds-scan-progress",
+    "discovery-progress",
+];
+
+#[derive(Clone, Debug)]
+pub struct ApiEvent {
+    pub name: String,
+    pub json: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct LiveSnapshot {
+    pub ts_unix_ms: u128,
+    pub values: Value,
+}
+
+pub struct ApiState {
+    pub state: Arc<AppState>,
+    /// `None` only under test — `POST /connect` needs it to spawn the
+    /// supervisor (which emits Tauri events).
+    pub app: Option<tauri::AppHandle>,
+    pub token: String,
+    pub port: u16,
+    pub events: broadcast::Sender<ApiEvent>,
+    pub live: Mutex<Option<LiveSnapshot>>,
+}
+
+impl ApiState {
+    fn new(state: Arc<AppState>, app: Option<tauri::AppHandle>, token: String, port: u16) -> Self {
+        let (events, _) = broadcast::channel(256);
+        Self {
+            state,
+            app,
+            token,
+            port,
+            events,
+            live: Mutex::new(None),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn for_tests(state: Arc<AppState>, token: &str) -> Arc<Self> {
+        Arc::new(Self::new(state, None, token.to_string(), DEFAULT_PORT))
+    }
+
+    fn record(&self, name: &str, json: &str) {
+        if name == "live-update" {
+            if let Ok(values) = serde_json::from_str::<Value>(json) {
+                *ops::lock_or_recover(&self.live) = Some(LiveSnapshot {
+                    ts_unix_ms: now_ms(),
+                    values,
+                });
+            }
+        }
+        let _ = self.events.send(ApiEvent {
+            name: name.to_string(),
+            json: json.to_string(),
+        });
+    }
+}
+
+fn now_ms() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+}
+
+/// Returns the stored token, minting one on first run.
+pub fn ensure_token(db: &crate::db::Db) -> String {
+    if let Some(existing) = db.setting_get(TOKEN_SETTING).filter(|t| !t.is_empty()) {
+        return existing;
+    }
+    // Two v4 uuids = 256 random bits from the OS RNG; no extra dependency.
+    let token = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
+    db.setting_set(TOKEN_SETTING, &token);
+    token
+}
+
+fn write_private_file(path: &std::path::Path, contents: &str) {
+    if let Err(error) = std::fs::write(path, contents) {
+        log::warn!("could not write {}: {error}", path.display());
+        return;
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+    }
+}
+
+/// Starts the server from Tauri `setup`: mints/loads the token, installs the
+/// event relay, binds 127.0.0.1:<api_port|47811> (falling back to an
+/// ephemeral port if taken) and writes `api-token` / `api-port` next to the
+/// database so a local agent can find both.
+pub fn start(app: tauri::AppHandle, state: Arc<AppState>) {
+    use tauri::{Listener, Manager};
+
+    let token = ensure_token(&state.db);
+    let port = state
+        .db
+        .setting_get(PORT_SETTING)
+        .and_then(|p| p.trim().parse::<u16>().ok())
+        .unwrap_or(DEFAULT_PORT);
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .unwrap_or_else(|_| std::env::temp_dir());
+    write_private_file(&data_dir.join("api-token"), &token);
+
+    let api = Arc::new(ApiState::new(state, Some(app.clone()), token, port));
+    for name in RELAYED_EVENTS {
+        let api = api.clone();
+        app.listen(*name, move |event| api.record(name, event.payload()));
+    }
+
+    let router = router(api.clone());
+    tauri::async_runtime::spawn(async move {
+        let want = SocketAddr::from(([127, 0, 0, 1], port));
+        let listener = match tokio::net::TcpListener::bind(want).await {
+            Ok(l) => l,
+            Err(error) => {
+                log::warn!("agent API: port {port} unavailable ({error}); using an ephemeral port");
+                match tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0))).await {
+                    Ok(l) => l,
+                    Err(error) => {
+                        log::error!("agent API: could not bind any loopback port: {error}");
+                        return;
+                    }
+                }
+            }
+        };
+        let actual = listener.local_addr().map(|a| a.port()).unwrap_or(port);
+        write_private_file(&data_dir.join("api-port"), &actual.to_string());
+        log::info!(
+            "agent API listening on http://127.0.0.1:{actual} (token in {})",
+            data_dir.join("api-token").display()
+        );
+        if let Err(error) = axum::serve(listener, router).await {
+            log::error!("agent API server stopped: {error}");
+        }
+    });
+}
+
+// ---------- errors ----------
+
+pub struct ApiError(StatusCode, Value);
+
+impl ApiError {
+    fn new(status: StatusCode, body: Value) -> Self {
+        Self(status, body)
+    }
+    fn msg(status: StatusCode, message: impl Into<String>) -> Self {
+        Self(status, json!({ "error": message.into() }))
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        (self.0, Json(self.1)).into_response()
+    }
+}
+
+/// Maps the ops layer's string errors onto HTTP: no supervisor / dongle →
+/// 503, the confirm rail → 409, everything else → 500.
+fn op_err(error: String) -> ApiError {
+    let status = if error.contains("not connected") || error.contains("supervisor gone") {
+        StatusCode::SERVICE_UNAVAILABLE
+    } else if error.starts_with("Write not confirmed") {
+        StatusCode::CONFLICT
+    } else if error.contains("timed out") {
+        StatusCode::GATEWAY_TIMEOUT
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    };
+    ApiError::msg(status, error)
+}
+
+type ApiResult = Result<Response, ApiError>;
+
+fn ok<T: Serialize>(value: T) -> ApiResult {
+    Ok(Json(value).into_response())
+}
+
+/// Lenient body parsing: an empty body is `T::default()`, anything else must
+/// be JSON of the right shape (400 otherwise). Lets curl call the write
+/// routes with no body and still get the honest 409.
+fn parse_body<T: DeserializeOwned + Default>(body: &Bytes) -> Result<T, ApiError> {
+    if body.iter().all(|b| b.is_ascii_whitespace()) {
+        return Ok(T::default());
+    }
+    serde_json::from_slice(body)
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, format!("invalid JSON body: {e}")))
+}
+
+fn parse_required<T: DeserializeOwned>(body: &Bytes) -> Result<T, ApiError> {
+    serde_json::from_slice(body)
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, format!("invalid JSON body: {e}")))
+}
+
+// ---------- auth ----------
+
+async fn auth(
+    State(api): State<Arc<ApiState>>,
+    headers: HeaderMap,
+    req: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    let presented = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .map(str::trim);
+    if presented == Some(api.token.as_str()) {
+        next.run(req).await
+    } else {
+        ApiError::msg(
+            StatusCode::UNAUTHORIZED,
+            "missing or wrong bearer token — read it from app_settings.api_token or <app data dir>/api-token",
+        )
+        .into_response()
+    }
+}
+
+// ---------- router ----------
+
+pub fn router(api: Arc<ApiState>) -> Router {
+    let authed = Router::new()
+        .route("/", get(index))
+        .route("/openapi.json", get(openapi_doc))
+        .route("/events", get(events))
+        // connection
+        .route("/connect", post(connect))
+        .route("/disconnect", post(disconnect))
+        .route("/status", get(status))
+        .route("/vehicle/name", post(name_current_vehicle))
+        // standard OBD
+        .route("/live", get(live))
+        .route("/readings", get(readings))
+        .route("/readings/keys", get(reading_keys))
+        .route("/dtc/scan", post(dtc_scan))
+        .route("/dtc/clear", post(dtc_clear))
+        .route("/dtc/history", get(dtc_history))
+        .route("/ecu-info", get(ecu_info))
+        .route("/readiness", get(readiness))
+        .route("/sensors", get(sensors))
+        .route("/writes-log", get(writes_log))
+        // UDS
+        .route("/uds/modules", get(uds_modules).post(add_uds_module))
+        .route(
+            "/uds/modules/{key}",
+            axum::routing::delete(delete_uds_module),
+        )
+        .route("/uds/modules/{key}/dtcs", get(uds_module_dtcs))
+        .route("/uds/read", post(uds_read))
+        .route("/uds/scan", post(uds_scan))
+        .route("/uds/scan/cancel", post(uds_scan_cancel))
+        .route("/uds/discover", post(uds_discover))
+        .route("/uds/clear", post(uds_clear))
+        // evidence protocol
+        .route("/verification/parked", post(verification_parked))
+        .route("/verification/capture", post(verification_capture))
+        .route("/verification/runs", get(verification_runs))
+        .route("/verification/runs/{id}", get(verification_run))
+        // knowledge
+        .route("/vehicles", get(vehicles))
+        .route("/vehicles/{id}", get(vehicle))
+        .route("/vehicles/{id}/modules", get(vehicle_modules))
+        .route("/vehicles/{id}/evidence-map", get(vehicle_evidence_map))
+        .route("/vehicles/{id}/report", get(vehicle_report))
+        .route("/vehicles/{id}/name", post(set_vehicle_name))
+        .route("/vehicles/{id}/fuel-price", post(set_fuel_price))
+        .route("/modules/{id}/dids", get(module_dids))
+        .route("/fingerprint-experiment", get(fingerprint_experiment))
+        .route("/probes", get(probes).post(add_probe))
+        .route(
+            "/probes/{id}",
+            axum::routing::patch(patch_probe).delete(delete_probe),
+        )
+        .route("/cases", get(cases).post(create_case))
+        .route("/settings/{key}", get(setting_get).put(setting_set))
+        .route("/sync/batch", get(sync_batch))
+        .route("/db-path", get(db_path))
+        // export
+        .route("/export/markdown", get(export_markdown))
+        .route("/export/json", get(export_json))
+        .layer(middleware::from_fn_with_state(api.clone(), auth));
+
+    Router::new()
+        .route("/health", get(health))
+        .merge(authed)
+        .with_state(api)
+}
+
+// ---------- meta ----------
+
+async fn health(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(json!({
+        "ok": true,
+        "app": env!("CARGO_PKG_NAME"),
+        "version": env!("CARGO_PKG_VERSION"),
+        "connection": ops::conn_status(&api.state).state,
+    }))
+}
+
+async fn index(State(api): State<Arc<ApiState>>) -> Response {
+    openapi::index_text(api.port).into_response()
+}
+
+async fn openapi_doc(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(openapi::document(api.port))
+}
+
+async fn events(
+    State(api): State<Arc<ApiState>>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let rx = api.events.subscribe();
+    let stream = tokio_stream::wrappers::BroadcastStream::new(rx)
+        .filter_map(|item| item.ok())
+        .map(|ev| Ok(Event::default().event(ev.name).data(ev.json)));
+    Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
+// ---------- connection ----------
+
+async fn connect(State(api): State<Arc<ApiState>>) -> ApiResult {
+    let app = api.app.clone().ok_or_else(|| {
+        ApiError::msg(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "no app handle (test mode) — cannot spawn the supervisor",
+        )
+    })?;
+    ops::connect(&api.state, app).map_err(op_err)?;
+    ok(ops::conn_status(&api.state))
+}
+
+async fn disconnect(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ops::disconnect(&api.state).map_err(op_err)?;
+    ok(ops::conn_status(&api.state))
+}
+
+async fn status(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::conn_status(&api.state))
+}
+
+#[derive(Deserialize, Default)]
+struct NameBody {
+    name: String,
+}
+
+async fn name_current_vehicle(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: NameBody = parse_required(&body)?;
+    let id = ops::name_current_vehicle(&api.state, b.name)
+        .await
+        .map_err(op_err)?;
+    ok(json!({ "vehicle_id": id }))
+}
+
+// ---------- standard OBD ----------
+
+async fn live(State(api): State<Arc<ApiState>>) -> ApiResult {
+    let snapshot = ops::lock_or_recover(&api.live).clone();
+    match snapshot {
+        Some(s) => ok(json!({
+            "ts_unix_ms": s.ts_unix_ms,
+            "age_ms": now_ms().saturating_sub(s.ts_unix_ms),
+            "values": s.values,
+            "connection": ops::conn_status(&api.state).state,
+        })),
+        None => ok(json!({
+            "ts_unix_ms": null,
+            "age_ms": null,
+            "values": {},
+            "connection": ops::conn_status(&api.state).state,
+            "note": "no live-update received yet on this process — connect and wait for polling",
+        })),
+    }
+}
+
+#[derive(Deserialize)]
+struct ReadingsQuery {
+    vehicle_id: Option<i64>,
+    key: String,
+    since: Option<f64>,
+    limit: Option<usize>,
+}
+
+async fn readings(State(api): State<Arc<ApiState>>, Query(q): Query<ReadingsQuery>) -> ApiResult {
+    let mut points = ops::history(&api.state, q.vehicle_id, &q.key, q.since.unwrap_or(24.0));
+    if let Some(limit) = q.limit {
+        let drop = points.len().saturating_sub(limit);
+        points.drain(..drop);
+    }
+    ok(points)
+}
+
+#[derive(Deserialize)]
+struct VehicleQuery {
+    vehicle_id: Option<i64>,
+    limit: Option<i64>,
+}
+
+async fn reading_keys(
+    State(api): State<Arc<ApiState>>,
+    Query(q): Query<VehicleQuery>,
+) -> ApiResult {
+    ok(ops::reading_keys(&api.state, q.vehicle_id))
+}
+
+async fn dtc_scan(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::scan_dtcs(&api.state).await.map_err(op_err)?)
+}
+
+#[derive(Deserialize, Default)]
+struct ConfirmBody {
+    #[serde(default)]
+    confirmed: bool,
+}
+
+fn not_confirmed(before: Value) -> ApiError {
+    ApiError::new(
+        StatusCode::CONFLICT,
+        json!({
+            "error": "Write not confirmed. This changes the car: re-send with {\"confirmed\": true} after reviewing `before`.",
+            "confirm_with": { "confirmed": true },
+            "before": before,
+        }),
+    )
+}
+
+async fn dtc_clear(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: ConfirmBody = parse_body(&body)?;
+    if !b.confirmed {
+        let before = match ops::scan_dtcs(&api.state).await {
+            Ok(scan) => serde_json::to_value(scan).unwrap_or(Value::Null),
+            Err(error) => json!({ "unavailable": error }),
+        };
+        return Err(not_confirmed(before));
+    }
+    ok(ops::clear_dtcs(&api.state, true).await.map_err(op_err)?)
+}
+
+async fn dtc_history(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>) -> ApiResult {
+    ok(ops::dtc_history(
+        &api.state,
+        q.vehicle_id,
+        q.limit.unwrap_or(20),
+    ))
+}
+
+async fn ecu_info(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::read_ecu_info(&api.state).await.map_err(op_err)?)
+}
+
+async fn readiness(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::readiness(&api.state).await.map_err(op_err)?)
+}
+
+async fn sensors(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::all_sensors(&api.state).await.map_err(op_err)?)
+}
+
+async fn writes_log(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>) -> ApiResult {
+    ok(ops::writes_log(
+        &api.state,
+        q.vehicle_id,
+        q.limit.unwrap_or(50),
+    ))
+}
+
+// ---------- UDS ----------
+
+async fn uds_modules(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::uds_modules(&api.state))
+}
+
+#[derive(Deserialize)]
+struct ModuleBody {
+    key: String,
+    label: String,
+    req: String,
+    resp: String,
+}
+
+async fn add_uds_module(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let m: ModuleBody = parse_required(&body)?;
+    ops::add_uds_module(&api.state, &m.key, &m.label, &m.req, &m.resp)
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?;
+    ok(ops::uds_modules(&api.state))
+}
+
+async fn delete_uds_module(State(api): State<Arc<ApiState>>, Path(key): Path<String>) -> ApiResult {
+    ops::delete_uds_module(&api.state, &key);
+    ok(json!({ "deleted": key }))
+}
+
+async fn uds_module_dtcs(State(api): State<Arc<ApiState>>, Path(key): Path<String>) -> ApiResult {
+    ok(ops::uds_module_dtcs(&api.state, key)
+        .await
+        .map_err(op_err)?)
+}
+
+#[derive(Deserialize)]
+struct UdsReadBody {
+    module: String,
+    did: u16,
+}
+
+async fn uds_read(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: UdsReadBody = parse_required(&body)?;
+    ok(ops::uds_read(&api.state, b.module, b.did)
+        .await
+        .map_err(op_err)?)
+}
+
+#[derive(Deserialize)]
+struct UdsScanBody {
+    module: String,
+    from: u16,
+    to: u16,
+}
+
+async fn uds_scan(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: UdsScanBody = parse_required(&body)?;
+    if b.from > b.to {
+        return Err(ApiError::msg(StatusCode::BAD_REQUEST, "from must be <= to"));
+    }
+    ok(ops::uds_scan(&api.state, b.module, b.from, b.to)
+        .await
+        .map_err(op_err)?)
+}
+
+async fn uds_scan_cancel(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ops::uds_cancel_scan(&api.state);
+    ok(json!({ "cancel_requested": true }))
+}
+
+#[derive(Deserialize, Default)]
+struct DiscoverBody {
+    #[serde(default)]
+    full: bool,
+}
+
+async fn uds_discover(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: DiscoverBody = parse_body(&body)?;
+    ok(ops::discover_sensors(&api.state, b.full)
+        .await
+        .map_err(op_err)?)
+}
+
+#[derive(Deserialize, Default)]
+struct UdsClearBody {
+    #[serde(default)]
+    module: String,
+    #[serde(default)]
+    confirmed: bool,
+}
+
+async fn uds_clear(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: UdsClearBody = parse_body(&body)?;
+    if b.module.is_empty() {
+        return Err(ApiError::msg(StatusCode::BAD_REQUEST, "module is required"));
+    }
+    if !b.confirmed {
+        let before = match ops::uds_module_dtcs(&api.state, b.module.clone()).await {
+            Ok(dtcs) => json!({ "module": b.module, "dtcs": dtcs }),
+            Err(error) => json!({ "module": b.module, "unavailable": error }),
+        };
+        return Err(not_confirmed(before));
+    }
+    ok(ops::uds_clear(&api.state, b.module, true)
+        .await
+        .map_err(op_err)?)
+}
+
+// ---------- evidence protocol ----------
+
+async fn verification_parked(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::parked_verification(&api.state).await.map_err(op_err)?)
+}
+
+async fn verification_capture(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let args: ops::CorrelationCaptureArgs = parse_required(&body)?;
+    if args.dids.is_empty() {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "dids must not be empty",
+        ));
+    }
+    ok(ops::correlation_capture(&api.state, args)
+        .await
+        .map_err(op_err)?)
+}
+
+#[derive(Deserialize)]
+struct RunsQuery {
+    vehicle_id: Option<i64>,
+    plan_version: Option<String>,
+    limit: Option<i64>,
+}
+
+async fn verification_runs(
+    State(api): State<Arc<ApiState>>,
+    Query(q): Query<RunsQuery>,
+) -> ApiResult {
+    ok(ops::list_verification_runs(
+        &api.state,
+        q.vehicle_id,
+        q.plan_version.as_deref(),
+        q.limit.unwrap_or(50),
+    ))
+}
+
+async fn verification_run(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    let (row, json) = ops::verification_run(&api.state, id).ok_or_else(|| {
+        ApiError::msg(StatusCode::NOT_FOUND, format!("no verification run #{id}"))
+    })?;
+    let result: Value = serde_json::from_str(&json).unwrap_or(Value::String(json));
+    ok(json!({
+        "id": row.id,
+        "vehicle_id": row.vehicle_id,
+        "connection_id": row.connection_id,
+        "plan_version": row.plan_version,
+        "created_at": row.created_at,
+        "result": result,
+    }))
+}
+
+// ---------- knowledge ----------
+
+async fn vehicles(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::list_vehicles(&api.state))
+}
+
+async fn vehicle(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    match ops::vehicle_info(&api.state, id) {
+        Some(v) => ok(v),
+        None => Err(ApiError::msg(
+            StatusCode::NOT_FOUND,
+            format!("no vehicle #{id}"),
+        )),
+    }
+}
+
+async fn vehicle_modules(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ok(ops::discovered_modules(&api.state, id))
+}
+
+async fn vehicle_evidence_map(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ok(ops::vehicle_evidence_map(&api.state, id))
+}
+
+async fn vehicle_report(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ok(ops::vehicle_report(&api.state, id))
+}
+
+async fn set_vehicle_name(
+    State(api): State<Arc<ApiState>>,
+    Path(id): Path<i64>,
+    body: Bytes,
+) -> ApiResult {
+    let b: NameBody = parse_required(&body)?;
+    ops::set_vehicle_name(&api.state, id, &b.name);
+    ok(ops::vehicle_info(&api.state, id))
+}
+
+#[derive(Deserialize)]
+struct FuelPriceBody {
+    price: f64,
+}
+
+async fn set_fuel_price(
+    State(api): State<Arc<ApiState>>,
+    Path(id): Path<i64>,
+    body: Bytes,
+) -> ApiResult {
+    let b: FuelPriceBody = parse_required(&body)?;
+    ops::set_fuel_price(&api.state, id, b.price);
+    ok(ops::vehicle_info(&api.state, id))
+}
+
+async fn module_dids(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ok(ops::discovered_dids(&api.state, id))
+}
+
+async fn fingerprint_experiment(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::fingerprint_experiment(&api.state))
+}
+
+async fn probes(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>) -> ApiResult {
+    ok(ops::list_probes(&api.state, q.vehicle_id))
+}
+
+async fn add_probe(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let probe: crate::db::UdsProbe = parse_required(&body)?;
+    let id = ops::add_probe(&api.state, &probe, probe.vehicle_id);
+    ok(json!({ "id": id }))
+}
+
+async fn patch_probe(
+    State(api): State<Arc<ApiState>>,
+    Path(id): Path<i64>,
+    body: Bytes,
+) -> ApiResult {
+    let patch: Value = parse_required(&body)?;
+    let is_decode = [
+        "module", "did", "label", "offset", "len", "scale", "bias", "unit",
+    ]
+    .iter()
+    .any(|k| patch.get(k).is_some());
+    if is_decode {
+        let probe: crate::db::UdsProbe = serde_json::from_value(patch)
+            .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, format!("invalid probe: {e}")))?;
+        if !ops::update_probe_decode(&api.state, id, &probe) {
+            return Err(ApiError::msg(
+                StatusCode::NOT_FOUND,
+                format!("no probe #{id}"),
+            ));
+        }
+    } else if let Some(enabled) = patch.get("enabled").and_then(Value::as_bool) {
+        ops::toggle_probe(&api.state, id, enabled);
+    } else {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "send {\"enabled\": bool} or the full probe decode fields",
+        ));
+    }
+    ok(json!({ "id": id, "updated": true }))
+}
+
+async fn delete_probe(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ops::delete_probe(&api.state, id);
+    ok(json!({ "id": id, "deleted": true }))
+}
+
+async fn cases(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>) -> ApiResult {
+    ok(ops::diagnostic_cases(&api.state, q.vehicle_id))
+}
+
+#[derive(Deserialize)]
+struct CaseBody {
+    vehicle_id: i64,
+    complaint: String,
+    odometer_km: Option<i64>,
+    assigned_to: Option<String>,
+}
+
+async fn create_case(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: CaseBody = parse_required(&body)?;
+    ok(ops::create_diagnostic_case(
+        &api.state,
+        b.vehicle_id,
+        &b.complaint,
+        b.odometer_km,
+        b.assigned_to.as_deref(),
+    )
+    .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?)
+}
+
+async fn setting_get(State(api): State<Arc<ApiState>>, Path(key): Path<String>) -> ApiResult {
+    ok(json!({ "key": key, "value": ops::app_setting_get(&api.state, &key) }))
+}
+
+#[derive(Deserialize)]
+struct SettingBody {
+    value: String,
+}
+
+async fn setting_set(
+    State(api): State<Arc<ApiState>>,
+    Path(key): Path<String>,
+    body: Bytes,
+) -> ApiResult {
+    if key == TOKEN_SETTING {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "api_token cannot be changed over the API — delete the row in app_settings and restart",
+        ));
+    }
+    let b: SettingBody = parse_required(&body)?;
+    ops::app_setting_set(&api.state, &key, &b.value);
+    ok(json!({ "key": key, "value": b.value }))
+}
+
+#[derive(Deserialize)]
+struct SyncQuery {
+    after_reading_id: Option<i64>,
+    limit: Option<i64>,
+}
+
+async fn sync_batch(State(api): State<Arc<ApiState>>, Query(q): Query<SyncQuery>) -> ApiResult {
+    ok(ops::sync_batch(
+        &api.state,
+        q.after_reading_id.unwrap_or(0),
+        q.limit.unwrap_or(1000),
+    ))
+}
+
+async fn db_path(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(json!({ "path": ops::db_path(&api.state) }))
+}
+
+// ---------- export ----------
+
+#[derive(Deserialize)]
+struct ExportQuery {
+    vehicle_id: Option<i64>,
+    since_hours: Option<f64>,
+}
+
+async fn export_markdown(
+    State(api): State<Arc<ApiState>>,
+    Query(q): Query<ExportQuery>,
+) -> Response {
+    let md = ops::ai_context(&api.state, q.vehicle_id, q.since_hours.unwrap_or(168.0));
+    ([(header::CONTENT_TYPE, "text/markdown; charset=utf-8")], md).into_response()
+}
+
+async fn export_json(State(api): State<Arc<ApiState>>, Query(q): Query<ExportQuery>) -> Response {
+    let body = ops::export_json(&api.state, q.vehicle_id, q.since_hours.unwrap_or(168.0));
+    ([(header::CONTENT_TYPE, "application/json")], body).into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::Db;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    const TOKEN: &str = "test-token-abc";
+
+    fn test_api() -> (Arc<ApiState>, Arc<Db>) {
+        let db = Arc::new(Db::open(std::path::Path::new(":memory:")).expect("in-memory db"));
+        let state = Arc::new(AppState::new(db.clone(), "/tmp/test.sqlite3".into()));
+        (ApiState::for_tests(state, TOKEN), db)
+    }
+
+    async fn call(
+        api: &Arc<ApiState>,
+        method: &str,
+        path: &str,
+        token: Option<&str>,
+        body: Option<&str>,
+    ) -> (StatusCode, Value) {
+        let mut builder = Request::builder().method(method).uri(path);
+        if let Some(t) = token {
+            builder = builder.header(header::AUTHORIZATION, format!("Bearer {t}"));
+        }
+        if body.is_some() {
+            builder = builder.header(header::CONTENT_TYPE, "application/json");
+        }
+        let req = builder
+            .body(axum::body::Body::from(body.unwrap_or("").to_string()))
+            .unwrap();
+        let resp = router(api.clone()).oneshot(req).await.unwrap();
+        let status = resp.status();
+        let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+        let value = serde_json::from_slice(&bytes)
+            .unwrap_or_else(|_| Value::String(String::from_utf8_lossy(&bytes).into_owned()));
+        (status, value)
+    }
+
+    #[tokio::test]
+    async fn health_is_open_but_everything_else_needs_the_token() {
+        let (api, _) = test_api();
+        let (status, body) = call(&api, "GET", "/health", None, None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["ok"], true);
+
+        let (status, _) = call(&api, "GET", "/status", None, None).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        let (status, _) = call(&api, "GET", "/status", Some("wrong"), None).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+        let (status, _) = call(&api, "GET", "/", Some("wrong"), None).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+
+        let (status, body) = call(&api, "GET", "/status", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["state"], "disconnected");
+    }
+
+    #[tokio::test]
+    async fn clear_routes_are_confirm_gated_before_anything_else() {
+        let (api, _) = test_api();
+        // No body at all → 409 with a before-state slot, never a write.
+        let (status, body) = call(&api, "POST", "/dtc/clear", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["confirm_with"]["confirmed"], true);
+        assert!(body.get("before").is_some());
+
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/dtc/clear",
+            Some(TOKEN),
+            Some(r#"{"confirmed": false}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+
+        let (status, body) = call(
+            &api,
+            "POST",
+            "/uds/clear",
+            Some(TOKEN),
+            Some(r#"{"module": "abs"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["before"]["module"], "abs");
+
+        // Confirmed but no car: the request reaches the connection check and
+        // is refused there (503), proving the gate sits in front of it.
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/dtc/clear",
+            Some(TOKEN),
+            Some(r#"{"confirmed": true}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/uds/clear",
+            Some(TOKEN),
+            Some(r#"{"module": "abs", "confirmed": true}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
+    async fn read_routes_serve_the_database() {
+        let (api, db) = test_api();
+        let (vehicle_id, _) = db.ensure_vehicle("VF7TEST0000000001");
+        let connection_id = db.start_connection("ELM327 v1.5", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        let run_id = db
+            .insert_verification_run(
+                vehicle_id,
+                connection_id,
+                "citroen-c41-v4",
+                r#"{"step":"brake"}"#,
+            )
+            .unwrap();
+
+        let (status, body) = call(&api, "GET", "/vehicles", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body[0]["vin"], "VF7TEST0000000001");
+
+        let path =
+            format!("/verification/runs?vehicle_id={vehicle_id}&plan_version=citroen-c41-v4");
+        let (status, body) = call(&api, "GET", &path, Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body[0]["id"], run_id);
+        assert!(
+            body[0].get("result_json").is_none(),
+            "index must not carry bodies"
+        );
+
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/verification/runs/{run_id}"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["result"]["step"], "brake");
+
+        let (status, _) = call(&api, "GET", "/verification/runs/999", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+
+        let (status, body) = call(&api, "GET", "/uds/modules", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(body.as_array().unwrap().iter().any(|m| m["key"] == "abs"));
+    }
+
+    /// Every documented route must be served, and every route the decision
+    /// record requires must be documented.
+    #[tokio::test]
+    async fn openapi_matches_the_router() {
+        let (api, _) = test_api();
+        let (status, doc) = call(&api, "GET", "/openapi.json", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        let paths = doc["paths"].as_object().unwrap();
+
+        for required in [
+            "/health",
+            "/openapi.json",
+            "/events",
+            "/connect",
+            "/disconnect",
+            "/status",
+            "/vehicle/name",
+            "/live",
+            "/readings",
+            "/dtc/scan",
+            "/dtc/clear",
+            "/ecu-info",
+            "/readiness",
+            "/sensors",
+            "/uds/modules",
+            "/uds/modules/{key}",
+            "/uds/read",
+            "/uds/scan",
+            "/uds/scan/cancel",
+            "/uds/discover",
+            "/uds/modules/{key}/dtcs",
+            "/uds/clear",
+            "/verification/parked",
+            "/verification/capture",
+            "/verification/runs",
+            "/verification/runs/{id}",
+            "/vehicles",
+            "/vehicles/{id}/modules",
+            "/modules/{id}/dids",
+            "/vehicles/{id}/evidence-map",
+            "/fingerprint-experiment",
+            "/probes",
+            "/probes/{id}",
+            "/export/markdown",
+        ] {
+            assert!(
+                paths.contains_key(required),
+                "{required} missing from openapi"
+            );
+        }
+
+        for route in openapi::ROUTES {
+            let concrete = route.path.replace("{id}", "1").replace("{key}", "abs");
+            // Status only: /events is an endless SSE stream, so the body is
+            // never collected here.
+            let req = Request::builder()
+                .method(route.method)
+                .uri(&concrete)
+                .header(header::AUTHORIZATION, format!("Bearer {TOKEN}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(axum::body::Body::from(
+                    route.body.map(|_| "{}").unwrap_or(""),
+                ))
+                .unwrap();
+            let status = router(api.clone()).oneshot(req).await.unwrap().status();
+            assert!(
+                status != StatusCode::NOT_FOUND || route.path.contains('{'),
+                "{} {} documented but not routed",
+                route.method,
+                route.path
+            );
+            assert_ne!(
+                status,
+                StatusCode::METHOD_NOT_ALLOWED,
+                "{} {} documented with the wrong method",
+                route.method,
+                route.path
+            );
+        }
+    }
+}

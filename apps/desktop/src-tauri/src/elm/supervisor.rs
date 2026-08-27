@@ -80,6 +80,19 @@ pub enum Request {
         full: bool,
         tx: Sender<Result<uds::DiscoveryReport, String>>,
     },
+    ParkedVerification(Sender<Result<uds::ParkedVerificationReport, String>>),
+    /// One guided-correlation capture (read-only, default session), saved as
+    /// a verification run carrying the operator's condition label.
+    CorrelationCapture {
+        req: String,
+        resp: String,
+        dids: Vec<u16>,
+        step: String,
+        condition: String,
+        plan_version: String,
+        repeats: u8,
+        tx: Sender<Result<uds::CorrelationCapture, String>>,
+    },
     UdsClear {
         module: String,
         tx: Sender<Result<uds::ClearOutcome, String>>,
@@ -601,6 +614,12 @@ fn answer_disconnected(req: Request) {
         Request::Discover { tx, .. } => {
             let _ = tx.send(Err(err));
         }
+        Request::ParkedVerification(tx) => {
+            let _ = tx.send(Err(err));
+        }
+        Request::CorrelationCapture { tx, .. } => {
+            let _ = tx.send(Err(err));
+        }
         Request::UdsClear { tx, .. } => {
             let _ = tx.send(Err(err));
         }
@@ -789,6 +808,140 @@ fn handle_request(
                 }
                 None => {
                     Err("name this vehicle first so its findings have somewhere to live".into())
+                }
+            };
+            let _ = tx.send(result);
+        }
+        Request::ParkedVerification(tx) => {
+            let result = match ctx.vehicle_id {
+                None => Err(
+                    "name this vehicle first so the evidence cannot be filed against the wrong car"
+                        .into(),
+                ),
+                Some(vehicle_id) => {
+                    set_scanning(app, status, true);
+                    let mut report = uds::parked_verification(drv);
+                    set_scanning(app, status, false);
+                    match serde_json::to_string(&report)
+                        .map_err(|error| error.to_string())
+                        .and_then(|json| {
+                            db.insert_verification_run(
+                                vehicle_id,
+                                ctx.connection_id,
+                                &report.plan_version,
+                                &json,
+                            )
+                            .map_err(|error| error.to_string())
+                        }) {
+                        Ok(run_id) => {
+                            report.run_id = Some(run_id);
+                            if let Ok(json) = serde_json::to_string(&report) {
+                                let _ = db.update_verification_run_json(run_id, &json);
+                            }
+                            // Promote what the car itself answered into the
+                            // module records: a reachable route bumps
+                            // last_seen_at, a decoded F080 fills the
+                            // fingerprint columns, and sweep hits become
+                            // unlabeled discovered DIDs. Silent routes write
+                            // nothing.
+                            for target in &report.targets {
+                                let reached = target.observations.iter().any(|item| {
+                                    matches!(
+                                        item.outcome.status,
+                                        super::outcome::DiagnosticStatus::Answered
+                                            | super::outcome::DiagnosticStatus::Refused
+                                    )
+                                });
+                                if !reached {
+                                    continue;
+                                }
+                                let Some((req, resp)) = target.route.split_once('→') else {
+                                    continue;
+                                };
+                                let resp = resp.split(" + ").next().unwrap_or(resp).trim();
+                                let address = format!("{}/{}", req.trim(), resp);
+                                // A sweep shares its route with an identity
+                                // target; its label describes the search, not
+                                // the module, so it must not rename the row.
+                                let label =
+                                    target.summary.is_none().then_some(target.label.as_str());
+                                let module_id =
+                                    db.upsert_discovered_module(vehicle_id, &address, label);
+                                if let Some(fingerprint) = uds::psa_identity_fingerprint(target) {
+                                    db.update_ecu_fingerprint(module_id, &fingerprint);
+                                }
+                                if target.summary.is_some() {
+                                    for hit in target.observations.iter().filter(|item| {
+                                        item.outcome.status
+                                            == super::outcome::DiagnosticStatus::Answered
+                                    }) {
+                                        if let (Ok(did), Some(hex)) = (
+                                            u16::from_str_radix(&hit.did, 16),
+                                            hit.payload_hex.as_deref(),
+                                        ) {
+                                            let length = hex.split_whitespace().count() as i64;
+                                            db.upsert_discovered_did(
+                                                module_id, did, hex, length, None,
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                            Ok(report)
+                        }
+                        Err(error) => Err(format!(
+                            "verification completed but its evidence could not be saved: {error}"
+                        )),
+                    }
+                }
+            };
+            let _ = tx.send(result);
+        }
+        Request::CorrelationCapture {
+            req,
+            resp,
+            dids,
+            step,
+            condition,
+            plan_version,
+            repeats,
+            tx,
+        } => {
+            let result = match ctx.vehicle_id {
+                None => Err(
+                    "name this vehicle first so the capture cannot be filed against the wrong car"
+                        .into(),
+                ),
+                Some(vehicle_id) => {
+                    set_scanning(app, status, true);
+                    let readings = uds::correlation_capture(drv, &req, &resp, &dids, repeats);
+                    set_scanning(app, status, false);
+                    readings.and_then(|readings| {
+                        let mut capture = uds::CorrelationCapture {
+                            run_id: None,
+                            plan_version,
+                            route: format!("{req}→{resp}"),
+                            step,
+                            condition,
+                            repeats: repeats.clamp(1, 10),
+                            safety: "parked or operator-controlled, read-only 0x22 requests, default diagnostic session".into(),
+                            readings,
+                        };
+                        let json = serde_json::to_string(&capture).map_err(|e| e.to_string())?;
+                        let run_id = db
+                            .insert_verification_run(
+                                vehicle_id,
+                                ctx.connection_id,
+                                &capture.plan_version,
+                                &json,
+                            )
+                            .map_err(|e| format!("capture completed but could not be saved: {e}"))?;
+                        capture.run_id = Some(run_id);
+                        if let Ok(json) = serde_json::to_string(&capture) {
+                            let _ = db.update_verification_run_json(run_id, &json);
+                        }
+                        Ok(capture)
+                    })
                 }
             };
             let _ = tx.send(result);
