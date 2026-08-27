@@ -1,7 +1,14 @@
 # Universal Discovery Protocol
 
-Version 1.1 · 2026-08-28 · companion to the Vehicle Knowledge Acquisition
+Version 1.2 · 2026-08-28 · companion to the Vehicle Knowledge Acquisition
 Protocol (`vehicle-knowledge-acquisition-protocol.md`)
+
+v1.2 fixes three inconsistencies found in review: identity confidence is
+levelled (provisional within a connection, stable across connections) so a
+first connection can inherit; a short connection yields a *partial* report
+that resumes later, never a guarantee of S0–S3; automatic discovery and the
+learning drive have separate budgets, the latter measured as link occupancy.
+It also states that discovery is never a completion gate.
 
 v1.1 narrows v1.0's "autonomous discovery" to **autonomous hypothesis
 generation and bounded validation** after design review: passive learning is
@@ -48,6 +55,10 @@ it needs research, and where it stops and asks a human.
    automatically with the fingerprint and the open hypotheses.
 6. The whole thing is **safe by construction** (read-only, default session,
    globally budgeted, guarded) and shows its extra diagnostic traffic.
+7. **Discovery is never a completion gate.** Every stage is incremental and
+   resumable; the app, the report and every product surface work with
+   whatever has been established so far and say what has not. There is no
+   "full discovery" state to wait for.
 
 **Non-goals**
 
@@ -157,9 +168,22 @@ VIN, PIDs     on which     every         families,     with           on 1–2 c
 ≤ 30 s        ── ≤ 3 min together ──     instant       async          ≤ 4 min global  opt-in, ≤ 20 %     on request     human
 ```
 
-**First-connection ceiling: 10 minutes of diagnostic traffic**, of which
-S1+S2 ≤ 3 min, S4 ≤ 4 min, and the rest live gauges. A car connected for two
-minutes still gets S0–S3 and a coverage report.
+Two budgets, kept apart:
+
+```text
+automatic discovery budget   ≤ 10 min of diagnostic traffic per connection, covering S0–S4
+                             (S0 30 s · S1+S2 ≤ 3 min · S4 ≤ 4 min); unfinished work resumes
+                             on the next connection in priority order
+learning-drive budget        user-controlled duration; S5 traffic ≤ 20 % of link occupancy
+                             (elapsed time the link is busy with hypothesis reads, not request
+                             count); ends the instant the learning state exits
+```
+
+A two-minute connection completes S0 and as much prioritised S1/S2 work as
+the remaining budget permits, runs S3 over whatever identities exist, and
+produces a **partial coverage report** that says so
+(`Census 7/16 planned routes attempted · Identity 3/5 reached modules
+fingerprinted · Status: partial, discovery resumes next connection`).
 
 ### S0 — Standard (all cars, ≤ 30 s)
 Existing behaviour: ELM handshake, protocol autodetect, VIN (mode 09 02),
@@ -188,14 +212,26 @@ For every reached route, **default session only**: the ISO block (`F186 F187
 F18C F190 F191 F195 F197`); if refused, the brand identity block from the
 profile (PSA `F080`/`F0FE`; VAG `F19E`/`F1A2`/`F1A3`; Hyundai/Kia `F1A0`
 family; Renault `F18A`; …) decoded by the brand's parser into the fingerprint
-tuple. Serial and VIN never enter the match key. Identity is trusted after it
-repeats byte-identical on a second connection. Modules whose identity is only
-readable in the extended session are reported as "identity requires an
+tuple. Serial and VIN never enter the match key.
+
+Identity confidence has three levels, so a first connection can already
+reuse knowledge without pretending the fingerprint is settled:
+
+```text
+identity_fit   provisional  identity read twice within one connection, separated by other
+                            traffic, byte-identical  → L3 join allowed, decodes inherited
+                            disabled with vehicle_fit = untested
+               stable       repeated byte-identical on an independent connection
+               conflicted   payload changed unexpectedly → join invalidated, hypotheses
+                            frozen, conflict filed for research
+```
+
+Modules whose identity is only readable in the extended session are reported as "identity requires an
 explicit parked session" — see §7; the automatic run never opens `10 03`.
 
 ### S3 — Join (local, instant)
-For each fingerprinted module, resolve the compatibility tuple against
-`ecu_families` (§2) and create hypotheses:
+For each fingerprinted module with `identity_fit ≥ provisional`, resolve the
+compatibility tuple against `ecu_families` (§2) and create hypotheses:
 
 - strong match → inherited decodes, `vehicle_fit = untested`, `activation =
   disabled`, eligible for S5 validation with the expected shape/scale;
@@ -224,7 +260,8 @@ family, then platform — over:
    content).
 
 Results enter as `research_candidate` decodes with a `discriminating_test`,
-never as facts. The corpus is indexed locally by WMI/platform/part reference;
+never as facts. Research stores links, source metadata, licence and the
+derived hypotheses — never copies of third-party tables. The corpus is indexed locally by WMI/platform/part reference;
 each document carries its source and licence.
 
 ### S4 — Bounded sweep (≤ 4 min global, 30–90 s per module, parked or idling only)
@@ -240,7 +277,10 @@ module/band combinations with the highest expected value** per connection:
 A fast-refusing ECU covers ~300 DIDs/min; a silent one ~100/min at the 600 ms
 timeout, so the per-module cap is time, not a DID count. Remaining ranges are
 carried to later connections. Answered identifiers become `discovered_dids`
-(`unlabeled`) and hypotheses with a first sample and a shape. Refused/silent
+(`unlabeled`). They become hypotheses only after class filtering: identity
+and configuration bands, opaque high-entropy blobs, stable serial-like
+strings and security-like material are recorded as DIDs but never persisted
+as hypotheses or polled. Refused/silent
 counts go in the summary. Guards: engine-start detection, low-voltage stop,
 >10 transport errors abort.
 
@@ -269,8 +309,11 @@ experiment queue that runs only in a **learning state**:
   guided step.
 - **Retirement.** Hypotheses that stay constant, or whose fit converges, leave
   the cohort; the next cohort rotates in on later drives.
-- **Visibility.** The app shows that extra diagnostic traffic is running and
-  which modules it touches.
+- **Visibility and impact.** The app shows that extra diagnostic traffic is
+  running and which modules it touches, and measures the user-facing cost:
+  maximum contiguous learning burst, standard-PID freshness, gauge-update p95
+  latency, route-switch overhead. Learning suspends itself automatically when
+  the adapter slows down or the 20 % occupancy is exceeded.
 
 ### S6 — Guided steps (on request, human in the loop)
 Whatever the learning drive cannot separate is resolved by **generated
@@ -301,7 +344,7 @@ The path per L1 class comes from `uds-map` data, never from code branches:
 | **Mixed services** | Renault (EVC/DCM `22`, LBC/UCH `21`), Nissan Leaf (`21` groups), older Kia (`21`) | S4/S5 use the per-module service from the profile |
 | **KWP-era** | GM pre-2017 (`1A`), older Toyota hybrids | identity via `1A`; sweeps only where the profile lists groups |
 | **Gateway-locked** | FCA/Stellantis NA 2018+ (SGW), some Mercedes | S0 + census only; report "secure gateway: manufacturer modules require authorised access" |
-| **Not UDS-reachable from the port** | Tesla, Mitsubishi (per map research) | S0 only; report why; no enumeration |
+| **Not reachable through supported adapter paths** | Tesla, Mitsubishi (per map research; a property of the ELM-class OBD path and current profiles, not of the vehicles) | S0 only; report why; no enumeration |
 | **Unknown WMI** | anything else | S0 + conservative generic census; research task filed |
 
 ---
@@ -368,8 +411,10 @@ Enforced in code, verified by replay tests on every stage's transcript:
 - `14` only on explicit, confirmed user action. Never `2E 2F 31 11 27`.
 - Adapter state restored after every route.
 - Per-DID timeouts 600 ms (sweep) / 800 ms (learning poll); abort on >10
-  transport errors; stop on engine start during parked stages; stop below
-  11.8 V; back off on modules that refuse or time out.
+  transport errors; stop on engine start during parked stages; stop when
+  voltage stays below 11.8 V (configurable margin) for 30 s — ignition-on
+  parked work sits around 12.6 V on the C4 and a single dip must not abort
+  it; back off on modules that refuse or time out.
 - Budgets per connection: S0 30 s; S1+S2 3 min; S4 4 min global, 30–90 s per
   module; S5 ≤ 20 % of the polling loop and only in the learning state; a
   global diagnostic-traffic ceiling of 10 min on first connection.
@@ -408,13 +453,17 @@ S6 emits data, not screens. The app renders it. Contract per step:
   "instruction": "Turn the steering wheel all the way to the left and hold it.",
   "condition_label": "steering_full_left",
   "capture": {"dids": ["D40D","D40E","D40F","D411"], "reference_dids": {"6AD/68D": ["D41F"]}, "repeats": 10, "hold_seconds": 8},
-  "success": {"changed_vs_baseline": ["D40D"], "returns_after": true},
+  "success": {"expected": {"D40D": "monotonic_increase", "D40E": "monotonic_increase", "D40F": "sign_positive"}, "returns_after": true},
   "on_success": "eps-angle-right",
   "on_failure": "eps-angle-retry-or-skip",
   "safety": "read-only; you control the car; stop if anything feels wrong",
   "estimated_seconds": 25
 }
 ```
+
+`success.expected` is a per-hypothesis signature (`changed`, `monotonic_increase`,
+`sign_positive`, `steps_to:<value>`, `unchanged`), not only changed-vs-baseline,
+so a step can confirm one interpretation and refute another in the same capture.
 
 Rules: every input step is preceded and followed by a `baseline` node
 (A→B→A); nodes that move the car carry an explicit precondition and are
@@ -434,7 +483,7 @@ onboarding flow, an API client and an agent equally.
 | `discovered_modules.fingerprint` completed for every module (the C4 engine ECU currently has none) | L3 needs it |
 | `ecu_families` (local cache of the shared table) | compatibility tuple → family → decodes |
 | `hypotheses` | `(vehicle_id, module_id, did, knowledge_state, vehicle_fit, activation, label, decode_json, shape_json, interpretations_json, confidence, discriminating_test, next_step_id)` |
-| `hypothesis_samples` | `(hypothesis_id, ts, payload_hex, ref_ts, ref_json)` — bounded, downsampled after fit, retention policy |
+| `hypothesis_samples` | `(hypothesis_id, ts, payload_hex, ref_ts, ref_json)` — retention: full resolution for the most recent captures per hypothesis (e.g. last 3 drives or 5,000 samples), then downsampled fit summaries; raw runs stay in `verification_runs` |
 | `guided_steps` | the state-tree nodes with their run ids |
 | `research_tasks` / corpus index | fingerprint-keyed questions and sources with licence |
 | `verification_runs.plan_version` values | `auto-s1`, `auto-s2`, `auto-s4-<module>`, `learn-<date>`, `guided-<node>` |
@@ -502,7 +551,7 @@ finding: the report says so, and research gets the fingerprint.
 
 1. Connecting the C4 to a fresh install with `uds-map` v7: within three
    minutes and without any button, every reachable module it can safely
-   fingerprint is identified, compatible decodes are inherited as untested
+   fingerprint is identified at `identity_fit = provisional`, compatible decodes are inherited as untested
    fits, and an evidence-linked coverage report exists. After one learning
    drive, the dynamic signals the drive can validate (wheel speeds, steering
    angle, brake switch) are `matched`, and the report lists the exact guided
@@ -513,8 +562,9 @@ finding: the report says so, and research gets the fingerprint.
    default session, the report says so and a research task exists.
 3. No automatic stage ever leaves the default session or sends a service
    outside §7, verified by the replay harness on every stage's transcript.
-4. First-connection diagnostic traffic never exceeds the global ceiling; a
-   two-minute connection still yields S0–S3.
+4. Automatic discovery traffic never exceeds its ceiling; a two-minute
+   connection yields S0, prioritised partial S1/S2, S3 over what exists, and a
+   report marked partial that resumes next time.
 5. A car with unknown WMI ends S1 within budget and files a research task.
 6. Every state in the report is traceable to a run id and samples; every
    `closed` route names adapter, pins, protocol and evidence.
