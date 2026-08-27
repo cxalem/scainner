@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 9;
+const SCHEMA_VERSION: i64 = 10;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -71,7 +71,78 @@ pub struct DiscoveredModuleRow {
     pub fingerprint_match_key: Option<String>,
     pub fingerprint_fields_answered: i64,
     pub fingerprint_fields_total: i64,
+    /// Identity confidence (`provisional|stable|conflicted`), NULL until
+    /// `record_identity` has run for the module.
+    pub identity_fit: Option<String>,
+    pub identity_reads: i64,
+    /// Full route tuple as JSON (protocol, bits, extension, session).
+    pub route_json: Option<String>,
+    /// Family join result (plan A4): family id and `strong|weak|name_only|none`.
+    pub family_id: Option<String>,
+    pub family_match: Option<String>,
 }
+
+/// One tracked hypothesis: a DID on a module of one vehicle with the four
+/// state dimensions (plan A3). `decode_json` holds the inherited decode when
+/// a family match created the row; `shape_json`/`interpretations_json` are
+/// the correlation engine's output once it has run.
+#[derive(Serialize, Clone, Debug)]
+pub struct HypothesisRow {
+    pub id: i64,
+    pub vehicle_id: i64,
+    pub module_id: i64,
+    pub module_address: String,
+    pub did: u16,
+    pub knowledge_state: String,
+    pub vehicle_fit: String,
+    pub route_state: Option<String>,
+    pub activation: String,
+    pub label: Option<String>,
+    pub decode_json: Option<String>,
+    pub shape_json: Option<String>,
+    pub interpretations_json: Option<String>,
+    pub confidence: Option<f64>,
+    pub discriminating_test: Option<String>,
+    pub next_step_id: Option<i64>,
+    pub family_id: Option<String>,
+    pub sample_count: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+/// What a join (or any other writer) asks to persist for one hypothesis.
+#[derive(Clone, Debug, Default)]
+pub struct HypothesisUpsert {
+    pub vehicle_id: i64,
+    pub module_id: i64,
+    pub did: u16,
+    pub knowledge_state: String,
+    pub label: Option<String>,
+    pub decode_json: Option<String>,
+    pub discriminating_test: Option<String>,
+    pub family_id: Option<String>,
+}
+
+/// Fields a state transition may touch. `None` leaves the column alone.
+#[derive(Clone, Debug, Default, serde::Deserialize)]
+pub struct HypothesisPatch {
+    pub knowledge_state: Option<String>,
+    pub vehicle_fit: Option<String>,
+    pub activation: Option<String>,
+    pub label: Option<String>,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct HypothesisSampleRow {
+    pub id: i64,
+    pub hypothesis_id: i64,
+    pub ts_ms: i64,
+    pub payload_hex: String,
+    pub refs_json: Option<String>,
+}
+
+/// Samples kept per hypothesis; older ones are dropped on insert.
+pub const HYPOTHESIS_SAMPLE_RETENTION: i64 = 5000;
 
 #[derive(Serialize, Clone)]
 pub struct VehicleMapIdentity {
@@ -751,6 +822,60 @@ impl Db {
             "UPDATE discovered_modules SET last_seen_at = discovered_at WHERE last_seen_at IS NULL",
             [],
         );
+        // v10: Universal Discovery Protocol knowledge layer (plan A3).
+        // Identity confidence, the full route tuple and the family join on
+        // each module; hypotheses with the four state dimensions; raw
+        // samples for the correlation engine. Idempotent like v7.
+        for column in [
+            "identity_fit TEXT",
+            "identity_reads INTEGER NOT NULL DEFAULT 0",
+            "identity_hash TEXT",
+            "route_json TEXT",
+            "family_id TEXT",
+            "family_match TEXT",
+        ] {
+            let _ = conn.execute(
+                &format!("ALTER TABLE discovered_modules ADD COLUMN {column}"),
+                [],
+            );
+        }
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS hypotheses (
+                id INTEGER PRIMARY KEY,
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                module_id INTEGER NOT NULL REFERENCES discovered_modules(id),
+                did INTEGER NOT NULL,
+                knowledge_state TEXT NOT NULL,
+                vehicle_fit TEXT NOT NULL DEFAULT 'untested',
+                route_state TEXT,
+                activation TEXT NOT NULL DEFAULT 'disabled',
+                label TEXT,
+                decode_json TEXT,
+                shape_json TEXT,
+                interpretations_json TEXT,
+                confidence REAL,
+                discriminating_test TEXT,
+                next_step_id INTEGER,
+                family_id TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                cloud_id TEXT
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hypotheses_vehicle_module_did
+                ON hypotheses(vehicle_id, module_id, did);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hypotheses_cloud ON hypotheses(cloud_id);
+            CREATE TABLE IF NOT EXISTS hypothesis_samples (
+                id INTEGER PRIMARY KEY,
+                hypothesis_id INTEGER NOT NULL REFERENCES hypotheses(id),
+                ts_ms INTEGER NOT NULL,
+                payload_hex TEXT NOT NULL,
+                refs_json TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_hypothesis_samples_hypothesis_ts
+                ON hypothesis_samples(hypothesis_id, ts_ms);
+            "#,
+        )?;
         // v4: provenance makes discovery-owned probes safely
         // reconcilable. Existing rows are conservatively manual because
         // older schemas cannot prove how they were created.
@@ -1492,7 +1617,8 @@ impl Db {
                         CASE WHEN m.spare_part_number IS NOT NULL THEN 1 ELSE 0 END +
                         CASE WHEN m.hardware_version IS NOT NULL THEN 1 ELSE 0 END +
                         CASE WHEN m.software_version IS NOT NULL THEN 1 ELSE 0 END +
-                        CASE WHEN m.system_name IS NOT NULL THEN 1 ELSE 0 END
+                        CASE WHEN m.system_name IS NOT NULL THEN 1 ELSE 0 END,
+                        m.identity_fit, m.identity_reads, m.route_json, m.family_id, m.family_match
                  FROM discovered_modules m
                  LEFT JOIN discovered_dids d ON d.module_id = m.id
                  WHERE m.vehicle_id = ?1
@@ -1515,11 +1641,320 @@ impl Db {
                 fingerprint_match_key: r.get(11)?,
                 fingerprint_fields_answered: r.get(12)?,
                 fingerprint_fields_total: 4,
+                identity_fit: r.get(13)?,
+                identity_reads: r.get::<_, Option<i64>>(14)?.unwrap_or(0),
+                route_json: r.get(15)?,
+                family_id: r.get(16)?,
+                family_match: r.get(17)?,
             })
         })
         .unwrap()
         .filter_map(Result::ok)
         .collect()
+    }
+
+    // ---------- discovery knowledge layer (plan A3) ----------
+
+    /// Identity confidence write-back (protocol S2 "repeat once for
+    /// byte-identity"). `identity_hash` is a digest of the fingerprint match
+    /// key (never the serial or VIN). Returns the new fit and read count, or
+    /// None when the module does not exist.
+    pub fn record_identity(
+        &self,
+        module_id: i64,
+        identity_hash: &str,
+    ) -> Option<(crate::elm::discovery::state::IdentityFit, i64)> {
+        use crate::elm::discovery::state::{next_identity_fit, IdentityFit};
+        let conn = self.0.lock().unwrap();
+        let (fit, reads, previous): (Option<String>, i64, Option<String>) = conn
+            .query_row(
+                "SELECT identity_fit, COALESCE(identity_reads, 0), identity_hash
+                 FROM discovered_modules WHERE id = ?1",
+                params![module_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .ok()?;
+        let current = fit.as_deref().and_then(IdentityFit::parse);
+        let (next, reads) = next_identity_fit(current, reads, previous.as_deref(), identity_hash);
+        conn.execute(
+            "UPDATE discovered_modules SET identity_fit = ?1, identity_reads = ?2,
+             identity_hash = CASE WHEN ?1 = 'conflicted' THEN identity_hash ELSE ?3 END
+             WHERE id = ?4",
+            params![next.as_str(), reads, identity_hash, module_id],
+        )
+        .ok()?;
+        Some((next, reads))
+    }
+
+    /// Store the S3 join result on the module (idempotent).
+    pub fn set_module_family(
+        &self,
+        module_id: i64,
+        family_id: Option<&str>,
+        family_match: &str,
+    ) -> bool {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE discovered_modules SET family_id = ?1, family_match = ?2 WHERE id = ?3",
+            params![family_id, family_match, module_id],
+        )
+        .map(|n| n > 0)
+        .unwrap_or(false)
+    }
+
+    /// Store the full route tuple (protocol §9) on the module.
+    pub fn set_module_route(&self, module_id: i64, route_json: &str) -> bool {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE discovered_modules SET route_json = ?1 WHERE id = ?2",
+            params![route_json, module_id],
+        )
+        .map(|n| n > 0)
+        .unwrap_or(false)
+    }
+
+    /// Insert or refresh one hypothesis, unique on (vehicle, module, DID).
+    /// Re-running a join updates the knowledge it carries but never touches
+    /// what this vehicle established (`vehicle_fit`, `activation`, engine
+    /// output) and never downgrades a confirmed knowledge state. Returns
+    /// (id, created).
+    pub fn upsert_hypothesis(&self, h: &HypothesisUpsert) -> (i64, bool) {
+        let conn = self.0.lock().unwrap();
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT id FROM hypotheses WHERE vehicle_id = ?1 AND module_id = ?2 AND did = ?3",
+                params![h.vehicle_id, h.module_id, h.did as i64],
+                |r| r.get(0),
+            )
+            .ok();
+        match existing {
+            Some(id) => {
+                let _ = conn.execute(
+                    "UPDATE hypotheses SET
+                       knowledge_state = CASE
+                         WHEN knowledge_state IN ('locally_confirmed','community_verified','oem_confirmed')
+                         THEN knowledge_state ELSE ?1 END,
+                       label = COALESCE(?2, label),
+                       decode_json = COALESCE(?3, decode_json),
+                       discriminating_test = COALESCE(?4, discriminating_test),
+                       family_id = COALESCE(?5, family_id),
+                       updated_at = datetime('now')
+                     WHERE id = ?6",
+                    params![
+                        h.knowledge_state,
+                        h.label,
+                        h.decode_json,
+                        h.discriminating_test,
+                        h.family_id,
+                        id
+                    ],
+                );
+                (id, false)
+            }
+            None => {
+                let _ = conn.execute(
+                    "INSERT INTO hypotheses (vehicle_id, module_id, did, knowledge_state,
+                       vehicle_fit, activation, label, decode_json, discriminating_test,
+                       family_id, cloud_id)
+                     VALUES (?1, ?2, ?3, ?4, 'untested', 'disabled', ?5, ?6, ?7, ?8, ?9)",
+                    params![
+                        h.vehicle_id,
+                        h.module_id,
+                        h.did as i64,
+                        h.knowledge_state,
+                        h.label,
+                        h.decode_json,
+                        h.discriminating_test,
+                        h.family_id,
+                        Self::new_cloud_id()
+                    ],
+                );
+                (conn.last_insert_rowid(), true)
+            }
+        }
+    }
+
+    const HYPOTHESIS_SELECT: &str =
+        "SELECT h.id, h.vehicle_id, h.module_id, m.module_address, h.did, h.knowledge_state,
+                h.vehicle_fit, h.route_state, h.activation, h.label, h.decode_json,
+                h.shape_json, h.interpretations_json, h.confidence, h.discriminating_test,
+                h.next_step_id, h.family_id,
+                (SELECT COUNT(*) FROM hypothesis_samples s WHERE s.hypothesis_id = h.id),
+                h.created_at, h.updated_at
+         FROM hypotheses h JOIN discovered_modules m ON m.id = h.module_id";
+
+    fn hypothesis_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<HypothesisRow> {
+        Ok(HypothesisRow {
+            id: r.get(0)?,
+            vehicle_id: r.get(1)?,
+            module_id: r.get(2)?,
+            module_address: r.get(3)?,
+            did: r.get::<_, i64>(4)? as u16,
+            knowledge_state: r.get(5)?,
+            vehicle_fit: r.get(6)?,
+            route_state: r.get(7)?,
+            activation: r.get(8)?,
+            label: r.get(9)?,
+            decode_json: r.get(10)?,
+            shape_json: r.get(11)?,
+            interpretations_json: r.get(12)?,
+            confidence: r.get(13)?,
+            discriminating_test: r.get(14)?,
+            next_step_id: r.get(15)?,
+            family_id: r.get(16)?,
+            sample_count: r.get(17)?,
+            created_at: r.get(18)?,
+            updated_at: r.get(19)?,
+        })
+    }
+
+    pub fn list_hypotheses(&self, vehicle_id: i64) -> Vec<HypothesisRow> {
+        let conn = self.0.lock().unwrap();
+        let sql = format!(
+            "{} WHERE h.vehicle_id = ?1 ORDER BY m.module_address, h.did",
+            Self::HYPOTHESIS_SELECT
+        );
+        let mut stmt = conn.prepare(&sql).unwrap();
+        stmt.query_map(params![vehicle_id], Self::hypothesis_from_row)
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect()
+    }
+
+    pub fn hypothesis(&self, id: i64) -> Option<HypothesisRow> {
+        let conn = self.0.lock().unwrap();
+        let sql = format!("{} WHERE h.id = ?1", Self::HYPOTHESIS_SELECT);
+        conn.query_row(&sql, params![id], Self::hypothesis_from_row)
+            .ok()
+    }
+
+    /// Apply a state transition with the rules from `discovery::state`
+    /// enforced against the row's resulting state. `learning_on` is the
+    /// `app_settings.learning_state` flag. Err carries the violated rule.
+    pub fn patch_hypothesis(
+        &self,
+        id: i64,
+        patch: &HypothesisPatch,
+        learning_on: bool,
+    ) -> Result<Option<HypothesisRow>, crate::elm::discovery::state::RuleViolation> {
+        use crate::elm::discovery::state::{
+            check_activation, Activation, KnowledgeState, RuleViolation, VehicleFit,
+        };
+        let Some(current) = self.hypothesis(id) else {
+            return Ok(None);
+        };
+        let invalid = |field: &'static str, value: &str| RuleViolation {
+            rule: "unknown_state_value",
+            reason: format!("{field} does not accept {value:?}"),
+        };
+        let knowledge = match &patch.knowledge_state {
+            Some(v) => KnowledgeState::parse(v).ok_or_else(|| invalid("knowledge_state", v))?,
+            None => {
+                KnowledgeState::parse(&current.knowledge_state).unwrap_or(KnowledgeState::Unknown)
+            }
+        };
+        let fit = match &patch.vehicle_fit {
+            Some(v) => VehicleFit::parse(v).ok_or_else(|| invalid("vehicle_fit", v))?,
+            None => VehicleFit::parse(&current.vehicle_fit).unwrap_or(VehicleFit::Untested),
+        };
+        let activation = match &patch.activation {
+            Some(v) => Activation::parse(v).ok_or_else(|| invalid("activation", v))?,
+            None => Activation::parse(&current.activation).unwrap_or(Activation::Disabled),
+        };
+        check_activation(activation, fit, learning_on)?;
+        let conn = self.0.lock().unwrap();
+        let _ = conn.execute(
+            "UPDATE hypotheses SET knowledge_state = ?1, vehicle_fit = ?2, activation = ?3,
+             label = COALESCE(?4, label), updated_at = datetime('now') WHERE id = ?5",
+            params![
+                knowledge.as_str(),
+                fit.as_str(),
+                activation.as_str(),
+                patch.label,
+                id
+            ],
+        );
+        drop(conn);
+        Ok(self.hypothesis(id))
+    }
+
+    /// Store one raw sample and enforce the retention rule (keep the newest
+    /// `HYPOTHESIS_SAMPLE_RETENTION` per hypothesis).
+    pub fn insert_hypothesis_sample(
+        &self,
+        hypothesis_id: i64,
+        ts_ms: i64,
+        payload_hex: &str,
+        refs_json: Option<&str>,
+    ) -> i64 {
+        self.insert_hypothesis_sample_keeping(
+            hypothesis_id,
+            ts_ms,
+            payload_hex,
+            refs_json,
+            HYPOTHESIS_SAMPLE_RETENTION,
+        )
+    }
+
+    /// Same as `insert_hypothesis_sample` with an explicit retention count.
+    pub fn insert_hypothesis_sample_keeping(
+        &self,
+        hypothesis_id: i64,
+        ts_ms: i64,
+        payload_hex: &str,
+        refs_json: Option<&str>,
+        keep: i64,
+    ) -> i64 {
+        let conn = self.0.lock().unwrap();
+        let _ = conn.execute(
+            "INSERT INTO hypothesis_samples (hypothesis_id, ts_ms, payload_hex, refs_json)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![hypothesis_id, ts_ms, payload_hex, refs_json],
+        );
+        let id = conn.last_insert_rowid();
+        // Retention by insertion order: everything older than the N-th
+        // newest row goes. One indexed lookup, not a full re-sort per insert.
+        let _ = conn.execute(
+            "DELETE FROM hypothesis_samples WHERE hypothesis_id = ?1 AND id <= COALESCE(
+               (SELECT id FROM hypothesis_samples WHERE hypothesis_id = ?1
+                ORDER BY id DESC LIMIT 1 OFFSET ?2), 0)",
+            params![hypothesis_id, keep],
+        );
+        id
+    }
+
+    pub fn hypothesis_samples(&self, hypothesis_id: i64, limit: i64) -> Vec<HypothesisSampleRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, hypothesis_id, ts_ms, payload_hex, refs_json FROM hypothesis_samples
+                 WHERE hypothesis_id = ?1 ORDER BY ts_ms DESC, id DESC LIMIT ?2",
+            )
+            .unwrap();
+        stmt.query_map(params![hypothesis_id, limit], |r| {
+            Ok(HypothesisSampleRow {
+                id: r.get(0)?,
+                hypothesis_id: r.get(1)?,
+                ts_ms: r.get(2)?,
+                payload_hex: r.get(3)?,
+                refs_json: r.get(4)?,
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
+    }
+
+    /// Distinct reading keys and total count for a vehicle — the cheap
+    /// "standard" line of the coverage report.
+    pub fn standard_coverage(&self, vehicle_id: i64) -> (i64, i64) {
+        let conn = self.0.lock().unwrap();
+        conn.query_row(
+            "SELECT COUNT(DISTINCT key), COUNT(*) FROM readings WHERE vehicle_id = ?1",
+            params![vehicle_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap_or((0, 0))
     }
 
     pub fn vehicle_evidence_map(&self, vehicle_id: i64) -> VehicleEvidenceMap {
@@ -3259,5 +3694,105 @@ mod tests {
             .create_diagnostic_case(vehicle, "Noise", Some(-1), None)
             .is_err());
         assert!(db.diagnostic_cases(Some(vehicle)).is_empty());
+    }
+
+    #[test]
+    fn hypotheses_are_unique_per_vehicle_module_did_and_samples_are_retained_newest_first() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module = db.upsert_discovered_module(vehicle, "6AD/68D", None);
+        let upsert = HypothesisUpsert {
+            vehicle_id: vehicle,
+            module_id: module,
+            did: 0xD400,
+            knowledge_state: "unknown".into(),
+            ..Default::default()
+        };
+        let (id, created) = db.upsert_hypothesis(&upsert);
+        assert!(created);
+        let (again, created) = db.upsert_hypothesis(&HypothesisUpsert {
+            label: Some("Wheel speed rear-left".into()),
+            ..upsert.clone()
+        });
+        assert_eq!((again, created), (id, false));
+        assert_eq!(db.list_hypotheses(vehicle).len(), 1);
+        assert_eq!(
+            db.hypothesis(id).unwrap().label.as_deref(),
+            Some("Wheel speed rear-left")
+        );
+
+        // The production constant is 5000; the rule is exercised with a
+        // small window so the suite stays fast.
+        assert_eq!(HYPOTHESIS_SAMPLE_RETENTION, 5000);
+        let keep = 50;
+        for ts in 0..(keep + 7) {
+            db.insert_hypothesis_sample_keeping(id, ts, "00 00", None, keep);
+        }
+        let samples = db.hypothesis_samples(id, 10);
+        assert_eq!(samples[0].ts_ms, keep + 6);
+        assert_eq!(db.hypothesis(id).unwrap().sample_count, keep);
+        assert!(db
+            .hypothesis_samples(id, 10_000)
+            .iter()
+            .all(|s| s.ts_ms >= 7));
+    }
+
+    #[test]
+    fn patching_a_hypothesis_enforces_the_activation_rules_and_rejects_bad_values() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module = db.upsert_discovered_module(vehicle, "6AD/68D", None);
+        let (id, _) = db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id: vehicle,
+            module_id: module,
+            did: 0xD400,
+            knowledge_state: "unknown".into(),
+            ..Default::default()
+        });
+        let enable = HypothesisPatch {
+            activation: Some("enabled".into()),
+            ..Default::default()
+        };
+        let err = db.patch_hypothesis(id, &enable, false).unwrap_err();
+        assert_eq!(err.rule, "enabled_requires_matched");
+        let learn = HypothesisPatch {
+            activation: Some("learning".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            db.patch_hypothesis(id, &learn, false).unwrap_err().rule,
+            "learning_requires_learning_state"
+        );
+        assert_eq!(
+            db.patch_hypothesis(id, &learn, true)
+                .unwrap()
+                .unwrap()
+                .activation,
+            "learning"
+        );
+        let bad = HypothesisPatch {
+            vehicle_fit: Some("maybe".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            db.patch_hypothesis(id, &bad, true).unwrap_err().rule,
+            "unknown_state_value"
+        );
+        let confirm = HypothesisPatch {
+            vehicle_fit: Some("matched".into()),
+            activation: Some("enabled".into()),
+            knowledge_state: Some("locally_confirmed".into()),
+            label: Some("Wheel speed RL".into()),
+        };
+        let row = db.patch_hypothesis(id, &confirm, false).unwrap().unwrap();
+        assert_eq!(
+            (
+                row.vehicle_fit.as_str(),
+                row.activation.as_str(),
+                row.knowledge_state.as_str()
+            ),
+            ("matched", "enabled", "locally_confirmed")
+        );
+        assert!(db.patch_hypothesis(999, &confirm, false).unwrap().is_none());
     }
 }

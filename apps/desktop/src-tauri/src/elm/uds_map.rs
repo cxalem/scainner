@@ -20,6 +20,81 @@ pub struct UdsMap {
     pub version: u32,
     pub standard: Standard,
     pub brands: Vec<Brand>,
+    /// Cross-brand ECU families keyed by part reference — the reuse unit of
+    /// the Universal Discovery Protocol (§2, L3). Empty on maps older than
+    /// v8; `known_dids` remain the backwards-compatible per-brand path.
+    #[serde(default)]
+    pub ecu_families: Vec<EcuFamily>,
+}
+
+/// An ECU identified by its supplier part reference, with every decode ever
+/// verified on it. Brand and address are how the module is *found*; the part
+/// reference is how it is *known*, so a Continental MK100 decoded on a C4
+/// lights up on any other car carrying the same part.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct EcuFamily {
+    pub id: String,
+    #[serde(default)]
+    pub supplier: Option<String>,
+    pub family: String,
+    /// Ten-digit PSA-style references (F080 reference 1) or ISO F187.
+    #[serde(default)]
+    pub hardware_refs: Vec<String>,
+    /// Software/calibration references (PSA F0FE, ISO F189/F195).
+    #[serde(default)]
+    pub software_refs: Vec<String>,
+    /// Read service the decodes were verified with ("22", "21", "1A").
+    #[serde(default)]
+    pub diagnostic_service: Option<String>,
+    #[serde(default)]
+    pub modules_seen_on: Vec<FamilyModuleRef>,
+    #[serde(default)]
+    pub evidence: Option<String>,
+    #[serde(default)]
+    pub decodes: Vec<FamilyDecode>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct FamilyModuleRef {
+    pub brand: String,
+    pub req: String,
+    pub resp: String,
+}
+
+/// One decode of a family: the formula plus the state and evidence that
+/// justify it. `knowledge_state` is the protocol's vocabulary as a string so
+/// the data file never depends on a Rust enum; `discovery::state` parses it.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct FamilyDecode {
+    pub did: String,
+    pub label: String,
+    #[serde(default)]
+    pub offset: u32,
+    #[serde(default = "one_u32")]
+    pub len: u32,
+    #[serde(default = "one_f64")]
+    pub scale: f64,
+    #[serde(default)]
+    pub bias: f64,
+    #[serde(default)]
+    pub signed: bool,
+    #[serde(default)]
+    pub unit: String,
+    pub knowledge_state: String,
+    #[serde(default)]
+    pub evidence: String,
+    #[serde(default)]
+    pub vehicles_confirmed: u32,
+    #[serde(default)]
+    pub discriminating_test: Option<String>,
+}
+
+fn one_u32() -> u32 {
+    1
+}
+
+fn one_f64() -> f64 {
+    1.0
 }
 
 #[derive(Deserialize)]
@@ -254,9 +329,13 @@ pub fn extended_modules_for_vin(vin: Option<&str>) -> usize {
 /// None for an unknown or absent VIN — callers then use every brand's
 /// bands (slower, still bounded) rather than guessing at one.
 pub fn brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
+    brand_for_vin_in(map(), vin)
+}
+
+/// Same lookup against an explicit map (fixtures, the discovery layer).
+pub fn brand_for_vin_in<'a>(map: &'a UdsMap, vin: Option<&str>) -> Option<&'a Brand> {
     let wmi = vin.filter(|v| v.len() >= 3)?[..3].to_uppercase();
-    map()
-        .brands
+    map.brands
         .iter()
         .find(|b| b.wmi.iter().any(|w| w.eq_ignore_ascii_case(&wmi)))
 }
@@ -518,9 +597,78 @@ pub fn known_dids_for_module(vin: Option<&str>, req: u32, resp: u32) -> Vec<u16>
     dids
 }
 
+/// Every ECU family in the shipped map (empty on maps older than v8).
+pub fn ecu_families() -> &'static [EcuFamily] {
+    &map().ecu_families
+}
+
+/// The family whose hardware references contain this exact part reference —
+/// the byte-level lookup behind the protocol's S3 join.
+pub fn family_for_hardware_ref(hardware_ref: &str) -> Option<&'static EcuFamily> {
+    family_for_hardware_ref_in(map(), hardware_ref)
+}
+
+/// Same lookup against an explicit map, so tests can use a fixture map.
+pub fn family_for_hardware_ref_in<'a>(
+    map: &'a UdsMap,
+    hardware_ref: &str,
+) -> Option<&'a EcuFamily> {
+    let wanted = hardware_ref.trim();
+    if wanted.is_empty() {
+        return None;
+    }
+    map.ecu_families
+        .iter()
+        .find(|f| f.hardware_refs.iter().any(|r| r == wanted))
+}
+
+/// A family by id.
+pub fn family_by_id<'a>(map: &'a UdsMap, id: &str) -> Option<&'a EcuFamily> {
+    map.ecu_families.iter().find(|f| f.id == id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ecu_families_parse_with_ten_digit_references_and_the_c4_abs_joins() {
+        let families = ecu_families();
+        assert!(families.len() >= 3, "v8 seeds three families");
+        for f in families {
+            for r in f.hardware_refs.iter().chain(&f.software_refs) {
+                assert!(
+                    r.len() == 10 && r.chars().all(|c| c.is_ascii_digit()),
+                    "{}: bad reference {r}",
+                    f.id
+                );
+            }
+            for m in &f.modules_seen_on {
+                assert!(hex_any(&m.req).is_some() && hex_any(&m.resp).is_some());
+            }
+            for d in &f.decodes {
+                assert!(hex16(&d.did).is_some(), "{}: bad did {}", f.id, d.did);
+                assert!(d.len > 0);
+                assert!(!d.evidence.is_empty(), "{} {}: no evidence", f.id, d.did);
+                if d.knowledge_state == "locally_confirmed" {
+                    assert!(d.vehicles_confirmed >= 1);
+                }
+            }
+        }
+        let abs = family_for_hardware_ref("9846124980").expect("C4 ABS family");
+        assert_eq!(abs.id, "cont_esp_mk100_psa");
+        assert_eq!(abs.decodes.len(), 12);
+        assert_eq!(
+            family_for_hardware_ref("9844551780").unwrap().decodes.len(),
+            4
+        );
+        assert!(family_for_hardware_ref("9817137180")
+            .unwrap()
+            .decodes
+            .is_empty());
+        assert!(family_for_hardware_ref("0000000000").is_none());
+        assert!(family_for_hardware_ref("").is_none());
+    }
 
     #[test]
     fn map_parses_and_has_content() {
