@@ -848,7 +848,8 @@ fn handle_request(
                                 let reached = target.observations.iter().any(|item| {
                                     matches!(
                                         item.outcome.status,
-                                        super::outcome::DiagnosticStatus::Answered | super::outcome::DiagnosticStatus::Refused
+                                        super::outcome::DiagnosticStatus::Answered
+                                            | super::outcome::DiagnosticStatus::Refused
                                     )
                                 });
                                 if !reached {
@@ -862,7 +863,8 @@ fn handle_request(
                                 // A sweep shares its route with an identity
                                 // target; its label describes the search, not
                                 // the module, so it must not rename the row.
-                                let label = target.summary.is_none().then_some(target.label.as_str());
+                                let label =
+                                    target.summary.is_none().then_some(target.label.as_str());
                                 let module_id =
                                     db.upsert_discovered_module(vehicle_id, &address, label);
                                 if let Some(fingerprint) = uds::psa_identity_fingerprint(target) {
@@ -870,14 +872,17 @@ fn handle_request(
                                 }
                                 if target.summary.is_some() {
                                     for hit in target.observations.iter().filter(|item| {
-                                        item.outcome.status == super::outcome::DiagnosticStatus::Answered
+                                        item.outcome.status
+                                            == super::outcome::DiagnosticStatus::Answered
                                     }) {
                                         if let (Ok(did), Some(hex)) = (
                                             u16::from_str_radix(&hit.did, 16),
                                             hit.payload_hex.as_deref(),
                                         ) {
                                             let length = hex.split_whitespace().count() as i64;
-                                            db.upsert_discovered_did(module_id, did, hex, length, None);
+                                            db.upsert_discovered_did(
+                                                module_id, did, hex, length, None,
+                                            );
                                         }
                                     }
                                 }

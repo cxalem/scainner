@@ -486,7 +486,8 @@ fn sweep_identifiers(
     ranges: &[(u16, u16)],
     observations: &mut Vec<VerificationObservation>,
 ) -> String {
-    let (mut tried, mut answered, mut refused, mut silent, mut link_errors) = (0u32, 0u32, 0u32, 0u32, 0u32);
+    let (mut tried, mut answered, mut refused, mut silent, mut link_errors) =
+        (0u32, 0u32, 0u32, 0u32, 0u32);
     let mut aborted_at = None;
     'ranges: for (from, to) in ranges {
         for did in *from..=*to {
@@ -580,8 +581,7 @@ pub fn correlation_capture(
         .map_err(|error| format!("could not configure route {req}→{resp}: {error}"))?;
     let repeats = repeats.clamp(1, 10);
     let mut payloads: Vec<Vec<Option<String>>> = vec![Vec::new(); dids.len()];
-    let mut outcomes: Vec<DiagnosticOutcome> =
-        vec![DiagnosticOutcome::timed_out("22"); dids.len()];
+    let mut outcomes: Vec<DiagnosticOutcome> = vec![DiagnosticOutcome::timed_out("22"); dids.len()];
     let mut link_errors = 0u32;
     for _ in 0..repeats {
         for (index, did) in dids.iter().enumerate() {
@@ -2671,10 +2671,16 @@ mod tests {
         assert_eq!(readings.len(), 2);
         assert_eq!(readings[0].did, "D435");
         assert!(readings[0].stable);
-        assert_eq!(readings[0].payloads, vec![Some("07".into()), Some("07".into())]);
+        assert_eq!(
+            readings[0].payloads,
+            vec![Some("07".into()), Some("07".into())]
+        );
         assert_eq!(readings[1].did, "D410");
         assert!(!readings[1].stable);
-        assert_eq!(readings[1].payloads, vec![Some("29".into()), Some("2A".into())]);
+        assert_eq!(
+            readings[1].payloads,
+            vec![Some("29".into()), Some("2A".into())]
+        );
         driver.assert_replay_complete();
     }
 
@@ -2684,25 +2690,31 @@ mod tests {
         let camera = [
             0x98, 0x17, 0x13, 0x71, 0x80, 0x00, 0x0F, 0x98, 0x42, 0x72, 0x50, 0x80, 0xFF, 0x71,
         ];
-        assert_eq!(decode_psa_references(&camera), vec!["9817137180", "9842725080"]);
+        assert_eq!(
+            decode_psa_references(&camera),
+            vec!["9817137180", "9842725080"]
+        );
         // FF padding is not a number; a short payload yields nothing.
         assert_eq!(decode_psa_references(&[0xFF; 12]), Vec::<String>::new());
         assert_eq!(decode_psa_references(&[0x98, 0x17]), Vec::<String>::new());
         // A valid first group with a padded second group keeps only the first.
-        let partial = [0x98, 0x46, 0x12, 0x49, 0x80, 0x00, 0x0D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
+        let partial = [
+            0x98, 0x46, 0x12, 0x49, 0x80, 0x00, 0x0D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        ];
         assert_eq!(decode_psa_references(&partial), vec!["9846124980"]);
     }
 
     #[test]
     fn verification_target_yields_fingerprint_without_serial_in_key() {
-        let observation = |did: &str, payload: &str, printable: Option<&str>| VerificationObservation {
-            did: did.into(),
-            purpose: String::new(),
-            outcome: DiagnosticOutcome::answered("22"),
-            payload_hex: Some(payload.into()),
-            printable: printable.map(Into::into),
-            raw_response: None,
-        };
+        let observation =
+            |did: &str, payload: &str, printable: Option<&str>| VerificationObservation {
+                did: did.into(),
+                purpose: String::new(),
+                outcome: DiagnosticOutcome::answered("22"),
+                payload_hex: Some(payload.into()),
+                printable: printable.map(Into::into),
+                raw_response: None,
+            };
         let target = VerificationTargetResult {
             key: "abs".into(),
             label: "ABS / ESP".into(),
