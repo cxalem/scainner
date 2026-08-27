@@ -43,9 +43,10 @@ def cmd_connect():
     print(json.dumps(s))
 
 def cmd_circle(seconds=60):
-    """Wheel order. Drive a slow, tight circle (car park, ~10 km/h) for the
-    whole duration, one direction, then the other if you like. The outer
-    wheels turn faster; steering angle sign (D41F) tells the direction."""
+    """Wheel order. Any rolling movement with the wheel turned counts: pull
+    out of the parking spot with the wheel on lock, roll 2–3 m, back in with
+    the wheel the other way. The outer wheels turn faster; steering angle
+    sign (D41F) tells the direction. Speed threshold is 0.5 km/h."""
     require_connected()
     path = os.path.join(EVIDENCE, f"c41-session2-circle-{STAMP}.csv")
     rows = []
@@ -62,8 +63,9 @@ def cmd_circle(seconds=60):
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
     # Which pair is faster while turning? Left turn = positive angle (full left read +504° on 2026-08-27).
     def mean(xs): return sum(xs) / len(xs) if xs else 0
-    for name, sel in [("left turn (angle>+90)", lambda r: (r["angle"] or 0) > 90), ("right turn (angle<-90)", lambda r: (r["angle"] or 0) < -90)]:
-        pts = [r for r in rows if sel(r) and all(r[k] for k in ["D400", "D401", "D402", "D403"]) and r["D400"] > 2]
+    # Works at parking speeds: any rolling sample (>0.5 km/h) with the wheel turned >45°.
+    for name, sel in [("left turn (angle>+45)", lambda r: (r["angle"] or 0) > 45), ("right turn (angle<-45)", lambda r: (r["angle"] or 0) < -45)]:
+        pts = [r for r in rows if sel(r) and all(r[k] for k in ["D400", "D401", "D402", "D403"]) and r["D400"] > 0.5]
         if not pts:
             print(f"{name}: no samples"); continue
         m = {k: mean([r[k] for r in pts]) for k in ["D400", "D401", "D402", "D403"]}

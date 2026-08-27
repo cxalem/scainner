@@ -237,3 +237,47 @@ New decodes verified against the parked captures and added as **disabled**
 probes: `D41F` steering angle ×0.1 −1250° (±500° at full lock), `D42E` clutch
 pedal ×0.5 % (`C8` while selecting R), `D405` ECU voltage ×0.1 V. Researched
 but unverified: `D45B` outside temperature, `D412` km since DSGi reset.
+
+#### Session 2, 2026-08-27 20:10–20:35 — through the agent API (`scripts/c41_session2.py`)
+
+Wheel order (runs #26–#40, `citroen-c41-corr-v1`, condition `turn_manoeuvre`):
+15 chained correlation captures of `D400–D403` + `D41F` at ~10 Hz during a
+short drive with real corners (150 moving samples, up to 77 km/h). In left
+turns (`D41F` > +45°) `D401`/`D403` were faster; in right turns `D400`/`D402`
+were faster; within a side the front wheel led mid-corner. **Confirmed:
+`D400` RL, `D401` RR, `D402` FL, `D403` FR (×0.01 km/h); steering angle
+positive = left.** Probe labels updated. Raw samples in
+`docs/workflows/evidence/c41-session2-turn-*.json`.
+
+Method note: `POST /uds/read` costs ~1.3 s per DID (route reconfigured per
+call), so single reads cannot sample a manoeuvre; probe polling runs only
+every 30–60 s. `POST /verification/capture` with `repeats=10` reads the set
+round-robin at ~10 Hz and is the right tool for short physical tests. Worth
+adding a `/uds/read-many` or a configurable probe interval to the API.
+
+Brake-servo vacuum (runs #41–#49, condition `pedal_pump_engine_off`, engine
+off, ignition on): `D479` fell 156 → 4 over the first six pedal pumps and
+stayed at 4 for the rest of the 45 s. **Confirmed: `D479` = brake-servo
+vacuum / depression, ×5 hPa** (780 hPa with the reserve full, ~20 hPa
+exhausted; only the running engine rebuilds it). `D40C` reached 46 during the
+hard pumps, consistent with the bar scale. Probe decode set to ×5 hPa.
+
+Engine ECU UDS clear (`c41-session2-dtc-clear-*.json`): before `P17ED-94`
+(`U1205-81` had already aged out on its own), UDS `14 FFFFFF` **accepted**
+with a positive response, after: none. The earlier refusals were the
+engine-running state, as the research suggested; the outcome is now recorded
+with the request.
+
+ABS sweep `D500–D7FF` (`c41-session2-abs-sweep-D500-D7FF-*.json`): nothing
+in `D5xx`; 14 answers in `D6xx`/`D7xx`, all configuration/identity-like:
+`D611` `"0000178734"`, `D619` `"DSGiRESC00.1170001"` (the indirect-TPMS
+software identifier — DSGi confirmed by name), `D612/D616/D618/D623/D631`
+small flags, `D622 = 00 07`, `D636–D639` 10–18-byte opaque blobs (checksums
+or keys; not to be decoded), `D640 = 00 03`, `D701 = 00 0B 40` (2880).
+No live data lives in this block; `D4xx` remains the ABS live-data range.
+
+State after session 2 on the ABS/ESP (Continental MK100, `9846124980`):
+`locally_confirmed` — wheel speeds RL/RR/FL/FR ×0.01 km/h, steering angle
+(+ = left), brake pedal switch, brake pressure (bar, magnitudes), brake-servo
+vacuum ×5 hPa, clutch pedal, ECU voltage, rear-wheel rolling direction.
+Still open: DSGi per-wheel state values (`D435–D438`), `D45B`, `D412`.

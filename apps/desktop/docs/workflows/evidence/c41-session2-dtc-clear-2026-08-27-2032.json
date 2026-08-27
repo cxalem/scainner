@@ -1,0 +1,49 @@
+{
+ "before": [
+  "P17ED-94"
+ ],
+ "outcome": {
+  "before": [
+   "P17ED-94"
+  ],
+  "accepted": true,
+  "refusal_reason": null,
+  "after": [],
+  "outcome": {
+   "status": "answered",
+   "service": "14",
+   "nrc": null,
+   "detail": null
+  }
+ },
+ "after": [],
+ "writes_log": [
+  {
+   "id": 1,
+   "ts": "2026-08-21 20:20:54",
+   "module": "Engine (OBD)",
+   "action": "clear_dtcs",
+   "params": {
+    "mode": "04"
+   },
+   "before": {
+    "mil_on": true,
+    "pending": [],
+    "permanent": [],
+    "stored": [
+     "P0204"
+    ]
+   },
+   "after": {
+    "mil_on": true,
+    "pending": [],
+    "permanent": [],
+    "stored": [
+     "P0204"
+    ]
+   },
+   "outcome": "faults_remain",
+   "error": null
+  }
+ ]
+}
