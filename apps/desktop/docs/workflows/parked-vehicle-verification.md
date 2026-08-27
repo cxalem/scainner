@@ -281,3 +281,31 @@ State after session 2 on the ABS/ESP (Continental MK100, `9846124980`):
 (+ = left), brake pedal switch, brake pressure (bar, magnitudes), brake-servo
 vacuum ×5 hPa, clutch pedal, ECU voltage, rear-wheel rolling direction.
 Still open: DSGi per-wheel state values (`D435–D438`), `D45B`, `D412`.
+
+#### Session 3, 2026-08-27 20:55–21:20 — steering and camera (agent API)
+
+Sweeps (`c41-session3-*-sweep-*.json`): steering `6B5/695` answers 24 DIDs in
+`D400–D41C`, nothing in `D600–D7FF`; camera `74A/64A` answers 10 in
+`D400–D40A`, nothing in `D600–D7FF`. Both ECUs keep their live data in the
+same `D4xx` neighbourhood as engine and ABS.
+
+Steering correlation (`/uds/read-many` on EPS + ABS `D41F`, dynamic
+lock-to-lock then held positions): **`D40D` = steering wheel angle ×0.1°,
+positive = left, same zero as the ABS** (static fit 10.02 counts/°, offset
+−0.4°, residual 4 counts; dynamic r = 0.95 with sampling lag). `D40E` has the
+same slope with a −18.1° offset (pinion/motor-side angle, inferred). `D40F`
+and `D411` are small signed values whose sign follows the turning direction
+and which grow while holding the wheel against the lock (torque/motor-current
+candidates, unit unknown). `D404` rose 122 → 145 during sustained steering
+and sat at 140 afterwards (temperature-like, unverified). `D405` = 0x55
+constant, `D413/D419/D41C` constant flags. Probes added on `auto_6b5_695`;
+`uds-map` v7 carries `D40D` (`confirmed`), `D40E` (`high`), `D40F`/`D411`
+(`low`).
+
+Camera `D400–D40A` (`D401` 7 bytes, `D404` 8 bytes, `D408` 6 bytes …) left
+uninterpreted; the cheap correlation inputs are side lights on/off, high beam,
+and covering the lens — a separate parked step for a later session.
+
+Method: `/uds/read-many` (10 DIDs ≈ 4 s round trip) is fast enough for held
+positions but not for a moving wheel; bracketing each EPS read with two ABS
+reads and keeping only samples where the two agree within 2° removed the lag.

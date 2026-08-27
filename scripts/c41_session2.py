@@ -11,6 +11,7 @@ is written to apps/desktop/docs/workflows/evidence/.
   python3 scripts/c41_session2.py vacuum 40        # D479: engine OFF, ignition on, pump the brake
   python3 scripts/c41_session2.py dtc              # engine DTCs → clear (confirmed) → DTCs, with the outcome
   python3 scripts/c41_session2.py sweep            # ABS D500–D7FF
+  python3 scripts/c41_session2.py sweep-module auto_6b5_695 D400 D4FF   # any module, hex range
   python3 scripts/c41_session2.py probes on|off    # steering / clutch / ECU-voltage probes
 """
 import csv, json, os, sys, time
@@ -130,6 +131,23 @@ def cmd_sweep():
         json.dump({"module": "abs", "range": "D500-D7FF", "hits": hits}, f, indent=1)
     print(f"{len(hits)} answered identifiers → {path}")
 
+def cmd_sweep_module(module, start, end):
+    """Generic bounded sweep on any module key (built-in or custom) in 256-DID chunks."""
+    require_connected()
+    hits = []
+    for chunk_start in range(start, end + 1, 0x100):
+        chunk_end = min(chunk_start + 0xFF, end)
+        print(f"{module}: scanning {chunk_start:04X}–{chunk_end:04X} …", flush=True)
+        chunk = api.uds_scan(module, chunk_start, chunk_end) or []
+        for h in chunk:
+            print(f"  {h.get('did', 0):04X}  {h.get('hex')}  {h.get('ascii') or ''}")
+        hits += chunk
+    path = os.path.join(EVIDENCE, f"c41-session3-{module}-sweep-{start:04X}-{end:04X}-{STAMP}.json")
+    with open(path, "w") as f:
+        json.dump({"module": module, "range": f"{start:04X}-{end:04X}", "hits": hits}, f, indent=1)
+    print(f"{len(hits)} answered identifiers → {path}")
+    return hits
+
 def cmd_probes(state):
     want = state == "on"
     for p in api.probes(vehicle_id=2):
@@ -148,5 +166,6 @@ if __name__ == "__main__":
         "vacuum": lambda: cmd_vacuum(int(rest[0]) if rest else 40),
         "dtc": lambda: cmd_dtc(),
         "sweep": lambda: cmd_sweep(),
+        "sweep-module": lambda: cmd_sweep_module(rest[0], int(rest[1], 16), int(rest[2], 16)),
         "probes": lambda: cmd_probes(rest[0] if rest else "on"),
     }[cmd]()
