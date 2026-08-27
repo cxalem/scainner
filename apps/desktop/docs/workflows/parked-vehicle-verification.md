@@ -217,3 +217,23 @@ labels and the 0.01 km/h scale; `D46D` was added. They remain enabled on the
 ABS module for live polling; disable them in Lab → Probes if the extra ABS
 traffic is unwanted. Promotion to the shared `uds-map` pack still requires
 human approval and a second vehicle with the same fingerprint.
+
+#### Correction 2026-08-27 (after `docs/research/c41-abs-did-research.md`)
+
+`F080` reference 2 is a *complementary hardware reference*, not a software
+version (three concordant sources: PyPSADiag `IdentUDSECU.json`,
+arduino-psa-diag `UDS_FLASH.md`, Diagbox-derived definitions). The software /
+calibration reference is `F0FE` bytes 21–23 printed as `96xxxxxx80`.
+`psa_identity_fingerprint` now maps ref 1 → `spare_part_number`, ref 2 →
+`hardware_version`, `F0FE` → `software_version`; stored rows were corrected:
+camera sw `9694921880`, ABS sw `9695041580`, steering sw `9695027380`.
+The ABS is a Continental/ATE ESP MK100 (ATE `10.0220-2524.4`), not Bosch.
+
+Probe relabels from the same research, consistent with our captures:
+`D46D` = rear-left wheel rolling direction (why it moved only when the car
+actually rolled back), `D464` = AEB deceleration state, `D40C` = brake
+pressure in bar (claimed), `D479` = brake-servo vacuum ×5 hPa (claimed).
+New decodes verified against the parked captures and added as **disabled**
+probes: `D41F` steering angle ×0.1 −1250° (±500° at full lock), `D42E` clutch
+pedal ×0.5 % (`C8` while selecting R), `D405` ECU voltage ×0.1 V. Researched
+but unverified: `D45B` outside temperature, `D412` km since DSGi reset.
