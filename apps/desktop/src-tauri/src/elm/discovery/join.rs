@@ -105,9 +105,11 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
         let identity = effective_identity(&module);
         let mut family_dids: Vec<u16> = Vec::new();
         match identity {
-            Some(IdentityFit::Conflicted) => {
-                joined.skipped =
-                    Some("identity conflicted: two reads disagreed, not joined".into());
+            Some(fit) if !fit.joinable() => {
+                joined.skipped = Some(format!(
+                    "identity {}: two reads disagreed, not joined",
+                    fit.as_str()
+                ));
             }
             Some(_) => {
                 let key = CompatibilityKey::from_fingerprint(

@@ -132,6 +132,10 @@ pub struct HypothesisPatch {
     pub label: Option<String>,
 }
 
+/// Raw sample storage is written by the S5 hypothesis poll (a follow-up in
+/// the supervisor, outside this track) and read by `discovery::learn`; the
+/// tests exercise it, the binary does not yet.
+#[allow(dead_code)]
 #[derive(Serialize, Clone, Debug)]
 pub struct HypothesisSampleRow {
     pub id: i64,
@@ -142,6 +146,7 @@ pub struct HypothesisSampleRow {
 }
 
 /// Samples kept per hypothesis; older ones are dropped on insert.
+#[allow(dead_code)]
 pub const HYPOTHESIS_SAMPLE_RETENTION: i64 = 5000;
 
 #[derive(Serialize, Clone)]
@@ -1655,6 +1660,9 @@ impl Db {
 
     // ---------- discovery knowledge layer (plan A3) ----------
 
+    /// Called by `discovery::identity::record_identity` (wired into the
+    /// supervisor as a follow-up, see plan A7).
+    #[allow(dead_code)]
     /// Identity confidence write-back (protocol S2 "repeat once for
     /// byte-identity"). `identity_hash` is a digest of the fingerprint match
     /// key (never the serial or VIN). Returns the new fit and read count, or
@@ -1702,7 +1710,10 @@ impl Db {
         .unwrap_or(false)
     }
 
-    /// Store the full route tuple (protocol §9) on the module.
+    /// Store the full route tuple (protocol §9) on the module. Written by the
+    /// census stage once it persists route tuples (follow-up outside this
+    /// track); read back through `discovered_summary`.
+    #[allow(dead_code)]
     pub fn set_module_route(&self, module_id: i64, route_json: &str) -> bool {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -1878,6 +1889,8 @@ impl Db {
         Ok(self.hypothesis(id))
     }
 
+    /// Writer: the S5 hypothesis poll (supervisor follow-up).
+    #[allow(dead_code)]
     /// Store one raw sample and enforce the retention rule (keep the newest
     /// `HYPOTHESIS_SAMPLE_RETENTION` per hypothesis).
     pub fn insert_hypothesis_sample(
@@ -1897,6 +1910,7 @@ impl Db {
     }
 
     /// Same as `insert_hypothesis_sample` with an explicit retention count.
+    #[allow(dead_code)]
     pub fn insert_hypothesis_sample_keeping(
         &self,
         hypothesis_id: i64,
@@ -1923,6 +1937,8 @@ impl Db {
         id
     }
 
+    /// Reader: `discovery::learn` over stored samples (follow-up).
+    #[allow(dead_code)]
     pub fn hypothesis_samples(&self, hypothesis_id: i64, limit: i64) -> Vec<HypothesisSampleRow> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn

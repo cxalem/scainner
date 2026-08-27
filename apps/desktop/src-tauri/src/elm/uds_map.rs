@@ -597,22 +597,11 @@ pub fn known_dids_for_module(vin: Option<&str>, req: u32, resp: u32) -> Vec<u16>
     dids
 }
 
-/// Every ECU family in the shipped map (empty on maps older than v8).
-pub fn ecu_families() -> &'static [EcuFamily] {
-    &map().ecu_families
-}
-
 /// The family whose hardware references contain this exact part reference —
-/// the byte-level lookup behind the protocol's S3 join.
-pub fn family_for_hardware_ref(hardware_ref: &str) -> Option<&'static EcuFamily> {
-    family_for_hardware_ref_in(map(), hardware_ref)
-}
-
-/// Same lookup against an explicit map, so tests can use a fixture map.
-pub fn family_for_hardware_ref_in<'a>(
-    map: &'a UdsMap,
-    hardware_ref: &str,
-) -> Option<&'a EcuFamily> {
+/// the byte-level lookup behind the protocol's S3 join. Takes the map
+/// explicitly so the discovery layer and its tests can pass a fixture;
+/// production callers pass `map()`.
+pub fn family_for_hardware_ref<'a>(map: &'a UdsMap, hardware_ref: &str) -> Option<&'a EcuFamily> {
     let wanted = hardware_ref.trim();
     if wanted.is_empty() {
         return None;
@@ -622,7 +611,7 @@ pub fn family_for_hardware_ref_in<'a>(
         .find(|f| f.hardware_refs.iter().any(|r| r == wanted))
 }
 
-/// A family by id.
+/// A family by id (the `family_id` stored on modules and hypotheses).
 pub fn family_by_id<'a>(map: &'a UdsMap, id: &str) -> Option<&'a EcuFamily> {
     map.ecu_families.iter().find(|f| f.id == id)
 }
@@ -633,7 +622,7 @@ mod tests {
 
     #[test]
     fn ecu_families_parse_with_ten_digit_references_and_the_c4_abs_joins() {
-        let families = ecu_families();
+        let families = &map().ecu_families;
         assert!(families.len() >= 3, "v8 seeds three families");
         for f in families {
             for r in f.hardware_refs.iter().chain(&f.software_refs) {
@@ -655,19 +644,25 @@ mod tests {
                 }
             }
         }
-        let abs = family_for_hardware_ref("9846124980").expect("C4 ABS family");
+        let m = map();
+        let abs = family_for_hardware_ref(m, "9846124980").expect("C4 ABS family");
         assert_eq!(abs.id, "cont_esp_mk100_psa");
         assert_eq!(abs.decodes.len(), 12);
         assert_eq!(
-            family_for_hardware_ref("9844551780").unwrap().decodes.len(),
+            family_for_hardware_ref(m, "9844551780")
+                .unwrap()
+                .decodes
+                .len(),
             4
         );
-        assert!(family_for_hardware_ref("9817137180")
+        assert!(family_for_hardware_ref(m, "9817137180")
             .unwrap()
             .decodes
             .is_empty());
-        assert!(family_for_hardware_ref("0000000000").is_none());
-        assert!(family_for_hardware_ref("").is_none());
+        assert!(family_for_hardware_ref(m, "0000000000").is_none());
+        assert!(family_for_hardware_ref(m, "").is_none());
+        assert_eq!(family_by_id(m, "cvm3_psa").unwrap().family, "CVM3");
+        assert!(family_by_id(m, "nope").is_none());
     }
 
     #[test]

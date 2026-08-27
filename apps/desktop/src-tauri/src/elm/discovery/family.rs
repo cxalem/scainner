@@ -5,7 +5,7 @@
 //! address, so the same Continental MK100 matches on a Peugeot, an Opel or a
 //! Citroën — and so nothing in the key can identify an individual car.
 
-use crate::elm::uds_map::{EcuFamily, UdsMap};
+use crate::elm::uds_map::{family_by_id, family_for_hardware_ref, EcuFamily, UdsMap};
 use serde::{Deserialize, Serialize};
 
 /// The comparison material of one module, built from its fingerprint.
@@ -124,11 +124,7 @@ fn name_matches(key: Option<&str>, candidate: Option<&str>) -> bool {
 /// over name matches; the first family in map order wins ties.
 pub fn match_family(key: &CompatibilityKey, map: &UdsMap) -> FamilyMatch {
     if let Some(hw) = key.hardware_ref.as_deref() {
-        if let Some(family) = map
-            .ecu_families
-            .iter()
-            .find(|f| f.hardware_refs.iter().any(|r| r == hw))
-        {
+        if let Some(family) = family_for_hardware_ref(map, hw) {
             let sw_known = key
                 .software_ref
                 .as_deref()
@@ -158,8 +154,7 @@ pub fn match_family(key: &CompatibilityKey, map: &UdsMap) -> FamilyMatch {
 
 /// The family behind a match, for callers that need its decodes.
 pub fn matched_family<'a>(map: &'a UdsMap, m: &FamilyMatch) -> Option<&'a EcuFamily> {
-    m.family_id()
-        .and_then(|id| map.ecu_families.iter().find(|f| f.id == id))
+    m.family_id().and_then(|id| family_by_id(map, id))
 }
 
 #[cfg(test)]

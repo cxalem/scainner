@@ -58,15 +58,6 @@ impl KnowledgeState {
     pub fn parse(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|k| k.as_str() == s.trim())
     }
-
-    /// States that count as "a decode exists" — anything at or above
-    /// `locally_confirmed` on the ladder.
-    pub fn is_confirmed(self) -> bool {
-        matches!(
-            self,
-            Self::LocallyConfirmed | Self::CommunityVerified | Self::OemConfirmed
-        )
-    }
 }
 
 /// What this vehicle has shown about the decode (protocol §6 step 7).

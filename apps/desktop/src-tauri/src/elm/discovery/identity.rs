@@ -3,6 +3,11 @@
 //! is wired in as a one-line follow-up:
 //! `discovery::identity::record_identity(&db, module_id, &fingerprint)`
 //! right after `db.update_ecu_fingerprint(...)`.
+//!
+//! Until that line lands nothing in the binary calls this module (only the
+//! tests do), hence the explicit allow — the alternative would be editing
+//! `supervisor.rs`, which this track must not do.
+#![allow(dead_code)]
 
 use crate::db::Db;
 use crate::elm::discovery::state::IdentityFit;

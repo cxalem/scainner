@@ -5,7 +5,7 @@
 //! `limitations` instead of printing a zero that looks like a fact.
 
 use crate::db::{Db, HypothesisRow};
-use crate::elm::discovery::state::{IdentityFit, LEARNING_STATE_SETTING};
+use crate::elm::discovery::state::{IdentityFit, RouteState, LEARNING_STATE_SETTING};
 use crate::elm::uds_map::{brand_for_vin_in, UdsMap};
 use serde::Serialize;
 
@@ -41,6 +41,8 @@ pub struct StandardLine {
 pub struct RoutesLine {
     pub reached: usize,
     pub module_ids: Vec<i64>,
+    /// Route states this report can actually account for from stored rows.
+    pub states_stored: Vec<&'static str>,
     pub limitations: Vec<String>,
 }
 
@@ -49,6 +51,7 @@ pub struct IdentifiedModule {
     pub module_id: i64,
     pub address: String,
     pub name: Option<String>,
+    pub route_state: &'static str,
     pub fingerprint_fields_answered: i64,
     pub identity_fit: Option<String>,
     pub identity_reads: i64,
@@ -84,6 +87,8 @@ pub struct DecodesLine {
     pub research_candidate: DecodeBucket,
     pub unknown: DecodeBucket,
     pub enabled: DecodeBucket,
+    /// Hypotheses whose route was closed with a recorded reason.
+    pub closed_route: DecodeBucket,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -161,6 +166,9 @@ fn classify(h: &HypothesisRow, decodes: &mut DecodesLine) {
     if h.activation == "enabled" {
         push(&mut decodes.enabled, h.id);
     }
+    if h.route_state.as_deref().and_then(RouteState::parse) == Some(RouteState::Closed) {
+        push(&mut decodes.closed_route, h.id);
+    }
 }
 
 pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport> {
@@ -199,6 +207,7 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
     let routes = RoutesLine {
         reached: modules.len(),
         module_ids: module_ids.clone(),
+        states_stored: vec![RouteState::Reached.as_str()],
         limitations: vec![
             "discovered_modules stores only routes that answered; refused (NRC), silent and closed routes are counted in verification_runs summaries and not yet persisted per route".into(),
         ],
@@ -261,6 +270,7 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
             module_id: m.id,
             address: m.address.clone(),
             name: m.name.clone(),
+            route_state: RouteState::Reached.as_str(),
             fingerprint_fields_answered: m.fingerprint_fields_answered,
             identity_fit: m.identity_fit.clone(),
             identity_reads: m.identity_reads,
