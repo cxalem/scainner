@@ -1,7 +1,16 @@
 # Universal Discovery Protocol
 
-Version 1.2 · 2026-08-28 · companion to the Vehicle Knowledge Acquisition
+Version 1.3 · 2026-08-28 · companion to the Vehicle Knowledge Acquisition
 Protocol (`vehicle-knowledge-acquisition-protocol.md`)
+
+v1.3: brand classes are sourced data with "enhanced protocol not yet
+profiled" as the default for anything unverified (Mitsubishi moves there —
+its enhanced diagnostics are reachable through the connector but
+unprofiled; only Tesla stays adapter-limited, with its source); a
+user-requested, parked **extended discovery** mode uses a long connection in
+bounded epochs; the coverage report carries scope, a scope-relative status
+and what remains; goal 3, the S5 wording and the "all cars / always"
+absolutes are corrected.
 
 v1.2 fixes three inconsistencies found in review: identity confidence is
 levelled (provisional within a connection, stable across connections) so a
@@ -46,9 +55,11 @@ it needs research, and where it stops and asks a human.
    carrying that unit — Citroën, Peugeot, Opel or otherwise — as an untested
    fit on first connection, and as a confirmed sensor after the car itself
    agrees.
-3. Every unknown DID becomes a **tracked hypothesis** with an observed shape,
-   candidate interpretations, a confidence, and the cheapest test that would
-   discriminate between them.
+3. Every **eligible discovered dynamic DID** becomes a tracked hypothesis
+   with an observed shape, candidate interpretations, a confidence, and the
+   cheapest test that would discriminate between them; excluded values
+   (identity, configuration, opaque, security-like) remain evidence-linked
+   discoveries with their exclusion reason.
 4. Where a human is needed, the app knows exactly what to ask, in what order,
    and why; it asks through a generated **guided-step state tree**, once.
 5. Where the web or a manual can answer, a **research stage** is filed
@@ -77,7 +88,7 @@ protocol never skips a level it can establish cheaply.
 
 | Level | Key | Source | What it unlocks |
 |---|---|---|---|
-| **L0 Standard** | any OBD-II car | mode 01/09; the supported-PID bitmap says which PIDs exist on this car | PIDs, VIN, standard DTCs, readiness — always |
+| **L0 Standard** | any vehicle successfully reached through a supported OBD-II transport | mode 01/09; the supported-PID bitmap says which PIDs exist on this car | PIDs, VIN, standard DTCs, readiness; a failed adapter connection, unsupported physical bus or non-compliant ECU yields a truthful connection report instead |
 | **L1 Brand group** | WMI (VIN 1–3) | `uds-map.brands[].wmi` | address offset rules, read service (`22`/`21`/`1A`), bit width, gateway class, known module table, `did_bands`, identity-block parser |
 | **L2 Platform / generation** | VDS pattern + model year (VIN 4–10), mode 09 calibration IDs, engine ECU identity | brand profile `platforms[]` (new) | which ECU families this platform carries, routes needing address extension / LIN child, brand identity DIDs |
 | **L3 ECU family** | supplier + hardware part reference + software/calibration reference from identity DIDs | `ecu_families` (new, cross-brand) | every decode ever verified on a compatible unit, on any brand |
@@ -185,7 +196,7 @@ produces a **partial coverage report** that says so
 (`Census 7/16 planned routes attempted · Identity 3/5 reached modules
 fingerprinted · Status: partial, discovery resumes next connection`).
 
-### S0 — Standard (all cars, ≤ 30 s)
+### S0 — Standard (every vehicle reachable through a supported transport, ≤ 30 s)
 Existing behaviour: ELM handshake, protocol autodetect, VIN (mode 09 02),
 supported-PID bitmap, DTC scan, readiness. Output: vehicle row, WMI → L1
 profile (or `unknown`), calibration IDs (mode 09 04/0A) for L2, and the list
@@ -284,6 +295,22 @@ as hypotheses or polled. Refused/silent
 counts go in the summary. Guards: engine-start detection, low-voltage stop,
 >10 transport errors abort.
 
+### S4x — Extended discovery (parked, user-requested, bounded epochs)
+The automatic ceiling stays at 10 minutes so the safe default never changes.
+A person who deliberately leaves the car connected can ask for more:
+
+- the user selects 15, 30 or 60 minutes; discovery continues in **epochs of
+  5–10 minutes** of diagnostic traffic;
+- between epochs the run pauses and re-checks voltage (sustained), transport
+  error rate and adapter latency; it stops on any guard, and stops when the
+  selected time or the work list is exhausted;
+- each epoch takes the highest-value unfinished module/band from the S4
+  carry-over list (same range heuristics, same class filters);
+- same restrictions as S4: read-only, default session, parked or idling,
+  engine-start guard;
+- no promise of whole-car coverage — the report's status becomes
+  `extended_scope_complete` only for the ranges actually swept.
+
 ### S5 — Learning drive (opt-in, adaptive cohort, ≤ 20 % of the loop)
 Passive validation is **not** background polling of every unknown. It is an
 experiment queue that runs only in a **learning state**:
@@ -335,7 +362,14 @@ source. A human approves anything entering the shared `uds-map`.
 
 ## 5. Path selection: brand classes
 
-The path per L1 class comes from `uds-map` data, never from code branches:
+The path per L1 class comes from `uds-map` data, never from code branches,
+and **every class assignment is a sourced claim**: the brand profile records
+`profiled_level` (`standard_only` · `routes_sourced` · `routes_verified` ·
+`decodes_verified`), the sources behind it (URL, date, evidence type,
+licence) and the adapter path they apply to. A brand with no verified
+sources is `not yet profiled` — never assumed sweepable, never assumed
+unreachable. The table below is the current state of the data, not a rule
+set; it changes when the sources do.
 
 | Class | Examples | Path |
 |---|---|---|
@@ -344,7 +378,8 @@ The path per L1 class comes from `uds-map` data, never from code branches:
 | **Mixed services** | Renault (EVC/DCM `22`, LBC/UCH `21`), Nissan Leaf (`21` groups), older Kia (`21`) | S4/S5 use the per-module service from the profile |
 | **KWP-era** | GM pre-2017 (`1A`), older Toyota hybrids | identity via `1A`; sweeps only where the profile lists groups |
 | **Gateway-locked** | FCA/Stellantis NA 2018+ (SGW), some Mercedes | S0 + census only; report "secure gateway: manufacturer modules require authorised access" |
-| **Not reachable through supported adapter paths** | Tesla, Mitsubishi (per map research; a property of the ELM-class OBD path and current profiles, not of the vehicles) | S0 only; report why; no enumeration |
+| **Enhanced protocol not yet profiled** | Mitsubishi (enhanced diagnostics exist through the connector — engine `7E0/7E8`, ETACS `753/754`, MUT-III over CAN/K-line — but no verified read-only routes or decodes are in the map yet), Subaru, any brand whose profile is `standard_only` | S0 + passive/functional census + **sourced** read-only routes only; research task filed; generic UDS enumeration is not assumed |
+| **Adapter-path limited** | Tesla (Model 3/Y expose cyclic broadcast frames, no request/response server on standard addresses from the OBD port — two independent DBC projects, see `uds-map/RESEARCH.md` §3.4) | S0 only; report `adapter_limited` with the source; no enumeration |
 | **Unknown WMI** | anything else | S0 + conservative generic census; research task filed |
 
 ---
@@ -401,8 +436,9 @@ queued. Nothing becomes `enabled` without `vehicle_fit = matched`.
 
 Enforced in code, verified by replay tests on every stage's transcript:
 
-- **Automatic stages S0–S5: default session only.** Services `22`/`21`/`1A`/
-  `19 02`/`3E`. No `10 03`, ever, in an automatic stage.
+- **Automatic discovery stages S0–S4 (and S4x) and the opt-in learning
+  stage S5: default session only.** Services `22`/`21`/`1A`/`19 02`/`3E`.
+  No `10 03`, ever, in any of them.
 - **Extended-session identity** (for profiles that need it) is a separate,
   parked, explicitly started, module-specific operation, recorded as its own
   run, with a tested cleanup path (`10 01`, `ATCEA`, headers, filters) and
@@ -423,9 +459,14 @@ Enforced in code, verified by replay tests on every stage's transcript:
 
 ## 8. Coverage report (the product surface)
 
-Produced after S3 and updated after every drive and guided session:
+Produced after S3 and updated after every drive and guided session. Every
+report states its **scope** and a **scope-relative status**; "complete"
+always modifies a scope, never the vehicle:
 
 ```text
+Scope         ELM-class adapter · OBD pins 6/14 · 11-bit CAN · default session · profile hyundai_kia v8
+Status        automatic_scope_complete · knowledge_incomplete
+Remaining     3 safe ranges deferred (carry-over) · 2 routes need different hardware · 6 guided tests
 Vehicle       WMI KMH → Hyundai/Kia profile (high) · platform match: Kona OS 2019 (medium)
 Standard      39 PIDs available, 0 DTCs, readiness complete
 Routes        7 candidates → 5 reached, 1 refused (7F), 1 silent (2nd connection pending)
@@ -433,6 +474,15 @@ Identified    5/5 fingerprinted; 1 strong family match, 4 new families (research
 Decodes       12 inherited (untested) · 0 confirmed here · 41 unlabeled DIDs → 41 hypotheses
 Learning      learning drive would validate 6 inherited fits; 2 guided steps queued (brake pedal, reverse)
 Unreachable   none closed yet
+```
+
+Status values (a report carries one scope status and, independently, a
+knowledge status):
+
+```text
+scope status      partial | automatic_scope_complete | extended_scope_complete |
+                  adapter_limited | protocol_not_profiled | gateway_limited
+knowledge status  knowledge_incomplete | knowledge_current   (current = no open hypotheses for reached modules)
 ```
 
 Every line links to the evidence (runs, samples, states). This is the
@@ -568,3 +618,9 @@ finding: the report says so, and research gets the fingerprint.
 5. A car with unknown WMI ends S1 within budget and files a research task.
 6. Every state in the report is traceable to a run id and samples; every
    `closed` route names adapter, pins, protocol and evidence.
+7. A report never says "complete" without a scope; a brand without verified
+   sources is reported `protocol_not_profiled`, and an unreachable adapter
+   path `adapter_limited` with its source.
+8. Extended discovery on the C4 for 30 minutes sweeps only carry-over ranges,
+   pauses between epochs with guard checks, and ends with
+   `extended_scope_complete` for exactly the ranges it swept.
