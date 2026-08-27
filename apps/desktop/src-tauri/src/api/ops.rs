@@ -455,7 +455,9 @@ pub fn list_verification_runs(
     plan_version: Option<&str>,
     limit: i64,
 ) -> Vec<db::VerificationRunRow> {
-    state.db.list_verification_runs(vehicle_id, plan_version, limit)
+    state
+        .db
+        .list_verification_runs(vehicle_id, plan_version, limit)
 }
 
 pub fn verification_run(state: &AppState, id: i64) -> Option<(db::VerificationRunRow, String)> {

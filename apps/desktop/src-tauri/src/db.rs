@@ -1945,7 +1945,18 @@ impl Db {
         conn.execute(
             "UPDATE uds_probes SET module = ?2, did = ?3, label = ?4, unit = ?5, offset = ?6,
                  len = ?7, scale = ?8, bias = ?9, enabled = ?10 WHERE id = ?1",
-            params![id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled],
+            params![
+                id,
+                p.module,
+                p.did as i64,
+                p.label,
+                p.unit,
+                p.offset as i64,
+                p.len as i64,
+                p.scale,
+                p.bias,
+                p.enabled
+            ],
         )
         .map(|n| n > 0)
         .unwrap_or(false)

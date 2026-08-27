@@ -42,7 +42,10 @@ const fn r(
     }
 }
 
-const VEHICLE_Q: &[(&str, &str)] = &[("vehicle_id", "vehicle id; omitted = the current unidentified connection's rows")];
+const VEHICLE_Q: &[(&str, &str)] = &[(
+    "vehicle_id",
+    "vehicle id; omitted = the current unidentified connection's rows",
+)];
 
 pub const ROUTES: &[RouteDoc] = &[
     // meta
@@ -153,10 +156,7 @@ pub fn document(port: u16) -> Value {
         }
         let mut op = Map::new();
         op.insert("summary".into(), json!(route.summary));
-        op.insert(
-            "x-needs-car".into(),
-            json!(route.needs_car),
-        );
+        op.insert("x-needs-car".into(), json!(route.needs_car));
         op.insert("x-write".into(), json!(route.write));
         if !params.is_empty() {
             op.insert("parameters".into(), Value::Array(params));
@@ -172,15 +172,27 @@ pub fn document(port: u16) -> Value {
             );
         }
         let mut responses = Map::new();
-        responses.insert("200".into(), json!({ "description": "OK (JSON unless noted; / and /export/markdown are text)" }));
+        responses.insert(
+            "200".into(),
+            json!({ "description": "OK (JSON unless noted; / and /export/markdown are text)" }),
+        );
         if route.path != "/health" {
-            responses.insert("401".into(), json!({ "$ref": "#/components/responses/Unauthorized" }));
+            responses.insert(
+                "401".into(),
+                json!({ "$ref": "#/components/responses/Unauthorized" }),
+            );
         }
         if route.write {
-            responses.insert("409".into(), json!({ "$ref": "#/components/responses/NotConfirmed" }));
+            responses.insert(
+                "409".into(),
+                json!({ "$ref": "#/components/responses/NotConfirmed" }),
+            );
         }
         if route.needs_car {
-            responses.insert("503".into(), json!({ "$ref": "#/components/responses/NotConnected" }));
+            responses.insert(
+                "503".into(),
+                json!({ "$ref": "#/components/responses/NotConnected" }),
+            );
         }
         op.insert("responses".into(), Value::Object(responses));
         if route.path != "/health" {

@@ -180,7 +180,10 @@ pub fn start(app: tauri::AppHandle, state: Arc<AppState>) {
         };
         let actual = listener.local_addr().map(|a| a.port()).unwrap_or(port);
         write_private_file(&data_dir.join("api-port"), &actual.to_string());
-        log::info!("agent API listening on http://127.0.0.1:{actual} (token in {})", data_dir.join("api-token").display());
+        log::info!(
+            "agent API listening on http://127.0.0.1:{actual} (token in {})",
+            data_dir.join("api-token").display()
+        );
         if let Err(error) = axum::serve(listener, router).await {
             log::error!("agent API server stopped: {error}");
         }
@@ -292,7 +295,10 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/writes-log", get(writes_log))
         // UDS
         .route("/uds/modules", get(uds_modules).post(add_uds_module))
-        .route("/uds/modules/{key}", axum::routing::delete(delete_uds_module))
+        .route(
+            "/uds/modules/{key}",
+            axum::routing::delete(delete_uds_module),
+        )
         .route("/uds/modules/{key}/dtcs", get(uds_module_dtcs))
         .route("/uds/read", post(uds_read))
         .route("/uds/scan", post(uds_scan))
@@ -427,10 +433,7 @@ struct ReadingsQuery {
     limit: Option<usize>,
 }
 
-async fn readings(
-    State(api): State<Arc<ApiState>>,
-    Query(q): Query<ReadingsQuery>,
-) -> ApiResult {
+async fn readings(State(api): State<Arc<ApiState>>, Query(q): Query<ReadingsQuery>) -> ApiResult {
     let mut points = ops::history(&api.state, q.vehicle_id, &q.key, q.since.unwrap_or(24.0));
     if let Some(limit) = q.limit {
         let drop = points.len().saturating_sub(limit);
@@ -485,11 +488,12 @@ async fn dtc_clear(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     ok(ops::clear_dtcs(&api.state, true).await.map_err(op_err)?)
 }
 
-async fn dtc_history(
-    State(api): State<Arc<ApiState>>,
-    Query(q): Query<VehicleQuery>,
-) -> ApiResult {
-    ok(ops::dtc_history(&api.state, q.vehicle_id, q.limit.unwrap_or(20)))
+async fn dtc_history(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>) -> ApiResult {
+    ok(ops::dtc_history(
+        &api.state,
+        q.vehicle_id,
+        q.limit.unwrap_or(20),
+    ))
 }
 
 async fn ecu_info(State(api): State<Arc<ApiState>>) -> ApiResult {
@@ -504,11 +508,12 @@ async fn sensors(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::all_sensors(&api.state).await.map_err(op_err)?)
 }
 
-async fn writes_log(
-    State(api): State<Arc<ApiState>>,
-    Query(q): Query<VehicleQuery>,
-) -> ApiResult {
-    ok(ops::writes_log(&api.state, q.vehicle_id, q.limit.unwrap_or(50)))
+async fn writes_log(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>) -> ApiResult {
+    ok(ops::writes_log(
+        &api.state,
+        q.vehicle_id,
+        q.limit.unwrap_or(50),
+    ))
 }
 
 // ---------- UDS ----------
@@ -532,19 +537,15 @@ async fn add_uds_module(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiRes
     ok(ops::uds_modules(&api.state))
 }
 
-async fn delete_uds_module(
-    State(api): State<Arc<ApiState>>,
-    Path(key): Path<String>,
-) -> ApiResult {
+async fn delete_uds_module(State(api): State<Arc<ApiState>>, Path(key): Path<String>) -> ApiResult {
     ops::delete_uds_module(&api.state, &key);
     ok(json!({ "deleted": key }))
 }
 
-async fn uds_module_dtcs(
-    State(api): State<Arc<ApiState>>,
-    Path(key): Path<String>,
-) -> ApiResult {
-    ok(ops::uds_module_dtcs(&api.state, key).await.map_err(op_err)?)
+async fn uds_module_dtcs(State(api): State<Arc<ApiState>>, Path(key): Path<String>) -> ApiResult {
+    ok(ops::uds_module_dtcs(&api.state, key)
+        .await
+        .map_err(op_err)?)
 }
 
 #[derive(Deserialize)]
@@ -623,15 +624,16 @@ async fn uds_clear(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
 // ---------- evidence protocol ----------
 
 async fn verification_parked(State(api): State<Arc<ApiState>>) -> ApiResult {
-    ok(ops::parked_verification(&api.state)
-        .await
-        .map_err(op_err)?)
+    ok(ops::parked_verification(&api.state).await.map_err(op_err)?)
 }
 
 async fn verification_capture(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let args: ops::CorrelationCaptureArgs = parse_required(&body)?;
     if args.dids.is_empty() {
-        return Err(ApiError::msg(StatusCode::BAD_REQUEST, "dids must not be empty"));
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "dids must not be empty",
+        ));
     }
     ok(ops::correlation_capture(&api.state, args)
         .await
@@ -658,8 +660,9 @@ async fn verification_runs(
 }
 
 async fn verification_run(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
-    let (row, json) = ops::verification_run(&api.state, id)
-        .ok_or_else(|| ApiError::msg(StatusCode::NOT_FOUND, format!("no verification run #{id}")))?;
+    let (row, json) = ops::verification_run(&api.state, id).ok_or_else(|| {
+        ApiError::msg(StatusCode::NOT_FOUND, format!("no verification run #{id}"))
+    })?;
     let result: Value = serde_json::from_str(&json).unwrap_or(Value::String(json));
     ok(json!({
         "id": row.id,
@@ -680,7 +683,10 @@ async fn vehicles(State(api): State<Arc<ApiState>>) -> ApiResult {
 async fn vehicle(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
     match ops::vehicle_info(&api.state, id) {
         Some(v) => ok(v),
-        None => Err(ApiError::msg(StatusCode::NOT_FOUND, format!("no vehicle #{id}"))),
+        None => Err(ApiError::msg(
+            StatusCode::NOT_FOUND,
+            format!("no vehicle #{id}"),
+        )),
     }
 }
 
@@ -688,10 +694,7 @@ async fn vehicle_modules(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) 
     ok(ops::discovered_modules(&api.state, id))
 }
 
-async fn vehicle_evidence_map(
-    State(api): State<Arc<ApiState>>,
-    Path(id): Path<i64>,
-) -> ApiResult {
+async fn vehicle_evidence_map(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
     ok(ops::vehicle_evidence_map(&api.state, id))
 }
 
@@ -748,14 +751,19 @@ async fn patch_probe(
     body: Bytes,
 ) -> ApiResult {
     let patch: Value = parse_required(&body)?;
-    let is_decode = ["module", "did", "label", "offset", "len", "scale", "bias", "unit"]
-        .iter()
-        .any(|k| patch.get(k).is_some());
+    let is_decode = [
+        "module", "did", "label", "offset", "len", "scale", "bias", "unit",
+    ]
+    .iter()
+    .any(|k| patch.get(k).is_some());
     if is_decode {
         let probe: crate::db::UdsProbe = serde_json::from_value(patch)
             .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, format!("invalid probe: {e}")))?;
         if !ops::update_probe_decode(&api.state, id, &probe) {
-            return Err(ApiError::msg(StatusCode::NOT_FOUND, format!("no probe #{id}")));
+            return Err(ApiError::msg(
+                StatusCode::NOT_FOUND,
+                format!("no probe #{id}"),
+            ));
         }
     } else if let Some(enabled) = patch.get("enabled").and_then(Value::as_bool) {
         ops::toggle_probe(&api.state, id, enabled);
@@ -929,18 +937,46 @@ mod tests {
         assert_eq!(body["confirm_with"]["confirmed"], true);
         assert!(body.get("before").is_some());
 
-        let (status, _) = call(&api, "POST", "/dtc/clear", Some(TOKEN), Some(r#"{"confirmed": false}"#)).await;
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/dtc/clear",
+            Some(TOKEN),
+            Some(r#"{"confirmed": false}"#),
+        )
+        .await;
         assert_eq!(status, StatusCode::CONFLICT);
 
-        let (status, body) = call(&api, "POST", "/uds/clear", Some(TOKEN), Some(r#"{"module": "abs"}"#)).await;
+        let (status, body) = call(
+            &api,
+            "POST",
+            "/uds/clear",
+            Some(TOKEN),
+            Some(r#"{"module": "abs"}"#),
+        )
+        .await;
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["before"]["module"], "abs");
 
         // Confirmed but no car: the request reaches the connection check and
         // is refused there (503), proving the gate sits in front of it.
-        let (status, _) = call(&api, "POST", "/dtc/clear", Some(TOKEN), Some(r#"{"confirmed": true}"#)).await;
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/dtc/clear",
+            Some(TOKEN),
+            Some(r#"{"confirmed": true}"#),
+        )
+        .await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-        let (status, _) = call(&api, "POST", "/uds/clear", Some(TOKEN), Some(r#"{"module": "abs", "confirmed": true}"#)).await;
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/uds/clear",
+            Some(TOKEN),
+            Some(r#"{"module": "abs", "confirmed": true}"#),
+        )
+        .await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     }
 
@@ -951,20 +987,36 @@ mod tests {
         let connection_id = db.start_connection("ELM327 v1.5", "test");
         db.link_connection_vehicle(connection_id, vehicle_id);
         let run_id = db
-            .insert_verification_run(vehicle_id, connection_id, "citroen-c41-v4", r#"{"step":"brake"}"#)
+            .insert_verification_run(
+                vehicle_id,
+                connection_id,
+                "citroen-c41-v4",
+                r#"{"step":"brake"}"#,
+            )
             .unwrap();
 
         let (status, body) = call(&api, "GET", "/vehicles", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body[0]["vin"], "VF7TEST0000000001");
 
-        let path = format!("/verification/runs?vehicle_id={vehicle_id}&plan_version=citroen-c41-v4");
+        let path =
+            format!("/verification/runs?vehicle_id={vehicle_id}&plan_version=citroen-c41-v4");
         let (status, body) = call(&api, "GET", &path, Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body[0]["id"], run_id);
-        assert!(body[0].get("result_json").is_none(), "index must not carry bodies");
+        assert!(
+            body[0].get("result_json").is_none(),
+            "index must not carry bodies"
+        );
 
-        let (status, body) = call(&api, "GET", &format!("/verification/runs/{run_id}"), Some(TOKEN), None).await;
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/verification/runs/{run_id}"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["result"]["step"], "brake");
 
@@ -986,16 +1038,45 @@ mod tests {
         let paths = doc["paths"].as_object().unwrap();
 
         for required in [
-            "/health", "/openapi.json", "/events", "/connect", "/disconnect", "/status",
-            "/vehicle/name", "/live", "/readings", "/dtc/scan", "/dtc/clear", "/ecu-info",
-            "/readiness", "/sensors", "/uds/modules", "/uds/modules/{key}", "/uds/read",
-            "/uds/scan", "/uds/scan/cancel", "/uds/discover", "/uds/modules/{key}/dtcs",
-            "/uds/clear", "/verification/parked", "/verification/capture",
-            "/verification/runs", "/verification/runs/{id}", "/vehicles",
-            "/vehicles/{id}/modules", "/modules/{id}/dids", "/vehicles/{id}/evidence-map",
-            "/fingerprint-experiment", "/probes", "/probes/{id}", "/export/markdown",
+            "/health",
+            "/openapi.json",
+            "/events",
+            "/connect",
+            "/disconnect",
+            "/status",
+            "/vehicle/name",
+            "/live",
+            "/readings",
+            "/dtc/scan",
+            "/dtc/clear",
+            "/ecu-info",
+            "/readiness",
+            "/sensors",
+            "/uds/modules",
+            "/uds/modules/{key}",
+            "/uds/read",
+            "/uds/scan",
+            "/uds/scan/cancel",
+            "/uds/discover",
+            "/uds/modules/{key}/dtcs",
+            "/uds/clear",
+            "/verification/parked",
+            "/verification/capture",
+            "/verification/runs",
+            "/verification/runs/{id}",
+            "/vehicles",
+            "/vehicles/{id}/modules",
+            "/modules/{id}/dids",
+            "/vehicles/{id}/evidence-map",
+            "/fingerprint-experiment",
+            "/probes",
+            "/probes/{id}",
+            "/export/markdown",
         ] {
-            assert!(paths.contains_key(required), "{required} missing from openapi");
+            assert!(
+                paths.contains_key(required),
+                "{required} missing from openapi"
+            );
         }
 
         for route in openapi::ROUTES {
@@ -1007,7 +1088,9 @@ mod tests {
                 .uri(&concrete)
                 .header(header::AUTHORIZATION, format!("Bearer {TOKEN}"))
                 .header(header::CONTENT_TYPE, "application/json")
-                .body(axum::body::Body::from(route.body.map(|_| "{}").unwrap_or("")))
+                .body(axum::body::Body::from(
+                    route.body.map(|_| "{}").unwrap_or(""),
+                ))
                 .unwrap();
             let status = router(api.clone()).oneshot(req).await.unwrap().status();
             assert!(
