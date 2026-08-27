@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "generated": "2026-08-27",
   "note": "Manufacturer UDS knowledge map: which CAN addresses hold modules, which DID neighbourhoods hold real data, which diagnostic session an exact module may use during automatic discovery, and which DIDs are already identified, keyed by VIN WMI. Researched from primary open-source sources (OVMS, wican-fw, OBDb, CanZE, opendbc, EVNotiPi) plus this project's own verified reads; see docs/uds/uds-map-research.md for per-brand provenance, confidence and gaps. v6 (2026-08-27) adds twelve ABS/ESP (6AD/68D) live-data decodes from the C4 III evidence sessions, each with an evidence note; verified on one vehicle unless stated. Editing this file needs no code change: the discovery engine reads every per-brand value from here. v5 (2026-08-25) adds data-driven generic enumeration policies and standard 29-bit normal-fixed target enumeration while explicitly suppressing generic sweeps for known non-sweepable brands. v4 (2026-08-24) adds opt-in, exact-module discovery session policies; missing policies are default-session only. v3 (2026-08-23) verification+extension pass: re-derived high-confidence PSA/VAG/BMW/Ford/Hyundai/Nissan entries against primary sources directly (found and fixed a Nissan module misattribution, a BMW target-byte error and a wrong DID formula, a VAG module mix-up), fixed a live Renault resp_offset bug for EVC/DCM/BCB/PEB, added newer-model coverage (Mercedes EQB, VAG MEB battery DIDs, Volvo/Polestar CMA platform, Toyota 5th-gen THS), and confirmed Tesla and Mitsubishi are genuinely not OBD-port-UDS-reachable with the specific mechanism documented rather than left a mystery.",
   "standard": {
@@ -213,7 +213,7 @@
         {
           "from": "D400",
           "to": "D4FF",
-          "note": "densest live measurement block; 150 answers on engine plus 62 on ABS in this project's own sweep. Also the Stellantis EV battery neighbourhood (D410 SOC on 6B4)",
+          "note": "densest live measurement block; 150 answers on engine plus 62 on ABS in this project's own sweep. Also the Stellantis EV battery neighbourhood (D410 SOC on 6B4); steering 6B5 answers 24 in D400–D41C and camera 74A answers 10 in D400–D40A (session 3)",
           "confidence": "confirmed"
         },
         {
@@ -693,6 +693,74 @@
           "bias": 0.0,
           "confidence": "low",
           "evidence": "Diagbox-derived table only (jyseojys/diag-server, unlicensed); read 2697 on the C4 on 2026-08-27; not verified"
+        },
+        {
+          "did": "D40D",
+          "label": "Steering wheel angle (positive = left)",
+          "modules": [
+            {
+              "req": "6B5",
+              "resp": "695"
+            }
+          ],
+          "unit": "°",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": 0.0,
+          "confidence": "confirmed",
+          "evidence": "vehicle-verified on one C4 III (EPS DAE_UDS2, part 9844551780), 2026-08-27 session 3 through the agent API; static positions vs ABS D41F: 10.02 counts/° with zero offset, residual 4 counts; r=0.95 dynamic"
+        },
+        {
+          "did": "D40E",
+          "label": "Pinion/motor-side steering angle",
+          "modules": [
+            {
+              "req": "6B5",
+              "resp": "695"
+            }
+          ],
+          "unit": "°",
+          "offset": 0,
+          "len": 2,
+          "scale": 0.1,
+          "bias": -18.1,
+          "confidence": "high",
+          "evidence": "vehicle-verified on one C4 III (EPS DAE_UDS2, part 9844551780), 2026-08-27 session 3 through the agent API; static positions vs ABS D41F: same slope as D40D, −18.1° offset; which shaft it measures is inferred"
+        },
+        {
+          "did": "D40F",
+          "label": "EPS torque/current candidate A (signed)",
+          "modules": [
+            {
+              "req": "6B5",
+              "resp": "695"
+            }
+          ],
+          "unit": "raw",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "low",
+          "evidence": "varies with turning direction and held load on the C4 III; unit unknown"
+        },
+        {
+          "did": "D411",
+          "label": "EPS torque/current candidate B (signed)",
+          "modules": [
+            {
+              "req": "6B5",
+              "resp": "695"
+            }
+          ],
+          "unit": "raw",
+          "offset": 0,
+          "len": 1,
+          "scale": 1.0,
+          "bias": 0.0,
+          "confidence": "low",
+          "evidence": "varies with turning direction and held load on the C4 III; unit unknown"
         }
       ],
       "resp_offsets": [
