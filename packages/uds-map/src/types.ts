@@ -98,4 +98,63 @@ export interface UdsMap {
   note: string;
   standard: Standard;
   brands: Brand[];
+  /** Cross-brand ECU families keyed by part reference (v8+). */
+  ecu_families?: EcuFamily[];
+}
+
+/** Knowledge state of one decode (Universal Discovery Protocol §3). */
+export type KnowledgeState =
+  | "research_candidate"
+  | "community_reported"
+  | "reached_on_vehicle"
+  | "verified_on_vehicle"
+  | "inherited"
+  | "locally_confirmed"
+  | "community_verified"
+  | "oem_confirmed"
+  | "unknown";
+
+/** One decode of an ECU family: how to read a DID on every module carrying
+ * this part reference, on any brand. */
+export interface FamilyDecode {
+  did: string;
+  label: string;
+  offset: number;
+  len: number;
+  scale: number;
+  bias: number;
+  signed: boolean;
+  unit: string;
+  knowledge_state: KnowledgeState;
+  /** How this decode was established and why it holds its state. */
+  evidence: string;
+  /** Vehicles on which this decode was confirmed byte-for-byte. */
+  vehicles_confirmed: number;
+  /** The cheapest physical check that confirms this decode on a new car. */
+  discriminating_test?: string;
+}
+
+/** Where a family was seen: brand profile plus the exact address pair. */
+export interface FamilyModuleRef {
+  brand: string;
+  req: string;
+  resp: string;
+}
+
+/** The reuse unit (protocol §2, L3): an ECU identified by supplier part
+ * reference, with every decode ever verified on it. Brand is how a module
+ * is found; the part reference is how it is known. */
+export interface EcuFamily {
+  id: string;
+  supplier?: string | null;
+  family: string;
+  /** Ten-digit PSA-style part references (F080 reference 1) or ISO F187. */
+  hardware_refs: string[];
+  /** Software/calibration references (PSA F0FE, ISO F189/F195). */
+  software_refs: string[];
+  /** Read service the decodes were verified with ("22", "21", "1A"). */
+  diagnostic_service: string;
+  modules_seen_on: FamilyModuleRef[];
+  evidence?: string;
+  decodes: FamilyDecode[];
 }

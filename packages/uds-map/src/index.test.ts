@@ -8,7 +8,9 @@ import {
   brandForVin,
   can11,
   decodeKnownDid,
+  ecuFamilies,
   extendedModulesForVin,
+  familyForHardwareRef,
   getMap,
   hex16,
   hexAny,
@@ -191,5 +193,36 @@ describe("knownDid / decodeKnownDid", () => {
   it("returns undefined when the map only documents the address, not the formula", () => {
     const k = { did: "0000", label: "no formula" };
     expect(decodeKnownDid(k, [1, 2, 3])).toBeUndefined();
+  });
+});
+
+describe("ecu_families (v8)", () => {
+  it("parses, and every part reference is a ten-digit PSA-style number", () => {
+    const families = ecuFamilies();
+    expect(families.length).toBeGreaterThanOrEqual(3);
+    for (const f of families) {
+      expect(f.id).toMatch(/^[a-z0-9_]+$/);
+      for (const ref of [...f.hardware_refs, ...f.software_refs]) {
+        expect(ref, `${f.id}: bad ref ${ref}`).toMatch(/^\d{10}$/);
+      }
+      for (const m of f.modules_seen_on) {
+        expect(hexAny(m.req), `${f.id}: bad req ${m.req}`).toBeDefined();
+        expect(hexAny(m.resp), `${f.id}: bad resp ${m.resp}`).toBeDefined();
+      }
+      for (const d of f.decodes) {
+        expect(hex16(d.did), `${f.id}: bad did ${d.did}`).toBeDefined();
+        expect(d.len).toBeGreaterThan(0);
+        expect(d.evidence.length).toBeGreaterThan(0);
+        if (d.knowledge_state === "locally_confirmed") expect(d.vehicles_confirmed).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it("joins the C4's ABS by part reference to the Continental MK100 family with twelve decodes", () => {
+    const abs = familyForHardwareRef("9846124980");
+    expect(abs?.id).toBe("cont_esp_mk100_psa");
+    expect(abs?.decodes).toHaveLength(12);
+    expect(familyForHardwareRef("9844551780")?.decodes).toHaveLength(4);
+    expect(familyForHardwareRef("0000000000")).toBeUndefined();
   });
 });
