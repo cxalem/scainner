@@ -321,6 +321,7 @@ fn run_loop(
 
         let mut consecutive_failures = 0u32;
         let mut tick: u64 = 0;
+        let mut probe_interval: u64 = 120;
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
 
@@ -458,8 +459,19 @@ fn run_loop(
                     low_voltage_streak = 0;
                 }
             }
-            // User-defined UDS probes every ~120 ticks (~30-60 s).
-            if tick > 0 && tick % 120 == 0 {
+            // User-defined UDS probes every `probe_interval_ticks` ticks
+            // (default 120 ≈ 30–60 s). An agent running a physical test can
+            // lower it through the API settings route (minimum 4 ≈ 1 s);
+            // the value is re-read every 40 ticks so a change applies without
+            // reconnecting.
+            if tick % 40 == 0 {
+                probe_interval = db
+                    .setting_get("probe_interval_ticks")
+                    .and_then(|v| v.trim().parse::<u64>().ok())
+                    .map(|v| v.clamp(4, 2400))
+                    .unwrap_or(120);
+            }
+            if tick > 0 && tick % probe_interval == 0 {
                 let uds_values = uds::poll_probes(&mut drv, &db, ctx);
                 for (k, v) in uds_values {
                     values.insert(k, v);
