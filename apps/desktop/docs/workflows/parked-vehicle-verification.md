@@ -309,3 +309,12 @@ and covering the lens — a separate parked step for a later session.
 Method: `/uds/read-many` (10 DIDs ≈ 4 s round trip) is fast enough for held
 positions but not for a moving wheel; bracketing each EPS read with two ABS
 reads and keeping only samples where the two agree within 2° removed the lag.
+
+Camera correlation (`c41-session3-camera-lights-2026-08-27.json`, parked,
+engine running): all ten `D400–D40A` payloads were byte-identical across
+baseline, side lights, dipped beam, high beam, and lens covered (`D40A`
+alternates between two zero-valued readings only). **Negative result:** in
+the default session while stationary the CVM3 exposes static configuration
+only; lane/sign/high-beam outputs are not in this block, or not produced
+while parked. Do not add camera hypotheses without a driving capture or a
+documented DID.
