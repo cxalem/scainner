@@ -1,0 +1,11 @@
+{
+  "apps/desktop/src-tauri/src/api/openapi.rs": 4,
+  "apps/desktop/src-tauri/src/elm/discovery/family.rs": 4,
+  "apps/desktop/src-tauri/src/elm/driver.rs": 1,
+  "apps/desktop/src-tauri/src/elm/uds.rs": 33,
+  "apps/desktop/src-tauri/src/elm/uds_map.rs": 3,
+  "apps/desktop/src/components/VehicleScene.tsx": 3,
+  "apps/desktop/src/i18n/en.ts": 4,
+  "apps/desktop/src/i18n/es.ts": 4,
+  "apps/desktop/src/views/lab/GuidedCorrelation.tsx": 3
+}
