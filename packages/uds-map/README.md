@@ -4,7 +4,7 @@ A queryable knowledge map of manufacturer-specific **UDS (ISO 14229)** diagnosti
 
 Extracted from [Scainner](https://github.com/cxalem/scainner), an open-source car-diagnostics app, where this exact file drives its one-button sensor auto-discovery engine.
 
-**21 brands. 251 VIN (WMI) prefixes. 180 module address pairs. 197 identified DIDs** (112 fully decodable with `offset`/`len`/`scale`/`bias`), plus 3 `ecu_families` carrying 16 decodes, each with a `confidence` level (`confirmed` / `high` / `medium` / `low`) reflecting how independently verified it is. From Phase 1 of the multi-brand plan these numbers are generated from the pack by `pnpm coverage` rather than maintained by hand. See [`RESEARCH.md`](./RESEARCH.md) for full per-brand provenance, sources, and known gaps.
+**21 brands, 251 VIN (WMI) prefixes, 180 module address pairs (with routes and read services), 203 identified DIDs with 233 decodes**, identity blocks, platforms and gateway semantics per brand, plus 3 `ecu_families` carrying 16 decodes — every entry with a `confidence` level (`confirmed` / `high` / `medium` / `low`) and a `source` (`url`, `date`, `type`, `licence`). The exact per-brand numbers are generated from the pack into [`COVERAGE.md`](./COVERAGE.md) by `pnpm coverage` (CI fails when it is stale). See [`RESEARCH.md`](./RESEARCH.md) for full per-brand provenance, sources, and known gaps, and [`docs/uds/pack-schema-v9.md`](../../docs/uds/pack-schema-v9.md) for the schema.
 
 ## Read this before you use it
 
@@ -38,12 +38,22 @@ addressesToProbe(vin);
 //    11-bit conventional range behind them, with each response address
 //    derived using the brand's actual offset rule (see below)
 
-const battery = knownDid(vin, 0xd422);
+const battery = knownDid(vin, 0xd422, { req: 0x6a8, resp: 0x688 }); // module-scoped: a DID means something on one ECU
 // => { did: "D422", label: "Battery voltage...", unit: "V",
-//      offset: 0, len: 2, scale: 0.01, bias: 0, confidence: "confirmed" }
+//      decodes: [{ offset: 0, len: 2, signed: false, encoding: "be", scale: 0.01, bias: 0, unit: "V", quantity: "voltage", ... }],
+//      offset: 0, len: 2, scale: 0.01, bias: 0, confidence: "confirmed", source: { url, date, type, licence } }
 
-decodeKnownDid(battery!, [0x05, 0x50]); // apply offset/len/scale/bias to raw response bytes
+decodeKnownDid(battery!, [0x05, 0x50]); // apply the primary decode to raw response bytes
 // => 13.6
+
+// v9: the per-module facts the discovery engine runs on
+routeForModule(vin, 0x6a8, 0x688);      // => { protocol: "can11_500", req: "6A8", resp: "688" }
+readServiceForModule(vin, 0x6a8, 0x688); // => "22" (module override → brand default → "22")
+identityBlockForVin(vin);                // => ISO DIDs first, then vendor layouts (e.g. packed-BCD part references)
+decodesForDid(vin, 0x6ad, 0x68d, 0xd41f); // => every value in that DID's payload on that module
+platformForVin(vin);                     // => a platform whose sourced VDS pattern matches VIN 4-10, or undefined
+profiledLevelForVin(vin);                // => "standard_only" | "routes_sourced" | "routes_verified" | "decodes_verified"
+gatewayBehaviourForVin(vin);             // => { silence_means: "absent" | "filtered" | "unknown", writes_blocked }
 ```
 
 ### Why `addressesToProbe` matters: response addresses are not `request + 8`
@@ -62,10 +72,22 @@ A naive UDS sweeper assumes a module's response address is always its request ad
 | `responseAddr(brand, req)` | The correct response address for a request address, per this brand's rule |
 | `addressesToProbe(vin)` | Known modules first, then the full conventional sweep, response addresses pre-derived |
 | `identDids()` / `nameDids()` / `presenceProbeDid()` | The standardized (ISO 14229-1) identification DIDs — universal, not brand-specific |
-| `knownDid(vin, did)` | A documented label + decode formula for a specific DID, if the map has one |
-| `decodeKnownDid(known, bytes)` | Apply a `KnownDid`'s offset/len/scale/bias to raw response bytes |
+| `knownDid(vin, did, module)` | A documented label + decodes for a DID on exactly that module (v9: no unscoped fallback; `knownDidUnscoped` for browsing) |
+| `decodesForDid(vin, req, resp, did)` | Every value in a DID's payload on that module (multi-value, signed, bit fields, strings) |
+| `decodeKnownDid(known, bytes)` / `decodeValue(decode, bytes)` / `decodeString(decode, bytes)` | Apply a decode to raw response bytes |
+| `routeForModule(vin, req, resp)` | The route tuple (protocol, ids, target byte, address extension, gateway), explicit or derived |
+| `readServiceForModule(vin, req, resp)` | `22` / `21` / `1A` — module override, brand default, standard default |
+| `identityBlockForVin(vin)` | Which DIDs identify an ECU on this brand and how their payloads are laid out |
+| `platformForVin(vin)` / `profiledLevelForVin(vin)` / `gatewayBehaviourForVin(vin)` | Platform by sourced VDS pattern; how far the brand is profiled; what silence means |
+| `overlayPacks()` | Every overlay pack under `data/packs/` with its own licence and provenance |
 
-Full types in [`src/types.ts`](./src/types.ts). The raw data file is also exported directly at `@scainner/uds-map/data/uds-map.json` if you'd rather parse it yourself in another language — it's plain JSON with no code dependency.
+Full types in [`src/types.ts`](./src/types.ts) and field semantics in [`docs/uds/pack-schema-v9.md`](../../docs/uds/pack-schema-v9.md). The raw data file is also exported directly at `@scainner/uds-map/data/uds-map.json` if you'd rather parse it yourself in another language — it's plain JSON with no code dependency.
+
+### Keeping the pack honest
+
+- `pnpm lint:pack` fails on a DID without a module binding (unless marked `binding: "unknown"`), any entry without a `source`, a legacy scalar that disagrees with `decodes[0]`, a missing or unsupported `profiled_level`, and any brand token in `src/*.ts` — brands live in data, never in code.
+- `pnpm coverage` regenerates [`COVERAGE.md`](./COVERAGE.md); `pnpm coverage:check` is what CI runs.
+- Every fact migrated from `RESEARCH.md` prose into data is logged in [`docs/uds/migration-v9.md`](../../docs/uds/migration-v9.md).
 
 ## Contributing
 

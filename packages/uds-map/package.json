@@ -1,7 +1,7 @@
 {
   "name": "@scainner/uds-map",
-  "version": "1.0.1",
-  "description": "A queryable knowledge map of manufacturer-specific UDS (ISO 14229) diagnostic addresses and DID ranges for 21 car brands, keyed by VIN \u2014 the data behind Scainner's auto-discovery engine.",
+  "version": "2.0.0",
+  "description": "A queryable knowledge map of manufacturer-specific UDS (ISO 14229) diagnostic addresses, routes, identity blocks and DID decodes for 21 car brands, keyed by VIN \u2014 the data behind Scainner's auto-discovery engine.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,6 +17,7 @@
     "dist",
     "data",
     "RESEARCH.md",
+    "COVERAGE.md",
     "README.md"
   ],
   "keywords": [
@@ -41,6 +42,9 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
+    "coverage": "node --experimental-strip-types scripts/coverage.ts",
+    "coverage:check": "node --experimental-strip-types scripts/coverage.ts --check",
+    "lint:pack": "node --experimental-strip-types scripts/lint.ts",
     "prepublishOnly": "pnpm run build && pnpm run test"
   },
   "devDependencies": {

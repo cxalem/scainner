@@ -40,6 +40,12 @@ jobs:
       - name: Test every workspace
         run: pnpm test
 
+      - name: Lint the knowledge pack (sources, bindings, decodes, profiled levels, no brand tokens in code)
+        run: pnpm --filter @scainner/uds-map lint:pack
+
+      - name: Check the generated pack coverage table is committed and current
+        run: pnpm --filter @scainner/uds-map coverage:check
+
       - name: Build every workspace
         run: pnpm build
 

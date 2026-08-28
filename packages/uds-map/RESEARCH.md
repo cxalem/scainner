@@ -63,8 +63,14 @@ the padding covers the 3-byte header → after-header offset 4) and OVMS's
 `IncomingBMC_Full()` (offset 4). Renault/CanZE independently confirms it — its
 `startBit: 24` for DID `2002` is bit 24 = byte 3 = the first byte after `62 20 02`.
 
-**Signedness is not in the schema.** Where a value is two's-complement signed the
-label says so. Handle it in the consumer.
+**Since v9 (2026-08-28) every known DID carries `decodes[]`** — offset, length,
+`signed`, `encoding` (`be`/`le`/`bcd`/`ascii`/`bitfield`), scale, bias, unit
+and a machine-readable `quantity` — so multi-value payloads, two's-complement
+values and bit fields are data rather than label text. The legacy
+`offset/len/scale/bias` fields mirror `decodes[0]`. Offset-binary values are
+kept unsigned with a negative bias, exactly as their sources express them.
+See `docs/uds/pack-schema-v9.md`; every fact moved out of this file's prose
+is listed in `docs/uds/migration-v9.md`.
 
 ---
 
