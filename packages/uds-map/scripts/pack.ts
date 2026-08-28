@@ -85,6 +85,7 @@ export function brandStats(map: UdsMap, b: Brand): BrandStats {
   if (b.read_service) services.add(b.read_service);
   for (const m of b.modules ?? []) if (m.read_service) services.add(m.read_service);
   for (const p of b.platforms ?? []) if (p.read_service) services.add(p.read_service);
+  for (const k of dids) if (k.read_service) services.add(k.read_service);
   const iso = new Set((map.standard.identity_block?.dids ?? []).map((d) => d.did.toUpperCase()));
   const vendor = (b.identity_block?.dids ?? []).filter((d) => !iso.has(d.did.toUpperCase()));
   const projectDecodes = dids.filter((k) => k.source?.type === "project_capture" && (k.decodes ?? []).length > 0);

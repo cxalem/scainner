@@ -18,7 +18,7 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 | nissan | 17 | 5 | 11 | 5 | 11 | 0 | 5 | 0 | 21, 22 | iso | 2 (2 vds) | routes_sourced | unknown | high |
 | hyundai_kia | 18 | 16 | 11 | 9 | 9 (2 unknown) | 0 | 113 | 0 | 21, 22 | iso + 2 vendor | 2 | routes_sourced | unknown | high |
 | ford | 22 | 9 | 18 | 16 | 15 (3 unknown) | 0 | 16 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
-| gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 22 | iso | 2 | routes_sourced | unknown | low |
+| gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 1A, 22 | iso | 2 | routes_sourced | unknown | low |
 | fca | 21 | 7 (1) | 7 | 5 | 3 (4 unknown) | 0 | 5 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown, writes blocked | low |
 | toyota | 29 | 10 | 11 | 7 | 6 (5 unknown) | 0 | 8 | 0 | 22 | iso | 3 | routes_sourced | unknown | high |
 | honda | 20 | 7 (6) | 7 | 0 | 6 (1 unknown) | 0 | 0 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown | medium |
