@@ -9,10 +9,12 @@
 - License: CC BY-SA 4.0
 - License URL: https://creativecommons.org/licenses/by-sa/4.0/
 
-Changes made by Scainner: selected the TPMS module and pressure/validity
-signals, normalized them into Scainner's module/DID schema, and omitted the
-temperature signals until the application supports multiple decoded values
-from one DID payload.
+Changes made by Scainner: selected the TPMS module and its pressure,
+temperature and validity signals and normalized them into Scainner's
+module/DID schema (v9 `decodes[]`): each pressure DID (`013C`–`013F`)
+carries the pressure (16-bit, bar) and the tyre temperature (byte 2,
+raw − 50 °C) as two decodes; `012F` carries the four per-wheel validity
+flags as bit fields. Every entry cites this source with its licence.
 
 This overlay remains a separate file so its share-alike terms and provenance
 are explicit. Scainner's project-owned `uds-map.json` does not contain these
