@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use super::contract::{Correlation, HypothesisInput, InheritedDecode, RefReading};
 
 const LAGS_MS: [i64; 15] = [
-    -2000, -1500, -1250, -1000, -750, -500, -250, -100, 0, 100, 250, 500, 750, 1000, 1500,
+    -2000, -1500, -1000, -750, -500, -250, -100, 0, 100, 250, 500, 750, 1000, 1500, 2000,
 ];
+const MAX_ROBUST_POINTS: usize = 128;
 
 pub(crate) fn decode_payload(
     payload: &[u8],
@@ -82,6 +83,9 @@ fn fits_for_observations(
         .flat_map(|sample| sample.refs.iter())
         .chain(derived.iter())
     {
+        if !reading.value.is_finite() {
+            continue;
+        }
         references
             .entry(reading.key.clone())
             .or_default()
@@ -134,11 +138,16 @@ fn align(observations: &[(i64, f64)], readings: &[RefReading], lag_ms: i64) -> V
         .iter()
         .filter_map(|(ts, observed)| {
             let target = *ts - lag_ms;
-            readings
-                .iter()
-                .min_by_key(|reading| (reading.ts_ms - target).abs())
-                .filter(|reading| (reading.ts_ms - target).abs() <= tolerance)
-                .map(|reading| (reading.value, *observed))
+            let index = readings.partition_point(|reading| reading.ts_ms < target);
+            let nearest = [
+                index.checked_sub(1),
+                (index < readings.len()).then_some(index),
+            ]
+            .into_iter()
+            .flatten()
+            .map(|candidate| &readings[candidate])
+            .min_by_key(|reading| (reading.ts_ms - target).abs())?;
+            ((nearest.ts_ms - target).abs() <= tolerance).then_some((nearest.value, *observed))
         })
         .collect()
 }
@@ -195,12 +204,19 @@ fn robust_line(pairs: &[(f64, f64)]) -> Option<(f64, f64)> {
     if pairs.len() < 10 {
         return None;
     }
-    let min_x = pairs.iter().map(|p| p.0).fold(f64::INFINITY, f64::min);
-    let max_x = pairs.iter().map(|p| p.0).fold(f64::NEG_INFINITY, f64::max);
+    let points = if pairs.len() <= MAX_ROBUST_POINTS {
+        pairs.to_vec()
+    } else {
+        (0..MAX_ROBUST_POINTS)
+            .map(|index| pairs[index * (pairs.len() - 1) / (MAX_ROBUST_POINTS - 1)])
+            .collect::<Vec<_>>()
+    };
+    let min_x = points.iter().map(|p| p.0).fold(f64::INFINITY, f64::min);
+    let max_x = points.iter().map(|p| p.0).fold(f64::NEG_INFINITY, f64::max);
     let min_dx = (max_x - min_x) * 0.1;
     let mut slopes = Vec::new();
-    for (index, a) in pairs.iter().enumerate() {
-        for b in &pairs[index + 1..] {
+    for (index, a) in points.iter().enumerate() {
+        for b in &points[index + 1..] {
             let dx = b.0 - a.0;
             if dx.abs() >= min_dx.max(f64::EPSILON) {
                 slopes.push((b.1 - a.1) / dx);
@@ -228,7 +244,7 @@ fn robust_line(pairs: &[(f64, f64)]) -> Option<(f64, f64)> {
         .collect::<Vec<_>>();
     neighbourhood.sort_by(f64::total_cmp);
     let slope = neighbourhood[neighbourhood.len() / 2];
-    let mut intercepts = pairs
+    let mut intercepts = points
         .iter()
         .map(|pair| pair.1 - slope * pair.0)
         .collect::<Vec<_>>();

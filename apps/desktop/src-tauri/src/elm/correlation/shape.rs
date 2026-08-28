@@ -4,6 +4,29 @@ use super::contract::{HypothesisInput, Shape, Variability};
 use super::events::EventSummary;
 use super::fit::decode_payload;
 
+pub(crate) fn normalize_width(input: &HypothesisInput) -> (HypothesisInput, usize) {
+    let mut counts = BTreeMap::<usize, usize>::new();
+    for sample in &input.samples {
+        *counts.entry(sample.payload.len()).or_default() += 1;
+    }
+    let Some(modal) = counts
+        .into_iter()
+        .max_by(|a, b| a.1.cmp(&b.1).then_with(|| b.0.cmp(&a.0)))
+        .map(|entry| entry.0)
+    else {
+        return (input.clone(), 0);
+    };
+    let mut normalized = input.clone();
+    normalized
+        .samples
+        .retain(|sample| sample.payload.len() == modal);
+    normalized
+        .siblings
+        .retain(|snapshot| snapshot.payload.len() == modal);
+    let dropped = input.samples.len() - normalized.samples.len();
+    (normalized, dropped)
+}
+
 pub(crate) fn signed_guess(input: &HypothesisInput) -> bool {
     let Some(len) = input.samples.first().map(|sample| sample.payload.len()) else {
         return false;

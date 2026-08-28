@@ -14,7 +14,7 @@ pub(crate) fn derived_references(input: &HypothesisInput) -> Vec<RefReading> {
         .samples
         .iter()
         .flat_map(|sample| sample.refs.iter())
-        .filter(|reading| reading.key == "speed")
+        .filter(|reading| reading.key == "speed" && reading.value.is_finite())
         .cloned()
         .collect::<Vec<_>>();
     speeds.sort_by_key(|reading| reading.ts_ms);
@@ -43,7 +43,7 @@ pub(crate) fn derived_references(input: &HypothesisInput) -> Vec<RefReading> {
         .samples
         .iter()
         .flat_map(|sample| sample.refs.iter())
-        .filter(|reading| reading.key == "rpm")
+        .filter(|reading| reading.key == "rpm" && reading.value.is_finite())
         .cloned()
         .collect::<Vec<_>>();
     rpms.sort_by_key(|reading| reading.ts_ms);
@@ -66,30 +66,22 @@ pub(crate) fn event_summary(
     distinct.dedup_by(|a, b| (*a - *b).abs() < f64::EPSILON);
     let transitions = values.windows(2).filter(|p| p[0] != p[1]).count();
     let clean_aba = transitions / 2;
-    let braking_r = ["braking", "brake_switch", "brake_pressure"]
-        .into_iter()
-        .filter_map(|key| {
-            let readings = input
-                .samples
+    let readings = derived
+        .iter()
+        .filter(|reading| reading.key == "braking")
+        .collect::<Vec<_>>();
+    let pairs = input
+        .samples
+        .iter()
+        .zip(values.iter())
+        .filter_map(|(sample, value)| {
+            readings
                 .iter()
-                .flat_map(|sample| sample.refs.iter())
-                .chain(derived.iter())
-                .filter(|reading| reading.key == key)
-                .collect::<Vec<_>>();
-            let pairs = input
-                .samples
-                .iter()
-                .zip(values.iter())
-                .filter_map(|(sample, value)| {
-                    readings
-                        .iter()
-                        .min_by_key(|reading| (reading.ts_ms - sample.ts_ms).abs())
-                        .map(|reading| (reading.value, *value))
-                })
-                .collect::<Vec<_>>();
-            pearson(&pairs)
+                .min_by_key(|reading| (reading.ts_ms - sample.ts_ms).abs())
+                .map(|reading| (reading.value, *value))
         })
-        .max_by(f64::total_cmp);
+        .collect::<Vec<_>>();
+    let braking_r = pearson(&pairs);
     let active_while_stationary = input.samples.iter().zip(values).any(|(sample, value)| {
         *value != 0.0
             && sample

@@ -18,10 +18,10 @@ pub(crate) fn inherited_fit(
         return InheritedFit::Insufficient;
     }
     let fits = decoded_reference_fits(input, decode, derived);
-    let expected = expected_reference(decode);
-    let fit = expected
-        .and_then(|key| fits.iter().find(|fit| fit.reference == key))
-        .or_else(|| fits.iter().max_by(|a, b| a.r.abs().total_cmp(&b.r.abs())));
+    let Some(expected) = expected_reference(decode) else {
+        return InheritedFit::Insufficient;
+    };
+    let fit = fits.iter().find(|fit| fit.reference == expected);
     let Some(fit) = fit else {
         return InheritedFit::Insufficient;
     };
@@ -231,19 +231,7 @@ pub(crate) fn candidate_interpretations(
             });
             test = Some("Press and release the brake repeatedly while stationary (A→B→A).".into());
         } else {
-            interpretations.push(Interpretation {
-                label: "binary state or rolling-direction flag".into(),
-                decode: None,
-                confidence: 0.4,
-                evidence: vec![format!(
-                    "Observed {} binary transitions.",
-                    events.transitions
-                )],
-                competing_with: vec!["reverse state".into()],
-            });
-            test = Some(
-                "Select reverse, roll backward, stop, and return to neutral/drive (A→B→A).".into(),
-            );
+            test = Some("Repeat candidate physical states in labelled A→B→A captures.".into());
         }
     }
 
@@ -269,15 +257,21 @@ pub(crate) fn candidate_interpretations(
             competing_with: vec!["brake pressure".into()],
         });
         test = Some("Apply and release the brake at several pressures while stationary, including one firm-pedal hold.".into());
+    } else if !events.binary && interpretations.is_empty() && events.active_while_stationary {
+        test = Some(
+            "Capture a labelled stationary A→B→A intervention, then repeat while moving if safe."
+                .into(),
+        );
     }
 
-    let engine_off = input.samples.iter().all(|sample| {
-        sample
-            .refs
-            .iter()
-            .filter(|reading| reading.key == "engine_on")
-            .all(|reading| reading.value == 0.0)
-    });
+    let engine_states = input
+        .samples
+        .iter()
+        .flat_map(|sample| sample.refs.iter())
+        .filter(|reading| reading.key == "engine_on" && reading.value.is_finite())
+        .map(|reading| reading.value)
+        .collect::<Vec<_>>();
+    let engine_off = !engine_states.is_empty() && engine_states.iter().all(|value| *value == 0.0);
     let has_pedal = input.samples.iter().any(|sample| {
         sample
             .refs
@@ -295,8 +289,19 @@ pub(crate) fn candidate_interpretations(
             competing_with: Vec::new(),
         });
         test = None;
-    } else if interpretations.is_empty() && shape.len == 1 {
-        test = Some("Repeat an engine-off brake-pedal pump capture and check for monotonic depletion without recovery.".into());
+    } else if interpretations.is_empty()
+        && shape.len == 1
+        && input.samples.iter().any(|sample| {
+            sample
+                .refs
+                .iter()
+                .any(|reading| reading.key == "steering_angle")
+        })
+    {
+        test = Some(
+            "Hold sustained left and right steering inputs, then release, and capture the recovery."
+                .into(),
+        );
     }
 
     (interpretations, test, notes)

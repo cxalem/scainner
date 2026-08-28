@@ -22,6 +22,8 @@ use shape::describe_shape;
 
 /// Analyze one DID without I/O, global state, randomness, or clock access.
 pub fn analyze(input: &HypothesisInput) -> HypothesisReport {
+    let (normalized, dropped_widths) = shape::normalize_width(input);
+    let input = &normalized;
     let signed = shape::signed_guess(input);
     let values: Vec<f64> = input
         .samples
@@ -47,6 +49,11 @@ pub fn analyze(input: &HypothesisInput) -> HypothesisReport {
         depletion,
         inherited_fit.as_ref(),
     );
+    if dropped_widths > 0 {
+        notes.push(format!(
+            "Ignored {dropped_widths} samples whose payload width differed from the modal width."
+        ));
+    }
 
     interpretations.sort_by(|a, b| {
         b.confidence
@@ -59,6 +66,8 @@ pub fn analyze(input: &HypothesisInput) -> HypothesisReport {
         interpretation.competing_with.sort();
         interpretation.competing_with.dedup();
     }
+    let mut labels = std::collections::BTreeSet::new();
+    interpretations.retain(|item| labels.insert(item.label.clone()));
     notes.sort();
     notes.dedup();
 

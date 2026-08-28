@@ -4,19 +4,20 @@
 Usage: scripts/correlation_replay.py --convert
 
 The conversion is deterministic and uses only Python's standard library.
-The camera light/lens capture named in the plan was not checked in; its
-fixture is reconstructed as repeated readings from the recorded D400-D40A
-sweep, matching the workflow's documented all-constant negative result.
+The real camera capture currently lives on PR #53. Pass its path with
+--camera-source until that PR is merged; after merge the default path works.
 """
 
 import argparse
 import csv
 import json
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "apps/desktop/docs/workflows/evidence"
 OUT = ROOT / "apps/desktop/src-tauri/tests/fixtures/correlation"
+CAMERA_SOURCE = None
 
 
 def payload(text):
@@ -45,10 +46,16 @@ def input_value(module, did, samples, siblings=None, inherited=None):
     return result
 
 
+def clock_ms(text, origin):
+    value = datetime.strptime(text, "%H:%M:%S")
+    return round((value - origin).total_seconds() * 1000)
+
+
 def convert_drive():
     rows = list(csv.DictReader((EVIDENCE / "citroen-c41-drive-v1-2026-08-27.csv").open()))
     cycles = []
     current = None
+    origin = datetime.strptime(rows[0]["ts"], "%H:%M:%S")
     for row in rows:
         if row["key"] == "banner":
             continue
@@ -56,7 +63,10 @@ def convert_drive():
             if current:
                 cycles.append(current)
             current = {}
-        current[row["key"]] = row["raw"]
+        current[row["key"]] = {
+            "raw": row["raw"],
+            "ts_ms": clock_ms(row["ts"], origin),
+        }
     if current:
         cycles.append(current)
     dids = ["D400", "D401", "D402", "D403", "D406", "D40C", "D464", "D46D", "D479"]
@@ -64,30 +74,24 @@ def convert_drive():
     for did in dids:
         samples = []
         siblings = []
-        for index, cycle in enumerate(cycles):
-            ts = index * 1000
-            speed = int(cycle["speed"].replace(" ", ""), 16)
-            rpm = int(cycle["rpm"].replace(" ", ""), 16) / 4.0
-            voltage = int(cycle["volt"].replace(" ", ""), 16) / 1000.0
+        for cycle in cycles:
+            ts = cycle[did]["ts_ms"]
+            speed = int(cycle["speed"]["raw"].replace(" ", ""), 16)
+            rpm = int(cycle["rpm"]["raw"].replace(" ", ""), 16) / 4.0
+            voltage = int(cycle["volt"]["raw"].replace(" ", ""), 16) / 1000.0
             refs = [
-                {"key": "speed", "value": speed, "ts_ms": ts},
-                {"key": "rpm", "value": rpm, "ts_ms": ts},
-                {"key": "voltage", "value": voltage, "ts_ms": ts},
-                {
-                    "key": "brake_switch",
-                    "value": int(cycle["D406"].replace(" ", ""), 16),
-                    "ts_ms": ts,
-                },
-                {
-                    "key": "brake_pressure",
-                    "value": int(cycle["D40C"].replace(" ", ""), 16),
-                    "ts_ms": ts,
-                },
+                {"key": "speed", "value": speed, "ts_ms": cycle["speed"]["ts_ms"]},
+                {"key": "rpm", "value": rpm, "ts_ms": cycle["rpm"]["ts_ms"]},
+                {"key": "voltage", "value": voltage, "ts_ms": cycle["volt"]["ts_ms"]},
             ]
-            samples.append({"ts_ms": ts, "payload": payload(cycle[did]), "refs": refs})
+            samples.append({"ts_ms": ts, "payload": payload(cycle[did]["raw"]), "refs": refs})
             for sibling in wheel_dids:
                 siblings.append(
-                    {"did": int(sibling, 16), "ts_ms": ts, "payload": payload(cycle[sibling])}
+                    {
+                        "did": int(sibling, 16),
+                        "ts_ms": cycle[sibling]["ts_ms"],
+                        "payload": payload(cycle[sibling]["raw"]),
+                    }
                 )
         write(f"drive-{did.lower()}.json", input_value("6AD/68D", did, samples, siblings))
 
@@ -98,8 +102,8 @@ def convert_cornering():
     for did in dids:
         samples = []
         siblings = []
-        for index, row in enumerate(data):
-            ts = index * 100
+        for row in data:
+            ts = round(float(row["t"]) * 1000)
             refs = [{"key": "steering_angle", "value": row["angle"], "ts_ms": ts}]
             samples.append(
                 {"ts_ms": ts, "payload": be(round(row[did] * 100), 2), "refs": refs}
@@ -118,8 +122,8 @@ def convert_cornering():
 def convert_vacuum():
     data = json.loads((EVIDENCE / "c41-session2-vacuum-2026-08-27-2031.json").read_text())
     samples = []
-    for index, row in enumerate(data):
-        ts = index * 500
+    for row in data:
+        ts = round(float(row["t"]) * 1000)
         refs = [
             {"key": "engine_on", "value": 0.0, "ts_ms": ts},
             {"key": "brake_pedal", "value": float(row["brake"]), "ts_ms": ts},
@@ -155,26 +159,44 @@ def convert_steering():
 
 
 def convert_camera_negative():
-    sweep = json.loads(
-        (EVIDENCE / "c41-session3-camera_74a-sweep-D400-D4FF-2026-08-27-2059.json").read_text()
-    )
-    conditions = [(0, 0), (1, 0), (0, 0), (1, 1), (0, 1), (0, 0)]
-    for hit in sweep["hits"]:
-        did = hit["did"]
+    source = CAMERA_SOURCE or EVIDENCE / "c41-session3-camera-lights-2026-08-27.json"
+    captures = json.loads(source.read_text())
+    dids = sorted(captures[0]["samples"][0])
+    for did_text in dids:
+        did = int(did_text, 16)
         samples = []
-        for index, (lights, lens) in enumerate(conditions):
-            ts = index * 1000
-            samples.append(
-                {
-                    "ts_ms": ts,
-                    "payload": payload(hit["hex"]),
-                    "refs": [
-                        {"key": "lights_on", "value": float(lights), "ts_ms": ts},
-                        {"key": "lens_covered", "value": float(lens), "ts_ms": ts},
-                    ],
-                }
-            )
+        sequence = 0
+        for capture in captures:
+            condition = capture["condition"]
+            for row in capture["samples"]:
+                # The source records order and condition but no timestamps.
+                ts = sequence * 1000
+                sequence += 1
+                samples.append(
+                    {
+                        "ts_ms": ts,
+                        "payload": payload(row[did_text]),
+                        "refs": [
+                            {"key": f"condition:{condition}", "value": 1.0, "ts_ms": ts}
+                        ],
+                    }
+                )
         write(f"camera-{did:04x}-constant.json", input_value("74A/64A", f"{did:04X}", samples))
+
+
+def combine_wheel_evidence():
+    drive = json.loads((OUT / "drive-d400.json").read_text())
+    corner = json.loads((OUT / "corner-d400.json").read_text())
+    offset = max(sample["ts_ms"] for sample in drive["samples"]) + 10_000
+    for sample in corner["samples"]:
+        sample["ts_ms"] += offset
+        for reading in sample["refs"]:
+            reading["ts_ms"] += offset
+    for sibling in corner["siblings"]:
+        sibling["ts_ms"] += offset
+    drive["samples"].extend(corner["samples"])
+    drive["siblings"].extend(corner["siblings"])
+    write("combined-d400.json", drive)
 
 
 def convert():
@@ -184,12 +206,16 @@ def convert():
     convert_vacuum()
     convert_steering()
     convert_camera_negative()
+    combine_wheel_evidence()
 
 
 def main():
+    global CAMERA_SOURCE
     parser = argparse.ArgumentParser()
     parser.add_argument("--convert", action="store_true", help="regenerate JSON fixtures")
+    parser.add_argument("--camera-source", type=Path, help="path to the real camera capture")
     args = parser.parse_args()
+    CAMERA_SOURCE = args.camera_source
     if args.convert:
         convert()
     else:
