@@ -54,6 +54,7 @@ pub fn analyze(input: &HypothesisInput) -> HypothesisReport {
             "Ignored {dropped_widths} samples whose payload width differed from the modal width."
         ));
     }
+    notes.extend(shape::shape_notes(input, &shape));
 
     interpretations.sort_by(|a, b| {
         b.confidence
