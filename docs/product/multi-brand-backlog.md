@@ -11,13 +11,13 @@ Started 2026-08-28.
 - ☑ (#56) P0.4 `scripts/lint_brand_tokens.py` + CI step with a baseline allow-list that must only shrink
 
 ## Phase 1 — Pack schema v9 and data migration
-- ☐ P1.1 Schema: `read_service` (brand + module), `modules[].route` tuple, `identity_block`, `platforms[]`, `gateway_behaviour`, `profiled_level`, `source` on every entry
-- ☐ P1.2 Schema: `known_dids[].decodes[]` (multi-value, signed, encodings, bit fields, strings, `quantity`); old scalar kept as derived first decode
-- ☐ P1.3 Migrate every prose-only brand fact from `RESEARCH.md` into data with sources
-- ☐ P1.4 `known_dids[].modules` required; `did_bands` re-ranked; unscoped fallback removed
-- ☐ P1.5 Rust `uds_map.rs` types + accessors (`route_for_module`, `identity_block_for_vin`, `read_service_for_module`, `decodes_for_did`) — the frozen contract for Phase 2
-- ☐ P1.6 `pnpm coverage` → `packages/uds-map/COVERAGE.md` generated from the pack; lints (module-bound, sourced, no unscoped fallback, `profiled_level` present); CI
-- ☐ P1.7 Tests: TS + Rust parse, round-trip, coverage snapshot
+- ☑ (#57) P1.1 Schema: `read_service` (brand + module), `modules[].route` tuple, `identity_block`, `platforms[]`, `gateway_behaviour`, `profiled_level`, `source` on every entry
+- ☑ (#57) P1.2 Schema: `known_dids[].decodes[]` (multi-value, signed, encodings, bit fields, strings, `quantity`); old scalar kept as derived first decode
+- ☑ (#57) P1.3 Migrate every prose-only brand fact from `RESEARCH.md` into data with sources
+- ☑ (#57) P1.4 `known_dids[].modules` required; `did_bands` re-ranked; unscoped fallback removed
+- ☑ (#57) P1.5 Rust `uds_map.rs` types + accessors (`route_for_module`, `identity_block_for_vin`, `read_service_for_module`, `decodes_for_did`) — the frozen contract for Phase 2
+- ☑ (#57) P1.6 `pnpm coverage` → `packages/uds-map/COVERAGE.md` generated from the pack; lints (module-bound, sourced, no unscoped fallback, `profiled_level` present); CI
+- ☑ (#57) P1.7 Tests: TS + Rust parse, round-trip, coverage snapshot
 
 ## Phase 2 — No brand in code (runtime)
 - ☐ P2.1 `builtin_modules()` → `known_modules_for_vin` + custom; `builtin` → `source`
@@ -57,3 +57,4 @@ Started 2026-08-28.
 ## Log
 - 2026-08-28 — backlog created; Phase 0 started.
 - 2026-08-28 — Phase 0 done on `feat/mb-phase0-hygiene` (#56, stacked on #55): `PARKED_PLAN_VERSION` const, counts corrected (197 / 112 / 3 families / 16 decodes), fixtures and evidence under `psa/c41/` and `psa/unknown-platform/`, `lint_brand_tokens.py` in CI with a 59-token / 9-file baseline. 148 Rust tests, 21 uds-map tests.
+- 2026-08-28 — Phase 1 done on `feat/mb-phase1-schema` (#57, stacked on #56): pack schema v9 (sources everywhere, read services, route tuples, identity blocks with encoding-named layouts, 33 platforms, gateway semantics, profiled levels, `decodes[]`), RESEARCH.md prose migrated to data with `docs/uds/migration-v9.md`, 169/203 DIDs module-bound (34 honest unknowns), unscoped fallback removed, Rust contract accessors, `pnpm lint:pack` + generated `COVERAGE.md` in CI. 159 Rust tests, 42 uds-map tests; brand-token baseline unchanged (59).
