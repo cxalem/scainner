@@ -338,7 +338,9 @@ mod tests {
 
     #[test]
     fn missing_vin_still_returns_the_detected_kline_protocol() {
-        let raw = include_str!("../../tests/fixtures/psa/unknown-platform/elm/peugeot-no-vin-redacted.json");
+        let raw = include_str!(
+            "../../tests/fixtures/psa/unknown-platform/elm/peugeot-no-vin-redacted.json"
+        );
         let mut driver = ElmDriver::from_replay_json(raw).unwrap();
 
         let info = read_ecu_info(&mut driver).expect("missing VIN is not a transport failure");
