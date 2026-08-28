@@ -1,6 +1,7 @@
 {
   "name": "scainner-monorepo",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@11.9.0",
   "scripts": {

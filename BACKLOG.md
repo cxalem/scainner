@@ -36,7 +36,7 @@ bar for range scans (root-caused a "looks like a crash" report to a healthy but
 silent module giving zero UI feedback for 60+ seconds — fixed the feedback, not a
 bug in the scan itself).
 
-✅ **Open-sourced, brand-generic** (2026-08-15) — UDS modules moved from a
+✅ **Brand-generic foundation** (2026-08-15) — UDS modules moved from a
 hardcoded PSA-only Rust array to a DB-backed list (`uds_modules` table): the four
 PSA defaults ship built-in, and an **"Add module"** flow in the Lab lets anyone
 add their own brand's CAN request/response IDs and get the same scan/probe/clear
@@ -44,7 +44,9 @@ workflow. Standard-OBD views (Dashboard/Live/History/Diagnose/Report) already
 worked on any car (SAE J1979) — this was the one PSA-only piece. Connection
 config (port/MAC/PIN) now overridable via `SCAINNER_OBD_PORT`/`_MAC`/`_PIN` env
 vars instead of hardcoded to the author's dongle. Real VIN scrubbed from the test
-suite and docs before publishing. MIT license, real README, `.gitignore` excludes
+suite and docs before the initial public snapshot. The product is now proprietary;
+the earlier MIT-labelled history and copies already received under it are not
+retroactively revoked. `.gitignore` excludes
 `target/` and any `*.sqlite3` (real car data never belongs in the repo).
 
 ## Deferred (in rough priority order)

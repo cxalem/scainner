@@ -1,21 +1,26 @@
-MIT License
+Scainner Proprietary License
 
-Copyright (c) 2026 Alejandro
+Copyright (c) 2026 Alejandro José Mena. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository and its contents, including source code, application code,
+documentation, vehicle-knowledge data, designs, and assets (collectively, the
+"Software"), are proprietary and confidential unless a file or directory is
+explicitly identified as third-party material under a different licence.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+No permission is granted to use, copy, modify, merge, publish, distribute,
+sublicense, sell, reverse engineer, or create derivative works from the
+Software without prior written permission from the copyright holder.
+
+Access to this repository does not grant any licence or other rights in the
+Software. Contributions are not accepted under this notice unless separate
+written contribution terms have been agreed.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
+
+Third-party material remains subject to its original licence and attribution
+requirements. See THIRD_PARTY_NOTICES.md and the source metadata accompanying
+the relevant material. Nothing in this notice relicenses third-party material.

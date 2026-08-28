@@ -191,4 +191,6 @@ commands. `apps/desktop/src-tauri/src/elm/uds.rs` is the file to check.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+Proprietary and confidential — all rights reserved. See [LICENSE](./LICENSE)
+and [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md). Third-party components
+and knowledge overlays retain their original licences.
