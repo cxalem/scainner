@@ -254,6 +254,78 @@ fn vacuum_requires_explicit_engine_off_evidence() {
 }
 
 #[test]
+fn running_rpm_overrides_a_false_engine_off_flag() {
+    let mut input = fixture(include_str!(
+        "../../../tests/fixtures/correlation/vacuum-d479.json"
+    ));
+    for sample in &mut input.samples {
+        sample.refs.push(RefReading {
+            key: "rpm".into(),
+            value: 800.0,
+            ts_ms: sample.ts_ms,
+        });
+    }
+    assert!(!analyze(&input)
+        .interpretations
+        .iter()
+        .any(|item| item.label == "servo vacuum"));
+}
+
+#[test]
+fn inherited_brake_event_tests_association_not_numeric_slope() {
+    let samples = (0..20)
+        .map(|index| {
+            let braking = index % 2 == 1;
+            Sample {
+                ts_ms: index * 1_000,
+                payload: vec![if braking { 20 } else { 0 }],
+                refs: vec![RefReading {
+                    key: "speed".into(),
+                    value: if braking { 5.0 } else { 10.0 },
+                    ts_ms: index * 1_000,
+                }],
+            }
+        })
+        .collect();
+    let report = analyze(&HypothesisInput {
+        module: "test".into(),
+        did: 1,
+        samples,
+        siblings: Vec::new(),
+        inherited: Some(InheritedDecode {
+            label: "brake pressure".into(),
+            offset: 0,
+            len: 1,
+            scale: 1.0,
+            bias: 0.0,
+            signed: false,
+            unit: "bar".into(),
+        }),
+    });
+    assert!(matches!(
+        report.inherited_fit,
+        Some(InheritedFit::Matched { r }) if r >= 0.7
+    ));
+
+    let mut weak = fixture(include_str!(
+        "../../../tests/fixtures/correlation/drive-d40c.json"
+    ));
+    weak.inherited = Some(InheritedDecode {
+        label: "brake pressure".into(),
+        offset: 0,
+        len: 1,
+        scale: 1.0,
+        bias: 0.0,
+        signed: false,
+        unit: "bar".into(),
+    });
+    assert_eq!(
+        analyze(&weak).inherited_fit,
+        Some(InheritedFit::Insufficient)
+    );
+}
+
+#[test]
 fn non_finite_references_never_escape_into_the_report() {
     let mut input = fixture(include_str!(
         "../../../tests/fixtures/correlation/drive-d400.json"

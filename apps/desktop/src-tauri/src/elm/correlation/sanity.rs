@@ -25,6 +25,15 @@ pub(crate) fn inherited_fit(
     let Some(fit) = fit else {
         return InheritedFit::Insufficient;
     };
+    // A binary event can validate association and polarity, but not the
+    // decoded signal's numeric scale. Never create a scale conflict from it.
+    if expected == "braking" {
+        return if fit.r >= 0.7 {
+            InheritedFit::Matched { r: fit.r }
+        } else {
+            InheritedFit::Insufficient
+        };
+    }
     if fit.r.abs() >= 0.9 && (0.75..=1.25).contains(&fit.slope.abs()) {
         InheritedFit::Matched { r: fit.r }
     } else if fit.n >= 8 {
@@ -47,7 +56,10 @@ fn expected_reference(decode: &InheritedDecode) -> Option<&'static str> {
         Some("steering_angle")
     } else if label.contains("voltage") || decode.unit.eq_ignore_ascii_case("v") {
         Some("voltage")
-    } else if label.contains("brake") {
+    } else if label.contains("brake pressure")
+        || label.contains("brake pedal")
+        || label.contains("brake switch")
+    {
         Some("braking")
     } else {
         None
@@ -271,7 +283,18 @@ pub(crate) fn candidate_interpretations(
         .filter(|reading| reading.key == "engine_on" && reading.value.is_finite())
         .map(|reading| reading.value)
         .collect::<Vec<_>>();
-    let engine_off = !engine_states.is_empty() && engine_states.iter().all(|value| *value == 0.0);
+    let rpm_values = input
+        .samples
+        .iter()
+        .flat_map(|sample| sample.refs.iter())
+        .filter(|reading| reading.key == "rpm" && reading.value.is_finite())
+        .map(|reading| reading.value)
+        .collect::<Vec<_>>();
+    let explicit_off = !engine_states.is_empty() && engine_states.iter().all(|value| *value == 0.0);
+    let rpm_off = !rpm_values.is_empty() && rpm_values.iter().all(|value| *value <= 100.0);
+    let contradicts_off = engine_states.iter().any(|value| *value > 0.0)
+        || rpm_values.iter().any(|value| *value > 100.0);
+    let engine_off = (explicit_off || rpm_off) && !contradicts_off;
     let has_pedal = input.samples.iter().any(|sample| {
         sample
             .refs
