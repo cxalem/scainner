@@ -1,53 +1,115 @@
-//! UDS (ISO 14229) access to modules beyond the standard engine ECU.
+//! UDS (ISO 14229 / KWP read services) access to modules beyond the
+//! standard engine ECU.
 //!
-//! The four built-in modules below use PSA/Stellantis (Peugeot, Citroën, DS,
-//! Opel) CAN addresses, sourced from the community-documented
-//! [ludwig-v/arduino-psa-diag](https://github.com/ludwig-v/arduino-psa-diag)
-//! project. **They will not work on other brands** — every manufacturer
-//! assigns its own CAN IDs to its own modules.
-//!
-//! This is by design generic, not PSA-only: modules are just a name plus two
-//! CAN IDs (request/response), and the app lets you add your own through the
-//! UI (persisted in `db::UdsModuleDef`, see `db.rs`). If you're on a
-//! different brand, look up your ECU's addresses (car-hacking forums, the
-//! openxc/commaai/canbus.rocks communities, or a search for
-//! "<your car> UDS diagnostic session CAN ID" usually turns something up),
-//! add a module, and the same read/scan/probe workflow below applies
-//! unchanged. `UDS_INVESTIGATION_LOG.md` in the repo root documents exactly
-//! how the built-in PSA addresses were found and verified — the same method
-//! (broadcast probe → physical-address probe → session-open check) works for
-//! any brand.
+//! Nothing brand-specific lives here (multi-brand plan, Phase 2). The
+//! modules offered for a car are the ones the knowledge map documents for
+//! its VIN (`discovery::pack_ext::profile_modules_for_vin`) plus the ones
+//! the user added through the UI (persisted in `db::UdsModuleDef`); the
+//! route to a module (bit rate, 11/29-bit scheme, target byte, address
+//! extension) and the read service it answers (`22`, `21`, `1A`) come from
+//! the map's route tuple and read-service fields. A car whose brand is not
+//! in the map gets its custom modules and the ISO standard route only.
 //!
 //! READ-ONLY by default: automatic discovery and ordinary reads only send
-//! ReadDataByIdentifier (0x22). Explicit manual operations may additionally
-//! request DiagnosticSessionControl (0x10 0x03) and TesterPresent (0x3E), plus
-//! ClearDiagnosticInformation (0x14) when the user explicitly asks to clear
-//! codes — the same operation every commercial diagnostic tool performs, and
-//! it can only erase stored records. No writes, no routines, no resets.
-//! Every clear that is actually sent lands in the `writes_log` audit table
-//! with the state read before and after (see db.rs and
-//! docs/workflows/write-caps/plan.md).
+//! the module's read service in the default session. Explicit manual
+//! operations may additionally request DiagnosticSessionControl (0x10 0x03)
+//! and TesterPresent (0x3E), plus ClearDiagnosticInformation (0x14) when
+//! the user explicitly asks to clear codes — the same operation every
+//! commercial diagnostic tool performs, and it can only erase stored
+//! records. No writes, no routines, no resets. Every clear that is actually
+//! sent lands in the `writes_log` audit table with the state read before
+//! and after (see db.rs and docs/workflows/write-caps/plan.md).
 
+use super::discovery::identity::{self, IdentityObservation};
+use super::discovery::plan::{self, ParkedPlan};
 use super::driver::{ElmDriver, ElmError};
 use super::operation::{enter_extended_session, ScannerOperation};
 use super::outcome::{DiagnosticOutcome, DiagnosticStatus};
 use super::parser;
-use super::uds_map;
+use super::uds_map::{self, ReadService, Route, RouteProtocol};
 use crate::db::Db;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::Emitter;
 
-#[derive(Serialize, Clone)]
+/// Where a module offered to the UI comes from.
+pub const SOURCE_PROFILE: &str = "profile";
+pub const SOURCE_CUSTOM: &str = "custom";
+
+#[derive(Serialize, Clone, Debug)]
 pub struct UdsModule {
     pub key: String,
     pub label: String,
     pub req: String,
     pub resp: String,
-    /// True for the compiled-in PSA defaults; false for user-added modules.
+    /// `"profile"` when the knowledge map documents the module for the
+    /// connected VIN, `"custom"` when the user added it.
+    pub source: String,
+    /// Derived: `source == "profile"`. Kept so existing clients that read
+    /// the old flag keep working.
     pub builtin: bool,
+    /// How to reach the module (from the map, or derived from the ids).
+    pub route: Route,
+    /// Which read service the module answers (from the map; `22` default).
+    pub read_service: ReadService,
+}
+
+impl UdsModule {
+    fn new(vin: Option<&str>, key: &str, label: &str, req: &str, resp: &str, source: &str) -> Self {
+        let (route, read_service) = match (uds_map::can_address(req), uds_map::can_address(resp)) {
+            (Some(r), Some(s)) => (
+                uds_map::route_for_module(vin, r, s),
+                uds_map::read_service_for_module(vin, r, s),
+            ),
+            _ => (
+                Route {
+                    req: req.into(),
+                    resp: resp.into(),
+                    ..Route::default()
+                },
+                ReadService::default(),
+            ),
+        };
+        Self {
+            key: key.into(),
+            label: label.into(),
+            req: req.to_uppercase(),
+            resp: resp.to_uppercase(),
+            source: source.into(),
+            builtin: source == SOURCE_PROFILE,
+            route,
+            read_service,
+        }
+    }
+
+    /// A user-added (or ad-hoc) module.
+    pub fn custom(vin: Option<&str>, key: &str, label: &str, req: &str, resp: &str) -> Self {
+        Self::new(vin, key, label, req, resp, SOURCE_CUSTOM)
+    }
+
+    /// The read service for one identifier on this module: the pack's
+    /// per-DID override first (`read_service_for_did`: DID > module >
+    /// platform > brand > standard), else the module's service.
+    pub fn service_for(&self, vin: Option<&str>, did: u16) -> ReadService {
+        match (
+            uds_map::can_address(&self.req),
+            uds_map::can_address(&self.resp),
+        ) {
+            (Some(req), Some(resp)) => uds_map::read_service_for_did(vin, req, resp, did),
+            _ => self.read_service,
+        }
+    }
+
+    /// The module key the profile uses for an address pair.
+    pub fn profile_key(req: u32, resp: u32) -> String {
+        format!(
+            "{}_{}",
+            format_can_address(req).to_lowercase(),
+            format_can_address(resp).to_lowercase()
+        )
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -55,8 +117,9 @@ pub struct VerificationObservation {
     pub did: String,
     pub purpose: String,
     pub outcome: DiagnosticOutcome,
-    /// Complete application payload after `62 <DID>`, never a three-byte
-    /// preview. This is the evidence needed to develop and validate decoders.
+    /// Complete application payload after the echoed identifier, never a
+    /// three-byte preview. This is the evidence needed to develop and
+    /// validate decoders.
     pub payload_hex: Option<String>,
     pub printable: Option<String>,
     /// Exact adapter response, including `NO DATA`, headers and framing.
@@ -70,6 +133,8 @@ pub struct VerificationTargetResult {
     pub label: String,
     pub expected_family: String,
     pub route: String,
+    /// Read service the target was read with (`22` | `21` | `1A`).
+    pub read_service: String,
     pub evidence_source: String,
     pub observations: Vec<VerificationObservation>,
     /// For sweep targets: how many identifiers were tried and how each
@@ -86,52 +151,71 @@ pub struct ParkedVerificationReport {
     pub targets: Vec<VerificationTargetResult>,
 }
 
-pub fn builtin_modules() -> Vec<UdsModule> {
-    [
-        ("bsi", "BSI (body computer)", "752", "652"),
-        ("abs", "ABS / ESP", "6AD", "68D"),
-        ("cluster", "Instrument cluster", "75F", "65F"),
-        ("engine", "Engine ECU", "6A8", "688"),
-    ]
-    .into_iter()
-    .map(|(key, label, req, resp)| UdsModule {
-        key: key.into(),
-        label: label.into(),
-        req: req.into(),
-        resp: resp.into(),
-        builtin: true,
-    })
-    .collect()
+/// Modules the knowledge map documents for this VIN (brand modules,
+/// overlays, family routes). Empty for an unknown or absent VIN.
+pub fn profile_modules(vin: Option<&str>) -> Vec<UdsModule> {
+    super::discovery::pack_ext::profile_modules_for_vin(uds_map::map(), vin)
+        .into_iter()
+        .map(|m| {
+            UdsModule::new(
+                vin,
+                &UdsModule::profile_key(m.req, m.resp),
+                &m.name
+                    .clone()
+                    .unwrap_or_else(|| format!("Module {}", format_can_address(m.req))),
+                &format_can_address(m.req),
+                &format_can_address(m.resp),
+                SOURCE_PROFILE,
+            )
+        })
+        .collect()
 }
 
-/// Look up a module by key among the built-ins first, then the caller-
-/// supplied custom list (from `db::list_uds_modules()` — kept as a plain
-/// slice here so this module stays free of any DB dependency).
-pub fn resolve<'a>(key: &str, custom: &'a [UdsModule]) -> Option<UdsModule> {
-    builtin_modules()
+/// Every module offered for this VIN: the profile's, then the customs that
+/// do not duplicate a profile route.
+pub fn modules_for_vin(vin: Option<&str>, custom: &[UdsModule]) -> Vec<UdsModule> {
+    let mut out = profile_modules(vin);
+    for module in custom {
+        if !out
+            .iter()
+            .any(|m| m.req == module.req && m.resp == module.resp)
+        {
+            out.push(module.clone());
+        }
+    }
+    out
+}
+
+/// Look up a module by key among the profile's modules for this VIN, then
+/// the caller-supplied custom list (from `db::list_uds_modules()` — kept as a
+/// plain slice here so this function stays free of any DB dependency).
+pub fn resolve(vin: Option<&str>, key: &str, custom: &[UdsModule]) -> Option<UdsModule> {
+    profile_modules(vin)
         .into_iter()
         .find(|m| m.key == key)
         .or_else(|| custom.iter().find(|m| m.key == key).cloned())
 }
 
 /// True when either side of a module's address pair does not fit in 11 bits,
-/// i.e. the module is addressed with 29-bit extended CAN identifiers
-/// (ISO 15765-2 normal fixed addressing, `18DA<target><source>`).
+/// i.e. the module is addressed with 29-bit extended CAN identifiers.
 fn address_pair(m: &UdsModule) -> Result<(u32, u32, bool), ElmError> {
-    let invalid = || ElmError::Handshake(format!("invalid CAN address pair {}/{}", m.req, m.resp));
-    let req = uds_map::can_address(&m.req).ok_or_else(&invalid)?;
-    let resp = uds_map::can_address(&m.resp).ok_or_else(&invalid)?;
-    let req_extended = req > 0x7FF;
-    if req_extended != (resp > 0x7FF) {
-        return Err(ElmError::Handshake(format!(
-            "mixed 11-bit/29-bit CAN address pair {}/{}",
-            m.req, m.resp
-        )));
-    }
-    Ok((req, resp, req_extended))
+    address_pair_of(&m.req, &m.resp)
 }
 
-fn format_can_address(address: u32) -> String {
+fn address_pair_of(req: &str, resp: &str) -> Result<(u32, u32, bool), ElmError> {
+    let invalid = || ElmError::Handshake(format!("invalid CAN address pair {req}/{resp}"));
+    let req_id = uds_map::can_address(req).ok_or_else(&invalid)?;
+    let resp_id = uds_map::can_address(resp).ok_or_else(&invalid)?;
+    let req_extended = req_id > 0x7FF;
+    if req_extended != (resp_id > 0x7FF) {
+        return Err(ElmError::Handshake(format!(
+            "mixed 11-bit/29-bit CAN address pair {req}/{resp}"
+        )));
+    }
+    Ok((req_id, resp_id, req_extended))
+}
+
+pub(crate) fn format_can_address(address: u32) -> String {
     if address <= 0x7FF {
         format!("{address:03X}")
     } else {
@@ -142,33 +226,81 @@ fn format_can_address(address: u32) -> String {
 /// Split a 29-bit identifier into the ELM327's two halves. The ELM sets an
 /// extended header as a priority byte (`AT CP`) plus the remaining three
 /// bytes (`AT SH`) — it does not take one eight-digit value for `AT SH`.
-/// For `18DAC7F1` that is priority `18` and header `DAC7F1`.
 fn split_extended(addr: u32) -> (u8, u32) {
     (((addr >> 24) & 0xFF) as u8, addr & 0x00FF_FFFF)
 }
 
-fn addressing_commands_for_route(
-    m: &UdsModule,
-    address_extension: Option<u8>,
-) -> Result<Vec<String>, ElmError> {
-    let (req, resp, extended) = address_pair(m)?;
+/// The ELM protocol selector for a route: ISO 15765-4 CAN at 500 kbit/s is
+/// protocol 6 (11-bit) / 7 (29-bit), at 250 kbit/s 8 / 9. A 29-bit route
+/// on a 250 kbit/s bus is not expressible in the route tuple yet.
+fn protocol_command(route: &Route, extended: bool) -> Result<&'static str, ElmError> {
+    Ok(match (route.protocol, extended) {
+        (RouteProtocol::Can11_500, false) => "ATSP6",
+        (RouteProtocol::Can11_250, false) => "ATSP8",
+        (RouteProtocol::Can11_500 | RouteProtocol::Can11_250, true) => "ATSP7",
+        (
+            RouteProtocol::Can29NormalFixed
+            | RouteProtocol::Can29TargetByte
+            | RouteProtocol::Can29Custom,
+            true,
+        ) => "ATSP7",
+        (
+            RouteProtocol::Can29NormalFixed
+            | RouteProtocol::Can29TargetByte
+            | RouteProtocol::Can29Custom,
+            false,
+        ) => "ATSP6",
+        (RouteProtocol::Kwp2000, _) => {
+            return Err(ElmError::Handshake(
+                "route protocol kwp2000 is not supported by this adapter path (unsupported route)"
+                    .into(),
+            ))
+        }
+        (RouteProtocol::Iso9141, _) => {
+            return Err(ElmError::Handshake(
+                "route protocol iso9141 is not supported by this adapter path (unsupported route)"
+                    .into(),
+            ))
+        }
+    })
+}
 
-    // 29-bit extended addressing. Needed for whole classes of modules that
-    // are simply unreachable over 11-bit: PSA/Stellantis TPMS lives at
-    // 18DAC7F1, and the map already records GM's Ultium modules the same
-    // way. Protocol 7 is CAN 29-bit 500k; the receive filter and flow
-    // control header both take the full eight-digit identifier.
+/// The AT command sequence that points the adapter at one route, from the
+/// route tuple: protocol/bit rate, 11-bit or 29-bit headers and receive
+/// filter, flow control, and the ISO-TP address extension (`ATCEA`) when
+/// the route carries one. `target_byte` on a normal-fixed 29-bit route is
+/// already inside the identifiers; on an 11-bit route it is the byte the
+/// address extension carries, so it never needs a command of its own.
+pub(crate) fn route_commands(
+    route: &Route,
+    extension_override: Option<u8>,
+) -> Result<Vec<String>, ElmError> {
+    let (req, resp, extended) = address_pair_of(&route.req, &route.resp)?;
+    let extension = match extension_override {
+        Some(byte) => Some(byte),
+        None => route
+            .address_extension
+            .as_deref()
+            .map(|hex| {
+                u8::from_str_radix(hex.trim(), 16)
+                    .map_err(|_| ElmError::Handshake(format!("invalid address extension {hex:?}")))
+            })
+            .transpose()?,
+    };
+    let protocol = protocol_command(route, extended)?;
+    let mut commands = vec![
+        protocol.to_string(),
+        "ATCAF1".to_string(),
+        "ATH0".to_string(),
+    ];
     if extended {
-        if address_extension.is_some() {
+        if extension.is_some() {
             return Err(ElmError::Handshake(
                 "ISO-TP address extension is only supported on 11-bit routes".into(),
             ));
         }
         let (priority, header) = split_extended(req);
-        return Ok(vec![
-            "ATSP7".to_string(),
-            "ATCAF1".to_string(),
-            "ATH0".to_string(),
+        commands.extend([
             format!("ATCP {priority:02X}"),
             format!("ATSH {header:06X}"),
             format!("ATCRA {resp:08X}"),
@@ -176,33 +308,30 @@ fn addressing_commands_for_route(
             "ATFCSD 300000".to_string(),
             "ATFCSM 1".to_string(),
         ]);
+        return Ok(commands);
     }
-
-    let mut commands = vec![
-        "ATSP6".to_string(),
-        "ATCAF1".to_string(),
-        "ATH0".to_string(),
+    commands.extend([
         format!("ATSH {req:03X}"),
         format!("ATCRA {resp:03X}"),
         format!("ATFCSH {req:03X}"),
-        match address_extension {
-            Some(extension) => format!("ATFCSD {extension:02X} 30 00 00"),
+        match extension {
+            Some(byte) => format!("ATFCSD {byte:02X} 30 00 00"),
             None => "ATFCSD 300000".to_string(),
         },
         "ATFCSM 1".to_string(),
-    ];
-    if let Some(extension) = address_extension {
-        commands.push(format!("ATCEA {extension:02X}"));
+    ]);
+    if let Some(byte) = extension {
+        commands.push(format!("ATCEA {byte:02X}"));
     }
     Ok(commands)
 }
 
 fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
-    addressing_commands_for_route(m, None)
+    address_pair(m)?;
+    route_commands(&m.route, None)
 }
 
-/// Point the ELM at one module with physical addressing: CAN 500k, 11-bit or
-/// 29-bit depending on the module's recorded address pair.
+/// Point the ELM at one module with physical addressing, per its route.
 /// This deliberately does not change the ECU's diagnostic session.
 pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
     for c in addressing_commands(m)? {
@@ -211,15 +340,11 @@ pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmErr
     Ok(())
 }
 
-fn setup_addressing_with_extension(
-    drv: &mut ElmDriver,
-    m: &UdsModule,
-    address_extension: Option<u8>,
-) -> Result<(), ElmError> {
+fn setup_route(drv: &mut ElmDriver, route: &Route) -> Result<(), ElmError> {
     // A prior target may have enabled extended addressing. Disable it before
     // configuring every route so state can never leak between candidates.
     drv.cmd("ATCEA", Duration::from_secs(2))?;
-    for command in addressing_commands_for_route(m, address_extension)? {
+    for command in route_commands(route, None)? {
         drv.cmd(&command, Duration::from_secs(2))?;
     }
     Ok(())
@@ -232,46 +357,89 @@ fn leave_extended_session(drv: &mut ElmDriver, extended_session_open: bool) {
     }
 }
 
-/// ReadDataByIdentifier. Ok(Some(bytes)) on 62-response, Ok(None) on negative
-/// response / silence, Err on transport failure. Single-DID reads use a
-/// generous 1500ms; range scans pass a shorter timeout (see `read_did_timeout`)
-/// since most of a scan's time is spent waiting out silence on unsupported DIDs.
-pub fn read_did(drv: &mut ElmDriver, did: u16) -> Result<Option<Vec<u8>>, ElmError> {
-    read_did_timeout(drv, did, Duration::from_millis(1500))
+/// Read one identifier with the module's read service. Ok(Some(bytes)) on a
+/// positive response, Ok(None) on negative response / silence, Err on
+/// transport failure. Single-DID reads use a generous 1500ms; range scans
+/// pass a shorter timeout (see `read_did_timeout`) since most of a scan's
+/// time is spent waiting out silence on unsupported DIDs.
+pub fn read_did(
+    drv: &mut ElmDriver,
+    service: ReadService,
+    did: u16,
+) -> Result<Option<Vec<u8>>, ElmError> {
+    read_did_timeout(drv, service, did, Duration::from_millis(1500))
 }
 
 pub fn read_did_timeout(
     drv: &mut ElmDriver,
+    service: ReadService,
     did: u16,
     timeout: Duration,
 ) -> Result<Option<Vec<u8>>, ElmError> {
-    observe_did(drv, did, timeout).map(|(_, data)| data)
+    observe_did(drv, service, did, timeout).map(|(_, data)| data)
 }
 
 fn observe_did(
     drv: &mut ElmDriver,
+    service: ReadService,
     did: u16,
     timeout: Duration,
 ) -> Result<(DiagnosticOutcome, Option<Vec<u8>>), ElmError> {
-    observe_did_evidence(drv, did, timeout).map(|evidence| (evidence.outcome, evidence.data))
+    observe_did_evidence(drv, service, did, timeout)
+        .map(|evidence| (evidence.outcome, evidence.data))
 }
 
-struct DidEvidence {
-    outcome: DiagnosticOutcome,
-    data: Option<Vec<u8>>,
-    raw_response: Option<String>,
+pub(crate) struct DidEvidence {
+    pub(crate) outcome: DiagnosticOutcome,
+    pub(crate) data: Option<Vec<u8>>,
+    pub(crate) raw_response: Option<String>,
 }
 
-fn observe_did_evidence(
+/// Request bytes and positive-response header for one identifier on a
+/// read service: `22 DDDD` → `62 DDDD`; `21 GG` → `61 GG`; `1A GG` →
+/// `5A GG`. Services 21 and 1A carry a one-byte identifier, so an
+/// identifier above `FF` is not requestable on them.
+pub(crate) fn request_for(service: ReadService, did: u16) -> Option<(String, Vec<u8>)> {
+    match service {
+        ReadService::DataByIdentifier => Some((
+            format!("22{did:04X}"),
+            vec![0x62, (did >> 8) as u8, (did & 0xFF) as u8],
+        )),
+        ReadService::DataByLocalIdentifier | ReadService::EcuIdentification => {
+            if did > 0xFF {
+                return None;
+            }
+            let positive = service.sid() + 0x40;
+            Some((
+                format!("{:02X}{did:02X}", service.sid()),
+                vec![positive, did as u8],
+            ))
+        }
+    }
+}
+
+pub(crate) fn observe_did_evidence(
     drv: &mut ElmDriver,
+    service: ReadService,
     did: u16,
     timeout: Duration,
 ) -> Result<DidEvidence, ElmError> {
-    let raw = match drv.cmd(&format!("22{did:04X}"), timeout) {
+    let sid = service.as_str();
+    let Some((request, positive)) = request_for(service, did) else {
+        return Ok(DidEvidence {
+            outcome: DiagnosticOutcome::malformed(
+                sid,
+                format!("unsupported request: identifier {did:04X} does not fit service {sid} (one-byte identifiers)"),
+            ),
+            data: None,
+            raw_response: None,
+        });
+    };
+    let raw = match drv.cmd(&request, timeout) {
         Ok(raw) => raw,
         Err(ElmError::NoResponse) => {
             return Ok(DidEvidence {
-                outcome: DiagnosticOutcome::timed_out("22"),
+                outcome: DiagnosticOutcome::timed_out(sid),
                 data: None,
                 raw_response: None,
             });
@@ -280,25 +448,20 @@ fn observe_did_evidence(
     };
     let lines = parser::clean_response(&raw);
     let bytes = parser::payload_bytes(&lines, "");
-    for i in 0..bytes.len().saturating_sub(2) {
-        if bytes[i] == 0x62
-            && bytes[i + 1] == (did >> 8) as u8
-            && bytes[i + 2] == (did & 0xFF) as u8
-        {
-            return Ok(DidEvidence {
-                outcome: DiagnosticOutcome::answered("22"),
-                data: Some(bytes[i + 3..].to_vec()),
-                raw_response: Some(raw),
-            });
-        }
+    if let Some(start) = bytes.windows(positive.len()).position(|w| w == positive) {
+        return Ok(DidEvidence {
+            outcome: DiagnosticOutcome::answered(sid),
+            data: Some(bytes[start + positive.len()..].to_vec()),
+            raw_response: Some(raw),
+        });
     }
     if let Some(response) = bytes
         .windows(3)
-        .find(|window| window[0] == 0x7F && window[1] == 0x22)
+        .find(|window| window[0] == 0x7F && window[1] == service.sid())
     {
         return Ok(DidEvidence {
             outcome: DiagnosticOutcome::refused(
-                "22",
+                sid,
                 response[2],
                 parser::negative_response_name(response[2]),
             ),
@@ -308,128 +471,73 @@ fn observe_did_evidence(
     }
     if raw.to_ascii_uppercase().contains("NO DATA") || raw.trim().is_empty() {
         Ok(DidEvidence {
-            outcome: DiagnosticOutcome::timed_out("22"),
+            outcome: DiagnosticOutcome::timed_out(sid),
             data: None,
             raw_response: Some(raw),
         })
     } else {
         Ok(DidEvidence {
-            outcome: DiagnosticOutcome::malformed("22", "unexpected ReadDataByIdentifier response"),
+            outcome: DiagnosticOutcome::malformed(
+                sid,
+                format!("unexpected service {sid} response"),
+            ),
             data: None,
             raw_response: Some(raw),
         })
     }
 }
 
-/// Version tag stamped on every `parked_verification()` report. It names the
-/// plan as it runs today (the v3 target set below: identity DIDs plus the ABS
-/// sweep). Bump it whenever the targets, DIDs or sweep ranges change; tests,
-/// OpenAPI examples and docs read this constant instead of repeating it.
-pub const PARKED_PLAN_VERSION: &str = "citroen-c41-v3";
+/// A module-bound known DID from the main map (which already consults the
+/// first overlay through the frozen contract) or any other overlay pack.
+fn known_did_any(
+    vin: Option<&str>,
+    req: u32,
+    resp: u32,
+    did: u16,
+) -> Option<&'static uds_map::KnownDid> {
+    uds_map::known_did(vin, req, resp, did)
+        .or_else(|| super::discovery::packs::overlay_known_did(vin, req, resp, did))
+}
 
-/// A reproducible, parked-car evidence pass for the unresolved Citroen C4
-/// C41 candidates. Every vehicle-facing request is ReadDataByIdentifier
-/// (0x22) in the ECU's default session. The plan never opens 10 03, controls
-/// an actuator, starts a routine, clears a fault, or writes configuration.
-pub fn parked_verification(drv: &mut ElmDriver) -> ParkedVerificationReport {
-    struct Target {
-        key: &'static str,
-        label: &'static str,
-        family: &'static str,
-        req: &'static str,
-        resp: &'static str,
-        extension: Option<u8>,
-        dids: &'static [(u16, &'static str)],
-        /// Inclusive identifier ranges read one by one after `dids`. Only
-        /// answered identifiers become observations; the counts go in
-        /// `summary`.
-        sweep: &'static [(u16, u16)],
-        source: &'static str,
-    }
+/// Routes this vehicle has reached, from its `discovered_modules` rows.
+pub fn reached_routes(db: &Db, vehicle_id: i64) -> Vec<(u32, u32)> {
+    db.discovered_summary(vehicle_id)
+        .iter()
+        .filter(|m| {
+            m.route_state
+                .as_deref()
+                .map(|s| s == "reached")
+                .unwrap_or(true)
+        })
+        .filter_map(|m| parse_module_address(&m.address))
+        .collect()
+}
 
-    // v3: v2 proved F080 and F0FE answer on every reachable ECU and that
-    // F08A/F08E are either empty (camera) or absent (ABS, steering). Repeat
-    // only the identity reads that carry information, so each run keeps
-    // refreshing the part-number evidence the fingerprint columns are built
-    // from.
-    const PSA_IDENTITY: &[(u16, &str)] = &[
-        (0xF186, "active diagnostic session"),
-        (0xF18C, "ECU serial number"),
-        (0xF080, "PSA identity payload (BCD part references)"),
-        (0xF0FE, "PSA identity candidate F0FE"),
-    ];
-    // Four TPMS address hypotheses (29-bit, DSG 6AF, legacy 740, legacy 742)
-    // were silent in v1/v2 and the BSI is unreachable from the OBD pins. The
-    // remaining evidence-based route for tyre pressure is the ABS/ESP itself,
-    // so sweep the PSA data ranges where this car's engine ECU already keeps
-    // its live values (D4xx) and the range the earlier BSI hunt targeted.
-    const ABS_SWEEP: &[(u16, u16)] = &[(0xD000, 0xD1FF), (0xD400, 0xD4FF)];
-    let targets = [
-        Target {
-            key: "cvm3",
-            label: "Windscreen camera",
-            family: "CVM3",
-            req: "74A",
-            resp: "64A",
-            extension: None,
-            dids: PSA_IDENTITY,
-            sweep: &[],
-            source: "verified_on_vehicle route; PSA identity DIDs answered in v2",
-        },
-        Target {
-            key: "abs",
-            label: "ABS / ESP",
-            family: "ESPMK100_UDS",
-            req: "6AD",
-            resp: "68D",
-            extension: None,
-            dids: PSA_IDENTITY,
-            sweep: &[],
-            source: "verified_on_vehicle route; exact-platform community family; PSA identity DIDs answered in v2",
-        },
-        Target {
-            key: "steering",
-            label: "Power steering",
-            family: "DAE_UDS2",
-            req: "6B5",
-            resp: "695",
-            extension: None,
-            dids: PSA_IDENTITY,
-            sweep: &[],
-            source: "verified_on_vehicle route; exact-platform community family; PSA identity DIDs answered in v2",
-        },
-        Target {
-            key: "abs_sweep",
-            label: "ABS / ESP data sweep (tyre pressure search)",
-            family: "ESPMK100_UDS",
-            req: "6AD",
-            resp: "68D",
-            extension: None,
-            dids: &[],
-            sweep: ABS_SWEEP,
-            source: "hypothesis: TPMS values served by ABS/ESP after four silent TPMS routes; bounded 0x22 sweep, default session",
-        },
-    ];
+/// The parked verification pass: the plan generated from the profile for
+/// this VIN and the routes it has reached, executed target by target. Every
+/// vehicle-facing request is the target's read service in the ECU's default
+/// session. The plan never opens 10 03, controls an actuator, starts a
+/// routine, clears a fault, or writes configuration.
+pub fn parked_verification(
+    drv: &mut ElmDriver,
+    vin: Option<&str>,
+    reached: &[(u32, u32)],
+) -> ParkedVerificationReport {
+    let plan = plan::generate(vin, reached, uds_map::map());
+    execute_plan(drv, &plan)
+}
 
+pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificationReport {
     let mut operation = ScannerOperation::new(drv);
     let mut results = Vec::new();
-    for target in targets {
-        let module = UdsModule {
-            key: target.key.into(),
-            label: target.label.into(),
-            req: target.req.into(),
-            resp: target.resp.into(),
-            builtin: false,
-        };
-        let route = match target.extension {
-            Some(ext) => format!("{}→{} + {:02X}", target.req, target.resp, ext),
-            None => format!("{}→{}", target.req, target.resp),
-        };
+    let started = Instant::now();
+    let sweep_budget = Duration::from_secs(plan.sweep_budget_secs);
+    let mut sweep_spent = Duration::ZERO;
+    for target in &plan.targets {
+        let route = describe_route(&target.route);
         let mut observations = Vec::new();
         let mut summary = None;
-        if let Err(error) =
-            setup_addressing_with_extension(operation.driver(), &module, target.extension)
-        {
+        if let Err(error) = setup_route(operation.driver(), &target.route) {
             observations.push(VerificationObservation {
                 did: "route".into(),
                 purpose: "configure diagnostic route".into(),
@@ -439,16 +547,24 @@ pub fn parked_verification(drv: &mut ElmDriver) -> ParkedVerificationReport {
                 raw_response: None,
             });
         } else {
-            for (did, purpose) in target.dids {
-                let evidence =
-                    observe_did_evidence(operation.driver(), *did, Duration::from_millis(1800));
+            for read in &target.dids {
+                let evidence = observe_did_evidence(
+                    operation.driver(),
+                    target.read_service,
+                    read.did,
+                    Duration::from_millis(1800),
+                );
                 let (outcome, data, raw_response) = match evidence {
                     Ok(value) => (value.outcome, value.data, value.raw_response),
-                    Err(error) => (DiagnosticOutcome::from_elm_error("22", &error), None, None),
+                    Err(error) => (
+                        DiagnosticOutcome::from_elm_error(target.read_service.as_str(), &error),
+                        None,
+                        None,
+                    ),
                 };
                 observations.push(VerificationObservation {
-                    did: format!("{did:04X}"),
-                    purpose: (*purpose).into(),
+                    did: format!("{:04X}", read.did),
+                    purpose: read.purpose.clone(),
                     payload_hex: data.as_deref().map(hex_string),
                     printable: data.as_deref().and_then(printable),
                     raw_response,
@@ -456,28 +572,46 @@ pub fn parked_verification(drv: &mut ElmDriver) -> ParkedVerificationReport {
                 });
             }
             if !target.sweep.is_empty() {
+                let remaining = sweep_budget.saturating_sub(sweep_spent);
+                let sweep_started = Instant::now();
                 summary = Some(sweep_identifiers(
                     operation.driver(),
-                    target.sweep,
+                    target.read_service,
+                    &target.sweep,
+                    remaining,
                     &mut observations,
                 ));
+                sweep_spent += sweep_started.elapsed();
             }
         }
         results.push(VerificationTargetResult {
-            key: target.key.into(),
-            label: target.label.into(),
-            expected_family: target.family.into(),
+            key: target.key.clone(),
+            label: target.label.clone(),
+            expected_family: target.expected_family.clone(),
             route,
-            evidence_source: target.source.into(),
+            read_service: target.read_service.as_str().into(),
+            evidence_source: target.source.clone(),
             observations,
             summary,
         });
     }
+    let _ = started;
     ParkedVerificationReport {
         run_id: None,
-        plan_version: PARKED_PLAN_VERSION.into(),
-        safety: "parked, read-only 0x22 requests, default diagnostic session".into(),
+        plan_version: plan.plan_version.clone(),
+        safety:
+            "parked, read-only requests on each module's read service, default diagnostic session"
+                .into(),
         targets: results,
+    }
+}
+
+/// `req→resp` plus the address extension when the route carries one — the
+/// string the supervisor parses back into an address pair.
+pub fn describe_route(route: &Route) -> String {
+    match &route.address_extension {
+        Some(ext) => format!("{}→{} + {}", route.req, route.resp, ext),
+        None => format!("{}→{}", route.req, route.resp),
     }
 }
 
@@ -486,19 +620,28 @@ pub fn parked_verification(drv: &mut ElmDriver) -> ParkedVerificationReport {
 /// their complete payload; refusals and silence are only counted, because a
 /// 768-row table of `7F 22 31` is not evidence anyone can review. Stops early
 /// when the link itself degrades so a dead adapter cannot masquerade as 700
-/// silent identifiers.
+/// silent identifiers, and when the sweep budget runs out (the remaining
+/// ranges carry over to the next connection).
 fn sweep_identifiers(
     drv: &mut ElmDriver,
+    service: ReadService,
     ranges: &[(u16, u16)],
+    budget: Duration,
     observations: &mut Vec<VerificationObservation>,
 ) -> String {
     let (mut tried, mut answered, mut refused, mut silent, mut link_errors) =
         (0u32, 0u32, 0u32, 0u32, 0u32);
     let mut aborted_at = None;
+    let mut out_of_budget_at = None;
+    let started = Instant::now();
     'ranges: for (from, to) in ranges {
         for did in *from..=*to {
+            if started.elapsed() >= budget {
+                out_of_budget_at = Some(did);
+                break 'ranges;
+            }
             tried += 1;
-            match observe_did_evidence(drv, did, Duration::from_millis(600)) {
+            match observe_did_evidence(drv, service, did, Duration::from_millis(600)) {
                 Ok(evidence) => match evidence.outcome.status {
                     DiagnosticStatus::Answered => {
                         answered += 1;
@@ -511,7 +654,7 @@ fn sweep_identifiers(
                             outcome: evidence.outcome,
                         });
                     }
-                    DiagnosticStatus::Refused => refused += 1,
+                    DiagnosticStatus::Refused | DiagnosticStatus::Unsupported => refused += 1,
                     _ => silent += 1,
                 },
                 Err(_) => {
@@ -530,10 +673,16 @@ fn sweep_identifiers(
         .collect::<Vec<_>>()
         .join(", ");
     let mut summary = format!(
-        "swept {ranges}: {tried} identifiers tried, {answered} answered, {refused} refused, {silent} silent, {link_errors} link errors"
+        "swept {ranges} with service {}: {tried} identifiers tried, {answered} answered, {refused} refused, {silent} silent, {link_errors} link errors",
+        service.as_str()
     );
     if let Some(did) = aborted_at {
         summary.push_str(&format!("; aborted at {did:04X} because the link degraded"));
+    }
+    if let Some(did) = out_of_budget_at {
+        summary.push_str(&format!(
+            "; stopped at {did:04X} when the sweep budget ran out (remaining ranges carry over)"
+        ));
     }
     summary
 }
@@ -570,28 +719,36 @@ pub struct CorrelationCapture {
 /// diff against the baseline capture can be made from.
 pub fn correlation_capture(
     drv: &mut ElmDriver,
+    vin: Option<&str>,
     req: &str,
     resp: &str,
     dids: &[u16],
     repeats: u8,
 ) -> Result<Vec<CorrelationReading>, String> {
-    let module = UdsModule {
-        key: format!("corr_{}", req.to_ascii_lowercase()),
-        label: format!("Correlation {req}"),
-        req: req.into(),
-        resp: resp.into(),
-        builtin: false,
-    };
+    let module = UdsModule::custom(
+        vin,
+        &format!("corr_{}", req.to_ascii_lowercase()),
+        &format!("Correlation {req}"),
+        req,
+        resp,
+    );
+    let service = module.read_service;
     let mut operation = ScannerOperation::new(drv);
-    setup_addressing_with_extension(operation.driver(), &module, None)
+    setup_route(operation.driver(), &module.route)
         .map_err(|error| format!("could not configure route {req}→{resp}: {error}"))?;
     let repeats = repeats.clamp(1, 10);
     let mut payloads: Vec<Vec<Option<String>>> = vec![Vec::new(); dids.len()];
-    let mut outcomes: Vec<DiagnosticOutcome> = vec![DiagnosticOutcome::timed_out("22"); dids.len()];
+    let mut outcomes: Vec<DiagnosticOutcome> =
+        vec![DiagnosticOutcome::timed_out(service.as_str()); dids.len()];
     let mut link_errors = 0u32;
     for _ in 0..repeats {
         for (index, did) in dids.iter().enumerate() {
-            match observe_did_evidence(operation.driver(), *did, Duration::from_millis(800)) {
+            match observe_did_evidence(
+                operation.driver(),
+                service,
+                *did,
+                Duration::from_millis(800),
+            ) {
                 Ok(evidence) => {
                     payloads[index].push(evidence.data.as_deref().map(hex_string));
                     outcomes[index] = evidence.outcome;
@@ -599,7 +756,7 @@ pub fn correlation_capture(
                 Err(error) => {
                     link_errors += 1;
                     payloads[index].push(None);
-                    outcomes[index] = DiagnosticOutcome::from_elm_error("22", &error);
+                    outcomes[index] = DiagnosticOutcome::from_elm_error(service.as_str(), &error);
                     if link_errors > 10 {
                         return Err(format!(
                             "link degraded during capture at {did:04X}; nothing was saved"
@@ -626,55 +783,6 @@ pub fn correlation_capture(
         .collect())
 }
 
-/// PSA/Stellantis `F080` identity payloads carry the module's references as
-/// packed BCD, five bytes per ten-digit number (`98 17 13 71 80` is the part
-/// reference `9817137180` printed on the ECU label). The first reference
-/// starts at byte 0 and the second at byte 7, with two bytes between them.
-/// Returns only groups whose every nibble is a decimal digit, so `FF`
-/// padding or a differently laid out payload yields nothing instead of a
-/// fabricated number.
-pub fn decode_psa_references(payload: &[u8]) -> Vec<String> {
-    const GROUP_OFFSETS: [usize; 2] = [0, 7];
-    GROUP_OFFSETS
-        .iter()
-        .filter_map(|&offset| {
-            let group = payload.get(offset..offset + 5)?;
-            let mut digits = String::with_capacity(10);
-            for byte in group {
-                let (high, low) = (byte >> 4, byte & 0x0F);
-                if high > 9 || low > 9 {
-                    return None;
-                }
-                digits.push(char::from(b'0' + high));
-                digits.push(char::from(b'0' + low));
-            }
-            Some(digits)
-        })
-        .collect()
-}
-
-/// PSA `F0FE` ("ZI zone") payloads end with the current software /
-/// calibration reference as three packed-BCD bytes at offsets 21–23,
-/// printed as `96xxxxxx80` (e.g. `95 04 15` → `9695041580`). Byte 4 is the
-/// supplier code (`0D` = Continental/VDO). Layout per the arduino-psa-diag
-/// `UDS_FLASH.md` and PyPSADiag `IdentUDSECU.json` descriptions, which agree
-/// with each other and with the three ECUs captured on the C4 (research
-/// note `docs/research/c41-abs-did-research.md`, 2026-08-27).
-pub fn decode_psa_software_reference(payload: &[u8]) -> Option<String> {
-    let group = payload.get(21..24)?;
-    let mut digits = String::from("96");
-    for byte in group {
-        let (high, low) = (byte >> 4, byte & 0x0F);
-        if high > 9 || low > 9 {
-            return None;
-        }
-        digits.push(char::from(b'0' + high));
-        digits.push(char::from(b'0' + low));
-    }
-    digits.push_str("80");
-    Some(digits)
-}
-
 fn payload_bytes(observation: &VerificationObservation) -> Vec<u8> {
     observation
         .payload_hex
@@ -685,81 +793,35 @@ fn payload_bytes(observation: &VerificationObservation) -> Vec<u8> {
         .collect()
 }
 
-/// Build a comparable fingerprint for a verification target from the PSA
-/// identity evidence it answered. Returns None when the target did not yield
-/// a decodable `F080` reference, so nothing is written for silent routes.
-///
-/// Field mapping (corrected 2026-08-27 after research): `F080` reference 1 is
-/// the hardware/spare-part reference → `spare_part_number`; `F080` reference
-/// 2 is a *complementary hardware reference* → `hardware_version`; the
-/// software/calibration reference comes from `F0FE` bytes 21–23 →
-/// `software_version`. The evidence entries name the source DID of every
-/// field.
-pub fn psa_identity_fingerprint(target: &VerificationTargetResult) -> Option<EcuFingerprint> {
+/// The identity observations of a verification target, for the fingerprint
+/// builder. `(req, resp)` come back parsed from the target's route string.
+pub fn target_identity_observations(
+    target: &VerificationTargetResult,
+) -> Option<((String, String), Vec<IdentityObservation>)> {
     let (req, resp) = target.route.split_once('→')?;
-    let answered = |did: &str| {
-        target
-            .observations
-            .iter()
-            .find(|item| item.did == did && item.outcome.status == DiagnosticStatus::Answered)
-    };
-    let f080 = answered("F080")?;
-    let references = decode_psa_references(&payload_bytes(f080));
-    let spare_part_number = references.first().cloned()?;
-    let hardware_version = references.get(1).cloned();
-    let mut evidence = vec![EcuIdentityEvidence {
-        did: 0xF080,
-        label: "PSA ZA zone: reference 1 = hardware/spare part, reference 2 = complementary hardware reference".into(),
-        outcome: f080.outcome.clone(),
-        raw_value: f080.payload_hex.clone(),
-        decoded_value: Some(references.join(" / ")),
-    }];
-    let software_version =
-        answered("F0FE").and_then(|f0fe| {
-            let bytes = payload_bytes(f0fe);
-            let software = decode_psa_software_reference(&bytes);
-            evidence.push(EcuIdentityEvidence {
-                did: 0xF0FE,
-                label: format!(
-                "PSA ZI zone: software/calibration reference from bytes 21–23; supplier code {}",
-                bytes.get(4).map(|b| format!("{b:02X}")).unwrap_or_else(|| "?".into())
-            ),
-                outcome: f0fe.outcome.clone(),
-                raw_value: f0fe.payload_hex.clone(),
-                decoded_value: software.clone(),
-            });
-            software
-        });
-    if let Some(serial) = answered("F18C") {
-        evidence.push(EcuIdentityEvidence {
-            did: 0xF18C,
-            label: "ECU serial number (excluded from the match key)".into(),
-            outcome: serial.outcome.clone(),
-            raw_value: serial.payload_hex.clone(),
-            decoded_value: serial.printable.clone(),
-        });
-    }
-    let mut key = format!("part={spare_part_number}");
-    if let Some(hardware) = &hardware_version {
-        key.push_str(&format!("|hw={hardware}"));
-    }
-    if let Some(software) = &software_version {
-        key.push_str(&format!("|sw={software}"));
-    }
-    let fields_answered =
-        1 + u8::from(hardware_version.is_some()) + u8::from(software_version.is_some());
-    Some(EcuFingerprint {
-        request_address: req.trim().into(),
-        response_address: resp.split(" + ").next().unwrap_or(resp).trim().into(),
-        spare_part_number: Some(spare_part_number),
-        hardware_version,
-        software_version,
-        system_name: None,
-        match_key: Some(key),
-        fields_answered,
-        fields_total: 4,
-        evidence,
-    })
+    let resp = resp.split(" + ").next().unwrap_or(resp).trim().to_string();
+    let observations = target
+        .observations
+        .iter()
+        .filter_map(|item| {
+            let did = u16::from_str_radix(&item.did, 16).ok()?;
+            Some(IdentityObservation {
+                did,
+                outcome: item.outcome.clone(),
+                payload: payload_bytes(item),
+            })
+        })
+        .collect();
+    Some(((req.trim().to_string(), resp), observations))
+}
+
+/// Fingerprint of a verification target from this VIN's identity block.
+pub fn target_fingerprint(
+    vin: Option<&str>,
+    target: &VerificationTargetResult,
+) -> Option<EcuFingerprint> {
+    let ((req, resp), observations) = target_identity_observations(target)?;
+    identity::fingerprint(vin, (&req, &resp), &observations)
 }
 
 /// Keep an explicitly opened extended session alive without asking the ECU
@@ -895,16 +957,10 @@ pub struct ClearOutcome {
 
 /// Custom modules from the DB, converted to `UdsModule`. A tiny adapter so
 /// `db.rs` doesn't need to know about this module's types.
-fn custom_modules(db: &Db) -> Vec<UdsModule> {
+pub fn custom_modules(db: &Db, vin: Option<&str>) -> Vec<UdsModule> {
     db.list_uds_modules()
         .into_iter()
-        .map(|(key, label, req, resp)| UdsModule {
-            key,
-            label,
-            req,
-            resp,
-            builtin: false,
-        })
+        .map(|(key, label, req, resp)| UdsModule::custom(vin, &key, &label, &req, &resp))
         .collect()
 }
 
@@ -916,11 +972,12 @@ fn custom_modules(db: &Db) -> Vec<UdsModule> {
 pub fn clear_module(
     drv: &mut ElmDriver,
     db: &Db,
+    vin: Option<&str>,
     module: &str,
     ctx: super::supervisor::ConnCtx,
 ) -> Result<ClearOutcome, String> {
-    let custom = custom_modules(db);
-    let m = resolve(module, &custom).ok_or("unknown module")?;
+    let custom = custom_modules(db, vin);
+    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     let extended_session_open = operation.enter_extended_session();
@@ -1042,9 +1099,14 @@ fn settle_after_clear() {
 #[cfg(test)]
 fn settle_after_clear() {}
 
-pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<String>, String> {
-    let custom = custom_modules(db);
-    let m = resolve(module, &custom).ok_or("unknown module")?;
+pub fn module_dtcs(
+    drv: &mut ElmDriver,
+    db: &Db,
+    vin: Option<&str>,
+    module: &str,
+) -> Result<Vec<String>, String> {
+    let custom = custom_modules(db, vin);
+    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     read_dtcs(operation.driver()).map_err(|e| e.to_string())
@@ -1058,17 +1120,23 @@ pub fn module_dtcs(drv: &mut ElmDriver, db: &Db, module: &str) -> Result<Vec<Str
 pub fn read_many(
     drv: &mut ElmDriver,
     db: &Db,
+    vin: Option<&str>,
     module: &str,
     dids: &[u16],
 ) -> Result<Vec<UdsHit>, String> {
-    let custom = custom_modules(db);
-    let m = resolve(module, &custom).ok_or("unknown module")?;
+    let custom = custom_modules(db, vin);
+    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     let mut hits = Vec::with_capacity(dids.len());
     for did in dids.iter().take(64) {
-        if let Some(data) = read_did_timeout(operation.driver(), *did, Duration::from_millis(600))
-            .map_err(|e| e.to_string())?
+        if let Some(data) = read_did_timeout(
+            operation.driver(),
+            m.service_for(vin, *did),
+            *did,
+            Duration::from_millis(600),
+        )
+        .map_err(|e| e.to_string())?
         {
             hits.push(to_hit(*did, &data));
         }
@@ -1079,14 +1147,15 @@ pub fn read_many(
 pub fn read_one(
     drv: &mut ElmDriver,
     db: &Db,
+    vin: Option<&str>,
     module: &str,
     did: u16,
 ) -> Result<Option<UdsHit>, String> {
-    let custom = custom_modules(db);
-    let m = resolve(module, &custom).ok_or("unknown module")?;
+    let custom = custom_modules(db, vin);
+    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
-    read_did(operation.driver(), did)
+    read_did(operation.driver(), m.service_for(vin, did), did)
         .map_err(|e| e.to_string())
         .map(|opt| opt.map(|d| to_hit(did, &d)))
 }
@@ -1107,9 +1176,11 @@ pub fn read_one(
 /// (a safety net now, not the everyday UX timer), and real cancellation via
 /// `cancel_scan` so a stuck scan releases within one DID's timeout instead of
 /// running to completion regardless.
+#[allow(clippy::too_many_arguments)]
 pub fn scan_range(
     drv: &mut ElmDriver,
     db: &Db,
+    vin: Option<&str>,
     module: &str,
     from: u16,
     to: u16,
@@ -1117,8 +1188,8 @@ pub fn scan_range(
     app: &tauri::AppHandle,
 ) -> Result<Vec<UdsHit>, String> {
     log::debug!("scan request: module={module} from={from:04X} to={to:04X}");
-    let custom = custom_modules(db);
-    let m = match resolve(module, &custom) {
+    let custom = custom_modules(db, vin);
+    let m = match resolve(vin, module, &custom) {
         Some(m) => m,
         None => {
             log::warn!("scan aborted: unknown module {module:?}");
@@ -1180,7 +1251,12 @@ pub fn scan_range(
         if extended_session_open && i % 40 == 39 {
             tester_present(operation.driver());
         }
-        match read_did_timeout(operation.driver(), did, Duration::from_millis(600)) {
+        match read_did_timeout(
+            operation.driver(),
+            m.service_for(vin, did),
+            did,
+            Duration::from_millis(600),
+        ) {
             Ok(Some(d)) => hits.push(to_hit(did, &d)),
             Ok(None) => {}
             Err(ref e) => {
@@ -1224,9 +1300,13 @@ pub fn poll_probes(
     for p in &probes {
         by_module.entry(p.module.clone()).or_default().push(p);
     }
-    let custom = custom_modules(db);
+    let vin = ctx
+        .vehicle_id
+        .and_then(|id| db.vehicle(id))
+        .and_then(|v| v.vin);
+    let custom = custom_modules(db, vin.as_deref());
     for (mkey, group) in by_module {
-        let Some(m) = resolve(&mkey, &custom) else {
+        let Some(m) = resolve(vin.as_deref(), &mkey, &custom) else {
             continue;
         };
         let mut operation = ScannerOperation::new(drv);
@@ -1234,7 +1314,11 @@ pub fn poll_probes(
             continue;
         }
         for p in group {
-            if let Ok(Some(data)) = read_did(operation.driver(), p.did) {
+            if let Ok(Some(data)) = read_did(
+                operation.driver(),
+                m.service_for(vin.as_deref(), p.did),
+                p.did,
+            ) {
                 if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
                     let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
@@ -1289,6 +1373,9 @@ pub struct EcuFingerprint {
     pub hardware_version: Option<String>,
     pub software_version: Option<String>,
     pub system_name: Option<String>,
+    /// Supplier code or name when the identity block carries one; kept out
+    /// of the match key (it names the maker, not the part).
+    pub supplier: Option<String>,
     /// Stable comparison material. ECU serial number and VIN are deliberately
     /// excluded because they identify an individual unit/vehicle and prevent
     /// knowledge from matching the same ECU family in another car.
@@ -1296,62 +1383,6 @@ pub struct EcuFingerprint {
     pub fields_answered: u8,
     pub fields_total: u8,
     pub evidence: Vec<EcuIdentityEvidence>,
-}
-
-fn identity_value(data: &[u8]) -> String {
-    printable(data).unwrap_or_else(|| hex_string(data))
-}
-
-fn build_fingerprint(
-    request_address: String,
-    response_address: String,
-    evidence: Vec<EcuIdentityEvidence>,
-) -> EcuFingerprint {
-    let value = |did| {
-        evidence
-            .iter()
-            .find(|item| item.did == did)
-            .and_then(|item| item.decoded_value.clone())
-    };
-    let spare_part_number = value(0xF187);
-    let hardware_version = value(0xF191);
-    let software_version = value(0xF195);
-    let system_name = value(0xF197);
-    let (fields_answered, match_key) = {
-        // Labels name the field, not the DID it came from, so an ISO F187
-        // part number and a PSA F080 reference for the same ECU family
-        // compare equal instead of being split by their source.
-        let comparable = [
-            ("part", spare_part_number.as_deref()),
-            ("hw", hardware_version.as_deref()),
-            ("sw", software_version.as_deref()),
-            ("sys", system_name.as_deref()),
-        ];
-        let answered = comparable
-            .iter()
-            .filter(|(_, value)| value.is_some())
-            .count() as u8;
-        let key = (answered > 0).then(|| {
-            comparable
-                .iter()
-                .filter_map(|(did, value)| value.map(|value| format!("{did}={value}")))
-                .collect::<Vec<_>>()
-                .join("|")
-        });
-        (answered, key)
-    };
-    EcuFingerprint {
-        request_address,
-        response_address,
-        spare_part_number,
-        hardware_version,
-        software_version,
-        system_name,
-        match_key,
-        fields_answered,
-        fields_total: 4,
-        evidence,
-    }
 }
 
 #[derive(Serialize, Clone, Default)]
@@ -1463,16 +1494,22 @@ pub struct DiscoveryReport {
 /// so an auto-promoted probe has something to hand `uds::setup` — probes
 /// are addressed by module KEY (built-in or custom), never raw hex,
 /// matching the manual save-as-probe path exactly.
-fn ensure_module_key(db: &Db, req: u32, resp: u32, name: Option<&str>) -> String {
+fn ensure_module_key(
+    db: &Db,
+    vin: Option<&str>,
+    req: u32,
+    resp: u32,
+    name: Option<&str>,
+) -> String {
     let req_hex = format_can_address(req);
     let resp_hex = format_can_address(resp);
-    if let Some(m) = builtin_modules()
+    if let Some(m) = profile_modules(vin)
         .into_iter()
         .find(|m| m.req == req_hex && m.resp == resp_hex)
     {
         return m.key;
     }
-    if let Some(m) = custom_modules(db)
+    if let Some(m) = custom_modules(db, vin)
         .into_iter()
         .find(|m| m.req == req_hex && m.resp == resp_hex)
     {
@@ -1493,47 +1530,48 @@ fn ensure_module_key(db: &Db, req: u32, resp: u32, name: Option<&str>) -> String
     key
 }
 
-/// Point physical addressing at one request/response pair without the full
-/// per-module session dance — used while enumerating many addresses.
+/// Point physical addressing at one route without the full per-module
+/// session dance — used while enumerating many addresses. The protocol-level
+/// commands are only resent when the route's protocol changes.
 #[derive(Default)]
-struct AddressingState {
-    extended: Option<bool>,
+pub(crate) struct AddressingState {
+    protocol: Option<String>,
 }
 
-fn point_at(
+/// The commands `point_at` sends for a route given what the adapter is
+/// already set to (the protocol-level commands are skipped while the
+/// protocol is unchanged). Exposed so replay tests can build fixtures from
+/// the same rule.
+pub(crate) fn point_at_commands(
+    route: &Route,
+    state: &mut AddressingState,
+) -> Result<Vec<String>, ElmError> {
+    let commands = route_commands(route, None)?;
+    let protocol = commands[0].clone();
+    let same_protocol = state.protocol.as_deref() == Some(protocol.as_str());
+    let out = commands
+        .iter()
+        .filter(|command| {
+            let protocol_level = *command == &protocol
+                || command.as_str() == "ATCAF1"
+                || command.as_str() == "ATH0"
+                || command.starts_with("ATFCSD")
+                || command.as_str() == "ATFCSM 1";
+            !(protocol_level && same_protocol)
+        })
+        .cloned()
+        .collect();
+    state.protocol = Some(protocol);
+    Ok(out)
+}
+
+pub(crate) fn point_at(
     drv: &mut ElmDriver,
-    req: u32,
-    resp: u32,
+    route: &Route,
     state: &mut AddressingState,
 ) -> Result<(), ElmError> {
-    let module = UdsModule {
-        key: String::new(),
-        label: String::new(),
-        req: format_can_address(req),
-        resp: format_can_address(resp),
-        builtin: false,
-    };
-    let (_, _, extended) = address_pair(&module)?;
-    if state.extended != Some(extended) {
-        for command in if extended {
-            ["ATSP7", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"]
-        } else {
-            ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"]
-        } {
-            drv.cmd(command, Duration::from_secs(2))?;
-        }
-        state.extended = Some(extended);
-    }
-    if extended {
-        let (priority, header) = split_extended(req);
-        drv.cmd(&format!("ATCP {priority:02X}"), Duration::from_secs(2))?;
-        drv.cmd(&format!("ATSH {header:06X}"), Duration::from_secs(2))?;
-        drv.cmd(&format!("ATCRA {resp:08X}"), Duration::from_secs(2))?;
-        drv.cmd(&format!("ATFCSH {req:08X}"), Duration::from_secs(2))?;
-    } else {
-        drv.cmd(&format!("ATSH {req:03X}"), Duration::from_secs(2))?;
-        drv.cmd(&format!("ATCRA {resp:03X}"), Duration::from_secs(2))?;
-        drv.cmd(&format!("ATFCSH {req:03X}"), Duration::from_secs(2))?;
+    for command in point_at_commands(route, state)? {
+        drv.cmd(&command, Duration::from_secs(2))?;
     }
     Ok(())
 }
@@ -1541,7 +1579,7 @@ fn point_at(
 /// Is anything at this address? A positive (62…) OR a negative (7F 22 …)
 /// reply both prove presence — read_did can't tell those apart from
 /// silence (it maps both non-answers to None), so classify the raw bytes.
-fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> DiagnosticOutcome {
+pub(crate) fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> DiagnosticOutcome {
     let did = uds_map::presence_probe_did();
     match drv.cmd(&format!("22{did:04X}"), timeout) {
         Err(error) => DiagnosticOutcome::from_elm_error("22", &error),
@@ -1569,7 +1607,7 @@ fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> DiagnosticOutcome {
     }
 }
 
-fn printable(data: &[u8]) -> Option<String> {
+pub(crate) fn printable(data: &[u8]) -> Option<String> {
     let s: String = data
         .iter()
         .map(|&b| {
@@ -1588,7 +1626,7 @@ fn printable(data: &[u8]) -> Option<String> {
     }
 }
 
-fn hex_string(data: &[u8]) -> String {
+pub(crate) fn hex_string(data: &[u8]) -> String {
     data.iter()
         .map(|b| format!("{b:02X}"))
         .collect::<Vec<_>>()
@@ -1633,20 +1671,20 @@ fn parse_module_address(addr: &str) -> Option<(u32, u32)> {
 /// so a transient timeout cannot delete a valid sensor. A probe is stale
 /// only when its module/DID no longer has a complete mapped formula.
 fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
-    let custom = custom_modules(db);
+    let custom = custom_modules(db, vin);
     for probe in db
         .list_probes(Some(vehicle_id))
         .into_iter()
         .filter(|p| p.vehicle_id == Some(vehicle_id) && p.origin == "discovery")
     {
-        let still_known = resolve(&probe.module, &custom)
+        let still_known = resolve(vin, &probe.module, &custom)
             .and_then(|m| {
                 Some((
                     uds_map::can_address(&m.req)?,
                     uds_map::can_address(&m.resp)?,
                 ))
             })
-            .and_then(|(req, resp)| uds_map::known_did(vin, req, resp, probe.did))
+            .and_then(|(req, resp)| known_did_any(vin, req, resp, probe.did))
             .is_some_and(|k| {
                 k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some()
             });
@@ -1703,16 +1741,8 @@ fn discover_inner(
 
     prune_stale_discovery_probes(db, vehicle_id, vin.as_deref());
 
-    let baseline_voltage = {
-        for c in ["ATSP6", "ATCAF1", "ATH0", "ATFCSD 300000", "ATFCSM 1"] {
-            drv.cmd(c, Duration::from_secs(2))
-                .map_err(|e| e.to_string())?;
-        }
-        read_voltage(drv)
-    };
-    let mut addressing = AddressingState {
-        extended: Some(false),
-    };
+    let baseline_voltage = read_voltage(drv);
+    let mut addressing = AddressingState::default();
     let engine_started = |drv: &mut ElmDriver| -> bool {
         match (baseline_voltage, read_voltage(drv)) {
             (Some(base), Some(now)) => engine_likely_started(now, base),
@@ -1793,7 +1823,8 @@ fn discover_inner(
                 0,
             );
         }
-        let outcome = match point_at(drv, req, resp, &mut addressing) {
+        let route = uds_map::route_for_module(vin.as_deref(), req, resp);
+        let outcome = match point_at(drv, &route, &mut addressing) {
             Ok(()) => probe_addr(drv, Duration::from_millis(timings.presence_probe)),
             Err(error) => DiagnosticOutcome::from_elm_error("addressing", &error),
         };
@@ -1819,22 +1850,26 @@ fn discover_inner(
         }
     }
 
-    // Phase 2 — the standard identification block per present module.
-    let ident_dids = uds_map::ident_dids();
+    // Phase 2 — the brand's identity block (ISO DIDs first, vendor layouts
+    // after) per present module, read with the module's read service.
+    let identity_block = uds_map::identity_block_for_vin(vin.as_deref());
+    let ident_dids = super::discovery::pack_ext::identity_dids(&identity_block);
     let name_dids = uds_map::name_dids();
     let mut dids_found = 0u32;
     let mut module_rows: Vec<(i64, u32, u32)> = Vec::new();
     let mut fingerprints = Vec::with_capacity(present.len());
     let total_ident = (present.len() * ident_dids.len()) as u32;
     for (mi, (req, resp, known_name)) in present.iter().enumerate() {
-        if point_at(drv, *req, *resp, &mut addressing).is_err() {
+        let route = uds_map::route_for_module(vin.as_deref(), *req, *resp);
+        if point_at(drv, &route, &mut addressing).is_err() {
             continue;
         }
+        let service = uds_map::read_service_for_module(vin.as_deref(), *req, *resp);
         // A name the map already documents beats anything read off the bus.
         let mut name: Option<String> = known_name.clone();
         let mut best_name_rank = usize::MAX;
         let mut ident_hits: Vec<(u16, Vec<u8>)> = Vec::new();
-        let mut identity_evidence = Vec::with_capacity(ident_dids.len());
+        let mut identity_observations = Vec::with_capacity(ident_dids.len());
         for (di, did) in ident_dids.iter().enumerate() {
             if cancel_scan.swap(false, Ordering::Relaxed) {
                 // Phase 2 (identification) never promotes probes — that
@@ -1876,24 +1911,22 @@ fn discover_inner(
                 present.len() as u32,
                 dids_found,
             );
-            let label = uds_map::map()
-                .standard
-                .ident_dids
-                .iter()
-                .find(|entry| uds_map::hex16(&entry.did) == Some(*did))
-                .map(|entry| entry.label.clone())
-                .unwrap_or_else(|| format!("DID {did:04X}"));
-            let (outcome, data) =
-                match observe_did(drv, *did, Duration::from_millis(timings.ident_read)) {
-                    Ok(observation) => observation,
-                    Err(error) => (DiagnosticOutcome::from_elm_error("22", &error), None),
-                };
-            identity_evidence.push(EcuIdentityEvidence {
+            let (outcome, data) = match observe_did(
+                drv,
+                service,
+                *did,
+                Duration::from_millis(timings.ident_read),
+            ) {
+                Ok(observation) => observation,
+                Err(error) => (
+                    DiagnosticOutcome::from_elm_error(service.as_str(), &error),
+                    None,
+                ),
+            };
+            identity_observations.push(IdentityObservation {
                 did: *did,
-                label,
                 outcome,
-                raw_value: data.as_ref().map(|data| hex_string(data)),
-                decoded_value: data.as_ref().map(|data| identity_value(data)),
+                payload: data.clone().unwrap_or_default(),
             });
             if let Some(data) = data {
                 if known_name.is_none() {
@@ -1909,18 +1942,25 @@ fn discover_inner(
                 ident_hits.push((*did, data));
             }
         }
-        let fingerprint = build_fingerprint(
-            format_can_address(*req),
-            format_can_address(*resp),
-            identity_evidence,
+        let fingerprint = identity::fingerprint(
+            vin.as_deref(),
+            (&format_can_address(*req), &format_can_address(*resp)),
+            &identity_observations,
         );
         let module_id = db.upsert_discovered_module(
             vehicle_id,
             &format!("{}/{}", format_can_address(*req), format_can_address(*resp)),
             name.as_deref(),
         );
-        db.update_ecu_fingerprint(module_id, &fingerprint);
-        fingerprints.push(fingerprint);
+        db.set_module_route(
+            module_id,
+            &serde_json::to_string(&route).unwrap_or_default(),
+        );
+        db.set_module_route_state(module_id, "reached");
+        if let Some(fingerprint) = fingerprint {
+            db.update_ecu_fingerprint(module_id, &fingerprint);
+            fingerprints.push(fingerprint);
+        }
         for (did, data) in &ident_hits {
             let label = uds_map::map()
                 .standard
@@ -1960,7 +2000,8 @@ fn discover_inner(
     let mut sweep_i = 0u32;
     let mut sensors_added = 0u32;
     for (module_id, req, resp, dids) in &module_plans {
-        if point_at(drv, *req, *resp, &mut addressing).is_err() {
+        let route = uds_map::route_for_module(vin.as_deref(), *req, *resp);
+        if point_at(drv, &route, &mut addressing).is_err() {
             continue;
         }
         // Identification and module enumeration above always run in the
@@ -2020,14 +2061,15 @@ fn discover_inner(
             if extended_session_open && sweep_i % 40 == 39 {
                 tester_present(drv);
             }
-            match read_did_timeout(drv, did, Duration::from_millis(timings.sweep_read)) {
+            let service = uds_map::read_service_for_did(vin.as_deref(), *req, *resp, did);
+            match read_did_timeout(drv, service, did, Duration::from_millis(timings.sweep_read)) {
                 Ok(Some(data)) => {
                     consecutive_errors = 0;
                     // A hit the map already documents arrives named —
                     // that is the whole point of researching the map:
                     // discovery on a known brand yields labeled
                     // sensors, not anonymous hex.
-                    let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
+                    let known = known_did_any(vin.as_deref(), *req, *resp, did);
                     // Module-aware lookup above is the primary guard;
                     // payload shape is the independent second guard.
                     // Never label or promote a formula that cannot
@@ -2060,7 +2102,8 @@ fn discover_inner(
                         if let (Some(offset), Some(len), Some(scale), Some(bias)) =
                             (k.offset, k.len, k.scale, k.bias)
                         {
-                            let module_key = ensure_module_key(db, *req, *resp, None);
+                            let module_key =
+                                ensure_module_key(db, vin.as_deref(), *req, *resp, None);
                             let added = db.upsert_probe_from_discovery(
                                 vehicle_id,
                                 &module_key,
@@ -2170,7 +2213,8 @@ fn fast_refresh(
             });
             continue;
         };
-        if let Err(error) = point_at(drv, req, resp, addressing) {
+        let route = uds_map::route_for_module(vin, req, resp);
+        if let Err(error) = point_at(drv, &route, addressing) {
             module_probes.push(ModuleProbeResult {
                 request_address: format_can_address(req),
                 response_address: format_can_address(resp),
@@ -2256,17 +2300,21 @@ fn fast_refresh(
             if extended_session_open && sweep_i % 40 == 39 {
                 tester_present(drv);
             }
-            let observation = observe_did(drv, *did, Duration::from_millis(500));
+            let service = uds_map::read_service_for_did(vin, req, resp, *did);
+            let observation = observe_did(drv, service, *did, Duration::from_millis(500));
             let (outcome, data) = match observation {
                 Ok(observation) => observation,
-                Err(error) => (DiagnosticOutcome::from_elm_error("22", &error), None),
+                Err(error) => (
+                    DiagnosticOutcome::from_elm_error(service.as_str(), &error),
+                    None,
+                ),
             };
             if outcome_rank(&outcome.status) > outcome_rank(&module_outcome.status) {
                 module_outcome = outcome;
             }
             if let Some(data) = data {
                 let known_entry =
-                    uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
+                    known_did_any(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
                         (Some(offset), Some(len)) => (offset as usize)
                             .checked_add(len as usize)
                             .is_some_and(|end| end <= data.len()),
@@ -2285,7 +2333,7 @@ fn fast_refresh(
                     if let (Some(offset), Some(len), Some(scale), Some(bias)) =
                         (k.offset, k.len, k.scale, k.bias)
                     {
-                        let module_key = ensure_module_key(db, req, resp, None);
+                        let module_key = ensure_module_key(db, vin, req, resp, None);
                         if db.upsert_probe_from_discovery(
                             vehicle_id,
                             &module_key,
@@ -2339,6 +2387,7 @@ fn fast_refresh(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::elm::discovery::pack_ext::tests::verified_brand_vin;
 
     #[test]
     fn extract_single_byte_percent() {
@@ -2359,48 +2408,73 @@ mod tests {
 
     #[test]
     fn addressing_setup_never_changes_the_diagnostic_session() {
-        let module = &builtin_modules()[0];
-        let commands = addressing_commands(module).expect("valid built-in addresses");
+        let vin = verified_brand_vin();
+        let module = &profile_modules(Some(&vin))[0];
+        let commands = addressing_commands(module).expect("valid profile addresses");
         assert!(!commands.iter().any(|command| command == "1003"));
         assert!(!commands.iter().any(|command| command == "1001"));
-        assert!(commands.iter().any(|command| command == "ATSH 752"));
+        assert!(commands
+            .iter()
+            .any(|command| command == &format!("ATSH {}", module.req)));
     }
 
     #[test]
-    fn resolve_builtin() {
-        let m = resolve("engine", &[]).unwrap();
-        assert_eq!(m.req, "6A8");
-        assert!(m.builtin);
+    fn profile_modules_come_from_the_map_for_the_vin_and_nothing_without_one() {
+        let vin = verified_brand_vin();
+        let modules = profile_modules(Some(&vin));
+        assert!(!modules.is_empty());
+        for m in &modules {
+            assert_eq!(m.source, SOURCE_PROFILE);
+            assert!(m.builtin);
+            assert_eq!(
+                m.key,
+                UdsModule::profile_key(
+                    uds_map::can_address(&m.req).unwrap(),
+                    uds_map::can_address(&m.resp).unwrap()
+                )
+            );
+        }
+        let first = &modules[0];
+        let resolved = resolve(Some(&vin), &first.key, &[]).unwrap();
+        assert_eq!(resolved.req, first.req);
+        assert!(profile_modules(None).is_empty());
+        assert!(profile_modules(Some("ZZZ00000000000000")).is_empty());
+        assert!(resolve(None, &first.key, &[]).is_none());
     }
 
     #[test]
-    fn resolve_custom_module() {
-        let custom = vec![UdsModule {
-            key: "pcm".into(),
-            label: "Ford PCM (example)".into(),
-            req: "7E0".into(),
-            resp: "7E8".into(),
-            builtin: false,
-        }];
-        let m = resolve("pcm", &custom).unwrap();
+    fn resolve_custom_module_and_dedupe_against_the_profile() {
+        let custom = vec![UdsModule::custom(
+            None,
+            "pcm",
+            "PCM (example)",
+            "7E0",
+            "7E8",
+        )];
+        let m = resolve(None, "pcm", &custom).unwrap();
         assert_eq!(m.req, "7E0");
         assert!(!m.builtin);
-        // Built-ins still resolve even when a custom list is supplied.
-        assert!(resolve("engine", &custom).is_some());
+        assert_eq!(m.source, SOURCE_CUSTOM);
+        assert_eq!(m.read_service, ReadService::DataByIdentifier);
+        assert_eq!(m.route.protocol, RouteProtocol::Can11_500);
+        let vin = verified_brand_vin();
+        let profile = profile_modules(Some(&vin));
+        let duplicate =
+            UdsModule::custom(Some(&vin), "dup", "dup", &profile[0].req, &profile[0].resp);
+        let all = modules_for_vin(Some(&vin), &[duplicate, custom[0].clone()]);
+        assert_eq!(
+            all.len(),
+            profile.len() + 1,
+            "a custom on a profile route is not listed twice"
+        );
+        assert!(all.iter().any(|m| m.key == "pcm"));
     }
 
     #[test]
     fn engine_start_detection_needs_both_a_floor_and_a_jump() {
-        // A healthy resting battery (12.6V) must never false-trigger just
-        // for sitting near the floor without an actual alternator jump.
         assert!(!engine_likely_started(12.6, 12.6));
-        // Real engine start: idle-off baseline -> alternator charging.
         assert!(engine_likely_started(14.1, 12.4));
-        // A tiny fluctuation (surface charge, adapter noise) must not
-        // trigger — the relative-jump requirement exists for exactly this.
         assert!(!engine_likely_started(12.9, 12.6));
-        // Below the absolute floor, even a big relative jump from a very
-        // low baseline (near-dead battery) must not read as "running."
         assert!(!engine_likely_started(13.0, 11.0));
     }
 
@@ -2441,62 +2515,100 @@ mod tests {
     }
 
     fn module(req: &str, resp: &str) -> UdsModule {
-        UdsModule {
-            key: "t".into(),
-            label: "t".into(),
+        UdsModule::custom(None, "t", "t", req, resp)
+    }
+
+    fn route(protocol: RouteProtocol, req: &str, resp: &str) -> Route {
+        Route {
+            protocol,
             req: req.into(),
             resp: resp.into(),
-            builtin: false,
+            ..Route::default()
         }
     }
 
     #[test]
     fn eleven_bit_modules_keep_the_original_setup() {
-        let cmds = addressing_commands(&module("6A8", "688")).unwrap();
+        let cmds = addressing_commands(&module("7E0", "7E8")).unwrap();
         assert_eq!(cmds[0], "ATSP6");
-        assert!(cmds.iter().any(|c| c == "ATSH 6A8"));
-        assert!(cmds.iter().any(|c| c == "ATCRA 688"));
+        assert!(cmds.iter().any(|c| c == "ATSH 7E0"));
+        assert!(cmds.iter().any(|c| c == "ATCRA 7E8"));
         assert!(!cmds.iter().any(|c| c.starts_with("ATCP")));
     }
 
     #[test]
+    fn a_250k_route_selects_protocol_8() {
+        let cmds = route_commands(&route(RouteProtocol::Can11_250, "7E0", "7E8"), None).unwrap();
+        assert_eq!(cmds[0], "ATSP8");
+    }
+
+    #[test]
     fn lin_child_route_configures_extended_addressing_and_flow_control() {
-        let cmds = addressing_commands_for_route(&module("730", "710"), Some(0x70)).unwrap();
+        let cmds =
+            route_commands(&route(RouteProtocol::Can11_500, "730", "710"), Some(0x70)).unwrap();
         assert!(cmds.iter().any(|c| c == "ATFCSD 70 30 00 00"), "{cmds:?}");
         assert_eq!(cmds.last().map(String::as_str), Some("ATCEA 70"));
+        // The same from the route tuple's own `address_extension`.
+        let mut with_extension = route(RouteProtocol::Can11_500, "6F1", "612");
+        with_extension.address_extension = Some("12".into());
+        with_extension.target_byte = Some("12".into());
+        let cmds = route_commands(&with_extension, None).unwrap();
+        assert_eq!(cmds.last().map(String::as_str), Some("ATCEA 12"));
+        assert!(cmds.iter().any(|c| c == "ATFCSD 12 30 00 00"), "{cmds:?}");
     }
 
     #[test]
     fn extended_addressing_is_rejected_for_29_bit_routes() {
-        assert!(
-            addressing_commands_for_route(&module("18DAC7F1", "18DAF1C7"), Some(0x70)).is_err()
-        );
+        assert!(route_commands(
+            &route(RouteProtocol::Can29NormalFixed, "18DAC7F1", "18DAF1C7"),
+            Some(0x70)
+        )
+        .is_err());
     }
 
     #[test]
-    fn twenty_nine_bit_modules_switch_protocol_and_split_the_header() {
-        // PSA/Stellantis TPMS: ISO 15765-2 normal fixed addressing.
-        let cmds = addressing_commands(&module("18DAC7F1", "18DAF1C7")).unwrap();
-        assert_eq!(cmds[0], "ATSP7");
-        // The ELM takes a 29-bit header as priority byte + three bytes,
-        // never as one eight-digit value.
-        assert!(cmds.iter().any(|c| c == "ATCP 18"), "{cmds:?}");
-        assert!(cmds.iter().any(|c| c == "ATSH DAC7F1"), "{cmds:?}");
-        // Receive filter and flow-control header do take the full identifier.
-        assert!(cmds.iter().any(|c| c == "ATCRA 18DAF1C7"), "{cmds:?}");
-        assert!(cmds.iter().any(|c| c == "ATFCSH 18DAC7F1"), "{cmds:?}");
+    fn twenty_nine_bit_target_byte_routes_switch_protocol_and_split_the_header() {
+        // Synthetic ISO 15765-2 normal fixed addressing, target C7.
+        let cmds = route_commands(&uds_map::derive_route(0x18DAC7F1, 0x18DAF1C7), None).unwrap();
+        assert_eq!(
+            cmds,
+            vec![
+                "ATSP7",
+                "ATCAF1",
+                "ATH0",
+                "ATCP 18",
+                "ATSH DAC7F1",
+                "ATCRA 18DAF1C7",
+                "ATFCSH 18DAC7F1",
+                "ATFCSD 300000",
+                "ATFCSM 1"
+            ]
+        );
+        // A custom 29-bit scheme goes through the same sequence.
+        let custom = route_commands(
+            &route(RouteProtocol::Can29Custom, "14DACBF1", "14DAF1CB"),
+            None,
+        )
+        .unwrap();
+        assert_eq!(custom[0], "ATSP7");
+        assert!(custom.iter().any(|c| c == "ATCP 14"));
+    }
+
+    #[test]
+    fn kwp_and_iso9141_routes_are_reported_unsupported_not_forced_to_11_bit() {
+        let error = route_commands(&route(RouteProtocol::Kwp2000, "7E0", "7E8"), None).unwrap_err();
+        assert!(error.to_string().contains("unsupported route"));
+        let error = route_commands(&route(RouteProtocol::Iso9141, "7E0", "7E8"), None).unwrap_err();
+        assert!(error.to_string().contains("unsupported route"));
     }
 
     #[test]
     fn address_pairs_must_be_valid_and_use_one_can_width() {
-        assert_eq!(address_pair(&module("6AD", "68D")).unwrap().2, false);
-        assert_eq!(
-            address_pair(&module("18DAC7F1", "18DAF1C7")).unwrap().2,
-            true
-        );
-        assert!(address_pair(&module("6AD", "18DAF1C7")).is_err());
+        assert!(!address_pair(&module("7E0", "7E8")).unwrap().2);
+        assert!(address_pair(&module("18DAC7F1", "18DAF1C7")).unwrap().2);
+        assert!(address_pair(&module("7E0", "18DAF1C7")).is_err());
         assert!(address_pair(&module("20000000", "18DAF1C7")).is_err());
-        assert!(address_pair(&module("not-hex", "68D")).is_err());
+        assert!(address_pair(&module("not-hex", "7E8")).is_err());
     }
 
     #[test]
@@ -2506,38 +2618,38 @@ mod tests {
     }
 
     #[test]
-    fn psa_tpms_is_in_the_map_and_addressable() {
-        // A Citroen VIN must resolve the 29-bit TPMS module and its DIDs.
-        let vin = Some("VR7EXAMPLE0000001");
-        let tpms = uds_map::known_modules_for_vin(vin)
-            .into_iter()
-            .find(|(req, _, _)| *req == 0x18DAC7F1)
-            .expect("TPMS module present");
-        assert_eq!(tpms.1, 0x18DAF1C7);
-        assert!(address_pair(&module("18DAC7F1", "18DAF1C7")).unwrap().2);
-        assert!(uds_map::known_dids_for_module(vin, tpms.0, tpms.1).contains(&0x013C));
-
-        // Pressure DID decodes bar from a 16-bit big-endian value / 1000.
-        let did = uds_map::known_did(vin, 0x18DAC7F1, 0x18DAF1C7, 0x013C)
-            .expect("front-left pressure DID present");
-        assert_eq!(did.unit.as_deref(), Some("bar"));
-        // 0x08CA = 2250 -> 2.250 bar, a normal cold front tyre pressure.
-        let v = extract(
-            &[0x08, 0xCA, 0x1E],
-            did.offset.expect("offset") as usize,
-            did.len.expect("len") as usize,
-            did.scale.expect("scale"),
-            did.bias.unwrap_or(0.0),
-        )
-        .expect("decodes");
-        assert!((v - 2.25).abs() < 0.001, "got {v}");
+    fn a_29_bit_overlay_module_is_in_the_map_and_addressable() {
+        // The first overlay's 29-bit module must resolve for its WMI and
+        // carry a decodable DID (pressure from a 16-bit value / 1000).
+        let pack = &crate::elm::discovery::packs::overlays()[0];
+        let brand = &pack.brands[0];
+        let vin = format!("{}EXAMPLE0000001", brand.wmi[0]);
+        let overlay_module = &brand.modules[0];
+        let (req, resp) = (
+            uds_map::can_address(&overlay_module.req).unwrap(),
+            uds_map::can_address(&overlay_module.resp).unwrap(),
+        );
+        assert!(req > 0x7FF, "the overlay documents a 29-bit route");
+        assert!(uds_map::known_modules_for_vin(Some(&vin))
+            .iter()
+            .any(|(r, s, _)| *r == req && *s == resp));
+        assert!(
+            address_pair(&module(&overlay_module.req, &overlay_module.resp))
+                .unwrap()
+                .2
+        );
+        let did = uds_map::hex16(&brand.known_dids[0].did).unwrap();
+        assert!(uds_map::known_dids_for_module(Some(&vin), req, resp).contains(&did));
+        let known = uds_map::known_did(Some(&vin), req, resp, did).expect("bound DID");
+        let decode = known.primary_decode().expect("decodable");
+        let v = uds_map::decode_value(&decode, &[0x08, 0xCA, 0x1E]).expect("decodes");
+        assert!(v.is_finite());
     }
 
     #[test]
     fn uds_clear_accepts_single_byte_positive_response() {
         let raw = include_str!("../../tests/fixtures/elm/uds-clear-success.json");
         let mut driver = ElmDriver::from_replay_json(raw).unwrap();
-
         assert!(matches!(
             clear_dtcs(&mut driver),
             Ok(ClearDecision::Accepted)
@@ -2549,7 +2661,6 @@ mod tests {
     fn uds_clear_accepts_pending_followed_by_positive_response() {
         let raw = include_str!("../../tests/fixtures/elm/uds-clear-pending-success.json");
         let mut driver = ElmDriver::from_replay_json(raw).unwrap();
-
         assert!(matches!(
             clear_dtcs(&mut driver),
             Ok(ClearDecision::Accepted)
@@ -2561,7 +2672,6 @@ mod tests {
     fn uds_clear_preserves_the_refusal_code() {
         let raw = include_str!("../../tests/fixtures/elm/uds-clear-refused.json");
         let mut driver = ElmDriver::from_replay_json(raw).unwrap();
-
         assert!(matches!(
             clear_dtcs(&mut driver),
             Ok(ClearDecision::Refused(0x22))
@@ -2616,13 +2726,18 @@ mod tests {
           "name": "raw DID evidence",
           "contains_vehicle_identifiers": false,
           "steps": [
-            { "command": "22F080", "response": "62 F0 80 98 17 13 71 80 00 0F 98 42 72 50 80\r>" },
+            { "command": "22F187", "response": "62 F1 87 98 17 13 71 80 00 0F 98 42 72 50 80\r>" },
             { "command": "22A0F1", "response": "NO DATA\r>" }
           ]
         }"#;
         let mut driver = ElmDriver::from_replay_json(replay).unwrap();
-        let answered =
-            observe_did_evidence(&mut driver, 0xF080, Duration::from_millis(500)).unwrap();
+        let answered = observe_did_evidence(
+            &mut driver,
+            ReadService::DataByIdentifier,
+            0xF187,
+            Duration::from_millis(500),
+        )
+        .unwrap();
         assert_eq!(answered.outcome.status, DiagnosticStatus::Answered);
         assert_eq!(
             answered.data,
@@ -2635,11 +2750,106 @@ mod tests {
             .as_deref()
             .is_some_and(|raw| raw.contains("98 42 72 50 80")));
 
-        let no_data =
-            observe_did_evidence(&mut driver, 0xA0F1, Duration::from_millis(500)).unwrap();
+        let no_data = observe_did_evidence(
+            &mut driver,
+            ReadService::DataByIdentifier,
+            0xA0F1,
+            Duration::from_millis(500),
+        )
+        .unwrap();
         assert_eq!(no_data.outcome.status, DiagnosticStatus::TimedOut);
         assert_eq!(no_data.raw_response.as_deref(), Some("NO DATA\r>"));
         driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn service_21_and_1a_request_and_response_shapes() {
+        // Synthetic framing (labelled): a 21 group answered with `61 GG`,
+        // a 21 group refused with `7F 21`, a 1A identification answered
+        // with `5A GG`, and a 1A refusal.
+        let replay = r#"{
+          "schema_version": 1,
+          "name": "service 21 and 1A shapes (synthetic)",
+          "contains_vehicle_identifiers": false,
+          "steps": [
+            { "command": "2101", "response": "61 01 00 3C 01 F4 5A\r>" },
+            { "command": "2102", "response": "7F 21 31\r>" },
+            { "command": "1A87", "response": "5A 87 31 32 33 34\r>" },
+            { "command": "1A90", "response": "7F 1A 12\r>" },
+            { "command": "1A80", "response": "NO DATA\r>" }
+          ]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(replay).unwrap();
+        let group = observe_did_evidence(
+            &mut driver,
+            ReadService::DataByLocalIdentifier,
+            0x01,
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        assert_eq!(group.outcome.status, DiagnosticStatus::Answered);
+        assert_eq!(group.outcome.service.as_deref(), Some("21"));
+        assert_eq!(group.data, Some(vec![0x00, 0x3C, 0x01, 0xF4, 0x5A]));
+        let refused = observe_did_evidence(
+            &mut driver,
+            ReadService::DataByLocalIdentifier,
+            0x02,
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        assert_eq!(refused.outcome.status, DiagnosticStatus::Refused);
+        assert_eq!(refused.outcome.nrc, Some(0x31));
+        let ident = observe_did_evidence(
+            &mut driver,
+            ReadService::EcuIdentification,
+            0x87,
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        assert_eq!(ident.outcome.status, DiagnosticStatus::Answered);
+        assert_eq!(ident.outcome.service.as_deref(), Some("1A"));
+        assert_eq!(ident.data, Some(vec![0x31, 0x32, 0x33, 0x34]));
+        let refused = observe_did_evidence(
+            &mut driver,
+            ReadService::EcuIdentification,
+            0x90,
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        assert_eq!(refused.outcome.status, DiagnosticStatus::Refused);
+        assert_eq!(refused.outcome.nrc, Some(0x12));
+        let silent = observe_did_evidence(
+            &mut driver,
+            ReadService::EcuIdentification,
+            0x80,
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        assert_eq!(silent.outcome.status, DiagnosticStatus::TimedOut);
+        driver.assert_replay_complete();
+        // A two-byte identifier cannot be asked on a one-byte service.
+        assert!(request_for(ReadService::DataByLocalIdentifier, 0xF187).is_none());
+        assert!(request_for(ReadService::EcuIdentification, 0x0100).is_none());
+        assert_eq!(
+            request_for(ReadService::DataByIdentifier, 0xF187)
+                .unwrap()
+                .0,
+            "22F187"
+        );
+        let unsupported = observe_did_evidence(
+            &mut driver,
+            ReadService::EcuIdentification,
+            0xF187,
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        assert_eq!(unsupported.outcome.status, DiagnosticStatus::Malformed);
+        assert!(unsupported
+            .outcome
+            .detail
+            .as_deref()
+            .unwrap()
+            .contains("does not fit"));
     }
 
     #[test]
@@ -2681,45 +2891,14 @@ mod tests {
     }
 
     #[test]
-    fn partial_fingerprint_uses_only_answered_family_identity() {
-        let evidence = vec![
-            EcuIdentityEvidence {
-                did: 0xF187,
-                label: "Spare part number".into(),
-                outcome: DiagnosticOutcome::answered("22"),
-                raw_value: Some("393831323334".into()),
-                decoded_value: Some("981234".into()),
-            },
-            EcuIdentityEvidence {
-                did: 0xF191,
-                label: "Hardware version".into(),
-                outcome: DiagnosticOutcome::refused("22", 0x31, "requestOutOfRange"),
-                raw_value: None,
-                decoded_value: None,
-            },
-            // A serial number is useful evidence but must never participate
-            // in the cross-vehicle family match key.
-            EcuIdentityEvidence {
-                did: 0xF18C,
-                label: "ECU serial number".into(),
-                outcome: DiagnosticOutcome::answered("22"),
-                raw_value: Some("53455249414C31".into()),
-                decoded_value: Some("SERIAL1".into()),
-            },
-        ];
-
-        let fingerprint = build_fingerprint("6A8".into(), "688".into(), evidence);
-        assert_eq!(fingerprint.fields_answered, 1);
-        assert_eq!(fingerprint.fields_total, 4);
-        assert_eq!(fingerprint.match_key.as_deref(), Some("part=981234"));
-        assert!(!fingerprint.match_key.unwrap().contains("SERIAL1"));
-    }
-
-    #[test]
     fn correlation_capture_reads_round_robin_and_flags_drift() {
-        // Two repeats over two identifiers: D435 holds, D410 drifts between
-        // repeats and must come back as noisy (stable = false), never as a
-        // change.
+        let _guard = crate::elm::operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        crate::elm::operation::set_link_state(None);
+        // Two repeats over two identifiers on an ISO route: D435 holds,
+        // D410 drifts between repeats and must come back as noisy
+        // (stable = false), never as a change.
         let replay = r#"{
           "schema_version": 1,
           "name": "correlation round robin",
@@ -2729,9 +2908,9 @@ mod tests {
             { "command": "ATSP6", "response": "OK\r>" },
             { "command": "ATCAF1", "response": "OK\r>" },
             { "command": "ATH0", "response": "OK\r>" },
-            { "command": "ATSH 6AD", "response": "OK\r>" },
-            { "command": "ATCRA 68D", "response": "OK\r>" },
-            { "command": "ATFCSH 6AD", "response": "OK\r>" },
+            { "command": "ATSH 7E0", "response": "OK\r>" },
+            { "command": "ATCRA 7E8", "response": "OK\r>" },
+            { "command": "ATFCSH 7E0", "response": "OK\r>" },
             { "command": "ATFCSD 300000", "response": "OK\r>" },
             { "command": "ATFCSM 1", "response": "OK\r>" },
             { "command": "22D435", "response": "62 D4 35 07\r>" },
@@ -2746,7 +2925,7 @@ mod tests {
           ]
         }"#;
         let mut driver = ElmDriver::from_replay_json(replay).unwrap();
-        let readings = correlation_capture(&mut driver, "6AD", "68D", &[0xD435, 0xD410], 2)
+        let readings = correlation_capture(&mut driver, None, "7E0", "7E8", &[0xD435, 0xD410], 2)
             .expect("route configured");
         assert_eq!(readings.len(), 2);
         assert_eq!(readings[0].did, "D435");
@@ -2765,27 +2944,8 @@ mod tests {
     }
 
     #[test]
-    fn psa_f080_references_decode_only_valid_bcd_groups() {
-        // Camera payload captured on the C4 in evidence run #2.
-        let camera = [
-            0x98, 0x17, 0x13, 0x71, 0x80, 0x00, 0x0F, 0x98, 0x42, 0x72, 0x50, 0x80, 0xFF, 0x71,
-        ];
-        assert_eq!(
-            decode_psa_references(&camera),
-            vec!["9817137180", "9842725080"]
-        );
-        // FF padding is not a number; a short payload yields nothing.
-        assert_eq!(decode_psa_references(&[0xFF; 12]), Vec::<String>::new());
-        assert_eq!(decode_psa_references(&[0x98, 0x17]), Vec::<String>::new());
-        // A valid first group with a padded second group keeps only the first.
-        let partial = [
-            0x98, 0x46, 0x12, 0x49, 0x80, 0x00, 0x0D, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-        ];
-        assert_eq!(decode_psa_references(&partial), vec!["9846124980"]);
-    }
-
-    #[test]
     fn verification_target_yields_fingerprint_without_serial_in_key() {
+        let vin = verified_brand_vin();
         let observation =
             |did: &str, payload: &str, printable: Option<&str>| VerificationObservation {
                 did: did.into(),
@@ -2795,11 +2955,13 @@ mod tests {
                 printable: printable.map(Into::into),
                 raw_response: None,
             };
+        // Payloads this project captured on its verified vehicle (test data).
         let target = VerificationTargetResult {
             key: "abs".into(),
             label: "ABS / ESP".into(),
-            expected_family: "ESPMK100_UDS".into(),
+            expected_family: "ESP MK100".into(),
             route: "6AD→68D".into(),
+            read_service: "22".into(),
             evidence_source: String::new(),
             observations: vec![
                 observation("F18C", "32 38 35", Some("285")),
@@ -2812,7 +2974,7 @@ mod tests {
             ],
             summary: None,
         };
-        let fingerprint = psa_identity_fingerprint(&target).expect("F080 answered");
+        let fingerprint = target_fingerprint(Some(&vin), &target).expect("vendor block answered");
         assert_eq!(fingerprint.request_address, "6AD");
         assert_eq!(fingerprint.response_address, "68D");
         assert_eq!(fingerprint.spare_part_number.as_deref(), Some("9846124980"));
@@ -2823,8 +2985,6 @@ mod tests {
             Some("part=9846124980|hw=9820609380|sw=9695041580")
         );
         assert_eq!(fingerprint.fields_answered, 3);
-        assert!(decode_psa_software_reference(&[0xFF; 24]).is_none());
-        assert!(decode_psa_software_reference(&[0x00; 10]).is_none());
         assert!(!fingerprint.match_key.unwrap().contains("285"));
 
         let silent = VerificationTargetResult {
@@ -2838,6 +2998,109 @@ mod tests {
             }],
             ..target
         };
-        assert!(psa_identity_fingerprint(&silent).is_none());
+        assert!(target_fingerprint(Some(&vin), &silent).is_none());
+    }
+
+    #[test]
+    fn the_plan_executes_target_by_target_with_the_targets_service() {
+        let _guard = crate::elm::operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        crate::elm::operation::set_link_state(None);
+        // A generated two-target plan for an unknown-WMI vehicle that
+        // reached one ISO route, replayed: the presence probe and the
+        // ISO block on 22, then a sweep bounded by its budget. Synthetic.
+        let plan = crate::elm::discovery::plan::ParkedPlan {
+            plan_version: "unknown-unknown-v1".into(),
+            brand_id: None,
+            platform: None,
+            sweep_budget_secs: 240,
+            targets: vec![
+                crate::elm::discovery::plan::PlanTarget {
+                    key: "7e0_7e8".into(),
+                    label: "Module 7E0".into(),
+                    expected_family: "unknown".into(),
+                    req: "7E0".into(),
+                    resp: "7E8".into(),
+                    route: uds_map::derive_route(0x7E0, 0x7E8),
+                    read_service: ReadService::DataByIdentifier,
+                    dids: vec![crate::elm::discovery::plan::PlannedRead {
+                        did: 0xF187,
+                        purpose: "identity: part (iso_ascii)".into(),
+                    }],
+                    sweep: Vec::new(),
+                    source: "test".into(),
+                },
+                crate::elm::discovery::plan::PlanTarget {
+                    key: "7e0_7e8_sweep".into(),
+                    label: "sweep".into(),
+                    expected_family: "unknown".into(),
+                    req: "7E0".into(),
+                    resp: "7E8".into(),
+                    route: uds_map::derive_route(0x7E0, 0x7E8),
+                    read_service: ReadService::DataByIdentifier,
+                    dids: Vec::new(),
+                    sweep: vec![(0x0100, 0x0101)],
+                    source: "test".into(),
+                },
+            ],
+        };
+        let replay = r#"{
+          "schema_version": 1,
+          "name": "plan execution (synthetic)",
+          "contains_vehicle_identifiers": false,
+          "steps": [
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP6", "response": "OK\r>" },
+            { "command": "ATCAF1", "response": "OK\r>" },
+            { "command": "ATH0", "response": "OK\r>" },
+            { "command": "ATSH 7E0", "response": "OK\r>" },
+            { "command": "ATCRA 7E8", "response": "OK\r>" },
+            { "command": "ATFCSH 7E0", "response": "OK\r>" },
+            { "command": "ATFCSD 300000", "response": "OK\r>" },
+            { "command": "ATFCSM 1", "response": "OK\r>" },
+            { "command": "22F187", "response": "62 F1 87 31 4B 30 39\r>" },
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP6", "response": "OK\r>" },
+            { "command": "ATCAF1", "response": "OK\r>" },
+            { "command": "ATH0", "response": "OK\r>" },
+            { "command": "ATSH 7E0", "response": "OK\r>" },
+            { "command": "ATCRA 7E8", "response": "OK\r>" },
+            { "command": "ATFCSH 7E0", "response": "OK\r>" },
+            { "command": "ATFCSD 300000", "response": "OK\r>" },
+            { "command": "ATFCSM 1", "response": "OK\r>" },
+            { "command": "220100", "response": "62 01 00 12 34\r>" },
+            { "command": "220101", "response": "7F 22 31\r>" },
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP0", "response": "OK\r>" },
+            { "command": "ATSH 7DF", "response": "OK\r>" },
+            { "command": "ATAR", "response": "OK\r>" },
+            { "command": "ATFCSM 0", "response": "OK\r>" }
+          ]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(replay).unwrap();
+        let report = execute_plan(&mut driver, &plan);
+        driver.assert_replay_complete();
+        assert_eq!(report.plan_version, "unknown-unknown-v1");
+        assert!(!report.safety.contains("10 03"));
+        assert_eq!(report.targets.len(), 2);
+        assert_eq!(
+            report.targets[0].observations[0].payload_hex.as_deref(),
+            Some("31 4B 30 39")
+        );
+        assert_eq!(report.targets[0].read_service, "22");
+        let sweep = &report.targets[1];
+        assert_eq!(
+            sweep.observations.len(),
+            1,
+            "only answered identifiers are observations"
+        );
+        assert!(sweep
+            .summary
+            .as_deref()
+            .unwrap()
+            .contains("2 identifiers tried, 1 answered, 1 refused"));
+        let fp = target_fingerprint(Some("ZZZ00000000000000"), &report.targets[0]).unwrap();
+        assert_eq!(fp.spare_part_number.as_deref(), Some("1K09"));
     }
 }

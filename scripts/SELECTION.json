@@ -1,0 +1,597 @@
+{
+ "_comment": "Input to scripts/import_obdb_fixtures.py. Chosen 2026-08-28 from the Phase 3 corpus inventory: per shape 2-4 brands, 1-3 files each from different repos/years, <= 20 distinct verified cases per file, plus the research anchors. Brand names appear here only as fixture directories and source attribution.",
+ "obdb": [
+  {
+   "shape": "bitfield",
+   "brand": "fca",
+   "platform": "chrysler-pacifica",
+   "repo": "Chrysler-Pacifica",
+   "path": "2023/commands/7AB.52B.222802|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "bitfield",
+   "brand": "ford",
+   "platform": "f-150-lightning",
+   "repo": "Ford-F-150-Lightning",
+   "path": "2025/commands/720.728.2261A5.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "bitfield",
+   "brand": "hyundai_kia",
+   "platform": "hyundai-kona-electric",
+   "repo": "Hyundai-Kona-Electric",
+   "path": "2020/commands/7E4.7EC.220101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 1,
+   "distinct": false
+  },
+  {
+   "shape": "bitfield",
+   "brand": "hyundai_kia",
+   "platform": "hyundai-kona-electric",
+   "repo": "Hyundai-Kona-Electric",
+   "path": "2022/commands/7E4.7EC.220101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "bitfield",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2021/commands/797.79A.221304|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "cupra",
+   "platform": "born",
+   "repo": "Cupra-Born",
+   "path": "2022/commands/FC00.FE0076.220335|ta=76,c=17.yaml",
+   "max_cases": 20,
+   "min_cases": 1,
+   "distinct": false
+  },
+  {
+   "shape": "can29",
+   "brand": "cupra",
+   "platform": "born",
+   "repo": "Cupra-Born",
+   "path": "2022/commands/FC00.FE007B.221620|ta=7B,c=17.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "cupra",
+   "platform": "born",
+   "repo": "Cupra-Born",
+   "path": "2024/commands/FC00.FE007B.221E3B|ta=7B,c=17.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "cupra",
+   "platform": "born",
+   "repo": "Cupra-Born",
+   "path": "2026/commands/FC00.FE007B.221E39|ta=7B,c=17.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "fca",
+   "platform": "fiat-500x",
+   "repo": "FIAT-500X",
+   "path": "2021/commands/DA10.10.22192D|din=03.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "fca",
+   "platform": "ram-2500",
+   "repo": "Ram-2500",
+   "path": "2026/commands/DA10.10.221000|din=03.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "gm",
+   "platform": "gmc-canyon",
+   "repo": "GMC-Canyon",
+   "path": "2023/commands/DA11.2236A7|fc=1,c=14.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "gm",
+   "platform": "gmc-canyon",
+   "repo": "GMC-Canyon",
+   "path": "2024/commands/DA28.224A7C|fc=1,c=14.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "honda",
+   "platform": "acura-tlx",
+   "repo": "Acura-TLX",
+   "path": "2015/commands/DA10.10.222610.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "can29",
+   "brand": "honda",
+   "platform": "acura-tlx",
+   "repo": "Acura-TLX",
+   "path": "2025/commands/DA10.10.222610.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "bmw",
+   "platform": "i3",
+   "repo": "BMW-i3",
+   "path": "2015/commands/6F1.607.226335|e=07,fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 1,
+   "distinct": false
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "bmw",
+   "platform": "i3",
+   "repo": "BMW-i3",
+   "path": "2019/commands/6F1.607.22DFA0|e=07,fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "bmw",
+   "platform": "mini-countryman",
+   "repo": "MINI-Countryman",
+   "path": "2020/commands/6F1.607.22DFA0|e=07,fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "toyota",
+   "platform": "camry",
+   "repo": "Toyota-Camry",
+   "path": "2021/commands/750.758.2116|t=96,e=2A,ta=2A,fc=1,f=2013-.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "toyota",
+   "platform": "prius",
+   "repo": "Toyota-Prius",
+   "path": "2025/commands/750.758.221004|e=2A,ta=2A,fc=1,f=2023-.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "bmw",
+   "platform": "mini-countryman",
+   "repo": "MINI-Countryman",
+   "path": "2020/commands/6F1.607.22DFA0|e=07,fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "bmw",
+   "platform": "mini-countryman",
+   "repo": "MINI-Countryman",
+   "path": "2023/commands/6F1.612.22400B|e=12,fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "honda",
+   "platform": "acura-tlx",
+   "repo": "Acura-TLX",
+   "path": "2025/commands/DA10.10.222610.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "hyundai_kia",
+   "platform": "hyundai-elantra",
+   "repo": "Hyundai-Elantra",
+   "path": "2022/commands/7E0.7E8.22E001.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "hyundai_kia",
+   "platform": "kia-niro-ev",
+   "repo": "Kia-Niro-EV",
+   "path": "2019/commands/7E2.7EA.2101.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2015/commands/79B.7BB.2161|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2019/commands/79B.7BB.2101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2021/commands/79B.7BB.2161|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "multiframe",
+   "brand": "toyota",
+   "platform": "lexus-rx",
+   "repo": "Lexus-RX",
+   "path": "2013/commands/7E0.7E8.2105.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "offset-binary",
+   "brand": "fca",
+   "platform": "fiat-500x",
+   "repo": "FIAT-500X",
+   "path": "2021/commands/DA10.10.22195A|din=03.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "offset-binary",
+   "brand": "toyota",
+   "platform": "lexus-rx",
+   "repo": "Lexus-RX",
+   "path": "2025/commands/7D2.7DA.2210A1|f=2023-.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "offset-binary",
+   "brand": "toyota",
+   "platform": "prius",
+   "repo": "Toyota-Prius",
+   "path": "2010/commands/7B0.7B8.2147.yaml",
+   "max_cases": 20,
+   "min_cases": 1,
+   "distinct": false
+  },
+  {
+   "shape": "offset-binary",
+   "brand": "toyota",
+   "platform": "prius",
+   "repo": "Toyota-Prius",
+   "path": "2024/commands/700.708.2210CD.yaml",
+   "max_cases": 20,
+   "min_cases": 1,
+   "distinct": false
+  },
+  {
+   "shape": "offset-binary",
+   "brand": "toyota",
+   "platform": "prius",
+   "repo": "Toyota-Prius",
+   "path": "2024/commands/7D2.7DA.2210A1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "offset-binary",
+   "brand": "toyota",
+   "platform": "prius",
+   "repo": "Toyota-Prius",
+   "path": "2025/commands/7D2.7DA.2210A1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "svc21",
+   "brand": "hyundai_kia",
+   "platform": "hyundai-elantra",
+   "repo": "Hyundai-Elantra",
+   "path": "2010/commands/7E0.7E8.2102.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "svc21",
+   "brand": "hyundai_kia",
+   "platform": "kia-niro-ev",
+   "repo": "Kia-Niro-EV",
+   "path": "2019/commands/7E2.7EA.2101.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "svc21",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2012/commands/79B.7BB.2101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "svc21",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2015/commands/79B.7BB.2101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "svc21",
+   "brand": "nissan",
+   "platform": "leaf",
+   "repo": "Nissan-Leaf",
+   "path": "2018/commands/79B.7BB.2101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 1,
+   "distinct": false
+  },
+  {
+   "shape": "svc21",
+   "brand": "toyota",
+   "platform": "lexus-rx",
+   "repo": "Lexus-RX",
+   "path": "2010/commands/7E0.7E8.2105.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "svc21",
+   "brand": "toyota",
+   "platform": "lexus-rx",
+   "repo": "Lexus-RX",
+   "path": "2013/commands/7E0.7E8.2105.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "twos-complement",
+   "brand": "bmw",
+   "platform": "mini-countryman",
+   "repo": "MINI-Countryman",
+   "path": "2020/commands/6F1.607.22DFA0|e=07,fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "twos-complement",
+   "brand": "cupra",
+   "platform": "born",
+   "repo": "Cupra-Born",
+   "path": "2025/commands/746.7B0.222613|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "twos-complement",
+   "brand": "ford",
+   "platform": "f-150-lightning",
+   "repo": "Ford-F-150-Lightning",
+   "path": "2025/commands/7E6.7EE.221E1C|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  },
+  {
+   "shape": "twos-complement",
+   "brand": "hyundai_kia",
+   "platform": "hyundai-kona-electric",
+   "repo": "Hyundai-Kona-Electric",
+   "path": "2022/commands/7E4.7EC.220101|fc=1.yaml",
+   "max_cases": 20,
+   "min_cases": 3,
+   "distinct": true
+  }
+ ],
+ "opendbc": [
+  {
+   "shape": "ascii",
+   "brand": "honda",
+   "platform": "accord",
+   "source_brand": "honda",
+   "platform_key": "HONDA_ACCORD",
+   "ecu": "vsa",
+   "max_cases": 8,
+   "query_note": "opendbc StdQueries.UDS_VERSION_REQUEST = 22 F1 81 (APPLICATION_SOFTWARE_IDENTIFICATION), response 62 F1 81 + bytes as stored"
+  },
+  {
+   "shape": "ascii",
+   "brand": "honda",
+   "platform": "civic",
+   "source_brand": "honda",
+   "platform_key": "HONDA_CIVIC",
+   "ecu": "vsa",
+   "max_cases": 8,
+   "query_note": "opendbc StdQueries.UDS_VERSION_REQUEST = 22 F1 81 (APPLICATION_SOFTWARE_IDENTIFICATION), response 62 F1 81 + bytes as stored"
+  },
+  {
+   "shape": "ascii",
+   "brand": "honda",
+   "platform": "civic-bosch",
+   "source_brand": "honda",
+   "platform_key": "HONDA_CIVIC_BOSCH",
+   "ecu": "vsa",
+   "max_cases": 8,
+   "query_note": "opendbc StdQueries.UDS_VERSION_REQUEST = 22 F1 81 (APPLICATION_SOFTWARE_IDENTIFICATION), response 62 F1 81 + bytes as stored"
+  },
+  {
+   "shape": "ascii",
+   "brand": "hyundai_kia",
+   "platform": "azera-6th-gen",
+   "source_brand": "hyundai",
+   "platform_key": "HYUNDAI_AZERA_6TH_GEN",
+   "ecu": "fwdCamera",
+   "max_cases": 8,
+   "query_note": "opendbc hyundai HYUNDAI_VERSION_REQUEST_LONG = 22 F1 00; stored bytes begin with the F1 00 echo"
+  },
+  {
+   "shape": "ascii",
+   "brand": "hyundai_kia",
+   "platform": "azera-hev-6th-gen",
+   "source_brand": "hyundai",
+   "platform_key": "HYUNDAI_AZERA_HEV_6TH_GEN",
+   "ecu": "fwdCamera",
+   "max_cases": 8,
+   "query_note": "opendbc hyundai HYUNDAI_VERSION_REQUEST_LONG = 22 F1 00; stored bytes begin with the F1 00 echo"
+  },
+  {
+   "shape": "ascii",
+   "brand": "hyundai_kia",
+   "platform": "genesis",
+   "source_brand": "hyundai",
+   "platform_key": "HYUNDAI_GENESIS",
+   "ecu": "fwdCamera",
+   "max_cases": 8,
+   "query_note": "opendbc hyundai HYUNDAI_VERSION_REQUEST_LONG = 22 F1 00; stored bytes begin with the F1 00 echo"
+  },
+  {
+   "shape": "ascii",
+   "brand": "toyota",
+   "platform": "avalon-2019",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_AVALON_2019",
+   "ecu": "abs",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  },
+  {
+   "shape": "ascii",
+   "brand": "toyota",
+   "platform": "camry",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_CAMRY",
+   "ecu": "abs",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "toyota",
+   "platform": "avalon",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_AVALON",
+   "ecu": "fwdRadar",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  },
+  {
+   "shape": "ext-addr",
+   "brand": "toyota",
+   "platform": "camry",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_CAMRY",
+   "ecu": "fwdRadar",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  },
+  {
+   "shape": "svc1a",
+   "brand": "toyota",
+   "platform": "avalon",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_AVALON",
+   "ecu": "dsu",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  },
+  {
+   "shape": "svc1a",
+   "brand": "toyota",
+   "platform": "avalon-2019",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_AVALON_2019",
+   "ecu": "abs",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  },
+  {
+   "shape": "svc1a",
+   "brand": "toyota",
+   "platform": "camry",
+   "source_brand": "toyota",
+   "platform_key": "TOYOTA_CAMRY",
+   "ecu": "dsu",
+   "max_cases": 8,
+   "query_note": "opendbc/car/toyota/values.py TOYOTA_VERSION_REQUEST_KWP = 1A 88 01, response 5A 88 01 + bytes as stored"
+  }
+ ]
+}

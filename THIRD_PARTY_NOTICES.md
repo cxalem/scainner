@@ -8,9 +8,11 @@ dependencies, research sources, fixtures, or knowledge overlays.
   [`packages/uds-map/data/packs/OBDB-NOTICE.md`](packages/uds-map/data/packs/OBDB-NOTICE.md).
 - Each manufacturer-specific knowledge entry records its provenance and source
   licence in `packages/uds-map/data/uds-map.json` or its overlay file.
-- GPL, unlicensed, and unclear-licence sources are research/verification
-  material only unless an independently established, distributable result is
-  recorded. They are not relicensed by Scainner's proprietary licence.
+- Copyleft, non-commercial, unlicensed, and unclear-licence sources remain
+  separately governed. They are research/verification material unless the
+  release channel satisfies their terms or an independently established,
+  distributable result is recorded. They are not relicensed by Scainner's
+  proprietary licence.
 - Runtime and build dependencies retain the licences distributed by their
   respective authors and package registries.
 

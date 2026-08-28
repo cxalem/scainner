@@ -322,6 +322,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/modules/{id}/dids", get(module_dids))
         // discovery knowledge layer
         .route("/vehicles/{id}/coverage", get(vehicle_coverage))
+        .route("/vehicles/{id}/parked-plan", get(vehicle_parked_plan))
         .route("/vehicles/{id}/hypotheses", get(vehicle_hypotheses))
         .route("/vehicles/{id}/join", post(vehicle_join))
         .route("/hypotheses/{id}", axum::routing::patch(patch_hypothesis))
@@ -773,6 +774,13 @@ async fn vehicle_coverage(State(api): State<Arc<ApiState>>, Path(id): Path<i64>)
     }
 }
 
+async fn vehicle_parked_plan(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    match ops::parked_plan(&api.state, id) {
+        Some(plan) => ok(plan),
+        None => Err(no_vehicle(id)),
+    }
+}
+
 async fn vehicle_hypotheses(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
     if ops::vehicle_info(&api.state, id).is_none() {
         return Err(no_vehicle(id));
@@ -1094,26 +1102,26 @@ mod tests {
     #[tokio::test]
     async fn read_routes_serve_the_database() {
         let (api, db) = test_api();
-        let (vehicle_id, _) = db.ensure_vehicle("VF7TEST0000000001");
+        let vin = crate::elm::discovery::join::fixtures::verified_vin();
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
         let connection_id = db.start_connection("ELM327 v1.5", "test");
         db.link_connection_vehicle(connection_id, vehicle_id);
+        let plan_version = crate::elm::discovery::plan::plan_version(Some(&vin));
         let run_id = db
             .insert_verification_run(
                 vehicle_id,
                 connection_id,
-                crate::elm::uds::PARKED_PLAN_VERSION,
+                &plan_version,
                 r#"{"step":"brake"}"#,
             )
             .unwrap();
 
         let (status, body) = call(&api, "GET", "/vehicles", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
-        assert_eq!(body[0]["vin"], "VF7TEST0000000001");
+        assert_eq!(body[0]["vin"], vin);
 
-        let path = format!(
-            "/verification/runs?vehicle_id={vehicle_id}&plan_version={}",
-            crate::elm::uds::PARKED_PLAN_VERSION
-        );
+        let path =
+            format!("/verification/runs?vehicle_id={vehicle_id}&plan_version={plan_version}");
         let (status, body) = call(&api, "GET", &path, Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body[0]["id"], run_id);
@@ -1136,9 +1144,117 @@ mod tests {
         let (status, _) = call(&api, "GET", "/verification/runs/999", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
 
+        // Without a live connection there is no profile: only customs.
         let (status, body) = call(&api, "GET", "/uds/modules", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
-        assert!(body.as_array().unwrap().iter().any(|m| m["key"] == "abs"));
+        assert!(body
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|m| m["source"] == "custom"));
+        let (status, body) = call(
+            &api,
+            "POST",
+            "/uds/modules",
+            Some(TOKEN),
+            Some(r#"{"key": "body", "label": "Body computer", "req": "7A0", "resp": "7A8"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        let body_module = body
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["key"] == "body")
+            .expect("custom module listed");
+        assert_eq!(body_module["source"], "custom");
+        assert_eq!(body_module["builtin"], false);
+        assert_eq!(body_module["read_service"], "22");
+        assert_eq!(body_module["route"]["protocol"], "can11_500");
+
+        // The generated plan for the vehicle, without car traffic: its
+        // brand's profile modules, ISO identity DIDs, a versioned plan.
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle_id}/parked-plan"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["plan_version"], plan_version);
+        assert!(!body["targets"].as_array().unwrap().is_empty());
+        assert!(body["targets"][0]["dids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|d| d["did"] == 0xF187));
+        let (status, _) = call(&api, "GET", "/vehicles/999/parked-plan", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+
+    /// A vehicle of a second brand through the router: its own coverage,
+    /// its own plan, and no leakage from the first brand's rows.
+    #[tokio::test]
+    async fn a_second_brand_is_served_in_isolation() {
+        let (api, db) = test_api();
+        let c4 = crate::elm::discovery::join::fixtures::seed_c4(&db);
+        let second = crate::elm::discovery::join::fixtures::seed_second_brand(&db);
+        for id in [c4.vehicle_id, second.vehicle_id] {
+            let (status, _) = call(
+                &api,
+                "POST",
+                &format!("/vehicles/{id}/join"),
+                Some(TOKEN),
+                None,
+            )
+            .await;
+            assert_eq!(status, StatusCode::OK);
+        }
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{}/coverage", second.vehicle_id),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["vehicle"]["brand_id"], second.brand_id);
+        assert_eq!(body["identified"]["family_matches"], 0);
+        assert_eq!(body["decodes"]["inherited_untested"]["count"], 0);
+        assert_eq!(body["routes"]["reached"], 2);
+        let (_, mine) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{}/coverage", c4.vehicle_id),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(mine["decodes"]["inherited_untested"]["count"], 16);
+        assert_ne!(mine["vehicle"]["brand_id"], body["vehicle"]["brand_id"]);
+        let (status, plan) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{}/parked-plan", second.vehicle_id),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(plan["plan_version"]
+            .as_str()
+            .unwrap()
+            .starts_with(&format!("{}-", second.brand_id)));
+        let targets = plan["targets"].as_array().unwrap();
+        assert!(targets.iter().any(|t| t["read_service"] == "21"));
+        assert!(targets.iter().all(|t| t["dids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|d| d["did"] != 0xF080)));
     }
 
     /// The knowledge layer end to end through the router: join the seeded

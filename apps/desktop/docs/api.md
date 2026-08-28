@@ -118,10 +118,10 @@ sc -X POST $API/dtc/clear -d '{"confirmed": true}'  # actually clears
 ### UDS
 | Route | What |
 |---|---|
-| `GET /uds/modules` | built-in + custom modules (`key`, `label`, `req`, `resp`) |
-| `POST /uds/modules` `{"key","label","req","resp"}` | add a custom module (hex CAN ids like `"752"`/`"652"`) |
+| `GET /uds/modules` | modules for the connected vehicle: the knowledge map's profile for its VIN (`source: "profile"`, keyed `<req>_<resp>` in lower-case hex, e.g. `7e0_7e8`) plus custom ones (`source: "custom"`); each carries `route` (protocol, ids, target byte, address extension) and `read_service` (`22` / `21` / `1A`). Without an identified connection only customs are listed |
+| `POST /uds/modules` `{"key","label","req","resp"}` | add a custom module (hex CAN ids like `"7A0"`/`"7A8"`) |
 | `DELETE /uds/modules/{key}` | remove a custom module |
-| `POST /uds/read` `{"module","did"}` | read one DID (0x22); `null` if the module does not answer |
+| `POST /uds/read` `{"module","did"}` | read one identifier with the module's read service (per-DID overrides from the map honoured); `null` if the module does not answer |
 | `POST /uds/read-many` `{"module","dids":[…]}` | read up to 64 DIDs with the route set once — use this for physical tests; a single `/uds/read` costs ~1.3 s |
 | `POST /uds/scan` `{"module","from","to"}` | range scan (DIDs as integers) — minutes |
 | `POST /uds/scan/cancel` | abort the running scan / discovery |
@@ -130,15 +130,16 @@ sc -X POST $API/dtc/clear -d '{"confirmed": true}'  # actually clears
 | `POST /uds/clear` `{"module","confirmed": true}` | clear the module's fault memory — **confirm-gated** |
 
 ```sh
-sc -X POST $API/uds/read -d '{"module":"abs","did":53504}'   # 0xD100
-sc -X POST $API/uds/scan -d '{"module":"abs","from":54272,"to":54527}'
-sc $API/uds/modules/abs/dtcs
+sc -X POST $API/uds/read -d '{"module":"7e0_7e8","did":61831}'   # 0xF187
+sc -X POST $API/uds/scan -d '{"module":"7e0_7e8","from":61824,"to":62079}'
+sc $API/uds/modules/7e0_7e8/dtcs
 ```
 
 ### Evidence protocol
 | Route | What |
 |---|---|
-| `POST /verification/parked` | run the current parked plan (read-only 0x22 identity + sweeps); saves a `verification_runs` row, returns the `ParkedVerificationReport` with `run_id` |
+| `POST /verification/parked` | run the parked plan generated from the vehicle's profile (identity block on every reached route with each module's read service, one bounded sweep over the brand's data bands); saves a `verification_runs` row, returns the `ParkedVerificationReport` with `run_id`; `plan_version` is `<brand>-<platform|unknown>-v<n>` |
+| `GET /vehicles/{id}/parked-plan` | the plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, budget) — no car traffic |
 | `POST /verification/capture` `{"req","resp","dids":[…],"step","condition","plan_version","repeats":3}` | one guided-correlation capture under a labelled physical condition; saves a run, returns the `CorrelationCapture` with `run_id` |
 | `GET /verification/runs?vehicle_id=&plan_version=&limit=50` | run index (no bodies), newest first |
 | `GET /verification/runs/{id}` | one run with its full `result` JSON |
@@ -159,7 +160,7 @@ sc $API/uds/modules/abs/dtcs
 | `PATCH /probes/{id}` | `{"enabled": false}` toggles; any decode field (`module`,`did`,`label`,`unit`,`offset`,`len`,`scale`,`bias`) replaces the decode (send the full set) |
 | `DELETE /probes/{id}` | remove |
 | `GET /cases?vehicle_id=` / `POST /cases` `{vehicle_id, complaint, odometer_km?, assigned_to?}` | diagnostic cases |
-| `GET /settings/{key}` / `PUT /settings/{key}` `{"value"}` | `app_settings` (writing `api_token` is refused) |
+| `GET /settings/{key}` / `PUT /settings/{key}` `{"value"}` | `app_settings` (writing `api_token` is refused). `auto_discovery` = `off` skips the automatic census → identity → join → coverage run on connect (default on; progress on `/events` as `discovery-progress` phases `auto-census`, `auto-identity`, `auto-join`, `auto-done`; the summary is saved as a `verification_runs` row with `plan_version` `auto-s1-s3`) |
 | `GET /sync/batch?after_reading_id=0&limit=1000` | cloud-sync batch |
 | `GET /db-path` | where the SQLite file is |
 
@@ -185,7 +186,7 @@ VID=$(sc $API/status | jq -r .vehicle_id)
 cap() {  # $1 step, $2 condition
   sc -X POST $API/verification/capture -d "{
     \"req\":\"6A0\",\"resp\":\"68A\",\"dids\":[54272,54273,54274,54275,54282],
-    \"step\":\"$1\",\"condition\":\"$2\",\"plan_version\":\"citroen-c41-v3\",\"repeats\":3}"
+    \"step\":\"$1\",\"condition\":\"$2\",\"plan_version\":\"<brand>-<platform>-v1\",\"repeats\":3}"
 }
 A1=$(cap baseline "pedal released")        # ask the operator to hold each condition
 B=$(cap brake "brake pedal pressed")
@@ -207,7 +208,7 @@ diff_dids "$A1" "$B"    # DIDs that changed when the pedal was pressed
 diff_dids "$A1" "$A2"   # should be empty: anything here is noise, not signal
 
 # 4. Everything was saved: list and re-read the runs later.
-sc "$API/verification/runs?vehicle_id=$VID&plan_version=citroen-c41-v3" | jq
+sc "$API/verification/runs?vehicle_id=$VID&plan_version=<brand>-<platform>-v1" | jq
 sc $API/verification/runs/$(echo "$B" | jq .run_id) | jq .result
 ```
 
@@ -218,10 +219,10 @@ from scripts.scainner_api import Client
 c = Client()                      # reads api-token / api-port from the app data dir
 c.connect(); c.wait_connected()
 dids = [0xD400, 0xD401, 0xD402, 0xD403, 0xD40A]
-a1 = c.capture("6A0", "68A", dids, "baseline", "pedal released", "citroen-c41-v3")
+a1 = c.capture("6A0", "68A", dids, "baseline", "pedal released", "<brand>-<platform>-v1")
 input("press and hold the brake pedal, then Enter")
-b  = c.capture("6A0", "68A", dids, "brake", "brake pedal pressed", "citroen-c41-v3")
-a2 = c.capture("6A0", "68A", dids, "baseline", "pedal released again", "citroen-c41-v3")
+b  = c.capture("6A0", "68A", dids, "brake", "brake pedal pressed", "<brand>-<platform>-v1")
+a2 = c.capture("6A0", "68A", dids, "baseline", "pedal released again", "<brand>-<platform>-v1")
 print(c.diff_captures(a1, b))     # {did: (baseline payloads, condition payloads)}
 print(c.diff_captures(a1, a2))    # noise floor — should be {}
 ```
