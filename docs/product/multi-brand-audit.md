@@ -1,6 +1,6 @@
 # Multi-brand audit — making the C4 one car in the list
 
-2026-08-29 · read-only audit of `main` (three parallel sweeps: Rust backend; knowledge pack, fixtures and scripts; frontend, API, schema, docs) · ~180 findings consolidated into 6 targets
+v1.1 · 2026-08-28 · read-only audit of `main` (three parallel sweeps: Rust backend; knowledge pack, fixtures and scripts; frontend, API, schema, docs) · ~180 findings consolidated into 6 targets · v1.1 corrects counts and protocol wording after independent review (§10)
 
 ---
 
@@ -8,7 +8,7 @@
 
 Scainner's product is **multi-brand diagnostic knowledge that compounds**: connect any car, identify it down to the ECU family, reuse what compatible ECUs on other cars already taught us, and learn the rest from evidence. The moat is the shared, evidence-backed knowledge keyed by ECU family — not one car, not one brand.
 
-For four weeks the only car available was one Citroën C4 III. That was the right way to *discover the method*: three ECUs fingerprinted, 14 vehicle-verified decodes, the acquisition protocol, the discovery protocol, the state layer and the correlation engine all came out of it. The risk the founder named on 2026-08-29 is exact: **the method was learned on one car, and the code, data and tests may have quietly become that car's shape.** If so, the next brand does not "slot in" — it hits a wall we cannot see from the C4.
+For four weeks the only car available was one Citroën C4 III. That was the right way to *discover the method*: three ECUs fingerprinted, 14 vehicle-verified decodes, the acquisition protocol, the discovery protocol, the state layer and the correlation engine all came out of it. The risk the founder named on 2026-08-28 is exact: **the method was learned on one car, and the code, data and tests may have quietly become that car's shape.** If so, the next brand does not "slot in" — it hits a wall we cannot see from the C4.
 
 This audit answers one question: **where in the repo is the C4/PSA the default, the special case, or the only evidence, rather than one entry in a brand-agnostic structure?** Every finding is mapped to the pattern that would make the C4 just another car.
 
@@ -29,7 +29,7 @@ The C4 is one row in every table, one entry in every list, one fixture directory
 
 ## 3. The shape of the problem (one paragraph)
 
-The **research** (`packages/uds-map/RESEARCH.md`, 21 brands, licence-aware) and the **protocol designs** are already multi-brand — the discovery protocol even names the missing fields (`read_service`, `identity_block`, `platforms[]`) and uses the Kona as its worked example. What is single-brand is the layer in between: the **JSON schema** encodes PSA's data shape as universal (one unsigned value per DID, ≤ 8 bytes, service `0x22`); the **compiled-in tables** (`builtin_modules()`, `parked_verification()`, `psa_identity_fingerprint()`) are the C4; the **evidence corpus** is one car (35 correlation fixtures, 2 ELM fixtures, 19 evidence files, one DB seed, one knowledge pack); and the **product surfaces** default to PSA keys, examples and copy. Everything below is that gap, with file:line.
+The **research** (`packages/uds-map/RESEARCH.md`, 21 brands, licence-aware) and the **protocol designs** are already multi-brand — the discovery protocol even names the missing fields (`read_service`, `identity_block`, `platforms[]`) and uses the Kona as its worked example. What is single-brand is the layer in between: the **JSON schema** encodes PSA's data shape as universal (one unsigned value per DID, ≤ 8 bytes, service `0x22`); the **compiled-in tables** (`builtin_modules()`, `parked_verification()`, `psa_identity_fingerprint()`) are the C4; the **evidence corpus** is one car (35 correlation replay inputs, 2 real vehicle ELM captures out of 13 fixtures, 16 evidence files, one DB seed, one knowledge pack); and the **product surfaces** default to PSA keys, examples and copy. Everything below is that gap, with file:line.
 
 ## 4. Numbers
 
@@ -38,7 +38,7 @@ The **research** (`packages/uds-map/RESEARCH.md`, 21 brands, licence-aware) and 
 | Rust backend (`src-tauri/src`) | 81 | 3 clusters | 7 hardcoded-plan, 5 brand-parser-in-code, 6 builtin-defaults, 9 adapter, 13 protocol assumptions, 20 single-car tests/fixtures, 21 doc-only |
 | Knowledge pack, fixtures, scripts | 40 | 9 | schema gaps, single-brand data, all-C4 fixtures, C4-only scripts |
 | Frontend, API, schema, docs | 62 | 10 | Lab hardcodes, API/docs examples, mock data, adapter/platform, single-vehicle UI |
-| Pack data | 197 known DIDs, 116 decodable, **33 module-bound (all PSA)**, **16 with evidence (all PSA)**; 3 ECU families (all PSA); 1 overlay pack (Citroën) | | |
+| Pack data | 197 known DIDs, **112** fully decodable (offset+len+scale+bias), **33 module-bound (all PSA)**, **16 with evidence (all PSA)**; 3 ECU families (all PSA) with 16 decodes; 4 modules with discovery-session data (all PSA); 1 overlay pack (Citroën) | | |
 
 ## 5. Findings, grouped by the pattern that fixes them
 
@@ -60,15 +60,15 @@ Severity: **B** blocking for multi-brand, **I** important, c cosmetic. Paths are
 | Sev | Where | What | Pattern |
 |---|---|---|---|
 | B | `elm/uds.rs:270,297,1539,1550`; `elm/discovery/family.rs:51`; `scripts/scainner_mcp.py:29` | Service `0x22` assumed everywhere (request format, `7F 22` NRC match, presence probe, MCP docstring). `EcuFamily.diagnostic_service` (`elm/uds_map.rs:46`) has **zero readers**. RESEARCH.md §3.3: Nissan Leaf LBC, Renault LBC/UCH, older Kia (`0x21` groups), GM pre-2017 and older Toyota hybrids (`0x1A`) silently read as "empty car". | `modules[].read_service` in the pack; request/NRC parsing parameterised on the service; `0x21`/`0x1A` request paths. |
-| B | `elm/uds.rs:157-190,1493-1523`; `elm/uds_map.rs:393-405,448-455` | Only `ATSP6` (11-bit 500k) / `ATSP7` (29-bit `18DA..F1`); `response_addr` is 11-bit only; BMW `6F1` + target byte, GM Ultium `14DA..`, Volvo VIDA, 250k CAN, KWP/ISO9141 modules cannot be expressed. No `address_extension` in the pack even though the `ATCEA` path exists (`elm/uds.rs:194`). | Route tuple as data: protocol/bit-rate, request id, response rule, target byte, address extension, gateway class (already specified in the discovery protocol). |
-| I | `elm/operation.rs:67-69` | Cleanup restores `ATSH 7DF` (11-bit functional id) after every UDS op — wrong on a 29-bit OBD side. | Restore the header captured at connect (`ATDPN`). |
+| B | `elm/uds.rs:157-190,1493-1523`; `elm/uds_map.rs:393-405,448-455` | The runtime already supports normal-fixed 29-bit (`ATSP7`, receive filters, flow-control headers) and has an `ATCEA` address-extension path (`elm/uds.rs:194`) — but only 11-bit 500k and `18DA..F1` are *selectable*, `response_addr` is 11-bit only, and the pack cannot say when a module needs an extension, a target byte (BMW `6F1`), a different 29-bit scheme (GM Ultium `14DA..`), a bit rate (250k) or a non-CAN protocol. The gap is route representation in data, not transport capability. | Route tuple as data: protocol/bit-rate, request id, response rule, target byte, address extension, gateway class (already specified in the discovery protocol). |
+| I | `elm/operation.rs:67-69` | Cleanup runs `ATSP0` then `ATSH 7DF` (11-bit functional id) after every UDS op — an unsafe assumption on a 29-bit OBD side; not yet demonstrated to break a real car, but the restore should come from captured state. | Restore the header/protocol captured at connect (`ATDPN`). |
 | I | `elm/correlation/sanity.rs:51-70,118-180` | Naming heuristics compiled in from the C4: wheel speed only if slope 94–104 raw/km/h and `×0.01`; steering only if 9–11 counts/°; inherited-fit matching by English label substrings. VAG `×0.0625 km/h` or mph scales fall through unnamed. | `scale_catalog` per quantity in data; a machine-readable `quantity`/`reference` field on decodes instead of label parsing. |
 
 ### 5.3 The pack schema is PSA's data shape → *schema that fits every brand*
 
 | Sev | Where | What | Pattern |
 |---|---|---|---|
-| B | `packages/uds-map/src/types.ts:60-72`, `index.ts:270-281` | **One unsigned big-endian value per DID.** No `signed`, no multi-value, no bit fields, no strings. Non-PSA entries work around it in prose or fake it (`ford 402B` `bias: -128`; `toyota 1F9A` second field described in the label; `hyundai_kia C00B/C002/E004` offsets only in text). `OBDB-NOTICE.md` records temperature signals **dropped** for this reason. 81/197 known DIDs have no decode at all, mostly because they are multi-value. | `decodes[]` per DID with `offset/len/signed/encoding(be\|le\|bcd\|ascii\|bitfield)/bit_offset/bit_len/scale/bias/unit/quantity`. |
+| B | `packages/uds-map/src/types.ts:60-72`, `index.ts:270-281` | **One unsigned big-endian value per DID** on the brand `known_dids` path (the `ecu_families` decodes do carry `signed`; the main brand knowledge path does not). No multi-value, no bit fields, no strings. Non-PSA entries work around it in prose or fake it (`ford 402B` `bias: -128`; `toyota 1F9A` second field described in the label; `hyundai_kia C00B/C002/E004` offsets only in text). `OBDB-NOTICE.md` records temperature signals **dropped** for this reason. 85/197 known DIDs have no complete decode, mostly because they are multi-value. | `decodes[]` per DID with `offset/len/signed/encoding(be\|le\|bcd\|ascii\|bitfield)/bit_offset/bit_len/scale/bias/unit/quantity`. |
 | B | `types.ts:82-92`, `uds-map.json` | No `identity_block`, no `read_service`, no `platforms[]` — all three named as required in the discovery protocol (`docs/product/universal-discovery-protocol.md:126-127`). Identity exists only as PSA's `F080-F0FF` band. Generation facts (Soul EV `0x21` vs E-GMP `0x22`; Opel pre/post-2017; Volvo P1/P2 vs SPA2) are unencodable. | Add the three fields; migrate the prose facts from `RESEARCH.md` into them. |
 | B | `uds-map.json` `known_dids[].modules` | Module binding on 33/197 DIDs — all PSA. Other brands' DIDs attach to whichever module answers (the exact bug class of the Nissan `743/763 → 797/79A` correction). | Bind every DID to a route; make the unscoped fallback a lint failure. |
 | I | `uds-map.json` `evidence`/`source` | Provenance on 16/197 DIDs, all PSA; no `source` field at all, so non-PSA provenance lives only in `RESEARCH.md`. | `source{url,date,type,licence}` on every DID and family. |
@@ -81,7 +81,7 @@ Severity: **B** blocking for multi-brand, **I** important, c cosmetic. Paths are
 
 | Sev | Where | What | Pattern |
 |---|---|---|---|
-| B | `tests/fixtures/correlation/*` (35 files), `tests/fixtures/elm/*` (2, both Stellantis), `elm/discovery/join.rs:209-270` `seed_c4()`, `apps/desktop/docs/workflows/evidence/*` (19 files, all `c41-*`) | Every byte the engine or the state layer has ever been tested on is the C4. Payload lengths present: {1,2,3,4,6,7,8}. **Untested shapes:** `0x21` group responses, `0x1A`, 29-bit routes, multi-frame > 8 bytes (`decode_payload` returns `None` above 8), offset-binary signed (`signed_guess` only detects two's complement), ASCII, bit-packed flags. Isolation tests use two *PSA* VINs, so cross-brand isolation is untested. | Per-brand fixture directories. Ready-made sources already cited in RESEARCH.md with raw response ↔ expected value pairs under **CC BY-SA 4.0** (already accepted once): `OBDb/Mercedes-Benz-EQB`, `OBDb/Nissan-Leaf` (incl. `0x21` LBC), `OBDb/Polestar-2`, `OBDb/Volvo-XC40-Recharge`, Honda/Mazda/Toyota signalsets. GPL sources (OVMS, CanZE) are verification evidence only, per the acquisition protocol's licence gate — record that gate on every entry derived from them. |
+| B | `tests/fixtures/correlation/*` (35 replay inputs), `tests/fixtures/elm/*` (13 fixtures; the 2 real vehicle captures are both Stellantis, the rest exercise clear/error/transport outcomes), `elm/discovery/join.rs:209-270` `seed_c4()`, `apps/desktop/docs/workflows/evidence/*` (16 files, all `c41-*`) | Every vehicle byte the engine or the state layer has ever been tested on is the C4 (the remaining ELM fixtures are synthetic outcome cases, not vehicles). Payload lengths present: {1,2,3,4,6,7,8}. **Untested shapes:** `0x21` group responses, `0x1A`, 29-bit routes, multi-frame > 8 bytes (`decode_payload` returns `None` above 8), offset-binary signed (`signed_guess` only detects two's complement), ASCII, bit-packed flags. Isolation tests use two *PSA* VINs, so cross-brand isolation is untested. | Per-brand fixture directories. Ready-made sources already cited in RESEARCH.md with raw response ↔ expected value pairs under **CC BY-SA 4.0** (already accepted once): `OBDb/Mercedes-Benz-EQB`, `OBDb/Nissan-Leaf` (incl. `0x21` LBC), `OBDb/Polestar-2`, `OBDb/Volvo-XC40-Recharge`, Honda/Mazda/Toyota signalsets. GPL sources (OVMS, CanZE) are verification evidence only, per the acquisition protocol's licence gate — record that gate on every entry derived from them. |
 | I | `elm/uds_map.rs` tests, `db.rs` tests (~40), `api/mod.rs` tests, `elm/discovery/*` tests | Sole worked example is PSA (`VR7EXAMPLE…`, `6A8/688`, `9846124980`); VAG `+0x6A` and GM `+0x400` rules are in the JSON but never asserted in Rust; only one 29-bit AT-sequence test (PSA TPMS). | A second seed vehicle (VW or Ford) and a non-PSA family in every layer's tests. |
 
 ### 5.5 Scripts and session tooling → *brand-agnostic session tooling driven by the pack*
@@ -112,7 +112,7 @@ Severity: **B** blocking for multi-brand, **I** important, c cosmetic. Paths are
 
 | Sev | Where | What |
 |---|---|---|
-| **B** | `apps/mobile/src/data/demo.ts:20` | **The real C4 VIN** is in the mobile demo data; `BACKLOG.md:46` says it was scrubbed before publishing. The repo is public. Replace with an example VIN. |
+| **B** | `apps/mobile/src/data/demo.ts:20` | **The real C4 VIN** was in the mobile demo data although `BACKLOG.md:46` says it was scrubbed before publishing; the repo is public. **Fixed on this branch** (`8d20be1`, replaced with `VR7EXAMPLE0000001`); it remains in git history. |
 | I | `elm/uds.rs:472` vs `coverage.rs:417`, `api/mod.rs:1104`, `openapi.rs:85`, `api.md` | Producer emits `citroen-c41-v3`; tests, OpenAPI and docs say `v4`. |
 | c | `packages/uds-map/README.md:7`, `RESEARCH.md:475,876` | DID counts stale in three places (159 / 181 / "180+"; actual 197). |
 
@@ -168,3 +168,23 @@ Then **S4** is a test, not a task: connect the Kona (already in the DB) and a re
 ## 9. Sources for this audit
 
 Three read-only sweeps on 2026-08-29 over `main` @ `1174bb3`: Rust backend (`src-tauri/src`), knowledge/evidence (`packages/uds-map`, `tests/fixtures`, `docs`, `scripts`), and frontend/API/schema (`src`, `src-tauri/src/api`, `supabase`, `apps/mobile`, `packages/core`). Every finding carries a path and line; counts are as of that commit.
+
+
+## 10. Independent review of v1.0 (2026-08-28) and what changed in v1.1
+
+An independent review re-ran the suites (uds-map 16, discovery 26, correlation 19 — all passing) and re-parsed the pack. Its status call, adopted here as the baseline:
+
+| Criterion | Status | Why |
+|---|---|---|
+| S1 no brand in code | **Red** | PSA modules, identity parsing, plans, plan names, UI defaults and correlation thresholds compiled in |
+| S2 universal schema | **Red** | several required protocol and payload shapes inexpressible |
+| S3 multi-brand evidence | **Red** | all vehicle evidence is C4 |
+| S4 new car reaches coverage from data | **Partial** | join/hypotheses/coverage exist but are manual and depend on fingerprints/routes the generic runtime cannot reliably acquire |
+| S5 generated coverage | **Red** | §6 is hand-written |
+| S6 brand-neutral product | **Red** | Lab, API, mock, scripts, copy PSA-oriented |
+
+Honest product statement today: *Scainner has a tested vehicle-knowledge acquisition method and a 21-brand research map, but automatic manufacturer-specific discovery is proven only on one C4 and its PSA ECU families.*
+
+Corrections applied in v1.1 (all verified against the repo): fully decodable DIDs 116 → **112** (schema definition: offset+len+scale+bias); evidence files 19 → **16**; ELM fixtures stated as **13, of which 2 real vehicle captures**; the VIN fix recorded as done on this branch; 29-bit and address-extension support described as a *representation* gap rather than a transport gap; the `7DF` cleanup finding qualified; `signed` noted as present on family decodes; date corrected to 2026-08-28; the §6 table's "decodable" column should be read as 112 in total (per-brand cells retained from the sweep pending the generated table).
+
+What the review confirmed as already solid and not to be rebuilt: VIN → profile selection, known-module ordering and per-brand bands, per-block response-offset rules, normal-fixed 29-bit discovery, compatibility keys and strong/weak/name-only joins, inherited hypotheses disabled until evidence, evidence-backed coverage, deterministic correlation, vehicle-scoped storage, honest partial states.
