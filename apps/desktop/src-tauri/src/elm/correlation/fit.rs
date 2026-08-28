@@ -7,15 +7,21 @@ const LAGS_MS: [i64; 15] = [
 ];
 const MAX_ROBUST_POINTS: usize = 128;
 
+/// Widest field decoded as one number. A wider window (a `0x21` group or a
+/// long multi-frame DID) is analysed on its first eight bytes; the shape
+/// notes say so, and an inherited decode addresses the real field directly.
+pub(crate) const MAX_DECODE_BYTES: usize = 8;
+
 pub(crate) fn decode_payload(
     payload: &[u8],
     offset: usize,
     len: usize,
     signed: bool,
 ) -> Option<f64> {
-    if len == 0 || len > 8 || offset.checked_add(len)? > payload.len() {
+    if len == 0 || offset.checked_add(len)? > payload.len() {
         return None;
     }
+    let len = len.min(MAX_DECODE_BYTES);
     let raw = payload[offset..offset + len]
         .iter()
         .fold(0_u64, |acc, byte| (acc << 8) | u64::from(*byte));
