@@ -53,7 +53,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | platform pre_meb_e_up (2013-2020) | `brands[vag].platforms[pre_meb_e_up]` | ovms_vweup |
 | platform meb (2020-now) | `brands[vag].platforms[meb]` | obdb_id4 |
 | gateway behaviour: silence means unknown, writes_blocked=False | `brands[vag].gateway_behaviour` | vag_uds_ids |
-| profiled_level routes_verified | `brands[vag].profiled_level` | derived |
+| profiled_level routes_sourced | `brands[vag].profiled_level` | derived |
 | F4xx mode-01 mirror band demoted to low | `brands[skoda].did_bands[F400]` | research:32-the-f4xx-obd-pid-mirror-band |
 | DID 2203 bound to 714/77E | `brands[skoda].known_dids[2203].modules` | vag_uds_ids |
 | DID 2260 bound to 714/77E | `brands[skoda].known_dids[2260].modules` | vag_uds_ids |
@@ -77,7 +77,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID 028C bound to 7E5/7ED | `brands[cupra].known_dids[028C].modules` | obdb_born |
 | DID 51E0 bound to 7E5/7ED | `brands[cupra].known_dids[51E0].modules` | obdb_born |
 | platform meb_born (2021-now) | `brands[cupra].platforms[meb_born]` | obdb_born |
-| profiled_level routes_verified | `brands[cupra].profiled_level` | derived |
+| profiled_level routes_sourced | `brands[cupra].profiled_level` | derived |
 | D-CAN target byte 12 (request 6F1, response 600+target, ISO-TP extended address) | `brands[bmw].modules[612].route` | ovms_bmwi3 |
 | D-CAN target byte 07 (request 6F1, response 600+target, ISO-TP extended address) | `brands[bmw].modules[607].route` | ovms_bmwi3 |
 | D-CAN target byte 60 (request 6F1, response 600+target, ISO-TP extended address) | `brands[bmw].modules[660].route` | ovms_bmwi3 |
@@ -119,7 +119,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | platform eqb_mfa2 (2023-2025) | `brands[mercedes].platforms[eqb_mfa2]` | obdb_eqb |
 | platform eva2_eqe_eqs (2021-now) | `brands[mercedes].platforms[eva2_eqe_eqs]` | obdb_eqb |
 | gateway behaviour: silence means filtered, writes_blocked=False | `brands[mercedes].gateway_behaviour` | research:4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin |
-| profiled_level routes_verified | `brands[mercedes].profiled_level` | derived |
+| profiled_level routes_sourced | `brands[mercedes].profiled_level` | derived |
 | module 79B/7BB read service 21 | `brands[renault].modules[79B].read_service` | canze |
 | module 745/765 read service 21 | `brands[renault].modules[745].read_service` | canze |
 | DID 2002 bound to 7E4/7EC | `brands[renault].known_dids[2002].modules` | canze |
@@ -146,7 +146,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID 0E01 bound to 743/763 | `brands[nissan].known_dids[0E01].modules` | obdb_leaf |
 | platform leaf_ze0 (2011-2017) | `brands[nissan].platforms[leaf_ze0]` | vpic |
 | platform leaf_ze1 (2018-now) | `brands[nissan].platforms[leaf_ze1]` | vpic |
-| profiled_level routes_verified | `brands[nissan].profiled_level` | derived |
+| profiled_level routes_sourced | `brands[nissan].profiled_level` | derived |
 | module 7D6/7DE read service 21 | `brands[hyundai_kia].modules[7D6].read_service` | ovms_soulev |
 | DID 0101 bound to 7E4/7EC | `brands[hyundai_kia].known_dids[0101].modules` | ovms_ioniq5 |
 | DID 0101: 5 decodes from label/note text | `brands[hyundai_kia].known_dids[0101].decodes` | ovms_ioniq5 |
@@ -245,7 +245,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | module 18DA10F1/18DAF110 route can29_normal_fixed | `brands[volvo].modules[18DA10F1].route` | obdb_polestar2 |
 | platform p1_p2_vida (?-2019) | `brands[volvo].platforms[p1_p2_vida]` | volvo_vida |
 | platform cma_spa2 (2020-now) | `brands[volvo].platforms[cma_spa2]` | vpic |
-| profiled_level routes_verified | `brands[volvo].profiled_level` | derived |
+| profiled_level routes_sourced | `brands[volvo].profiled_level` | derived |
 | identity block: 1 vendor field(s) on top of ISO | `brands[subaru].identity_block` | research:4-honda--acura-mazda-subaru-mitsubishi |
 | platform solterra_bz4x (2023-now) | `brands[subaru].platforms[solterra_bz4x]` | research:4-honda--acura-mazda-subaru-mitsubishi |
 | profiled_level routes_sourced | `brands[subaru].profiled_level` | derived |

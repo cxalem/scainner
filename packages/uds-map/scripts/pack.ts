@@ -36,7 +36,7 @@ export function isBound(k: KnownDid): boolean {
 }
 
 export function sourceOk(s: Source | undefined): boolean {
-  return !!s && typeof s.url === "string" && s.url.length > 0 && typeof s.date === "string" && !!s.type && typeof s.licence === "string";
+  return !!s && typeof s.url === "string" && s.url.trim().length > 0 && typeof s.date === "string" && s.date.trim().length > 0 && !!s.type && typeof s.licence === "string" && s.licence.trim().length > 0;
 }
 
 /** Brand tokens that must not appear in code: every brand id, every word

@@ -733,11 +733,13 @@ GATEWAY: dict[str, dict] = {
 
 PROFILED_LEVEL: dict[str, str] = {
     "psa": "decodes_verified",
-    "mercedes": "routes_verified",
-    "nissan": "routes_verified",
-    "volvo": "routes_verified",
-    "vag": "routes_verified",
-    "cupra": "routes_verified",
+    # External corpora are sourced research until their raw exchanges are
+    # committed as replay fixtures and exercised by this repository.
+    "mercedes": "routes_sourced",
+    "nissan": "routes_sourced",
+    "volvo": "routes_sourced",
+    "vag": "routes_sourced",
+    "cupra": "routes_sourced",
     "opel_psa": "routes_sourced",
     "skoda": "routes_sourced",
     "seat": "routes_sourced",
