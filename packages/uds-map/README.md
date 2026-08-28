@@ -4,7 +4,7 @@ A queryable knowledge map of manufacturer-specific **UDS (ISO 14229)** diagnosti
 
 Extracted from [Scainner](https://github.com/cxalem/scainner), an open-source car-diagnostics app, where this exact file drives its one-button sensor auto-discovery engine.
 
-**21 brands. 251 VIN (WMI) prefixes. 180+ modules. 180+ identified DIDs**, each with a `confidence` level (`confirmed` / `high` / `medium` / `low`) reflecting how independently verified it is. See [`RESEARCH.md`](./RESEARCH.md) for full per-brand provenance, sources, and known gaps.
+**21 brands. 251 VIN (WMI) prefixes. 180 module address pairs. 197 identified DIDs** (112 fully decodable with `offset`/`len`/`scale`/`bias`), plus 3 `ecu_families` carrying 16 decodes, each with a `confidence` level (`confirmed` / `high` / `medium` / `low`) reflecting how independently verified it is. From Phase 1 of the multi-brand plan these numbers are generated from the pack by `pnpm coverage` rather than maintained by hand. See [`RESEARCH.md`](./RESEARCH.md) for full per-brand provenance, sources, and known gaps.
 
 ## Read this before you use it
 

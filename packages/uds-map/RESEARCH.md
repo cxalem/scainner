@@ -471,8 +471,10 @@ WMI only. The Solterra shares Toyota's bZ4X platform so Toyota-style addressing 
 - `low` — inferred, anecdotal, contradicted by another source, or explicitly failed
   to reproduce (PSA `D0xx`).
 
-Counts as shipped: 21 brands, 159 `known_dids`, 82 of which carry decode hints,
-18 marked `confirmed`, 251 WMI prefixes.
+Counts as shipped: 21 brands, 197 `known_dids`, 112 of which are fully
+decodable (offset + len + scale + bias), 34 marked `confirmed`, 251 WMI
+prefixes, 3 `ecu_families` with 16 decodes. From Phase 1 of the multi-brand
+plan these numbers are generated from the pack by `pnpm coverage`.
 
 ---
 
@@ -871,8 +873,9 @@ a gap this map can close by finding the right DID.
 
 ### Updated totals
 
-21 brands (unchanged), 181 `known_dids` (up from 159), 180 module address
-pairs. The overall shape hasn't changed, most brands were already
+21 brands (unchanged), 197 `known_dids` at the time of writing (112 fully
+decodable), 180 module address pairs. From Phase 1 of the multi-brand plan
+these numbers are generated from the pack by `pnpm coverage`. The overall shape hasn't changed, most brands were already
 well-covered, but two structural bugs (Nissan's module misattribution,
 Renault's silent resp_offset fallthrough) are fixed, one wrong-but-labeled-confirmed
 BMW formula is corrected, and five brands that were essentially empty
