@@ -200,7 +200,7 @@ The app had lost the dongle after the parked session, so the capture ran
 outside it: `scripts/drive_logger.py` (read-only, same termios/handshake as
 `driver.rs`, revived the V-LINK with the blueutil unpair → pair 1234 → connect
 cure) polled nine ABS identifiers plus OBD speed/RPM/voltage round-robin at
-~1 Hz for 196 cycles. Raw CSV: `docs/workflows/evidence/citroen-c41-drive-v1-2026-08-27.csv`.
+~1 Hz for 196 cycles. Raw CSV: `docs/workflows/evidence/psa/c41/citroen-c41-drive-v1-2026-08-27.csv`.
 The drive was ~200 m with normal braking, starting and ending with a reverse
 manoeuvre.
 
@@ -247,7 +247,7 @@ turns (`D41F` > +45°) `D401`/`D403` were faster; in right turns `D400`/`D402`
 were faster; within a side the front wheel led mid-corner. **Confirmed:
 `D400` RL, `D401` RR, `D402` FL, `D403` FR (×0.01 km/h); steering angle
 positive = left.** Probe labels updated. Raw samples in
-`docs/workflows/evidence/c41-session2-turn-*.json`.
+`docs/workflows/evidence/psa/c41/c41-session2-turn-*.json`.
 
 Method note: `POST /uds/read` costs ~1.3 s per DID (route reconfigured per
 call), so single reads cannot sample a manoeuvre; probe polling runs only

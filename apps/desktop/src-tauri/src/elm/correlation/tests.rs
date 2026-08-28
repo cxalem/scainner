@@ -15,10 +15,10 @@ fn correlation<'a>(report: &'a HypothesisReport, key: &str) -> &'a Correlation {
 #[test]
 fn drive_wheels_are_a_ranked_four_value_array() {
     let fixtures = [
-        include_str!("../../../tests/fixtures/correlation/drive-d400.json"),
-        include_str!("../../../tests/fixtures/correlation/drive-d401.json"),
-        include_str!("../../../tests/fixtures/correlation/drive-d402.json"),
-        include_str!("../../../tests/fixtures/correlation/drive-d403.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d400.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d401.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d402.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d403.json"),
     ];
     for contents in fixtures {
         let report = analyze(&fixture(contents));
@@ -39,7 +39,7 @@ fn drive_wheels_are_a_ranked_four_value_array() {
 #[test]
 fn cornering_resolves_the_outer_side() {
     let report = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/combined-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/combined-d400.json"
     )));
     let split = report.array.unwrap().side_split.unwrap();
     assert_eq!(split.outer_in_left_turn, [0xD401, 0xD403]);
@@ -49,7 +49,7 @@ fn cornering_resolves_the_outer_side() {
 #[test]
 fn binary_events_and_brake_magnitude_remain_ranked_not_named() {
     let switch = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d406.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d406.json"
     )));
     assert_eq!(switch.shape.variability, Variability::EventLike);
     assert!(switch.notes.iter().any(|note| note.contains("A→B→A")));
@@ -60,7 +60,7 @@ fn binary_events_and_brake_magnitude_remain_ranked_not_named() {
     assert!(correlation(&switch, "braking").r.abs() < 0.5);
 
     let pressure = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d40c.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d40c.json"
     )));
     assert!(pressure.interpretations.is_empty());
     assert!(pressure
@@ -73,7 +73,7 @@ fn binary_events_and_brake_magnitude_remain_ranked_not_named() {
         .is_some_and(|test| test.contains("stationary A→B→A")));
 
     let reverse = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d46d.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d46d.json"
     )));
     assert_eq!(reverse.shape.variability, Variability::EventLike);
     assert!(reverse
@@ -85,7 +85,7 @@ fn binary_events_and_brake_magnitude_remain_ranked_not_named() {
 #[test]
 fn vacuum_requires_the_discriminating_engine_off_capture() {
     let drive = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d479.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d479.json"
     )));
     assert!(drive.correlations.iter().all(|fit| fit.r.abs() < 0.5));
     assert!(!drive
@@ -94,7 +94,7 @@ fn vacuum_requires_the_discriminating_engine_off_capture() {
         .any(|item| item.label == "servo vacuum"));
 
     let pump = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/vacuum-d479.json"
+        "../../../tests/fixtures/psa/c41/correlation/vacuum-d479.json"
     )));
     assert_eq!(pump.interpretations[0].label, "servo vacuum");
     assert!(pump.interpretations[0].confidence > 0.6);
@@ -107,22 +107,22 @@ fn vacuum_requires_the_discriminating_engine_off_capture() {
 #[test]
 fn steering_raw_fits_preserve_slope_bias_and_low_confidence_candidates() {
     let angle = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/steering-static-d40d.json"
+        "../../../tests/fixtures/psa/c41/correlation/steering-static-d40d.json"
     )));
     let fit = correlation(&angle, "steering_angle");
     assert!((fit.slope - 10.0).abs() <= 0.3, "{fit:#?}");
     assert!(fit.bias.abs() <= 5.0, "{fit:#?}");
 
     let pinion = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/steering-static-d40e.json"
+        "../../../tests/fixtures/psa/c41/correlation/steering-static-d40e.json"
     )));
     let fit = correlation(&pinion, "steering_angle");
     assert!((fit.slope - 10.0).abs() <= 0.3, "{fit:#?}");
     assert!((fit.bias + 181.0).abs() <= 10.0, "{fit:#?}");
 
     for contents in [
-        include_str!("../../../tests/fixtures/correlation/steering-static-d40f.json"),
-        include_str!("../../../tests/fixtures/correlation/steering-static-d411.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/steering-static-d40f.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/steering-static-d411.json"),
     ] {
         let report = analyze(&fixture(contents));
         assert!(report
@@ -136,7 +136,7 @@ fn steering_raw_fits_preserve_slope_bias_and_low_confidence_candidates() {
     }
 
     let slow = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/steering-turn-d404.json"
+        "../../../tests/fixtures/psa/c41/correlation/steering-turn-d404.json"
     )));
     assert_eq!(slow.shape.variability, Variability::Slow);
 }
@@ -144,15 +144,15 @@ fn steering_raw_fits_preserve_slope_bias_and_low_confidence_candidates() {
 #[test]
 fn camera_constants_are_a_negative_and_request_a_driving_capture() {
     for contents in [
-        include_str!("../../../tests/fixtures/correlation/camera-d400-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d401-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d402-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d403-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d404-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d405-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d407-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d408-constant.json"),
-        include_str!("../../../tests/fixtures/correlation/camera-d409-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d400-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d401-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d402-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d403-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d404-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d405-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d407-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d408-constant.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/camera-d409-constant.json"),
     ] {
         let report = analyze(&fixture(contents));
         assert_eq!(report.shape.variability, Variability::Constant);
@@ -163,7 +163,7 @@ fn camera_constants_are_a_negative_and_request_a_driving_capture() {
             .is_some_and(|test| test.contains("driving")));
     }
     let anomalous = analyze(&fixture(include_str!(
-        "../../../tests/fixtures/correlation/camera-d40a-constant.json"
+        "../../../tests/fixtures/psa/c41/correlation/camera-d40a-constant.json"
     )));
     assert_eq!(anomalous.shape.variability, Variability::EventLike);
     assert!(anomalous.interpretations.is_empty());
@@ -173,7 +173,7 @@ fn camera_constants_are_a_negative_and_request_a_driving_capture() {
 #[test]
 fn inherited_fit_can_cross_the_naming_threshold() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     input.inherited = Some(InheritedDecode {
         label: "rear-left wheel speed".into(),
@@ -198,7 +198,7 @@ fn inherited_fit_can_cross_the_naming_threshold() {
 #[test]
 fn analysis_is_deterministic() {
     let input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     assert_eq!(analyze(&input), analyze(&input));
 }
@@ -206,9 +206,9 @@ fn analysis_is_deterministic() {
 #[test]
 fn fixtures_do_not_feed_target_brake_dids_back_as_references() {
     for contents in [
-        include_str!("../../../tests/fixtures/correlation/drive-d406.json"),
-        include_str!("../../../tests/fixtures/correlation/drive-d40c.json"),
-        include_str!("../../../tests/fixtures/correlation/drive-d479.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d406.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d40c.json"),
+        include_str!("../../../tests/fixtures/psa/c41/correlation/drive-d479.json"),
     ] {
         let input = fixture(contents);
         assert!(input
@@ -222,7 +222,7 @@ fn fixtures_do_not_feed_target_brake_dids_back_as_references() {
 #[test]
 fn inherited_decode_without_a_testable_reference_is_insufficient() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     input.inherited = Some(InheritedDecode {
         label: "coolant temperature".into(),
@@ -242,7 +242,7 @@ fn inherited_decode_without_a_testable_reference_is_insufficient() {
 #[test]
 fn vacuum_requires_explicit_engine_off_evidence() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/vacuum-d479.json"
+        "../../../tests/fixtures/psa/c41/correlation/vacuum-d479.json"
     ));
     for sample in &mut input.samples {
         sample.refs.retain(|reading| reading.key != "engine_on");
@@ -256,7 +256,7 @@ fn vacuum_requires_explicit_engine_off_evidence() {
 #[test]
 fn running_rpm_overrides_a_false_engine_off_flag() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/vacuum-d479.json"
+        "../../../tests/fixtures/psa/c41/correlation/vacuum-d479.json"
     ));
     for sample in &mut input.samples {
         sample.refs.push(RefReading {
@@ -308,7 +308,7 @@ fn inherited_brake_event_tests_association_not_numeric_slope() {
     ));
 
     let mut weak = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d40c.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d40c.json"
     ));
     weak.inherited = Some(InheritedDecode {
         label: "brake pressure".into(),
@@ -328,7 +328,7 @@ fn inherited_brake_event_tests_association_not_numeric_slope() {
 #[test]
 fn non_finite_references_never_escape_into_the_report() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     let ts_ms = input.samples[0].ts_ms;
     input.samples[0].refs.push(RefReading {
@@ -350,7 +350,7 @@ fn non_finite_references_never_escape_into_the_report() {
 #[test]
 fn mixed_width_samples_are_excluded_deterministically() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     input.samples.push(Sample {
         ts_ms: 999_999,
@@ -368,7 +368,7 @@ fn mixed_width_samples_are_excluded_deterministically() {
 #[test]
 fn duplicate_candidate_labels_are_coalesced() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     input.inherited = Some(InheritedDecode {
         label: "wheel speed ×0.01 km/h".into(),
@@ -416,7 +416,7 @@ fn lag_search_reports_positive_when_the_did_lags_the_reference() {
 #[test]
 fn array_requires_equal_rest_values_and_covariation() {
     let mut input = fixture(include_str!(
-        "../../../tests/fixtures/correlation/drive-d400.json"
+        "../../../tests/fixtures/psa/c41/correlation/drive-d400.json"
     ));
     for snapshot in &mut input.siblings {
         if snapshot.did == 0xD401 && snapshot.payload == [0, 0] {

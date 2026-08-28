@@ -22,7 +22,7 @@ report and merged by hand.
 Track A — knowledge & state (Claude, overnight)      Track B — correlation engine (Codex)
 ────────────────────────────────────────────────      ─────────────────────────────────────
 src/elm/discovery/**        (new)                     src/elm/correlation/**  except contract.rs
-src/db.rs                   (new tables + queries)    tests/fixtures/correlation/**  (new)
+src/db.rs                   (new tables + queries)    tests/fixtures/psa/c41/correlation/**  (new)
 src/api/ops.rs, mod.rs, openapi.rs (new routes only)  src/elm/correlation/README.md
 packages/uds-map/data/uds-map.json + src/types.ts     scripts/correlation_replay.py (optional)
   (ecu_families, decodes.state fields)
@@ -151,9 +151,9 @@ deterministic module, replay-tested against the C4 evidence already in the
 repo, producing ranked interpretations — never names without discriminating
 evidence (protocol §6).
 
-### B1. Fixtures (`apps/desktop/src-tauri/tests/fixtures/correlation/`)
+### B1. Fixtures (`apps/desktop/src-tauri/tests/fixtures/psa/c41/correlation/`)
 Convert the existing evidence into `HypothesisInput` JSON:
-- `docs/workflows/evidence/citroen-c41-drive-v1-2026-08-27.csv` → ABS `D400–D403`, `D406`, `D40C`, `D464`, `D46D`, `D479` with `speed/rpm/volt` references (196 cycles).
+- `docs/workflows/evidence/psa/c41/citroen-c41-drive-v1-2026-08-27.csv` → ABS `D400–D403`, `D406`, `D40C`, `D464`, `D46D`, `D479` with `speed/rpm/volt` references (196 cycles).
 - `c41-session2-turn-2026-08-27-2025.json` → wheel speeds + `D41F` during cornering (150 samples).
 - `c41-session2-vacuum-2026-08-27-2031.json` → `D479` engine-off pedal pumping.
 - `c41-session3-steering-static-*.json` and `steering-turn-*.json` → EPS `D40D/D40E/D40F/D411/D404` vs ABS `D41F`.
