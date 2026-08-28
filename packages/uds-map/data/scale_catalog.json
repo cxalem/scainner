@@ -1,0 +1,57 @@
+{
+  "note": "Candidate scales per physical quantity for the correlation engine's naming step (multi-brand plan P2.6). The engine matches a hypothesis' raw-per-reference slope against these candidates instead of brand-specific thresholds. `reference` names the standard-PID / derived reference the quantity is compared with; `units` lists the units a decode may carry for the quantity (unit -> quantity is the only lookup the frozen InheritedDecode contract allows, so it is the bridge until the contract carries `quantity`); `slope_tolerance` is the relative window around 1/scale that counts as a match; `widths` the payload byte widths a candidate is plausible for.",
+  "quantities": [
+    {
+      "quantity": "speed",
+      "reference": "speed",
+      "units": ["km/h", "kph", "mph"],
+      "slope_tolerance": 0.06,
+      "candidates": [
+        { "scale": 0.01, "unit": "km/h", "label": "wheel speed ×0.01 km/h", "widths": [2] },
+        { "scale": 0.0625, "unit": "km/h", "label": "wheel speed ×0.0625 km/h", "widths": [2] },
+        { "scale": 0.1, "unit": "km/h", "label": "wheel speed ×0.1 km/h", "widths": [2] },
+        { "scale": 1.0, "unit": "km/h", "label": "wheel speed ×1 km/h", "widths": [1, 2] },
+        { "scale": 1.609344, "unit": "mph", "label": "wheel speed ×1 mph", "widths": [1, 2] }
+      ]
+    },
+    {
+      "quantity": "angle",
+      "reference": "steering_angle",
+      "units": ["°", "deg", "degrees"],
+      "slope_tolerance": 0.1,
+      "candidates": [
+        { "scale": 0.1, "unit": "°", "label": "steering or pinion angle ×0.1°", "widths": [2] },
+        { "scale": 0.5, "unit": "°", "label": "steering or pinion angle ×0.5°", "widths": [2] },
+        { "scale": 1.0, "unit": "°", "label": "steering or pinion angle ×1°", "widths": [1, 2] }
+      ]
+    },
+    {
+      "quantity": "voltage",
+      "reference": "voltage",
+      "units": ["V", "mV"],
+      "slope_tolerance": 0.1,
+      "candidates": [
+        { "scale": 0.1, "unit": "V", "label": "voltage ×0.1 V", "widths": [1, 2] },
+        { "scale": 0.01, "unit": "V", "label": "voltage ×0.01 V", "widths": [2] },
+        { "scale": 0.001, "unit": "V", "label": "voltage ×0.001 V", "widths": [2] }
+      ]
+    },
+    {
+      "quantity": "pressure",
+      "reference": "braking",
+      "units": ["bar", "kPa", "mbar", "hPa"],
+      "slope_tolerance": 0.1,
+      "candidates": [
+        { "scale": 0.01, "unit": "bar", "label": "pressure ×0.01 bar", "widths": [1, 2] },
+        { "scale": 1.0, "unit": "kPa", "label": "pressure ×1 kPa", "widths": [1, 2] }
+      ]
+    },
+    {
+      "quantity": "flag",
+      "reference": "braking",
+      "units": ["flag", "bool", "switch"],
+      "slope_tolerance": 1.0,
+      "candidates": []
+    }
+  ]
+}

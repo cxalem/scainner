@@ -40,7 +40,16 @@ pub struct StandardLine {
 #[derive(Serialize, Clone, Debug)]
 pub struct RoutesLine {
     pub reached: usize,
+    /// Candidate routes the census tried that answered with a negative
+    /// response (present, refusing) / never answered / failed on transport.
+    pub refused: usize,
+    pub silent: usize,
+    pub transport_failed: usize,
+    /// Every candidate route the census recorded an outcome for.
+    pub candidates: usize,
     pub module_ids: Vec<i64>,
+    /// `route_outcomes` row ids behind the refused/silent counts.
+    pub outcome_ids: Vec<i64>,
     /// Route states this report can actually account for from stored rows.
     pub states_stored: Vec<&'static str>,
     pub limitations: Vec<String>,
@@ -218,14 +227,40 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
 
     let modules = db.discovered_summary(vehicle_id);
     let module_ids: Vec<i64> = modules.iter().map(|m| m.id).collect();
+    // Every census outcome per route (Phase 2): reached routes are also
+    // modules; refused / silent / transport_failed ones live only here.
+    let outcomes = db.route_outcomes(vehicle_id);
+    let count = |state: RouteState| {
+        outcomes
+            .iter()
+            .filter(|o| RouteState::parse(&o.route_state) == Some(state))
+            .count()
+    };
+    let mut candidates: Vec<&str> = outcomes.iter().map(|o| o.address.as_str()).collect();
+    candidates.extend(modules.iter().map(|m| m.address.as_str()));
+    candidates.sort_unstable();
+    candidates.dedup();
     let mut routes = RoutesLine {
         reached: modules.len(),
+        refused: count(RouteState::Refused),
+        silent: count(RouteState::Silent),
+        transport_failed: count(RouteState::TransportFailed),
+        candidates: candidates.len(),
         module_ids: module_ids.clone(),
-        states_stored: vec![RouteState::Reached.as_str()],
-        limitations: vec![
-            "discovered_modules stores only routes that answered; refused (NRC), silent and closed routes are counted in verification_runs summaries and not yet persisted per route".into(),
+        outcome_ids: outcomes.iter().map(|o| o.id).collect(),
+        states_stored: vec![
+            RouteState::Reached.as_str(),
+            RouteState::Refused.as_str(),
+            RouteState::Silent.as_str(),
+            RouteState::TransportFailed.as_str(),
         ],
+        limitations: Vec::new(),
     };
+    if outcomes.is_empty() {
+        routes.limitations.push(
+            "no census outcomes recorded yet for this vehicle: refused / silent counts are from an empty table, not from a run".into(),
+        );
+    }
 
     let mut identified = IdentifiedLine {
         fingerprinted: 0,
@@ -284,7 +319,12 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
             module_id: m.id,
             address: m.address.clone(),
             name: m.name.clone(),
-            route_state: RouteState::Reached.as_str(),
+            route_state: m
+                .route_state
+                .as_deref()
+                .and_then(RouteState::parse)
+                .unwrap_or(RouteState::Reached)
+                .as_str(),
             fingerprint_fields_answered: m.fingerprint_fields_answered,
             identity_fit: m.identity_fit.clone(),
             identity_reads: m.identity_reads,
@@ -404,7 +444,10 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::elm::discovery::join::{fixtures::seed_c4, join_vehicle};
+    use crate::elm::discovery::join::{
+        fixtures::{seed_c4, seed_second_brand, verified_vin},
+        join_vehicle,
+    };
     use crate::elm::uds_map;
 
     #[test]
@@ -413,25 +456,64 @@ mod tests {
         let c4 = seed_c4(&db);
         let connection = db.start_connection("ELM327", "test");
         db.link_connection_vehicle(connection, c4.vehicle_id);
+        let vin = verified_vin();
         let run = db
             .insert_verification_run(
                 c4.vehicle_id,
                 connection,
-                crate::elm::uds::PARKED_PLAN_VERSION,
+                &crate::elm::discovery::plan::plan_version(Some(&vin)),
                 "{}",
             )
             .unwrap();
+        // Census outcomes as the automatic run records them: the four
+        // modules reached, one profile route refused, one silent.
+        for m in db.discovered_summary(c4.vehicle_id) {
+            db.record_route_outcome(
+                c4.vehicle_id,
+                Some(connection),
+                &m.address,
+                "reached",
+                None,
+                None,
+            );
+        }
+        db.record_route_outcome(
+            c4.vehicle_id,
+            Some(connection),
+            "752/652",
+            "silent",
+            None,
+            None,
+        );
+        db.record_route_outcome(
+            c4.vehicle_id,
+            Some(connection),
+            "75F/65F",
+            "refused",
+            None,
+            Some("7F 22 11"),
+        );
         join_vehicle(&db, uds_map::map(), c4.vehicle_id);
 
         let report = coverage(&db, uds_map::map(), c4.vehicle_id).expect("vehicle exists");
-        assert_eq!(report.vehicle.brand_id.as_deref(), Some("psa"));
-        assert_eq!(report.vehicle.wmi.as_deref(), Some("VR7"));
+        let brand = uds_map::brand_for_vin(Some(&vin)).unwrap();
+        assert_eq!(report.vehicle.brand_id.as_deref(), Some(brand.id.as_str()));
+        assert_eq!(report.vehicle.wmi.as_deref(), Some(&vin[..3]));
         assert!(
             report.standard.is_none(),
             "no readings: section omitted, not zeroed"
         );
         assert_eq!(report.routes.reached, 4);
-        assert!(!report.routes.limitations.is_empty());
+        assert_eq!(report.routes.refused, 1);
+        assert_eq!(report.routes.silent, 1);
+        assert_eq!(report.routes.candidates, 6);
+        assert_eq!(report.routes.outcome_ids.len(), 6);
+        assert!(
+            report.routes.limitations.is_empty(),
+            "{:?}",
+            report.routes.limitations
+        );
+        assert!(report.routes.states_stored.contains(&"silent"));
         assert_eq!(report.identified.fingerprinted, 3);
         assert_eq!(report.identified.total, 4);
         assert_eq!(report.identified.family_matches, 3);
@@ -517,6 +599,47 @@ mod tests {
         assert!(!is_guided_step("Drive: anything"));
         assert!(!is_guided_step("resolved by the next learning drive"));
         assert!(!is_guided_step("passive correlation against rpm"));
+    }
+
+    #[test]
+    fn a_second_brand_reports_its_own_routes_and_nothing_inherited() {
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let second = seed_second_brand(&db);
+        db.record_route_outcome(second.vehicle_id, None, "7E0/7E8", "reached", None, None);
+        db.record_route_outcome(
+            second.vehicle_id,
+            None,
+            &second.local_id_address,
+            "reached",
+            None,
+            None,
+        );
+        db.record_route_outcome(second.vehicle_id, None, "7E1/7E9", "silent", None, None);
+        join_vehicle(&db, uds_map::map(), second.vehicle_id);
+        let report = coverage(&db, uds_map::map(), second.vehicle_id).unwrap();
+        assert_eq!(
+            report.vehicle.brand_id.as_deref(),
+            Some(second.brand_id.as_str())
+        );
+        assert_eq!(report.routes.reached, 2);
+        assert_eq!(report.routes.silent, 1);
+        assert_eq!(report.routes.candidates, 3);
+        assert_eq!(report.identified.fingerprinted, 1);
+        assert_eq!(report.identified.family_matches, 0);
+        assert_eq!(report.decodes.inherited_untested.count, 0);
+        assert_eq!(report.decodes.unknown.count, 2);
+        assert!(report
+            .identified
+            .modules
+            .iter()
+            .all(|m| m.route_state == "reached"));
+        assert_eq!(report.status, "partial");
+        // A vehicle without any census yet says so instead of printing zeros.
+        let db2 = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let c4 = seed_c4(&db2);
+        let report = coverage(&db2, uds_map::map(), c4.vehicle_id).unwrap();
+        assert_eq!(report.routes.silent, 0);
+        assert!(report.routes.limitations[0].contains("no census outcomes"));
     }
 
     #[test]

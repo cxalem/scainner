@@ -70,19 +70,20 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/sensors", "Read every supported standard PID once", &[], None, true, false),
     r("GET", "/writes-log", "Audit trail of everything the app changed on the car", &[("vehicle_id", "vehicle id"), ("limit", "max rows (default 50)")], None, false, false),
     // UDS
-    r("GET", "/uds/modules", "Built-in plus custom UDS modules (key, label, req/resp CAN ids)", &[], None, false, false),
-    r("POST", "/uds/modules", "Add a custom module", &[], Some(r#"{"key": "bsi", "label": "Body computer", "req": "752", "resp": "652"}"#), false, false),
+    r("GET", "/uds/modules", "Modules for the connected vehicle: the knowledge map's profile for its VIN (source \"profile\") plus custom ones (source \"custom\"); key, label, req/resp CAN ids, route tuple, read service", &[], None, false, false),
+    r("POST", "/uds/modules", "Add a custom module", &[], Some(r#"{"key": "body", "label": "Body computer", "req": "7A0", "resp": "7A8"}"#), false, false),
     r("DELETE", "/uds/modules/{key}", "Delete a custom module", &[], None, false, false),
-    r("POST", "/uds/read", "Read one DID (0x22) from a module; null when the module does not answer", &[], Some(r#"{"module": "abs", "did": 53504}"#), true, false),
-    r("POST", "/uds/read-many", "Read up to 64 DIDs from one module with the route configured once (fast enough for physical tests); unanswered DIDs are omitted", &[], Some(r#"{"module": "abs", "dids": [54272, 54273, 54303]}"#), true, false),
-    r("POST", "/uds/scan", "Scan a DID range on one module (minutes; watch /events uds-scan-progress)", &[], Some(r#"{"module": "abs", "from": 53504, "to": 53759}"#), true, false),
+    r("POST", "/uds/read", "Read one identifier from a module with its read service (22 / 21 / 1A per the map); null when the module does not answer", &[], Some(r#"{"module": "7e0_7e8", "did": 61831}"#), true, false),
+    r("POST", "/uds/read-many", "Read up to 64 identifiers from one module with the route configured once (fast enough for physical tests); unanswered ones are omitted", &[], Some(r#"{"module": "7e0_7e8", "dids": [61831, 61841, 61845]}"#), true, false),
+    r("POST", "/uds/scan", "Scan an identifier range on one module (minutes; watch /events uds-scan-progress)", &[], Some(r#"{"module": "7e0_7e8", "from": 61824, "to": 62079}"#), true, false),
     r("POST", "/uds/scan/cancel", "Abort the running range scan / discovery within one DID timeout", &[], None, false, false),
     r("POST", "/uds/discover", "One-button auto-discovery; full=true forces the blind sweep", &[], Some(r#"{"full": false}"#), true, false),
     r("GET", "/uds/modules/{key}/dtcs", "Fault codes stored on one module (UDS 19 02)", &[], None, true, false),
-    r("POST", "/uds/clear", "Clear one module's fault memory (UDS 14), verified before/after", &[], Some(r#"{"module": "abs", "confirmed": true}"#), true, true),
+    r("POST", "/uds/clear", "Clear one module's fault memory (UDS 14), verified before/after", &[], Some(r#"{"module": "7e0_7e8", "confirmed": true}"#), true, true),
     // evidence protocol
-    r("POST", "/verification/parked", "Run the current parked verification plan (read-only 0x22; minutes). Saves a verification run.", &[], None, true, false),
-    r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "6A0", "resp": "68A", "dids": [54272, 54273], "step": "brake", "condition": "brake pedal pressed", "plan_version": "citroen-c41-v3", "repeats": 3}"#), true, false),
+    r("POST", "/verification/parked", "Run the parked verification plan generated from the vehicle's profile (read-only, each module's read service; minutes). Saves a verification run whose plan_version is <brand>-<platform>-v<n>.", &[], None, true, false),
+    r("GET", "/vehicles/{id}/parked-plan", "The parked verification plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, plan_version). No car traffic.", &[], None, false, false),
+    r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "7E0", "resp": "7E8", "dids": [61831, 61845], "step": "brake", "condition": "brake pedal pressed", "plan_version": "<brand>-<platform>-v1", "repeats": 3}"#), true, false),
     r("GET", "/verification/runs", "Index of saved runs (no JSON bodies), newest first", &[("vehicle_id", "vehicle id"), ("plan_version", "exact plan version"), ("limit", "max rows (default 50)")], None, false, false),
     r("GET", "/verification/runs/{id}", "One run with its full result JSON", &[], None, false, false),
     // knowledge
@@ -261,18 +262,32 @@ mod tests {
     }
 
     #[test]
-    fn capture_example_uses_the_current_plan_version() {
-        // `ROUTES` is a const slice, so the example is a literal; keep it in
-        // step with the producer's constant rather than a copy of it.
+    fn capture_example_uses_the_plan_version_shape_of_the_generator() {
+        // Plan versions are generated per vehicle (`{brand}-{platform}-v{n}`),
+        // so the example is a placeholder in exactly that shape; the
+        // generator's output for a known and an unknown VIN must match it.
         let capture = ROUTES
             .iter()
             .find(|r| r.path == "/verification/capture")
             .unwrap();
         let example: Value = serde_json::from_str(capture.body.unwrap()).unwrap();
-        assert_eq!(
-            example["plan_version"],
-            crate::elm::uds::PARKED_PLAN_VERSION,
-            "OpenAPI example plan_version drifted from the producer"
+        let placeholder = example["plan_version"].as_str().unwrap();
+        assert_eq!(placeholder, "<brand>-<platform>-v1");
+        let shape = |v: &str| {
+            let parts: Vec<&str> = v.rsplitn(2, "-v").collect();
+            parts.len() == 2
+                && parts[0].chars().all(|c| c.is_ascii_digit())
+                && parts[1].split('-').count() >= 2
+        };
+        assert!(shape(&crate::elm::discovery::plan::plan_version(None)));
+        let brand = &crate::elm::uds_map::map().brands[0];
+        let vin = format!("{}EXAMPLE0000001", brand.wmi[0]);
+        let generated = crate::elm::discovery::plan::plan_version(Some(&vin));
+        assert!(shape(&generated), "{generated}");
+        assert!(generated.starts_with(&format!("{}-", brand.id)));
+        assert!(
+            !generated.contains('<'),
+            "the producer never emits the placeholder"
         );
     }
 }

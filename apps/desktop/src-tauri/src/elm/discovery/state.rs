@@ -7,10 +7,15 @@
 //! PATCH from an agent, a promotion from the correlation engine and a
 //! future UI toggle.
 
+use super::pack_ext::BandClasses;
 use serde::{Deserialize, Serialize};
 
 /// `app_settings` key holding the learning-state flag ("on" / "off").
 pub const LEARNING_STATE_SETTING: &str = "learning_state";
+
+/// `app_settings` key switching the automatic discovery run on connect
+/// ("on" unless set to "off").
+pub const AUTO_DISCOVERY_SETTING: &str = "auto_discovery";
 
 /// What the world knows about a decode — global knowledge, independent of
 /// this car (the acquisition protocol's ladder, plus `inherited`).
@@ -254,24 +259,26 @@ pub fn next_identity_fit(
 /// sensors, so tracking them would only burn polling budget and invite the
 /// correlation engine to fit noise.
 ///
-/// Evidence behind the bands (C4 III, 2026-08-27): `F0xx`/`F1xx` are PSA and
-/// ISO identity; the ABS `D6xx`/`D7xx` sweep returned only identifiers,
-/// flags and 10–18-byte checksum/key blobs. The engine ECU does keep
-/// measurements in `D6xx`; making the bands per-module data is a follow-up.
-pub fn is_hypothesis_candidate(did: u16, payload_len: usize, payload_sample: &[u8]) -> bool {
+/// The bands come from data (`pack_ext::band_classes_for_module`): the
+/// brand's and the family's `hypothesis_exclude_bands` when declared, the
+/// bands that hold the identity block's DIDs, and the bands in which the
+/// pack binds only undecoded (configuration) material. In a config band
+/// only short answers may become hypotheses — a module can keep 1–2-byte
+/// measurements next to its configuration strings — while 3+-byte or
+/// text answers are configuration-shaped and stay out.
+pub fn is_hypothesis_candidate(
+    did: u16,
+    payload_len: usize,
+    payload_sample: &[u8],
+    classes: &BandClasses,
+) -> bool {
     if payload_len == 0 {
         return false;
     }
-    if (0xF000..=0xF1FF).contains(&did) {
+    if classes.is_excluded(did) {
         return false;
     }
-    // `D6xx`/`D7xx`: on the C4's ABS only identifiers, flags and blobs live
-    // here, but the engine ECU keeps 1–2-byte measurements in the same
-    // band. Exclude the config-shaped answers (3+ bytes or text), keep the
-    // short values; per-module bands in the map are the real fix.
-    if (0xD600..=0xD7FF).contains(&did)
-        && (payload_len >= 3 || looks_like_ascii_serial(payload_sample))
-    {
+    if classes.is_config(did) && (payload_len >= 3 || looks_like_ascii_serial(payload_sample)) {
         return false;
     }
     // Security/checksum-like material: long blocks are never a live value.
@@ -405,59 +412,101 @@ mod tests {
 
     #[test]
     fn class_filter_keeps_live_values_and_drops_identity_material() {
-        // The C4's ABS live data: wheel speed, a flag, a pressure.
-        assert!(is_hypothesis_candidate(0xD400, 2, &[0x00, 0x00]));
-        assert!(is_hypothesis_candidate(0xD406, 1, &[0x01]));
-        assert!(is_hypothesis_candidate(0xD40C, 1, &[0x2E]));
+        // Band classes as data: an identity class and a config class
+        // (what `pack_ext::band_classes_for_module` derives for a brand
+        // whose pack binds only strings in `D6xx`/`D7xx`).
+        let classes = BandClasses {
+            exclude: Vec::new(),
+            identity: vec![(0xF000, 0xF1FF)],
+            config: vec![(0xD600, 0xD7FF)],
+        };
+        let candidate =
+            |did, len, sample: &[u8]| is_hypothesis_candidate(did, len, sample, &classes);
+        // Live data in a data band: wheel speed, a flag, a pressure.
+        assert!(candidate(0xD400, 2, &[0x00, 0x00]));
+        assert!(candidate(0xD406, 1, &[0x01]));
+        assert!(candidate(0xD40C, 1, &[0x2E]));
         // Four-byte engine values (repeating bytes) pass too.
-        assert!(is_hypothesis_candidate(
-            0xD422,
-            4,
-            &[0x00, 0x8C, 0x00, 0x8C]
-        ));
+        assert!(candidate(0xD422, 4, &[0x00, 0x8C, 0x00, 0x8C]));
         // Identity band, always.
-        assert!(!is_hypothesis_candidate(0xF080, 12, &[0x98; 12]));
-        assert!(!is_hypothesis_candidate(0xF18C, 8, b"ABCD1234"));
-        assert!(!is_hypothesis_candidate(0xF190, 2, &[0x00, 0x01]));
-        // D6xx/D7xx: config-shaped answers out, short values in (the engine
-        // ECU keeps 2-byte measurements there).
-        assert!(!is_hypothesis_candidate(0xD619, 18, b"DSGiRESC00.1170001"));
-        assert!(!is_hypothesis_candidate(0xD611, 10, b"0000178734"));
-        assert!(!is_hypothesis_candidate(0xD701, 3, &[0x00, 0x0B, 0x40]));
-        assert!(is_hypothesis_candidate(0xD622, 2, &[0x00, 0x07]));
-        assert!(is_hypothesis_candidate(0xD612, 1, &[0x01]));
-        assert!(is_hypothesis_candidate(0xD640, 2, &[]));
+        assert!(!candidate(0xF080, 12, &[0x98; 12]));
+        assert!(!candidate(0xF18C, 8, b"ABCD1234"));
+        assert!(!candidate(0xF190, 2, &[0x00, 0x01]));
+        // Config band: config-shaped answers out, short values in (a module
+        // may keep 2-byte measurements there).
+        assert!(!candidate(0xD619, 18, b"DSGiRESC00.1170001"));
+        assert!(!candidate(0xD611, 10, b"0000178734"));
+        assert!(!candidate(0xD701, 3, &[0x00, 0x0B, 0x40]));
+        assert!(candidate(0xD622, 2, &[0x00, 0x07]));
+        assert!(candidate(0xD612, 1, &[0x01]));
+        assert!(candidate(0xD640, 2, &[]));
         // Serial-like ASCII outside the bands: ten+ printable with half letters.
-        assert!(!is_hypothesis_candidate(0xD4F0, 14, b"DSGiRESCv1.170"));
+        assert!(!candidate(0xD4F0, 14, b"DSGiRESCv1.170"));
         // Printable-range bytes that are really 2-byte values must pass.
-        assert!(is_hypothesis_candidate(
-            0xD4F1,
-            6,
-            &[0x30, 0x41, 0x30, 0x42, 0x31, 0x43]
-        ));
-        assert!(is_hypothesis_candidate(0xD4F2, 8, b"0102ABCD"));
+        assert!(candidate(0xD4F1, 6, &[0x30, 0x41, 0x30, 0x42, 0x31, 0x43]));
+        assert!(candidate(0xD4F2, 8, b"0102ABCD"));
         // Six 2-byte measurements are not a blob, whatever their entropy.
-        assert!(is_hypothesis_candidate(
+        assert!(candidate(
             0xD4F3,
             12,
             &[0x3A, 0x91, 0xC4, 0x07, 0xEE, 0x52, 0xB8, 0x1D, 0x6F, 0xA0, 0x29, 0xD3]
         ));
-        // The C4's D636–D639 blobs: 18 bytes, every byte different. Out of
-        // band the entropy rule catches them; in band the length does.
+        // 18-byte blobs, every byte different. Out of band the entropy rule
+        // catches them; in a config band the length does.
         let blob = [
             0x3A, 0x91, 0xC4, 0x07, 0xEE, 0x52, 0xB8, 0x1D, 0x6F, 0xA0, 0x29, 0xD3, 0x44, 0x5F,
             0x81, 0x9C, 0x02, 0xE7,
         ];
-        assert!(!is_hypothesis_candidate(0xD636, 18, &blob));
-        assert!(!is_hypothesis_candidate(0xD4F4, 18, &blob));
+        assert!(!candidate(0xD636, 18, &blob));
+        assert!(!candidate(0xD4F4, 18, &blob));
         // 16–31 bytes with repeats is not a blob.
-        assert!(is_hypothesis_candidate(0xD4F5, 16, &[0x11; 16]));
+        assert!(candidate(0xD4F5, 16, &[0x11; 16]));
         // 32+ bytes is security-like regardless of content.
-        assert!(!is_hypothesis_candidate(0xD4F6, 32, &[0x11; 32]));
+        assert!(!candidate(0xD4F6, 32, &[0x11; 32]));
         // Empty answers are not hypotheses.
-        assert!(!is_hypothesis_candidate(0xD4F7, 0, &[]));
+        assert!(!candidate(0xD4F7, 0, &[]));
         // No sample retained: unknown is not excluded on entropy.
-        assert!(is_hypothesis_candidate(0xD4F8, 2, &[]));
-        assert!(is_hypothesis_candidate(0xD4F9, 18, &[]));
+        assert!(candidate(0xD4F8, 2, &[]));
+        assert!(candidate(0xD4F9, 18, &[]));
+        // A declared exclusion band (brand or family data) wins outright.
+        let declared = BandClasses {
+            exclude: vec![(0xD700, 0xD7FF)],
+            ..BandClasses::default()
+        };
+        assert!(!is_hypothesis_candidate(0xD701, 1, &[0x01], &declared));
+        assert!(is_hypothesis_candidate(0xD622, 3, &[0, 1, 2], &declared));
+    }
+
+    #[test]
+    fn the_verified_brand_derives_the_same_classes_from_its_pack_bindings() {
+        // The pack binds identity strings in the vendor identity band and
+        // undecoded strings in the D6xx band of the verified brand, so the
+        // derived classes reproduce the filter the vehicle evidence asked for.
+        let vin = super::super::pack_ext::tests::verified_brand_vin();
+        let classes = super::super::pack_ext::band_classes_for_module(
+            crate::elm::uds_map::map(),
+            Some(&vin),
+            None,
+        );
+        assert!(!is_hypothesis_candidate(0xF080, 12, &[0x98; 12], &classes));
+        assert!(!is_hypothesis_candidate(
+            0xD619,
+            18,
+            b"DSGiRESC00.1170001",
+            &classes
+        ));
+        assert!(!is_hypothesis_candidate(
+            0xD636,
+            12,
+            &[0x3A, 0x91, 0xC4, 0x07, 0xEE, 0x52, 0xB8, 0x1D, 0x6F, 0xA0, 0x29, 0xD3],
+            &classes
+        ));
+        assert!(is_hypothesis_candidate(0xD622, 2, &[0x00, 0x07], &classes));
+        assert!(is_hypothesis_candidate(
+            0xD4A0,
+            3,
+            &[0x12, 0x34, 0x00],
+            &classes
+        ));
     }
 }
