@@ -40,8 +40,9 @@ export interface Source {
   date: string;
   type: SourceType;
   /** SPDX id where known; `unlicensed`, `NOASSERTION` (custom LICENSE) or
-   * a free-text note otherwise. GPL and NOASSERTION sources are
-   * verification evidence only (acquisition protocol licence gate). */
+   * a free-text note otherwise. Copyleft, non-commercial, unlicensed and
+   * unclear sources remain separately governed by the acquisition and
+   * distribution gates; provenance never relicenses them. */
   licence: string;
   note?: string;
 }

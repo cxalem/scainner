@@ -2245,7 +2245,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -2529,7 +2529,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -2564,7 +2564,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -2583,7 +2583,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2595,7 +2595,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           }
         },
         {
@@ -2607,7 +2607,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2619,7 +2619,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2631,7 +2631,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2643,7 +2643,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2655,7 +2655,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2667,7 +2667,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2679,7 +2679,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2703,7 +2703,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2715,7 +2715,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -2992,7 +2992,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -3097,7 +3097,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -3123,7 +3123,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -3170,7 +3170,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -3185,7 +3185,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -3200,7 +3200,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -3219,7 +3219,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -3238,7 +3238,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -3261,7 +3261,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -3296,7 +3296,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3331,7 +3331,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3366,7 +3366,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3401,7 +3401,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3436,7 +3436,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3471,7 +3471,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3503,7 +3503,7 @@
             "url": "https://github.com/v-cu/dpf-load-monitor-wide",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-SA-4.0"
           },
           "modules": [
             {
@@ -3710,7 +3710,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -3756,7 +3756,7 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "https://github.com/commaai/opendbc",
@@ -3774,7 +3774,7 @@
           "url": "https://github.com/v-cu/dpf-load-monitor-wide",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "CC-BY-NC-SA-4.0"
         },
         {
           "url": "packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band",
@@ -3992,7 +3992,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4004,7 +4004,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4016,7 +4016,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4028,7 +4028,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4040,7 +4040,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4052,7 +4052,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4076,7 +4076,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         }
       ],
@@ -4232,7 +4232,7 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band",
@@ -4429,7 +4429,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4441,7 +4441,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4453,7 +4453,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4465,7 +4465,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4489,7 +4489,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         }
       ],
@@ -4645,7 +4645,7 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band",
@@ -4857,7 +4857,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4869,7 +4869,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4881,7 +4881,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4905,7 +4905,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -4941,7 +4941,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -5326,7 +5326,7 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band",
@@ -5369,7 +5369,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -5381,7 +5381,7 @@
               "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
               "date": "2026-08-23",
               "type": "open_implementation",
-              "licence": "NOASSERTION"
+              "licence": "MIT"
             }
           }
         },
@@ -5394,7 +5394,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -5406,7 +5406,7 @@
               "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
               "date": "2026-08-23",
               "type": "open_implementation",
-              "licence": "NOASSERTION"
+              "licence": "MIT"
             }
           }
         },
@@ -5419,7 +5419,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -5431,7 +5431,7 @@
               "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
               "date": "2026-08-23",
               "type": "open_implementation",
-              "licence": "NOASSERTION"
+              "licence": "MIT"
             }
           }
         },
@@ -5444,7 +5444,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -5456,7 +5456,7 @@
               "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
               "date": "2026-08-23",
               "type": "open_implementation",
-              "licence": "NOASSERTION"
+              "licence": "MIT"
             }
           }
         },
@@ -5469,7 +5469,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -5481,7 +5481,7 @@
               "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
               "date": "2026-08-23",
               "type": "open_implementation",
-              "licence": "NOASSERTION"
+              "licence": "MIT"
             }
           }
         },
@@ -5511,7 +5511,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -5523,7 +5523,7 @@
               "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
               "date": "2026-08-23",
               "type": "open_implementation",
-              "licence": "NOASSERTION"
+              "licence": "MIT"
             }
           }
         }
@@ -5550,7 +5550,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -5562,7 +5562,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -5574,7 +5574,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -5586,7 +5586,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -5598,7 +5598,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         }
       ],
@@ -5612,7 +5612,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -5631,7 +5631,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -5650,7 +5650,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -5669,7 +5669,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -5688,7 +5688,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -5707,7 +5707,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -5721,7 +5721,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -5735,7 +5735,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -5749,7 +5749,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [],
           "binding": "unknown",
@@ -6062,7 +6062,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -6104,7 +6104,7 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "packages/uds-map/RESEARCH.md#bmw--mini",
@@ -6946,7 +6946,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -6964,7 +6964,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -6983,7 +6983,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7001,7 +7001,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7019,7 +7019,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7038,7 +7038,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7056,7 +7056,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7074,7 +7074,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7092,7 +7092,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7110,7 +7110,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7128,7 +7128,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7146,7 +7146,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7164,7 +7164,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7182,7 +7182,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7200,7 +7200,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7218,7 +7218,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "route": {
@@ -7238,7 +7238,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         },
@@ -7251,7 +7251,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         },
@@ -7264,7 +7264,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         },
@@ -7277,7 +7277,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         },
@@ -7290,7 +7290,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         },
@@ -7303,7 +7303,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         }
@@ -7322,7 +7322,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7358,7 +7358,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7394,7 +7394,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7430,7 +7430,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7462,7 +7462,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7486,7 +7486,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7517,7 +7517,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           },
           "modules": [
@@ -7617,7 +7617,7 @@
             "url": "https://github.com/fesch/CanZE",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION",
+            "licence": "GPL-3.0-or-later",
             "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
           }
         }
@@ -7628,7 +7628,7 @@
           "url": "https://github.com/fesch/CanZE",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION",
+          "licence": "GPL-3.0-or-later",
           "note": "assets/ZOE/_Ecus.csv and _Fields.csv"
         },
         {
@@ -7672,7 +7672,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -7784,7 +7784,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -8040,7 +8040,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -8058,7 +8058,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -8178,7 +8178,7 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "https://github.com/OBDb/Nissan-Leaf",
@@ -8241,7 +8241,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8258,7 +8258,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8275,7 +8275,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8292,7 +8292,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8310,7 +8310,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8327,7 +8327,7 @@
             "url": "https://github.com/EVNotify/EVNotiPi",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-4.0"
           },
           "route": {
             "protocol": "can11_500",
@@ -8344,7 +8344,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8361,7 +8361,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8378,7 +8378,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8395,7 +8395,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8412,7 +8412,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8429,7 +8429,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8446,7 +8446,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "route": {
             "protocol": "can11_500",
@@ -8516,7 +8516,7 @@
             "url": "https://github.com/EVNotify/EVNotiPi",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-4.0"
           }
         },
         {
@@ -8528,7 +8528,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -8540,7 +8540,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -8552,7 +8552,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -8564,7 +8564,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -8576,7 +8576,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         }
       ],
@@ -8594,7 +8594,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -8673,7 +8673,7 @@
             "url": "https://github.com/EVNotify/EVNotiPi",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-4.0"
           },
           "modules": [
             {
@@ -8703,7 +8703,7 @@
             "url": "https://github.com/EVNotify/EVNotiPi",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-4.0"
           },
           "modules": [
             {
@@ -9079,7 +9079,7 @@
             "url": "https://github.com/EVNotify/EVNotiPi",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-4.0"
           },
           "modules": [
             {
@@ -9455,7 +9455,7 @@
             "url": "https://github.com/EVNotify/EVNotiPi",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "CC-BY-NC-4.0"
           },
           "modules": [
             {
@@ -9836,7 +9836,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -9871,7 +9871,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -9934,7 +9934,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -10002,7 +10002,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           },
           "modules": [
             {
@@ -10149,7 +10149,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         },
         {
@@ -10166,7 +10166,7 @@
             "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
             "date": "2026-08-23",
             "type": "open_implementation",
-            "licence": "NOASSERTION"
+            "licence": "MIT"
           }
         }
       ],
@@ -10176,19 +10176,19 @@
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "MIT"
         },
         {
           "url": "https://github.com/EVNotify/EVNotiPi",
           "date": "2026-08-23",
           "type": "open_implementation",
-          "licence": "NOASSERTION"
+          "licence": "CC-BY-NC-4.0"
         },
         {
           "url": "https://github.com/commaai/opendbc",

@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from copy import deepcopy
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -61,12 +62,12 @@ def research(section: str, note_: str | None = None) -> dict:
 
 GH = "https://github.com/"
 SOURCES: dict[str, dict] = {
-    "ovms": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3", "open_implementation", "NOASSERTION"),
-    "ovms_bmwi3": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3", "open_implementation", "NOASSERTION"),
-    "ovms_leaf": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf", "open_implementation", "NOASSERTION"),
-    "ovms_ioniq5": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5", "open_implementation", "NOASSERTION"),
-    "ovms_soulev": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev", "open_implementation", "NOASSERTION"),
-    "ovms_vweup": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup", "open_implementation", "NOASSERTION"),
+    "ovms": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3", "open_implementation", "MIT"),
+    "ovms_bmwi3": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3", "open_implementation", "MIT"),
+    "ovms_leaf": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf", "open_implementation", "MIT"),
+    "ovms_ioniq5": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5", "open_implementation", "MIT"),
+    "ovms_soulev": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev", "open_implementation", "MIT"),
+    "ovms_vweup": src(GH + "openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup", "open_implementation", "MIT"),
     "wican": src(GH + "meatpiHQ/wican-fw/tree/main/vehicle_profiles", "open_implementation", "GPL-3.0"),
     "wican_600e": src(GH + "meatpiHQ/wican-fw/blob/main/vehicle_profiles/fiat/600e.json", "open_implementation", "GPL-3.0"),
     "wican_astra": src(GH + "meatpiHQ/wican-fw/blob/main/vehicle_profiles/opel/astra.json", "open_implementation", "GPL-3.0"),
@@ -86,16 +87,16 @@ SOURCES: dict[str, dict] = {
     "obdb_honda": src(GH + "OBDb", "community", "CC-BY-SA-4.0", note_="Honda Civic and Acura TLX signalsets; bit offsets deliberately not copied (base point unconfirmed)"),
     "obdb_mazda": src(GH + "OBDb", "community", "CC-BY-SA-4.0", note_="Mazda signalsets"),
     "obdb_citroen": src(GH + "OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json", "community", "CC-BY-SA-4.0", TODAY),
-    "canze": src(GH + "fesch/CanZE", "open_implementation", "NOASSERTION", note_="assets/ZOE/_Ecus.csv and _Fields.csv"),
+    "canze": src(GH + "fesch/CanZE", "open_implementation", "GPL-3.0-or-later", note_="assets/ZOE/_Ecus.csv and _Fields.csv"),
     "opendbc": src(GH + "commaai/opendbc", "open_implementation", "MIT"),
     "opendbc_uds": src(GH + "commaai/opendbc/blob/master/opendbc/car/uds.py", "open_implementation", "MIT"),
     "opendbc_tesla": src(GH + "commaai/opendbc/blob/master/opendbc/car/tesla/values.py", "open_implementation", "MIT"),
-    "evnotipi": src(GH + "EVNotify/EVNotiPi", "open_implementation", "NOASSERTION"),
+    "evnotipi": src(GH + "EVNotify/EVNotiPi", "open_implementation", "CC-BY-NC-4.0"),
     "psa_diag": src(GH + "ludwig-v/arduino-psa-diag/blob/master/ECU_LIST.md", "community", "GPL-3.0"),
     "psa_diag_bmf": src(GH + "ludwig-v/arduino-psa-diag/blob/master/zones/BMF.md", "community", "GPL-3.0"),
     "psa_diag_flash": src(GH + "ludwig-v/arduino-psa-diag/blob/master/UDS_FLASH.md", "community", "GPL-3.0"),
     "vag_uds_ids": src(GH + "ConnorHowell/vag-uds-ids", "community", "unlicensed", note_="extracted from VW's ODIS database"),
-    "dpf_monitor": src(GH + "v-cu/dpf-load-monitor-wide", "open_implementation", "NOASSERTION"),
+    "dpf_monitor": src(GH + "v-cu/dpf-load-monitor-wide", "open_implementation", "CC-BY-NC-SA-4.0"),
     "rcp_bmw": src(GH + "jcevanco/rcp_bmw_service_0x22/blob/master/src/inc/pid_debug.lua", "open_implementation", "GPL-3.0"),
     "w203": src(GH + "rnd-ash/W203-canbus", "open_implementation", "MIT"),
     "jejusoul": src(GH + "JejuSoul/OBD-PIDs-for-HKMC-EVs", "community", "unlicensed"),
@@ -981,9 +982,34 @@ def migrate_overlay() -> None:
         fh.write("\n")
 
 
+def refresh_source_licences(value: object) -> int:
+    """Refresh generated source objects from the audited source catalogue."""
+    by_url = {source["url"]: source["licence"] for source in SOURCES.values()}
+    changed = 0
+    if isinstance(value, dict):
+        url = value.get("url")
+        if isinstance(url, str) and url in by_url and value.get("licence") != by_url[url]:
+            value["licence"] = by_url[url]
+            changed += 1
+        for child in value.values():
+            changed += refresh_source_licences(child)
+    elif isinstance(value, list):
+        for child in value:
+            changed += refresh_source_licences(child)
+    return changed
+
+
 def main() -> None:
     with open(DATA, encoding="utf-8") as fh:
         m = json.load(fh)
+    if sys.argv[1:] == ["--refresh-licences"]:
+        assert m["version"] == 9, "licence refresh expects the generated v9 pack"
+        changed = refresh_source_licences(m)
+        with open(DATA, "w", encoding="utf-8") as fh:
+            json.dump(m, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        print(f"refreshed {changed} source licence fields")
+        return
     assert m["version"] == 8, "this script migrates v8 only"
     m["version"] = 9
     m["generated"] = TODAY

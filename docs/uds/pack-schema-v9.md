@@ -17,7 +17,7 @@
 { "url": "https://…", "date": "2026-08-23", "type": "open_implementation", "licence": "MIT", "note": "optional" }
 ```
 
-`type`: `oem` · `open_implementation` · `tool_screen` · `parts_catalog` · `community` · `project_capture`. `licence`: SPDX id when GitHub reports one; `NOASSERTION` (custom LICENSE file) or `unlicensed` otherwise — those and GPL sources are verification evidence only (acquisition protocol licence gate). Facts whose only citation is a RESEARCH.md section use `url: "packages/uds-map/RESEARCH.md#<anchor>"`, `type: community`.
+`type`: `oem` · `open_implementation` · `tool_screen` · `parts_catalog` · `community` · `project_capture`. `licence`: the audited SPDX id or licence expression where known; `NOASSERTION` only when the custom licence has not yet been classified, and `unlicensed` when no permission was found. Copyleft, non-commercial, unlicensed and unclear sources remain separately governed by the acquisition and distribution gates; recording provenance never relicenses them. Facts whose only citation is a RESEARCH.md section use `url: "packages/uds-map/RESEARCH.md#<anchor>"`, `type: community`.
 
 ### `standard.read_service`, `standard.identity_block`
 

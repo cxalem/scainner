@@ -79,7 +79,7 @@ Known DIDs whose module the research does not name (`modules: []`, `binding: "un
 | apps/desktop/docs/workflows/parked-vehicle-verification.md | project_capture | MIT | psa |
 | docs/uds/hunt_results.txt | project_capture | MIT | psa |
 | https://github.com/ConnorHowell/vag-uds-ids | community | unlicensed | cupra, seat, skoda, vag |
-| https://github.com/EVNotify/EVNotiPi | open_implementation | NOASSERTION | hyundai_kia |
+| https://github.com/EVNotify/EVNotiPi | open_implementation | CC-BY-NC-4.0 | hyundai_kia |
 | https://github.com/OBDb | community | CC-BY-SA-4.0 | honda, mazda, toyota |
 | https://github.com/OBDb/Cupra-Born | community | CC-BY-SA-4.0 | cupra |
 | https://github.com/OBDb/Mercedes-Benz-EQB | community | CC-BY-SA-4.0 | mercedes |
@@ -90,7 +90,7 @@ Known DIDs whose module the research does not name (`modules: []`, `binding: "un
 | https://github.com/Tigo2000/Volvo-VIDA | open_implementation | GPL-3.0 | volvo |
 | https://github.com/commaai/opendbc | open_implementation | MIT | cupra, fca, ford, gm, hyundai_kia, toyota, vag |
 | https://github.com/commaai/opendbc/blob/master/opendbc/car/uds.py | open_implementation | MIT | bmw, cupra, ford, gm, mazda, mercedes, mitsubishi, nissan, opel_psa, psa, renault, seat, skoda, tesla, toyota, volvo |
-| https://github.com/fesch/CanZE | open_implementation | NOASSERTION | renault |
+| https://github.com/fesch/CanZE | open_implementation | GPL-3.0-or-later | renault |
 | https://github.com/jcevanco/rcp_bmw_service_0x22/blob/master/src/inc/pid_debug.lua | open_implementation | GPL-3.0 | bmw |
 | https://github.com/jyseojys/diag-server | tool_screen | unlicensed | psa |
 | https://github.com/ludwig-v/arduino-psa-diag/blob/master/ECU_LIST.md | community | GPL-3.0 | psa |
@@ -101,14 +101,14 @@ Known DIDs whose module the research does not name (`modules: []`, `binding: "un
 | https://github.com/meatpiHQ/wican-fw/blob/main/vehicle_profiles/opel/opel.json | open_implementation | GPL-3.0 | gm |
 | https://github.com/meatpiHQ/wican-fw/tree/main/vehicle_profiles/ford | open_implementation | GPL-3.0 | ford |
 | https://github.com/meatpiHQ/wican-fw/tree/main/vehicle_profiles/ram | open_implementation | GPL-3.0 | fca |
-| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3 | open_implementation | NOASSERTION | bmw |
-| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5 | open_implementation | NOASSERTION | hyundai_kia |
-| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev | open_implementation | NOASSERTION | hyundai_kia |
-| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf | open_implementation | NOASSERTION | nissan |
-| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup | open_implementation | NOASSERTION | cupra, seat, skoda, vag |
+| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_bmwi3 | open_implementation | MIT | bmw |
+| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5 | open_implementation | MIT | hyundai_kia |
+| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_kiasoulev | open_implementation | MIT | hyundai_kia |
+| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_nissanleaf | open_implementation | MIT | nissan |
+| https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/tree/master/vehicle/OVMS.V3/components/vehicle_vweup | open_implementation | MIT | cupra, seat, skoda, vag |
 | https://github.com/projectgus/car_hacking | open_implementation | BSD-3-Clause | mitsubishi |
 | https://github.com/rnd-ash/W203-canbus | open_implementation | MIT | mercedes |
-| https://github.com/v-cu/dpf-load-monitor-wide | open_implementation | NOASSERTION | vag |
+| https://github.com/v-cu/dpf-load-monitor-wide | open_implementation | CC-BY-NC-SA-4.0 | vag |
 | https://vpic.nhtsa.dot.gov/api/ | oem | public domain (US federal) | nissan, tesla, volvo |
 | packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band | community | MIT | cupra, fca, ford, mercedes, seat, skoda, toyota, vag |
 | packages/uds-map/RESEARCH.md#35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs | community | MIT | bmw, gm, honda |
