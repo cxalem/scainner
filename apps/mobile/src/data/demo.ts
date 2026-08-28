@@ -17,7 +17,7 @@ const hoursAgo = (h: number) => new Date(Date.now() - h * 3600_000).toISOString(
 export const DEMO_VEHICLES: VehicleListItem[] = [
   {
     id: "demo-citroen",
-    vin: "VR7BAHNSANE014974",
+    vin: "VR7EXAMPLE0000001",
     displayName: null,
     make: "Citroën",
     model: "C4 III",
