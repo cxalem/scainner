@@ -1,18 +1,33 @@
 {
   "id": "obdb-citroen",
-  "version": 1,
+  "version": 2,
   "license": "CC-BY-SA-4.0",
   "source": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
   "brands": [
     {
       "id": "psa",
       "name": "OBDb Citroen TPMS overlay",
-      "wmi": ["VF7", "VR7"],
+      "wmi": [
+        "VF7",
+        "VR7"
+      ],
       "modules": [
         {
           "req": "18DAC7F1",
           "resp": "18DAF1C7",
-          "name": "TPMS / tyre pressure (OBDb, 29-bit target C7)"
+          "name": "TPMS / tyre pressure (OBDb, 29-bit target C7)",
+          "source": {
+            "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+            "date": "2026-08-28",
+            "type": "community",
+            "licence": "CC-BY-SA-4.0"
+          },
+          "route": {
+            "protocol": "can29_normal_fixed",
+            "req": "18DAC7F1",
+            "resp": "18DAF1C7",
+            "target_byte": "C7"
+          }
         }
       ],
       "did_bands": [],
@@ -20,55 +35,280 @@
         {
           "did": "012F",
           "label": "TPMS per-wheel validity flags",
-          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "modules": [
+            {
+              "req": "18DAC7F1",
+              "resp": "18DAF1C7"
+            }
+          ],
           "unit": "",
           "offset": 0,
           "len": 1,
           "scale": 1.0,
-          "bias": 0.0
+          "bias": 0.0,
+          "source": {
+            "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+            "date": "2026-08-28",
+            "type": "community",
+            "licence": "CC-BY-SA-4.0"
+          },
+          "decodes": [
+            {
+              "offset": 0,
+              "len": 1,
+              "signed": false,
+              "encoding": "be",
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "",
+              "quantity": "raw",
+              "label": "TPMS per-wheel validity flags"
+            },
+            {
+              "offset": 0,
+              "len": 1,
+              "signed": false,
+              "encoding": "bitfield",
+              "bit_offset": 3,
+              "bit_len": 1,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "flag",
+              "quantity": "flag",
+              "label": "TPMS rear-left pressure invalid"
+            },
+            {
+              "offset": 0,
+              "len": 1,
+              "signed": false,
+              "encoding": "bitfield",
+              "bit_offset": 2,
+              "bit_len": 1,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "flag",
+              "quantity": "flag",
+              "label": "TPMS rear-right pressure invalid"
+            },
+            {
+              "offset": 0,
+              "len": 1,
+              "signed": false,
+              "encoding": "bitfield",
+              "bit_offset": 1,
+              "bit_len": 1,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "flag",
+              "quantity": "flag",
+              "label": "TPMS front-right pressure invalid"
+            },
+            {
+              "offset": 0,
+              "len": 1,
+              "signed": false,
+              "encoding": "bitfield",
+              "bit_offset": 0,
+              "bit_len": 1,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "flag",
+              "quantity": "flag",
+              "label": "TPMS front-left pressure invalid"
+            }
+          ]
         },
         {
           "did": "013C",
           "label": "Tyre pressure front left",
-          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "modules": [
+            {
+              "req": "18DAC7F1",
+              "resp": "18DAF1C7"
+            }
+          ],
           "unit": "bar",
           "offset": 0,
           "len": 2,
           "scale": 0.001,
-          "bias": 0.0
+          "bias": 0.0,
+          "source": {
+            "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+            "date": "2026-08-28",
+            "type": "community",
+            "licence": "CC-BY-SA-4.0"
+          },
+          "decodes": [
+            {
+              "offset": 0,
+              "len": 2,
+              "signed": false,
+              "encoding": "be",
+              "scale": 0.001,
+              "bias": 0.0,
+              "unit": "bar",
+              "quantity": "pressure",
+              "label": "Tyre pressure front left"
+            },
+            {
+              "offset": 2,
+              "len": 1,
+              "signed": false,
+              "encoding": "be",
+              "scale": 1.0,
+              "bias": -50.0,
+              "unit": "C",
+              "quantity": "temperature",
+              "label": "Tyre temperature front left"
+            }
+          ]
         },
         {
           "did": "013D",
           "label": "Tyre pressure front right",
-          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "modules": [
+            {
+              "req": "18DAC7F1",
+              "resp": "18DAF1C7"
+            }
+          ],
           "unit": "bar",
           "offset": 0,
           "len": 2,
           "scale": 0.001,
-          "bias": 0.0
+          "bias": 0.0,
+          "source": {
+            "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+            "date": "2026-08-28",
+            "type": "community",
+            "licence": "CC-BY-SA-4.0"
+          },
+          "decodes": [
+            {
+              "offset": 0,
+              "len": 2,
+              "signed": false,
+              "encoding": "be",
+              "scale": 0.001,
+              "bias": 0.0,
+              "unit": "bar",
+              "quantity": "pressure",
+              "label": "Tyre pressure front right"
+            },
+            {
+              "offset": 2,
+              "len": 1,
+              "signed": false,
+              "encoding": "be",
+              "scale": 1.0,
+              "bias": -50.0,
+              "unit": "C",
+              "quantity": "temperature",
+              "label": "Tyre temperature front right"
+            }
+          ]
         },
         {
           "did": "013E",
           "label": "Tyre pressure rear left",
-          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "modules": [
+            {
+              "req": "18DAC7F1",
+              "resp": "18DAF1C7"
+            }
+          ],
           "unit": "bar",
           "offset": 0,
           "len": 2,
           "scale": 0.001,
-          "bias": 0.0
+          "bias": 0.0,
+          "source": {
+            "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+            "date": "2026-08-28",
+            "type": "community",
+            "licence": "CC-BY-SA-4.0"
+          },
+          "decodes": [
+            {
+              "offset": 0,
+              "len": 2,
+              "signed": false,
+              "encoding": "be",
+              "scale": 0.001,
+              "bias": 0.0,
+              "unit": "bar",
+              "quantity": "pressure",
+              "label": "Tyre pressure rear left"
+            },
+            {
+              "offset": 2,
+              "len": 1,
+              "signed": false,
+              "encoding": "be",
+              "scale": 1.0,
+              "bias": -50.0,
+              "unit": "C",
+              "quantity": "temperature",
+              "label": "Tyre temperature rear left"
+            }
+          ]
         },
         {
           "did": "013F",
           "label": "Tyre pressure rear right",
-          "modules": [{ "req": "18DAC7F1", "resp": "18DAF1C7" }],
+          "modules": [
+            {
+              "req": "18DAC7F1",
+              "resp": "18DAF1C7"
+            }
+          ],
           "unit": "bar",
           "offset": 0,
           "len": 2,
           "scale": 0.001,
-          "bias": 0.0
+          "bias": 0.0,
+          "source": {
+            "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+            "date": "2026-08-28",
+            "type": "community",
+            "licence": "CC-BY-SA-4.0"
+          },
+          "decodes": [
+            {
+              "offset": 0,
+              "len": 2,
+              "signed": false,
+              "encoding": "be",
+              "scale": 0.001,
+              "bias": 0.0,
+              "unit": "bar",
+              "quantity": "pressure",
+              "label": "Tyre pressure rear right"
+            },
+            {
+              "offset": 2,
+              "len": 1,
+              "signed": false,
+              "encoding": "be",
+              "scale": 1.0,
+              "bias": -50.0,
+              "unit": "C",
+              "quantity": "temperature",
+              "label": "Tyre temperature rear right"
+            }
+          ]
         }
       ],
-      "resp_offsets": []
+      "resp_offsets": [],
+      "profiled_level": "routes_sourced",
+      "sources": [
+        {
+          "url": "https://github.com/OBDb/Citroen/blob/11a539aaf695097b03bedd9a568170c44a912df3/signalsets/v3/default.json",
+          "date": "2026-08-28",
+          "type": "community",
+          "licence": "CC-BY-SA-4.0"
+        }
+      ]
     }
   ]
 }
