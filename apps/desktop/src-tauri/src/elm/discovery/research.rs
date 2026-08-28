@@ -10,10 +10,20 @@ use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
 const INDEX_RAW: &str = include_str!("../../../../../../packages/uds-map/data/research-packs.json");
-const EMBEDDED: &[(&str, &str)] = &[(
-    "research/research-candidates-v2.json",
-    include_str!("../../../../../../packages/uds-map/data/research/research-candidates-v2.json"),
-)];
+const EMBEDDED: &[(&str, &str)] = &[
+    (
+        "research/research-candidates-v2.json",
+        include_str!(
+            "../../../../../../packages/uds-map/data/research/research-candidates-v2.json"
+        ),
+    ),
+    (
+        "research/existing-brand-hypotheses-v3.json",
+        include_str!(
+            "../../../../../../packages/uds-map/data/research/existing-brand-hypotheses-v3.json"
+        ),
+    ),
+];
 
 #[derive(Debug, Deserialize)]
 struct ResearchIndex {
@@ -73,6 +83,10 @@ pub struct ResearchClaim {
     pub source_fidelity: String,
     pub vehicle_applicability: String,
     pub scope: String,
+    #[serde(default)]
+    pub action_if_connected: String,
+    #[serde(default)]
+    pub promotion_test: String,
     pub source: ResearchSource,
 }
 
@@ -151,6 +165,10 @@ pub fn packs() -> &'static [ResearchPack] {
                     assert!(!evidence.source_fidelity.is_empty());
                     assert!(!evidence.vehicle_applicability.is_empty());
                     assert!(!evidence.scope.is_empty());
+                    if pack.pack_id == "existing-brand-hypotheses-v3-delta" {
+                        assert!(!evidence.action_if_connected.is_empty());
+                        assert!(!evidence.promotion_test.is_empty());
+                    }
                     assert!(!evidence.source.url.is_empty());
                     assert!(!evidence.source.revision.is_empty());
                     assert!(!evidence.source.retrieved_at.is_empty());
@@ -172,10 +190,14 @@ pub fn profiles_for_vin(vin: Option<&str>) -> Vec<&'static CandidateProfile> {
     let Some(wmi) = wmi(vin) else {
         return Vec::new();
     };
+    let mapped_brand = crate::elm::uds_map::brand_for_vin(vin).map(|brand| brand.id.as_str());
     packs()
         .iter()
         .flat_map(|pack| &pack.profiles)
-        .filter(|profile| profile.wmis.iter().any(|known| known == &wmi))
+        .filter(|profile| {
+            mapped_brand == Some(profile.brand_id.as_str())
+                || profile.wmis.iter().any(|known| known == &wmi)
+        })
         .collect()
 }
 
@@ -208,6 +230,15 @@ pub fn routes_for_context(vin: Option<&str>, platform: Option<&str>) -> Vec<Cand
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+
+    fn vin_for_brand(id: &str) -> String {
+        let brand = crate::elm::uds_map::map()
+            .brands
+            .iter()
+            .find(|brand| brand.id == id)
+            .unwrap();
+        format!("{}EXAMPLE00000000", brand.wmi[0])
+    }
 
     #[test]
     fn index_and_embedded_packs_match_and_are_safe() {
@@ -260,7 +291,10 @@ mod tests {
             assert!(!claim.scope.is_empty());
             assert!(!claim.knowledge_state.is_empty());
             assert!(!claim.source_fidelity.is_empty());
-            assert_eq!(claim.vehicle_applicability, "untested_by_project");
+            assert!(matches!(
+                claim.vehicle_applicability.as_str(),
+                "untested_by_project" | "partially_project_confirmed"
+            ));
         }
     }
 
@@ -299,5 +333,25 @@ mod tests {
             .map(|route| (route.req.as_str(), route.route_id.as_str()))
             .collect();
         assert_eq!(keys.len(), first.len());
+    }
+
+    #[test]
+    fn existing_brand_delta_uses_the_main_maps_wmis_without_copying_them() {
+        let routes = routes_for_context(Some(&vin_for_brand("subaru")), None);
+        let ids: Vec<&str> = routes.iter().map(|route| route.route_id.as_str()).collect();
+        assert_eq!(ids, ["subaru_tpms_753_75b", "subaru_engine_7a2_7aa"]);
+    }
+
+    #[test]
+    fn supporting_psa_research_does_not_change_the_verified_cars_routes() {
+        let routes = routes_for_context(Some(&vin_for_brand("psa")), None);
+        assert!(routes.is_empty());
+        let claim = packs()
+            .iter()
+            .flat_map(|pack| &pack.claims)
+            .find(|claim| claim.claim_id == "psa.route_grammar.supporting")
+            .unwrap();
+        assert_eq!(claim.vehicle_applicability, "partially_project_confirmed");
+        assert!(claim.action_if_connected.contains("never overwrite C4"));
     }
 }

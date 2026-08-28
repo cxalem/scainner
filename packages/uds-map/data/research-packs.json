@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "packs": [
-    "research/research-candidates-v2.json"
+    "research/research-candidates-v2.json",
+    "research/existing-brand-hypotheses-v3.json"
   ]
 }
