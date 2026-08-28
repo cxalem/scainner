@@ -101,6 +101,16 @@ Each fact — route, identity, DID meaning — carries exactly one state.
 Promotion is monotonic within a vehicle and requires the evidence named in the
 phase that produces the state. Demotion happens only by a human.
 
+**Refinement (2026-08-28, from the Universal Discovery Protocol review):** the
+list above mixes four independent dimensions. Going forward both documents
+use: `knowledge_state` (`research_candidate` · `community_reported` ·
+`locally_confirmed` · `community_verified` · `oem_confirmed` · `unknown`),
+`vehicle_fit` (`untested` · `matched` · `conflicted` · `not_applicable`),
+`route_state` (`candidate` · `reached` · `refused` · `silent` · `closed`) and
+`activation` (`disabled` · `learning` · `enabled`). `reached_on_vehicle` and
+`verified_on_vehicle` above map to `route_state = reached` plus an identity
+capture; a decode shown as a sensor requires `vehicle_fit = matched`.
+
 ---
 
 ## 5. The evidence record
