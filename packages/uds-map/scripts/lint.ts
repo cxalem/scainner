@@ -22,6 +22,11 @@ function lintDecode(where: string, d: Decode, problems: string[]): void {
   if (!ENCODINGS.has(d.encoding)) problems.push(`${where}: unknown encoding ${d.encoding}`);
   if (!(d.len >= 0) || !(d.offset >= 0)) problems.push(`${where}: bad offset/len`);
   if (d.encoding === "bitfield" && (d.bit_len == null || d.bit_offset == null)) problems.push(`${where}: bitfield without bit_offset/bit_len`);
+  if (d.encoding === "bitfield" && d.bit_len != null && d.bit_offset != null) {
+    if (d.bit_len <= 0) problems.push(`${where}: bit_len must be positive`);
+    if (d.bit_offset < 0 || d.bit_offset + d.bit_len > d.len * 8) problems.push(`${where}: bitfield exceeds its ${d.len}-byte slice`);
+  }
+  if (d.encoding !== "ascii" && d.len > 8) problems.push(`${where}: numeric decodes are limited to 8 bytes`);
   if (typeof d.scale !== "number" || typeof d.bias !== "number") problems.push(`${where}: scale/bias must be numbers`);
   if (!d.quantity) problems.push(`${where}: missing quantity`);
   if (!d.label) problems.push(`${where}: missing label`);
@@ -62,7 +67,6 @@ function lintBrand(b: Brand, problems: string[], overlay: boolean): void {
     const modules = (b.modules ?? []).length;
     const projectDecode = (b.known_dids ?? []).some((k) => k.source?.type === "project_capture" && (k.decodes ?? []).length > 0);
     const captureRoute = (b.modules ?? []).some((m) => m.source?.type === "project_capture") || (b.sources ?? []).some((s) => s.type === "project_capture");
-    const fixtureRoute = (b.modules ?? []).some((m) => m.source?.licence === "CC-BY-SA-4.0" && /OBDb/.test(m.source.url));
     switch (b.profiled_level) {
       case "standard_only":
         if (modules > 0) problems.push(at("standard_only but documents manufacturer modules"));
@@ -71,7 +75,7 @@ function lintBrand(b: Brand, problems: string[], overlay: boolean): void {
         if (modules === 0) problems.push(at("routes_sourced without any module"));
         break;
       case "routes_verified":
-        if (!(captureRoute || fixtureRoute)) problems.push(at("routes_verified without a capture- or fixture-backed route"));
+        if (!captureRoute) problems.push(at("routes_verified without a repository-owned raw capture/fixture"));
         break;
       case "decodes_verified":
         if (!projectDecode) problems.push(at("decodes_verified without a project-captured decode"));

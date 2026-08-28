@@ -1136,7 +1136,9 @@ pub fn decode_value(decode: &Decode, bytes: &[u8]) -> Option<f64> {
 }
 
 fn signed_or_not(v: u64, bits: u32, signed: bool) -> f64 {
-    if signed && bits > 0 && bits < 64 && v >= (1u64 << (bits - 1)) {
+    if signed && bits == 64 {
+        (v as i64) as f64
+    } else if signed && bits > 0 && v >= (1u64 << (bits - 1)) {
         (v as i64 - (1i64 << bits)) as f64
     } else {
         v as f64
@@ -1976,6 +1978,20 @@ mod tests {
         assert_eq!(
             decode_value(&d(DecodeEncoding::Be, 1, true), &[0x80]),
             Some(-128.0)
+        );
+        assert_eq!(
+            decode_value(
+                &d(DecodeEncoding::Be, 8, true),
+                &[0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE]
+            ),
+            Some(-2.0)
+        );
+        assert_eq!(
+            decode_value(
+                &d(DecodeEncoding::Le, 8, true),
+                &[0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+            ),
+            Some(-2.0)
         );
         assert_eq!(
             decode_value(&d(DecodeEncoding::Bcd, 3, false), &[0x12, 0x34, 0x56]),

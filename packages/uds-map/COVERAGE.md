@@ -8,14 +8,14 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---:|---|---|---|
 | psa | 8 | 23 | 33 | 21 | 33 | 3 | 21 (16 ev.) | 17 | 22 | iso + 4 vendor | 1 | decodes_verified | absent | high |
 | opel_psa | 3 | 6 | 3 | 3 | 3 | 0 | 3 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
-| vag | 15 | 20 | 31 | 17 | 26 (5 unknown) | 0 | 18 | 0 | 22 | iso + 1 vendor | 3 | routes_verified | unknown | high |
+| vag | 15 | 20 | 31 | 17 | 26 (5 unknown) | 0 | 18 | 0 | 22 | iso + 1 vendor | 3 | routes_sourced | unknown | high |
 | skoda | 4 | 10 | 4 | 0 | 4 | 0 | 0 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
 | seat | 1 | 9 | 4 | 0 | 4 | 0 | 0 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
-| cupra | 1 | 10 | 9 | 5 | 9 | 0 | 5 | 0 | 22 | iso | 1 | routes_verified | unknown | medium |
+| cupra | 1 | 10 | 9 | 5 | 9 | 0 | 5 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
 | bmw | 11 | 7 | 16 | 7 | 12 (4 unknown) | 0 | 7 | 0 | 22 | iso | 3 | routes_sourced | unknown | medium |
-| mercedes | 11 | 14 | 10 | 7 | 10 | 0 | 10 | 0 | 22 | iso | 3 | routes_verified | filtered | medium |
+| mercedes | 11 | 14 | 10 | 7 | 10 | 0 | 10 | 0 | 22 | iso | 3 | routes_sourced | filtered | medium |
 | renault | 9 | 16 | 7 | 5 | 7 | 0 | 5 | 0 | 21, 22 | iso | 1 | routes_sourced | unknown | high |
-| nissan | 17 | 5 | 11 | 5 | 11 | 0 | 5 | 0 | 21, 22 | iso | 2 (2 vds) | routes_verified | unknown | high |
+| nissan | 17 | 5 | 11 | 5 | 11 | 0 | 5 | 0 | 21, 22 | iso | 2 (2 vds) | routes_sourced | unknown | high |
 | hyundai_kia | 18 | 16 | 11 | 9 | 9 (2 unknown) | 0 | 113 | 0 | 21, 22 | iso + 2 vendor | 2 | routes_sourced | unknown | high |
 | ford | 22 | 9 | 18 | 16 | 15 (3 unknown) | 0 | 16 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
 | gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 1A, 22 | iso | 2 | routes_sourced | unknown | low |
@@ -23,19 +23,19 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 | toyota | 29 | 10 | 11 | 7 | 6 (5 unknown) | 0 | 8 | 0 | 1A, 22 | iso | 3 | routes_sourced | unknown | high |
 | honda | 20 | 7 (6) | 7 | 0 | 6 (1 unknown) | 0 | 0 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown | medium |
 | mazda | 15 | 4 | 13 | 11 | 8 (5 unknown) | 0 | 11 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
-| volvo | 9 | 1 (1) | 2 | 2 | 0 (2 unknown) | 0 | 2 | 0 | 22 | iso | 2 (1 vds) | routes_verified | unknown | medium |
+| volvo | 9 | 1 (1) | 2 | 2 | 0 (2 unknown) | 0 | 2 | 0 | 22 | iso | 2 (1 vds) | routes_sourced | unknown | medium |
 | subaru | 7 | 1 | 1 | 0 | 0 (1 unknown) | 0 | 0 | 0 | 22 | iso + 1 vendor | 1 | routes_sourced | unknown | low |
 | mitsubishi | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 1 | standard_only | unknown | low |
 | tesla | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 2 (2 vds) | standard_only | unknown | high |
-| **total** | 251 | 180 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 19 brands | 21 brands | 33 (5 vds) | 1 decodes_verified / 5 routes_verified / 13 routes_sourced / 2 standard_only | 3 brands | |
+| **total** | 251 | 180 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 19 brands | 21 brands | 33 (5 vds) | 1 decodes_verified / 0 routes_verified / 18 routes_sourced / 2 standard_only | 3 brands | |
 
 ## Profiled levels
 
 `standard_only`: no manufacturer routes in data · `routes_sourced`: routes from open implementations or community tables · `routes_verified`: at least one route confirmed by a recorded request/response capture (a project capture or an open corpus test fixture with raw bytes) · `decodes_verified`: decodes confirmed on a vehicle by this project. Levels are data (`brands[].profiled_level`) with `brands[].sources[]` behind them; `pnpm lint:pack` fails a level the sources cannot support.
 
 - **decodes_verified** (1): psa
-- **routes_verified** (5): vag, cupra, mercedes, nissan, volvo
-- **routes_sourced** (13): opel_psa, skoda, seat, bmw, renault, hyundai_kia, ford, gm, fca, toyota, honda, mazda, subaru
+- **routes_verified** (0): —
+- **routes_sourced** (18): opel_psa, vag, skoda, seat, cupra, bmw, mercedes, renault, nissan, hyundai_kia, ford, gm, fca, toyota, honda, mazda, volvo, subaru
 - **standard_only** (2): mitsubishi, tesla
 
 ## Decode shapes

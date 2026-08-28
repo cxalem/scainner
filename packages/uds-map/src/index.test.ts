@@ -290,6 +290,8 @@ describe("decodeValue (v9 encodings)", () => {
     expect(decodeValue({ ...base, encoding: "le" }, [0x01, 0x02])).toBe(0x0201);
     expect(decodeValue({ ...base, signed: true }, [0xff, 0xfe])).toBe(-2);
     expect(decodeValue({ ...base, len: 1, signed: true }, [0x80])).toBe(-128);
+    expect(decodeValue({ ...base, len: 8, signed: true }, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe])).toBe(-2);
+    expect(decodeValue({ ...base, encoding: "le", len: 8, signed: true }, [0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff])).toBe(-2);
     expect(decodeValue({ ...base, scale: 0.1, bias: -3276.8 }, [0x80, 0x00])).toBeCloseTo(0, 6);
   });
 
@@ -299,6 +301,8 @@ describe("decodeValue (v9 encodings)", () => {
     expect(decodeValue(flags, [0b1111_0111])).toBe(0);
     const nibble: Decode = { ...base, len: 1, encoding: "bitfield", bit_offset: 4, bit_len: 4 };
     expect(decodeValue(nibble, [0xa5])).toBe(0xa);
+    const signed64: Decode = { ...base, len: 8, signed: true, encoding: "bitfield", bit_offset: 0, bit_len: 64 };
+    expect(decodeValue(signed64, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe])).toBe(-2);
   });
 
   it("packed BCD and ASCII", () => {

@@ -350,7 +350,7 @@ export function decodeValue(decode: Decode, bytes: number[] | Uint8Array): numbe
     case "ascii":
       return undefined;
     case "le":
-      raw = slice.reduceRight((acc, b) => acc * 256 + b, 0);
+      raw = signedBigInt(slice.reduceRight((acc, b) => (acc << 8n) | BigInt(b), 0n), len * 8, decode.signed);
       break;
     case "bcd": {
       let digits = "";
@@ -364,19 +364,23 @@ export function decodeValue(decode: Decode, bytes: number[] | Uint8Array): numbe
       break;
     }
     case "bitfield": {
-      const whole = slice.reduce((acc, b) => acc * 256 + b, 0);
+      const whole = slice.reduce((acc, b) => (acc << 8n) | BigInt(b), 0n);
       const bitLen = decode.bit_len ?? len * 8;
-      const shifted = Math.floor(whole / 2 ** (decode.bit_offset ?? 0));
-      raw = shifted % 2 ** bitLen;
-      if (decode.signed && raw >= 2 ** (bitLen - 1)) raw -= 2 ** bitLen;
+      const shifted = whole >> BigInt(decode.bit_offset ?? 0);
+      const masked = shifted & ((1n << BigInt(bitLen)) - 1n);
+      raw = signedBigInt(masked, bitLen, decode.signed);
       return raw * decode.scale + decode.bias;
     }
     case "be":
     default:
-      raw = slice.reduce((acc, b) => acc * 256 + b, 0);
+      raw = signedBigInt(slice.reduce((acc, b) => (acc << 8n) | BigInt(b), 0n), len * 8, decode.signed);
   }
-  if (decode.signed && decode.encoding !== "bcd" && raw >= 2 ** (len * 8 - 1)) raw -= 2 ** (len * 8);
   return raw * decode.scale + decode.bias;
+}
+
+function signedBigInt(raw: bigint, bits: number, signed: boolean): number {
+  if (signed && bits > 0 && raw >= (1n << BigInt(bits - 1))) raw -= 1n << BigInt(bits);
+  return Number(raw);
 }
 
 /** The printable ASCII string of an `ascii` decode (or the whole payload
