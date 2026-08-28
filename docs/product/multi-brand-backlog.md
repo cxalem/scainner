@@ -30,9 +30,9 @@ Started 2026-08-28.
 - ☐ P2.8 Lint 0 allow-list at zero for `src-tauri/src` outside tests
 
 ## Phase 3 — Multi-brand replay corpus
-- ☐ P3.1 `scripts/import_obdb_fixtures.py`: raw-response ↔ expected-value pairs from every licence-clean open corpus in `RESEARCH.md` → `fixtures/{brand}/{platform}/`; attribution in `OBDB-NOTICE.md`; `docs/uds/CORPUS.md`
-- ☐ P3.2 Seven shapes covered with engine + state-layer tests: `0x21` groups, `0x1A`, 29-bit incl. target iteration, > 8-byte multi-frame, offset-binary signed, ASCII, bit-packed flags
-- ☐ P3.3 `decode_payload` / `signed_guess` handle > 8 bytes and offset-binary
+- ☑ (#59) P3.1 `scripts/import_obdb_fixtures.py`: raw-response ↔ expected-value pairs from every licence-clean open corpus in `RESEARCH.md` → `fixtures/{brand}/{platform}/`; attribution in `OBDB-NOTICE.md`; `docs/uds/CORPUS.md`
+- ☑ (#59) P3.2 Seven shapes covered with engine + state-layer tests: `0x21` groups, `0x1A`, 29-bit incl. target iteration, > 8-byte multi-frame, offset-binary signed, ASCII, bit-packed flags
+- ☑ (#59) P3.3 `decode_payload` / `signed_guess` handle > 8 bytes and offset-binary
 - ☐ P3.4 Second seed vehicle of another brand in `join`/`coverage`/`db`/`api` tests; cross-brand isolation test
 
 ## Phase 4 — Brand-neutral tooling and surfaces
@@ -59,3 +59,4 @@ Started 2026-08-28.
 - 2026-08-28 — Phase 0 done on `feat/mb-phase0-hygiene` (#56, stacked on #55): `PARKED_PLAN_VERSION` const, counts corrected (197 / 112 / 3 families / 16 decodes), fixtures and evidence under `psa/c41/` and `psa/unknown-platform/`, `lint_brand_tokens.py` in CI with a 59-token / 9-file baseline. 148 Rust tests, 21 uds-map tests.
 - 2026-08-28 — Phase 1 done on `feat/mb-phase1-schema` (#57, stacked on #56): pack schema v9 (sources everywhere, read services, route tuples, identity blocks with encoding-named layouts, 33 platforms, gateway semantics, profiled levels, `decodes[]`), RESEARCH.md prose migrated to data with `docs/uds/migration-v9.md`, 169/203 DIDs module-bound (34 honest unknowns), unscoped fallback removed, Rust contract accessors, `pnpm lint:pack` + generated `COVERAGE.md` in CI. 159 Rust tests, 42 uds-map tests; brand-token baseline unchanged (59).
 - 2026-08-28 — #57 review fixes: RESEARCH.md anchors corrected and lint-checked, hyundai `0101`/`E004` decodes re-read from OVMS, `1A` demoted to a per-DID `read_service` with DID → module → platform → brand → standard precedence (`read_service_for_did`), subaru `standard_only`, psa silence `unreachable_pins`.
+- 2026-08-28 — Phase 3 (P3.1–P3.3) done on `feat/mb-phase3-corpus` (#59, stacked on #57): `scripts/import_obdb_fixtures.py` + `SELECTION.json` import 59 verified fixtures (449 KB, 10 brand directories, 596 cases) from OBDb (CC BY-SA 4.0) and opendbc (MIT, synthetic framing) into `fixtures/{brand}/{platform}/{shape}/` with `docs/uds/CORPUS.md` provenance; shape tests discover them at run time; engine analyses > 8-byte payloads, flags offset-binary windows, bit-packed masks and ASCII. `0x1A` and ASCII have no captured framing in any open source; P3.4 stays with Phase 2. 169 Rust tests; brand-token baseline unchanged (59).
