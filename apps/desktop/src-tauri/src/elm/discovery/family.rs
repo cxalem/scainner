@@ -29,13 +29,16 @@ pub struct CompatibilityKey {
 impl CompatibilityKey {
     /// From the fingerprint columns on `discovered_modules`: the spare part
     /// number is the hardware reference and the software version the
-    /// software reference. `f0fe` is the raw PSA `F0FE` payload when the
-    /// module answered it; byte 4 carries a supplier code on that brand.
+    /// software reference. `supplier` is whatever the identity block's
+    /// `supplier` field decoded to (an opaque code or a name — no table is
+    /// applied to it); `service` the read service the module answers per
+    /// the pack (`read_service_for_module`).
     pub fn from_fingerprint(
         spare_part_number: Option<&str>,
         software_version: Option<&str>,
         system_name: Option<&str>,
-        f0fe: Option<&[u8]>,
+        supplier: Option<&str>,
+        service: &str,
     ) -> Self {
         let clean = |s: Option<&str>| {
             s.map(str::trim)
@@ -43,24 +46,14 @@ impl CompatibilityKey {
                 .map(str::to_string)
         };
         Self {
-            supplier: f0fe.and_then(supplier_code_from_f0fe),
+            supplier: clean(supplier),
             family: clean(system_name),
             hardware_ref: clean(spare_part_number),
             software_ref: clean(software_version),
             payload_variant: None,
-            service: Some("22".into()),
+            service: Some(service.into()),
         }
     }
-}
-
-/// PSA `F0FE` byte 4 is documented (Diagbox-derived tables) as a supplier
-/// code. It is returned as an opaque code string — no name table has been
-/// verified yet, so nothing is invented from it.
-pub fn supplier_code_from_f0fe(payload: &[u8]) -> Option<String> {
-    payload
-        .get(4)
-        .filter(|b| **b != 0 && **b != 0xFF)
-        .map(|b| format!("psa-f0fe-{b:02X}"))
 }
 
 /// How well a module's key matches a family (protocol §2 rules).
@@ -165,7 +158,7 @@ mod tests {
     use crate::elm::uds_map;
 
     fn key(hw: Option<&str>, sw: Option<&str>) -> CompatibilityKey {
-        CompatibilityKey::from_fingerprint(hw, sw, None, None)
+        CompatibilityKey::from_fingerprint(hw, sw, None, None, "22")
     }
 
     #[test]
@@ -194,7 +187,7 @@ mod tests {
 
     #[test]
     fn a_family_or_supplier_name_alone_is_name_only() {
-        let k = CompatibilityKey::from_fingerprint(None, None, Some("ESP MK100"), None);
+        let k = CompatibilityKey::from_fingerprint(None, None, Some("ESP MK100"), None, "22");
         let m = match_family(&k, uds_map::map());
         assert_eq!(
             m,
@@ -203,14 +196,14 @@ mod tests {
             }
         );
         // Exact equality only: a substring or a supplier alone is nothing.
-        let k = CompatibilityKey::from_fingerprint(None, None, Some("MK100"), None);
+        let k = CompatibilityKey::from_fingerprint(None, None, Some("MK100"), None, "22");
         assert_eq!(match_family(&k, uds_map::map()), FamilyMatch::None);
         let k = CompatibilityKey {
             supplier: Some("continental/ate".into()),
             ..Default::default()
         };
         assert_eq!(match_family(&k, uds_map::map()), FamilyMatch::None);
-        let k = CompatibilityKey::from_fingerprint(None, None, Some("  esp mk100 "), None);
+        let k = CompatibilityKey::from_fingerprint(None, None, Some("  esp mk100 "), None, "22");
         assert_eq!(match_family(&k, uds_map::map()).as_str(), "name_only");
     }
 
@@ -282,12 +275,13 @@ mod tests {
     }
 
     #[test]
-    fn f0fe_supplier_code_is_opaque_and_skips_padding() {
-        assert_eq!(
-            supplier_code_from_f0fe(&[0, 0, 0, 0, 0x2A, 0]),
-            Some("psa-f0fe-2A".into())
-        );
-        assert_eq!(supplier_code_from_f0fe(&[0, 0, 0, 0, 0xFF]), None);
-        assert_eq!(supplier_code_from_f0fe(&[0, 0]), None);
+    fn the_supplier_and_the_read_service_come_from_the_caller_not_a_parser() {
+        let k =
+            CompatibilityKey::from_fingerprint(Some("1111111111"), None, None, Some(" 2A "), "21");
+        assert_eq!(k.supplier.as_deref(), Some("2A"));
+        assert_eq!(k.service.as_deref(), Some("21"));
+        let k = CompatibilityKey::from_fingerprint(None, None, None, Some("  "), "1A");
+        assert_eq!(k.supplier, None);
+        assert_eq!(k.service.as_deref(), Some("1A"));
     }
 }

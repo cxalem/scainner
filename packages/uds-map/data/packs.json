@@ -1,0 +1,6 @@
+{
+  "note": "Index of knowledge overlay packs under data/packs/. The Rust runtime (apps/desktop/src-tauri/src/elm/discovery/packs.rs) embeds exactly these files and its test fails when this list and the embedded list drift; the TypeScript side enumerates the directory directly. Kept next to data/packs/ rather than inside it because the TypeScript loader parses every *.json in that directory as a pack.",
+  "packs": [
+    "obdb-citroen.json"
+  ]
+}

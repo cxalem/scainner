@@ -193,26 +193,18 @@ pub async fn all_sensors(state: &AppState) -> Result<Vec<SensorReading>, String>
 
 // ---------- UDS ----------
 
+/// The modules offered for the connected vehicle: what the knowledge map
+/// documents for its VIN (`source: "profile"`) plus the user's customs
+/// (`source: "custom"`). Without a connected, identified vehicle only the
+/// customs are offered — there is no profile to draw on.
 pub fn uds_modules(state: &AppState) -> Vec<elm::uds::UdsModule> {
-    let mut mods = elm::uds::builtin_modules();
-    mods.extend(
-        state
-            .db
-            .list_uds_modules()
-            .into_iter()
-            .map(|(key, label, req, resp)| elm::uds::UdsModule {
-                key,
-                label,
-                req,
-                resp,
-                builtin: false,
-            }),
-    );
-    mods
+    let vin = conn_status(state).vin;
+    let custom = elm::uds::custom_modules(&state.db, vin.as_deref());
+    elm::uds::modules_for_vin(vin.as_deref(), &custom)
 }
 
 /// Add a custom module (any brand's CAN request/response IDs, hex strings
-/// like "7E0"/"7E8") so the UDS Lab works beyond the built-in PSA four.
+/// like "7E0"/"7E8") for routes the knowledge map does not document yet.
 pub fn add_uds_module(
     state: &AppState,
     key: &str,
@@ -272,8 +264,10 @@ pub async fn discover_sensors(
     ask_within(state, LONG_ASK_TIMEOUT, |tx| Request::Discover { full, tx }).await
 }
 
-/// Reproducible parked-car research pass. Read-only 0x22 requests only; the
-/// complete evidence is attached to this vehicle and connection in SQLite.
+/// Reproducible parked-car research pass over the plan generated from the
+/// vehicle's profile (`discovery::plan`). Read-only requests on each
+/// module's read service; the complete evidence is attached to this vehicle
+/// and connection in SQLite.
 pub async fn parked_verification(
     state: &AppState,
 ) -> Result<elm::uds::ParkedVerificationReport, String> {
@@ -487,6 +481,18 @@ pub fn join_vehicle(state: &AppState, vehicle_id: i64) -> Option<discovery::join
 
 pub fn coverage(state: &AppState, vehicle_id: i64) -> Option<discovery::coverage::CoverageReport> {
     discovery::coverage::coverage(&state.db, elm::uds_map::map(), vehicle_id)
+}
+
+/// The parked-verification plan the generator would run for a vehicle, from
+/// its profile and the routes it has reached. No car traffic.
+pub fn parked_plan(state: &AppState, vehicle_id: i64) -> Option<discovery::plan::ParkedPlan> {
+    let vehicle = state.db.vehicle(vehicle_id)?;
+    let reached = elm::uds::reached_routes(&state.db, vehicle_id);
+    Some(discovery::plan::generate(
+        vehicle.vin.as_deref(),
+        &reached,
+        elm::uds_map::map(),
+    ))
 }
 
 pub fn list_hypotheses(state: &AppState, vehicle_id: i64) -> Vec<db::HypothesisRow> {

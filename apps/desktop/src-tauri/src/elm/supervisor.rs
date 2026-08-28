@@ -7,8 +7,10 @@
 //! dispatch — the actual OBD/UDS business logic lives in `obd.rs` and
 //! `uds.rs` respectively. `handle_request` is the seam between them.
 
+use super::discovery;
 use super::driver::{self, ElmDriver};
 use super::obd;
+use super::operation;
 use super::parser;
 use super::uds;
 use crate::db::Db;
@@ -227,8 +229,19 @@ fn run_loop(
                 continue;
             }
         };
-        // Wake the ECU / detect protocol.
+        // Wake the ECU / detect protocol, then remember what the adapter
+        // settled on so every diagnostic operation restores exactly that.
         let _ = drv.cmd("0100", Duration::from_secs(20));
+        match operation::capture_link_state(&mut drv) {
+            Some(state) => log::info!(
+                "adapter protocol {} (functional header {})",
+                state.protocol,
+                state.header
+            ),
+            None => {
+                log::warn!("ATDPN did not report a CAN protocol; cleanup falls back to auto-detect")
+            }
+        }
         let connection_id = db.start_connection(&version, "vgate_icar_pro");
         // Resolve this connection's vehicle. The VIN read decides whether
         // the app recognizes what's connected at all — retried up to 3
@@ -317,6 +330,53 @@ fn run_loop(
                 supported_pids.len(),
                 polled.join(", ")
             );
+        }
+
+        // Automatic discovery on connect (protocol S1–S3; multi-brand plan
+        // P2.7): census → identity (twice) → join → coverage, read-only in
+        // the default session, within the protocol's budgets. Switched off
+        // with `app_settings.auto_discovery = off`; an unidentified car has
+        // nowhere to file findings, so it is skipped too.
+        if let Some(vehicle_id) = ctx.vehicle_id {
+            if discovery::auto::enabled(&db) {
+                cancel_scan.store(false, Ordering::Relaxed);
+                set_scanning(&app, &status, true);
+                let progress = |phase: &str, current: u32, total: u32, detail: &str| {
+                    let _ = app.emit(
+                        "discovery-progress",
+                        serde_json::json!({
+                            "phase": phase, "current": current, "total": total,
+                            "detail": detail, "modulesFound": 0, "didsFound": 0,
+                        }),
+                    );
+                };
+                let summary = discovery::auto::run(
+                    &mut drv,
+                    &db,
+                    vehicle_id,
+                    resolved_vin.as_deref(),
+                    connection_id,
+                    &cancel_scan,
+                    &discovery::auto::AutoConfig::default(),
+                    &progress,
+                );
+                set_scanning(&app, &status, false);
+                log::info!(
+                    "automatic discovery: {} candidates, {} reached, {} refused, {} silent; {} fingerprinted; coverage {}; {} ms{}",
+                    summary.census.candidates,
+                    summary.census.reached,
+                    summary.census.refused,
+                    summary.census.silent,
+                    summary.identity.fingerprinted,
+                    summary.coverage_status.as_deref().unwrap_or("none"),
+                    summary.elapsed_ms,
+                    summary.stopped.as_deref().map(|s| format!(" ({s})")).unwrap_or_default()
+                );
+                if let Ok(json) = serde_json::to_string(&summary) {
+                    let _ =
+                        db.insert_verification_run(vehicle_id, connection_id, "auto-s1-s3", &json);
+                }
+            }
         }
 
         let mut consecutive_failures = 0u32;
@@ -653,6 +713,14 @@ fn answer_disconnected(req: Request) {
     }
 }
 
+/// The VIN of the connection's vehicle, which selects the profile every
+/// UDS operation resolves modules, routes and read services from.
+fn current_vin(db: &Db, ctx: ConnCtx) -> Option<String> {
+    ctx.vehicle_id
+        .and_then(|id| db.vehicle(id))
+        .and_then(|v| v.vin)
+}
+
 /// Dispatch one request to the right business-logic module. This is the only
 /// place that knows both "how to talk to the car" (via `drv`) and "what the
 /// UI asked for" (via `Request`) — everything past this point is either
@@ -799,10 +867,12 @@ fn handle_request(
             let _ = tx.send(res);
         }
         Request::UdsRead { module, did, tx } => {
-            let _ = tx.send(uds::read_one(drv, db, &module, did));
+            let vin = current_vin(db, ctx);
+            let _ = tx.send(uds::read_one(drv, db, vin.as_deref(), &module, did));
         }
         Request::UdsReadMany { module, dids, tx } => {
-            let _ = tx.send(uds::read_many(drv, db, &module, &dids));
+            let vin = current_vin(db, ctx);
+            let _ = tx.send(uds::read_many(drv, db, vin.as_deref(), &module, &dids));
         }
         Request::UdsScan {
             module,
@@ -812,7 +882,9 @@ fn handle_request(
         } => {
             cancel_scan.store(false, Ordering::Relaxed);
             set_scanning(app, status, true);
-            let result = uds::scan_range(drv, db, &module, from, to, cancel_scan, app);
+            let vin = current_vin(db, ctx);
+            let result =
+                uds::scan_range(drv, db, vin.as_deref(), &module, from, to, cancel_scan, app);
             set_scanning(app, status, false);
             let _ = tx.send(result);
         }
@@ -842,8 +914,10 @@ fn handle_request(
                         .into(),
                 ),
                 Some(vehicle_id) => {
+                    let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
+                    let reached = uds::reached_routes(db, vehicle_id);
                     set_scanning(app, status, true);
-                    let mut report = uds::parked_verification(drv);
+                    let mut report = uds::parked_verification(drv, vin.as_deref(), &reached);
                     set_scanning(app, status, false);
                     match serde_json::to_string(&report)
                         .map_err(|error| error.to_string())
@@ -863,10 +937,11 @@ fn handle_request(
                             }
                             // Promote what the car itself answered into the
                             // module records: a reachable route bumps
-                            // last_seen_at, a decoded F080 fills the
-                            // fingerprint columns, and sweep hits become
-                            // unlabeled discovered DIDs. Silent routes write
-                            // nothing.
+                            // last_seen_at, a decoded identity block fills
+                            // the fingerprint columns (and counts as one
+                            // identity read on this connection), and sweep
+                            // hits become unlabeled discovered DIDs. Silent
+                            // routes write nothing.
                             for target in &report.targets {
                                 let reached = target.observations.iter().any(|item| {
                                     matches!(
@@ -890,8 +965,17 @@ fn handle_request(
                                     target.summary.is_none().then_some(target.label.as_str());
                                 let module_id =
                                     db.upsert_discovered_module(vehicle_id, &address, label);
-                                if let Some(fingerprint) = uds::psa_identity_fingerprint(target) {
+                                db.set_module_route_state(module_id, "reached");
+                                if let Some(fingerprint) =
+                                    uds::target_fingerprint(vin.as_deref(), target)
+                                {
                                     db.update_ecu_fingerprint(module_id, &fingerprint);
+                                    discovery::identity::record_identity(
+                                        db,
+                                        module_id,
+                                        &fingerprint,
+                                        ctx.connection_id,
+                                    );
                                 }
                                 if target.summary.is_some() {
                                     for hit in target.observations.iter().filter(|item| {
@@ -936,8 +1020,10 @@ fn handle_request(
                         .into(),
                 ),
                 Some(vehicle_id) => {
+                    let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
                     set_scanning(app, status, true);
-                    let readings = uds::correlation_capture(drv, &req, &resp, &dids, repeats);
+                    let readings =
+                        uds::correlation_capture(drv, vin.as_deref(), &req, &resp, &dids, repeats);
                     set_scanning(app, status, false);
                     readings.and_then(|readings| {
                         let mut capture = uds::CorrelationCapture {
@@ -947,7 +1033,7 @@ fn handle_request(
                             step,
                             condition,
                             repeats: repeats.clamp(1, 10),
-                            safety: "parked or operator-controlled, read-only 0x22 requests, default diagnostic session".into(),
+                            safety: "parked or operator-controlled, read-only requests on the module's read service, default diagnostic session".into(),
                             readings,
                         };
                         let json = serde_json::to_string(&capture).map_err(|e| e.to_string())?;
@@ -970,10 +1056,12 @@ fn handle_request(
             let _ = tx.send(result);
         }
         Request::UdsClear { module, tx } => {
-            let _ = tx.send(uds::clear_module(drv, db, &module, ctx));
+            let vin = current_vin(db, ctx);
+            let _ = tx.send(uds::clear_module(drv, db, vin.as_deref(), &module, ctx));
         }
         Request::UdsModuleDtcs { module, tx } => {
-            let _ = tx.send(uds::module_dtcs(drv, db, &module));
+            let vin = current_vin(db, ctx);
+            let _ = tx.send(uds::module_dtcs(drv, db, vin.as_deref(), &module));
         }
         // Handled inline in the polling loop (needs the loop's own ctx and
         // status); reaching here would be a dispatch bug, answer honestly.

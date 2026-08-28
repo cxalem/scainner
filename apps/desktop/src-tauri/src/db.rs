@@ -80,6 +80,25 @@ pub struct DiscoveredModuleRow {
     /// Family join result (plan A4): family id and `strong|weak|name_only|none`.
     pub family_id: Option<String>,
     pub family_match: Option<String>,
+    /// Route outcome (`reached` once the census writes it; NULL on rows
+    /// created before Phase 2, which only ever held reached routes).
+    pub route_state: Option<String>,
+    /// Supplier code/name from the identity block, when it carried one.
+    pub supplier: Option<String>,
+}
+
+/// One route outcome of the census (Phase 2): the candidate route and what
+/// it did — `reached`, `refused`, `silent`, `transport_failed`.
+#[derive(Serialize, Clone, Debug)]
+pub struct RouteOutcomeRow {
+    pub id: i64,
+    pub vehicle_id: i64,
+    pub connection_id: Option<i64>,
+    pub address: String,
+    pub route_state: String,
+    pub route_json: Option<String>,
+    pub detail: Option<String>,
+    pub observed_at: String,
 }
 
 /// One tracked hypothesis: a DID on a module of one vehicle with the four
@@ -839,6 +858,11 @@ impl Db {
             "route_json TEXT",
             "family_id TEXT",
             "family_match TEXT",
+            // Phase 2 (multi-brand plan): the route outcome of the module
+            // (`reached` for every row the census answered) and the
+            // supplier code/name the identity block carried.
+            "route_state TEXT",
+            "supplier TEXT",
         ] {
             let _ = conn.execute(
                 &format!("ALTER TABLE discovered_modules ADD COLUMN {column}"),
@@ -847,6 +871,21 @@ impl Db {
         }
         conn.execute_batch(
             r#"
+            -- Phase 2: every census outcome per route, including the ones
+            -- that never answered (refused / silent / transport_failed), so
+            -- the coverage report accounts for candidates, not only hits.
+            CREATE TABLE IF NOT EXISTS route_outcomes (
+                id INTEGER PRIMARY KEY,
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                connection_id INTEGER,
+                module_address TEXT NOT NULL,
+                route_state TEXT NOT NULL,
+                route_json TEXT,
+                detail TEXT,
+                observed_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_route_outcomes_vehicle_address
+                ON route_outcomes(vehicle_id, module_address);
             CREATE TABLE IF NOT EXISTS hypotheses (
                 id INTEGER PRIMARY KEY,
                 vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
@@ -1540,7 +1579,8 @@ impl Db {
              hardware_version = COALESCE(?2, hardware_version),
              software_version = COALESCE(?3, software_version),
              system_name = COALESCE(?4, system_name),
-             fingerprint_evidence_json = ?5
+             fingerprint_evidence_json = ?5,
+             supplier = COALESCE(?7, supplier)
              WHERE id = ?6",
             params![
                 fingerprint.spare_part_number,
@@ -1549,6 +1589,7 @@ impl Db {
                 fingerprint.system_name,
                 evidence,
                 module_id,
+                fingerprint.supplier,
             ],
         );
         // Rebuild from every proven field retained on the module, not only
@@ -1624,7 +1665,8 @@ impl Db {
                         CASE WHEN m.hardware_version IS NOT NULL THEN 1 ELSE 0 END +
                         CASE WHEN m.software_version IS NOT NULL THEN 1 ELSE 0 END +
                         CASE WHEN m.system_name IS NOT NULL THEN 1 ELSE 0 END,
-                        m.identity_fit, m.identity_reads, m.route_json, m.family_id, m.family_match
+                        m.identity_fit, m.identity_reads, m.route_json, m.family_id, m.family_match,
+                        m.route_state, m.supplier
                  FROM discovered_modules m
                  LEFT JOIN discovered_dids d ON d.module_id = m.id
                  WHERE m.vehicle_id = ?1
@@ -1652,6 +1694,71 @@ impl Db {
                 route_json: r.get(15)?,
                 family_id: r.get(16)?,
                 family_match: r.get(17)?,
+                route_state: r.get(18)?,
+                supplier: r.get(19)?,
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
+    }
+
+    /// Store the route outcome of a discovered (answering) module.
+    pub fn set_module_route_state(&self, module_id: i64, route_state: &str) -> bool {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE discovered_modules SET route_state = ?1 WHERE id = ?2",
+            params![route_state, module_id],
+        )
+        .map(|n| n > 0)
+        .unwrap_or(false)
+    }
+
+    /// Record the census outcome of one candidate route (upsert on
+    /// vehicle + address). `reached` routes also live in
+    /// `discovered_modules`; refused/silent ones only here.
+    pub fn record_route_outcome(
+        &self,
+        vehicle_id: i64,
+        connection_id: Option<i64>,
+        address: &str,
+        route_state: &str,
+        route_json: Option<&str>,
+        detail: Option<&str>,
+    ) {
+        let conn = self.0.lock().unwrap();
+        let _ = conn.execute(
+            "INSERT INTO route_outcomes (vehicle_id, connection_id, module_address, route_state, route_json, detail)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT(vehicle_id, module_address) DO UPDATE SET
+               connection_id = excluded.connection_id,
+               route_state = excluded.route_state,
+               route_json = COALESCE(excluded.route_json, route_outcomes.route_json),
+               detail = excluded.detail,
+               observed_at = datetime('now')",
+            params![vehicle_id, connection_id, address, route_state, route_json, detail],
+        );
+    }
+
+    /// Every recorded route outcome of a vehicle, by address.
+    pub fn route_outcomes(&self, vehicle_id: i64) -> Vec<RouteOutcomeRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, vehicle_id, connection_id, module_address, route_state, route_json, detail, observed_at
+                 FROM route_outcomes WHERE vehicle_id = ?1 ORDER BY module_address",
+            )
+            .unwrap();
+        stmt.query_map(params![vehicle_id], |r| {
+            Ok(RouteOutcomeRow {
+                id: r.get(0)?,
+                vehicle_id: r.get(1)?,
+                connection_id: r.get(2)?,
+                address: r.get(3)?,
+                route_state: r.get(4)?,
+                route_json: r.get(5)?,
+                detail: r.get(6)?,
+                observed_at: r.get(7)?,
             })
         })
         .unwrap()
@@ -3375,6 +3482,7 @@ mod tests {
             hardware_version: None,
             software_version: Some("SW12".into()),
             system_name: None,
+            supplier: None,
             match_key: Some("part=981234|sw=SW12".into()),
             fields_answered: 2,
             fields_total: 4,
@@ -3391,6 +3499,7 @@ mod tests {
                 hardware_version: None,
                 software_version: None,
                 system_name: None,
+                supplier: None,
                 match_key: None,
                 fields_answered: 0,
                 fields_total: 4,
@@ -3427,6 +3536,7 @@ mod tests {
                     hardware_version: None,
                     software_version: None,
                     system_name: None,
+                    supplier: None,
                     match_key: Some(format!("part={part}")),
                     fields_answered: 1,
                     fields_total: 4,

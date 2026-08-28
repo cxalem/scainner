@@ -90,7 +90,24 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
         vehicle_id,
         ..Default::default()
     };
+    let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
     for module in db.discovered_summary(vehicle_id) {
+        let (req, resp) = module
+            .address
+            .split_once('/')
+            .map(|(r, s)| {
+                (
+                    crate::elm::uds_map::can_address(r),
+                    crate::elm::uds_map::can_address(s),
+                )
+            })
+            .unwrap_or((None, None));
+        let service = match (req, resp) {
+            (Some(req), Some(resp)) => {
+                crate::elm::uds_map::read_service_for_module(vin.as_deref(), req, resp)
+            }
+            _ => crate::elm::uds_map::ReadService::default(),
+        };
         let mut joined = JoinedModule {
             module_id: module.id,
             address: module.address.clone(),
@@ -116,7 +133,8 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
                     module.spare_part_number.as_deref(),
                     module.software_version.as_deref(),
                     module.system_name.as_deref(),
-                    None,
+                    module.supplier.as_deref(),
+                    service.as_str(),
                 );
                 let m = match_family(&key, map);
                 db.set_module_family(module.id, m.family_id(), m.as_str());
@@ -164,7 +182,13 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
             }
         }
         // Every answered DID that is not a family decode and passes the
-        // class filter becomes an `unknown` hypothesis (protocol S4).
+        // class filter becomes an `unknown` hypothesis (protocol S4). The
+        // filter's bands are the brand's and the joined family's, from data.
+        let classes = crate::elm::discovery::pack_ext::band_classes_for_module(
+            map,
+            vin.as_deref(),
+            joined.family_id.as_deref(),
+        );
         for did_row in db.discovered_dids(module.id) {
             if family_dids.contains(&did_row.did) {
                 continue;
@@ -178,7 +202,7 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
                 .byte_length
                 .map(|l| l.max(0) as usize)
                 .unwrap_or(sample.len());
-            if !is_hypothesis_candidate(did_row.did, len, &sample) {
+            if !is_hypothesis_candidate(did_row.did, len, &sample, &classes) {
                 joined.filtered += 1;
                 summary.filtered += 1;
                 continue;
@@ -208,9 +232,12 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
 
 #[cfg(test)]
 pub(crate) mod fixtures {
-    //! The C4 III as recorded on 2026-08-27, for every test in this layer.
+    //! Seed vehicles for every test in this layer: the vehicle this project
+    //! verified (as recorded on 2026-08-27) and a second vehicle of another
+    //! brand with an ISO identity block and a module on read service 21.
     use crate::db::Db;
     use crate::elm::uds::EcuFingerprint;
+    use crate::elm::uds_map::{map, ReadService};
 
     pub struct SeededC4 {
         pub vehicle_id: i64,
@@ -228,6 +255,7 @@ pub(crate) mod fixtures {
             hardware_version: None,
             software_version: Some(sw.into()),
             system_name: None,
+            supplier: None,
             match_key: Some(format!("part={part}|sw={sw}")),
             fields_answered: 2,
             fields_total: 4,
@@ -235,8 +263,80 @@ pub(crate) mod fixtures {
         }
     }
 
+    /// The VIN of the verified vehicle: the `decodes_verified` brand's first WMI.
+    pub fn verified_vin() -> String {
+        crate::elm::discovery::pack_ext::tests::verified_brand_vin()
+    }
+
+    pub struct SeededSecondBrand {
+        pub vin: String,
+        pub brand_id: String,
+        pub vehicle_id: i64,
+        /// ISO-block module on service 22 (the standard engine route).
+        pub engine: i64,
+        /// The module the pack documents on read service 21.
+        pub local_id_module: i64,
+        pub local_id_address: String,
+    }
+
+    /// A vehicle of the first brand whose pack documents a module on read
+    /// service 21: its engine answers the ISO block, the 21 module answers
+    /// a group. Nothing here names the brand — it is whichever brand the
+    /// data says.
+    pub fn seed_second_brand(db: &Db) -> SeededSecondBrand {
+        let (brand, module) = map()
+            .brands
+            .iter()
+            .find_map(|b| {
+                b.modules
+                    .iter()
+                    .find(|m| m.read_service == Some(ReadService::DataByLocalIdentifier))
+                    .map(|m| (b, m))
+            })
+            .expect("a module on service 21 in the pack");
+        let vin = format!("{}EXAMPLE0000002", brand.wmi[0]);
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
+        let engine = db.upsert_discovered_module(vehicle_id, "7E0/7E8", Some("Engine"));
+        db.update_ecu_fingerprint(
+            engine,
+            &EcuFingerprint {
+                request_address: "7E0".into(),
+                response_address: "7E8".into(),
+                spare_part_number: Some("1K0907530A".into()),
+                hardware_version: Some("H01".into()),
+                software_version: Some("0210".into()),
+                system_name: Some("ENGINE".into()),
+                supplier: None,
+                match_key: Some("part=1K0907530A|hw=H01|sw=0210|sys=ENGINE".into()),
+                fields_answered: 4,
+                fields_total: 4,
+                evidence: Vec::new(),
+            },
+        );
+        db.set_module_route_state(engine, "reached");
+        db.upsert_discovered_did(engine, 0x0200, "00 3C", 2, None);
+        let local_id_address = format!(
+            "{}/{}",
+            module.req.to_uppercase(),
+            module.resp.to_uppercase()
+        );
+        let local_id_module =
+            db.upsert_discovered_module(vehicle_id, &local_id_address, module.name.as_deref());
+        db.set_module_route_state(local_id_module, "reached");
+        // A 21 group answer: one-byte identifier, raw group payload.
+        db.upsert_discovered_did(local_id_module, 0x01, "00 3C 01 F4 5A", 5, None);
+        SeededSecondBrand {
+            vin,
+            brand_id: brand.id.clone(),
+            vehicle_id,
+            engine,
+            local_id_module,
+            local_id_address,
+        }
+    }
+
     pub fn seed_c4(db: &Db) -> SeededC4 {
-        let (vehicle_id, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let (vehicle_id, _) = db.ensure_vehicle(&verified_vin());
         let abs = db.upsert_discovered_module(vehicle_id, "6AD/68D", Some("ABS / ESP"));
         db.update_ecu_fingerprint(abs, &fingerprint("6AD", "68D", "9846124980", "9695041580"));
         let eps = db.upsert_discovered_module(vehicle_id, "6B5/695", Some("EPS"));
@@ -463,6 +563,7 @@ mod tests {
                 hardware_version: None,
                 software_version: None,
                 system_name: Some("ESP MK100".into()),
+                supplier: None,
                 match_key: Some("sys=ESP MK100".into()),
                 fields_answered: 1,
                 fields_total: 4,
@@ -486,6 +587,75 @@ mod tests {
             .unwrap()
             .contains("conflicted"));
         assert_eq!(summary.inherited_created + summary.inherited_refreshed, 0);
+    }
+
+    #[test]
+    fn a_second_brand_joins_from_its_iso_block_and_pack_read_service() {
+        let db = test_db();
+        let second = seed_second_brand(&db);
+        let summary = join_vehicle(&db, uds_map::map(), second.vehicle_id);
+        assert_eq!(summary.modules.len(), 2);
+        let engine = summary
+            .modules
+            .iter()
+            .find(|m| m.module_id == second.engine)
+            .unwrap();
+        // No family in the pack carries this part yet: nothing inherited,
+        // the answered DID is an unknown hypothesis.
+        assert_eq!(engine.family_match, "none");
+        assert_eq!(engine.identity_fit.as_deref(), Some("provisional"));
+        assert_eq!(engine.unknown, 1);
+        let local = summary
+            .modules
+            .iter()
+            .find(|m| m.module_id == second.local_id_module)
+            .unwrap();
+        assert!(local.skipped.as_deref().unwrap().contains("no fingerprint"));
+        assert_eq!(local.unknown, 1, "a 21 group answer is a hypothesis too");
+        let rows = db.list_hypotheses(second.vehicle_id);
+        assert!(rows.iter().all(|h| h.knowledge_state == "unknown"));
+        // The read service the key carries is the pack's, not a constant.
+        let (req, resp) = second.local_id_address.split_once('/').unwrap();
+        assert_eq!(
+            uds_map::read_service_for_module(
+                Some(&second.vin),
+                uds_map::can_address(req).unwrap(),
+                uds_map::can_address(resp).unwrap()
+            ),
+            uds_map::ReadService::DataByLocalIdentifier
+        );
+    }
+
+    #[test]
+    fn two_brands_in_one_database_never_see_each_others_rows() {
+        let db = test_db();
+        let c4 = seed_c4(&db);
+        let second = seed_second_brand(&db);
+        assert_ne!(&c4.vehicle_id, &second.vehicle_id);
+        assert_ne!(
+            uds_map::brand_for_vin(Some(&verified_vin())).unwrap().id,
+            second.brand_id
+        );
+        let first = join_vehicle(&db, uds_map::map(), c4.vehicle_id);
+        let other = join_vehicle(&db, uds_map::map(), second.vehicle_id);
+        assert_eq!(first.inherited_created, 16);
+        assert_eq!(other.inherited_created, 0);
+        let mine: Vec<i64> = db
+            .list_hypotheses(c4.vehicle_id)
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        let theirs: Vec<i64> = db
+            .list_hypotheses(second.vehicle_id)
+            .iter()
+            .map(|h| h.id)
+            .collect();
+        assert!(mine.iter().all(|id| !theirs.contains(id)));
+        assert!(db
+            .discovered_summary(second.vehicle_id)
+            .iter()
+            .all(|m| !m.address.starts_with("6AD")));
+        assert_eq!(db.discovered_summary(c4.vehicle_id).len(), 4);
     }
 
     #[test]
