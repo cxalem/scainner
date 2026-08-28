@@ -73,4 +73,6 @@ Corrections and new brands are exactly what makes this useful — if you've veri
 
 ## License
 
-MIT
+Proprietary Scainner package; not published for public reuse. Third-party
+knowledge retains its source licence and attribution. See the repository
+`LICENSE`, `THIRD_PARTY_NOTICES.md`, and `data/packs/OBDB-NOTICE.md`.

@@ -44,7 +44,7 @@ jobs:
         run: pnpm build
 
   brand-tokens:
-    name: Lint · brand tokens outside pack data
+    name: Lint · repository policy
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -53,6 +53,9 @@ jobs:
 
       - name: Brand tokens must not grow beyond scripts/brand_token_baseline.json
         run: python3 scripts/lint_brand_tokens.py
+
+      - name: Workspaces must remain private and proprietary
+        run: python3 scripts/lint_proprietary_license.py
 
   rust:
     name: Rust · format, clippy, test
