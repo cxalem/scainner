@@ -20,8 +20,8 @@ The C4 is one row in every table, one entry in every list, one fixture directory
 |---|---|---|
 | S1 | **No brand in code.** No CAN id, DID, plan target, identity layout, part-number format or plan name is a Rust/TS constant; all come from `uds-map` data selected by VIN/fingerprint. | `grep -rE "6A8\|6AD\|6B5\|74A\|F080\|F0FE\|citroen\|c41\|psa" src/` returns only comments, tests and the PSA *data entries*; the "builtin four" and `parked_verification` constants are gone. |
 | S2 | **The pack schema fits every brand's data shape**, not PSA's: per-module read service (`22`/`21`/`1A`), identity blocks per brand, multi-value decodes per DID, signedness, bit fields, strings, >8-byte payloads, 29-bit/target-byte/extension routes, platforms/generations, gateway semantics. | The facts already written in `RESEARCH.md` prose for Nissan/Renault/GM/BMW/Honda/Volvo/Mercedes/Hyundai are expressible as data and consumed by the engine; `OBDB-NOTICE.md`'s "temperature signals omitted" caveat is removed. |
-| S3 | **A multi-brand evidence corpus without owning the cars.** Replay fixtures with real captured payloads from ≥ 5 brands beyond PSA (from CC BY-SA OBDb test cases and other licence-clean sources), covering the shapes PSA never exercised. | `tests/fixtures/` has per-brand directories; the engine and the state layer pass tests on 0x21 group responses, 1A, 29-bit, multi-frame > 8 bytes, offset-binary signed, ASCII, bit-packed flags. |
-| S4 | **A new car reaches a coverage report from data alone.** Connecting a vehicle of a brand we have never touched (the Kona in the DB is the first test) produces routes, identities, family joins and a report without a code change. | Universal Discovery Protocol acceptance criteria 1–2 pass on the Kona and on a replayed non-PSA vehicle. |
+| S3 | **A multi-brand evidence corpus without owning the cars.** Replay fixtures with real captured payloads from ≥ 5 brands beyond the one we own (from licence-clean open corpora), covering the payload and protocol shapes the current corpus never exercised. | `tests/fixtures/` has per-brand directories; the engine and the state layer pass tests on 0x21 group responses, 1A, 29-bit, multi-frame > 8 bytes, offset-binary signed, ASCII, bit-packed flags. |
+| S4 | **A new car reaches a coverage report from data alone.** Connecting a vehicle of a brand we have never touched produces routes, identities, family joins and a report without a code change — and a vehicle of a not-yet-profiled brand produces an honest `protocol_not_profiled` report. | Universal Discovery Protocol acceptance criteria 1–2 pass on any live second-brand vehicle and on replayed vehicles of other brands. |
 | S5 | **Coverage is visible per brand.** One table shows, per brand: WMIs, modules, decodable DIDs, module-bound DIDs, families, verified-on-vehicle evidence, read service represented, identity block present. | The table in §6 is generated from the pack, not hand-written, and it moves. |
 | S6 | **The product surfaces don't say "PSA".** Lab defaults, API examples, docs, mock data, i18n copy and the onboarding are brand-neutral; the C4 appears as one vehicle among several in demo data. | Findings in §5.5–5.7 closed; a VW/Ford/Hyundai walk-through reads naturally. |
 
@@ -29,7 +29,7 @@ The C4 is one row in every table, one entry in every list, one fixture directory
 
 ## 3. The shape of the problem (one paragraph)
 
-The **research** (`packages/uds-map/RESEARCH.md`, 21 brands, licence-aware) and the **protocol designs** are already multi-brand — the discovery protocol even names the missing fields (`read_service`, `identity_block`, `platforms[]`) and uses the Kona as its worked example. What is single-brand is the layer in between: the **JSON schema** encodes PSA's data shape as universal (one unsigned value per DID, ≤ 8 bytes, service `0x22`); the **compiled-in tables** (`builtin_modules()`, `parked_verification()`, `psa_identity_fingerprint()`) are the C4; the **evidence corpus** is one car (35 correlation replay inputs, 2 real vehicle ELM captures out of 13 fixtures, 16 evidence files, one DB seed, one knowledge pack); and the **product surfaces** default to PSA keys, examples and copy. Everything below is that gap, with file:line.
+The **research** (`packages/uds-map/RESEARCH.md`, 21 brands, licence-aware) and the **protocol designs** are already multi-brand — the discovery protocol even names the missing fields (`read_service`, `identity_block`, `platforms[]`) and uses a second-brand vehicle as its worked example. What is single-brand is the layer in between: the **JSON schema** encodes PSA's data shape as universal (one unsigned value per DID, ≤ 8 bytes, service `0x22`); the **compiled-in tables** (`builtin_modules()`, `parked_verification()`, `psa_identity_fingerprint()`) are the C4; the **evidence corpus** is one car (35 correlation replay inputs, 2 real vehicle ELM captures out of 13 fixtures, 16 evidence files, one DB seed, one knowledge pack); and the **product surfaces** default to PSA keys, examples and copy. Everything below is that gap, with file:line.
 
 ## 4. Numbers
 
@@ -152,17 +152,17 @@ The gap is narrower than the finding count suggests: research and protocols are 
 | T0 | **Scrub the real VIN from `apps/mobile`; fix the `v3/v4` plan-version mismatch.** | 5.8 | hours |
 | T1 | **Pack schema v9**: `decodes[]` per DID (multi-value, signed, encodings, bit fields, strings), `read_service`, `identity_block`, `platforms[]`, `source` on every entry, route tuple (target byte, extension, protocol), `gateway_behaviour`; migrate the prose facts from `RESEARCH.md`; regenerate the coverage table (§6) from the pack. | 5.3, S2, S5 | days |
 | T2 | **No brand in code**: `builtin_modules` → `known_modules_for_vin`; `parked_verification` → plan template from the pack; one fingerprint builder driven by `identity_block`; overlay packs enumerated; service and route parameterised from data; hypothesis bands per family. | 5.1, 5.2, S1 | days |
-| T3 | **Multi-brand corpus**: import OBDb test cases (Mercedes EQB, Nissan Leaf incl. `0x21`, Polestar 2, Volvo XC40, Honda/Mazda/Toyota) as per-brand fixtures with licence attribution; add a second seed vehicle to every layer's tests; cover the seven untested payload shapes. | 5.4, S3 | days |
+| T3 | **Multi-brand corpus**: import the licence-clean open corpora catalogued in `RESEARCH.md` as per-brand fixtures with attribution; add a second seed vehicle of another brand to every layer's tests; cover the seven untested payload shapes. | 5.4, S3 | days |
 | T4 | **Session tooling + surfaces**: generic `session.py`; generated guided steps with `applicable_if`; Lab/API/docs/mock/i18n/WMI table brand-neutral; app-wide vehicle switcher. | 5.5, 5.6, S6 | days |
 | T5 | **Transport abstraction** (`Transport` + `BluetoothControl` traits, adapter profiles, `device_kind` from the banner). Independent of brand; needed for any user who is not the author. | 5.7 | week |
 
-Then **S4** is a test, not a task: connect the Kona (already in the DB) and a replayed non-PSA vehicle; the discovery protocol's acceptance criteria decide.
+Then **S4** is a test, not a task: connect any vehicle of another brand and replay vehicles of others; the discovery protocol's acceptance criteria decide.
 
 ## 8. Rules from here on
 
 1. A PR that adds a CAN id, DID, identity layout or plan name as a code constant is rejected; it goes in the pack with a `source`.
-2. Every new fixture or test that uses a vehicle must name a brand directory; the C4 is `fixtures/psa/c41/`.
-3. Every "for example" in docs, API and copy carries at least one non-PSA example.
+2. Every new fixture or test that uses a vehicle lives under `fixtures/{brand}/{platform}/`; the vehicle we own is one such directory.
+3. Every "for example" in docs, API and copy carries examples from more than one brand, or none.
 4. The per-brand coverage table is regenerated in CI from the pack and linked from the README; it is the scoreboard for this goal.
 
 ## 9. Sources for this audit
@@ -183,7 +183,7 @@ An independent review re-ran the suites (uds-map 16, discovery 26, correlation 1
 | S5 generated coverage | **Red** | §6 is hand-written |
 | S6 brand-neutral product | **Red** | Lab, API, mock, scripts, copy PSA-oriented |
 
-Honest product statement today: *Scainner has a tested vehicle-knowledge acquisition method and a 21-brand research map, but automatic manufacturer-specific discovery is proven only on one C4 and its PSA ECU families.*
+Honest product statement today: *Scainner has a tested vehicle-knowledge acquisition method and a 21-brand research map, but automatic manufacturer-specific discovery is proven only on the single vehicle we own and its ECU families.*
 
 Corrections applied in v1.1 (all verified against the repo): fully decodable DIDs 116 → **112** (schema definition: offset+len+scale+bias); evidence files 19 → **16**; ELM fixtures stated as **13, of which 2 real vehicle captures**; the VIN fix recorded as done on this branch; 29-bit and address-extension support described as a *representation* gap rather than a transport gap; the `7DF` cleanup finding qualified; `signed` noted as present on family decodes; date corrected to 2026-08-28; the §6 table's "decodable" column should be read as 112 in total (per-brand cells retained from the sweep pending the generated table).
 
