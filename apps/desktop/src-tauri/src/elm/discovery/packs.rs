@@ -59,6 +59,7 @@ pub fn overlays() -> &'static [OverlayPack] {
                     pack.version > 0,
                     "{name}: overlay versions must be positive"
                 );
+                assert!(!pack.id.is_empty(), "{name}: overlay without id");
                 assert!(!pack.license.is_empty(), "{name}: overlay without licence");
                 assert!(!pack.source.is_empty(), "{name}: overlay without source");
                 pack
@@ -141,6 +142,9 @@ mod tests {
             );
         }
         assert_eq!(overlays().len(), listed.len());
+        for pack in overlays() {
+            assert!(!pack.id.is_empty(), "overlay without id");
+        }
     }
 
     #[test]

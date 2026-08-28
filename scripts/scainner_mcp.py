@@ -27,7 +27,7 @@ mcp = FastMCP(
         "Tools for talking to the car connected to the Scainner desktop app. "
         "Call `status` first; `connect` if disconnected and wait until state is "
         "'connected'. Prefer `uds_read_many` over repeated single reads. All "
-        "reads are ISO 14229 service 0x22 in the default session; long operations "
+        "reads use each module's read service from the knowledge map (22 / 21 / 1A) in the default session; long operations "
         "(scan, discover, parked_verification, capture) block for minutes."
     ),
 )
@@ -153,7 +153,7 @@ def add_uds_module(key: str, label: str, req: str, resp: str) -> dict:
 @mcp.tool()
 @guarded
 def uds_read(module: str, did: int) -> dict | None:
-    """Read one DID (0x22). Slow (~1.3 s); prefer uds_read_many."""
+    """Read one identifier with the module's read service. Slow (~1.3 s); prefer uds_read_many."""
     return api().uds_read(module, did)
 
 
