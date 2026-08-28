@@ -801,9 +801,13 @@ mod shapes {
             let payload = if fixture.expected.service == "22" {
                 let did = u16::from_str_radix(&fixture.expected.parameter, 16).unwrap();
                 assert_eq!(did, fixture.input.did);
-                read_did(&mut driver, did)
-                    .unwrap()
-                    .unwrap_or_else(|| panic!("{}: DID {did:04X} not answered", fixture.name))
+                read_did(
+                    &mut driver,
+                    crate::elm::uds_map::ReadService::DataByIdentifier,
+                    did,
+                )
+                .unwrap()
+                .unwrap_or_else(|| panic!("{}: DID {did:04X} not answered", fixture.name))
             } else {
                 let raw = driver.cmd(&step.command, Duration::from_secs(1)).unwrap();
                 let bytes = parser::payload_bytes(&parser::clean_response(&raw), "");
