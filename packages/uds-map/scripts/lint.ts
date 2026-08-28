@@ -18,6 +18,7 @@ import type { Brand, Decode } from "../src/types.ts";
 const ENCODINGS = new Set(["be", "le", "bcd", "ascii", "bitfield"]);
 const LEVELS = new Set(["standard_only", "routes_sourced", "routes_verified", "decodes_verified"]);
 const VDS_SUBSET = /^[\^$.\[\]\-?*+A-Z0-9]+$/;
+const SHA40 = /^[0-9a-f]{40}$/;
 
 /** GitHub's heading slug: lowercase, drop everything but letters, digits,
  * spaces and hyphens, spaces to hyphens. */
@@ -157,6 +158,105 @@ function lintCodeForBrandTokens(tokens: string[], problems: string[]): void {
   }
 }
 
+type ResearchClaim = {
+  claim_id?: string;
+  exact_claim?: string;
+  knowledge_state?: string;
+  source_fidelity?: string;
+  vehicle_applicability?: string;
+  scope?: string;
+  source?: { url?: string; revision?: string; retrieved_at?: string; license?: string };
+};
+
+type ResearchRoute = {
+  route_id?: string;
+  platform?: string;
+  protocol?: string;
+  req?: string;
+  resp?: string;
+  service?: string;
+  session?: string;
+  claim_ids?: string[];
+  candidate_dids?: string[];
+  decodes?: unknown;
+};
+
+type ResearchPack = {
+  schema_version?: number;
+  pack_id?: string;
+  version?: number;
+  mode?: string;
+  policy?: {
+    read_only?: boolean;
+    default_session_only?: boolean;
+    max_outstanding_requests?: number;
+    forbidden_services?: string[];
+    candidate_decodes_are_hypotheses?: boolean;
+  };
+  profiles?: { brand_id?: string; status?: string; wmis?: string[]; routes?: ResearchRoute[] }[];
+  claims?: ResearchClaim[];
+};
+
+function lintResearchPacks(problems: string[]): void {
+  const indexPath = join(PKG_DIR, "data", "research-packs.json");
+  const index = JSON.parse(readFileSync(indexPath, "utf-8")) as { schema_version?: number; packs?: string[] };
+  if (index.schema_version !== 1) problems.push("research index: unsupported schema_version");
+  if (!Array.isArray(index.packs)) {
+    problems.push("research index: packs must be an array");
+    return;
+  }
+  const listed = new Set(index.packs);
+  if (listed.size !== index.packs.length) problems.push("research index: duplicate pack path");
+  const researchDir = join(PKG_DIR, "data", "research");
+  const onDisk = readdirSync(researchDir).filter((name) => name.endsWith(".json")).map((name) => `research/${name}`);
+  for (const file of onDisk) if (!listed.has(file)) problems.push(`research pack ${file} is not indexed`);
+  for (const relative of index.packs) {
+    if (!/^research\/[a-z0-9._-]+\.json$/.test(relative)) {
+      problems.push(`research index: unsafe pack path ${relative}`);
+      continue;
+    }
+    const pack = JSON.parse(readFileSync(join(PKG_DIR, "data", relative), "utf-8")) as ResearchPack;
+    const at = (message: string) => `research ${pack.pack_id ?? relative}: ${message}`;
+    if (pack.schema_version !== 1 || !pack.pack_id || !pack.version) problems.push(at("missing identity/schema"));
+    if (pack.mode !== "candidate_discovery_only") problems.push(at("mode must be candidate_discovery_only"));
+    if (pack.policy?.read_only !== true || pack.policy?.default_session_only !== true) problems.push(at("policy must be read-only/default-session-only"));
+    if (pack.policy?.max_outstanding_requests !== 1) problems.push(at("only one outstanding request is allowed"));
+    if (pack.policy?.candidate_decodes_are_hypotheses !== true) problems.push(at("candidate decodes must remain hypotheses"));
+    const forbidden = new Set(pack.policy?.forbidden_services ?? []);
+    for (const service of ["10", "11", "14", "27", "2E", "2F", "31", "34", "35", "36", "37", "3D"]) {
+      if (!forbidden.has(service)) problems.push(at(`unsafe service ${service} is not forbidden`));
+    }
+    const claims = new Set<string>();
+    for (const claim of pack.claims ?? []) {
+      const where = at(`claim ${claim.claim_id ?? "?"}`);
+      if (!claim.claim_id || claims.has(claim.claim_id)) problems.push(`${where}: missing or duplicate id`);
+      else claims.add(claim.claim_id);
+      if (!claim.exact_claim || !claim.scope || !claim.knowledge_state || !claim.source_fidelity) problems.push(`${where}: incomplete evidence fields`);
+      if (claim.vehicle_applicability !== "untested_by_project") problems.push(`${where}: research import must start untested_by_project`);
+      const revision = claim.source?.revision;
+      if (!revision || !SHA40.test(revision)) problems.push(`${where}: source revision must be a 40-character commit SHA`);
+      if (!claim.source?.url || (revision && !claim.source.url.includes(revision))) problems.push(`${where}: source URL must be pinned to its revision`);
+      if (!claim.source?.retrieved_at || !claim.source?.license) problems.push(`${where}: incomplete source provenance`);
+    }
+    const routeIds = new Set<string>();
+    for (const profile of pack.profiles ?? []) {
+      if (!profile.brand_id || !profile.status) problems.push(at("profile missing brand_id/status"));
+      for (const wmi of profile.wmis ?? []) if (!/^[A-Z0-9]{3}$/.test(wmi)) problems.push(at(`invalid WMI ${wmi}`));
+      for (const route of profile.routes ?? []) {
+        const where = at(`route ${route.route_id ?? "?"}`);
+        if (!route.route_id || routeIds.has(route.route_id)) problems.push(`${where}: missing or duplicate route id`);
+        else routeIds.add(route.route_id);
+        if (!route.platform || !route.protocol || !route.req || !route.resp) problems.push(`${where}: incomplete route`);
+        if (route.service !== "22" || route.session !== "default_only") problems.push(`${where}: candidates may only use service 22 in the default session`);
+        if (route.decodes !== undefined) problems.push(`${where}: trusted decodes are forbidden in research routes`);
+        if (!(route.claim_ids?.length)) problems.push(`${where}: route has no evidence claims`);
+        for (const id of route.claim_ids ?? []) if (!claims.has(id)) problems.push(`${where}: unknown claim ${id}`);
+        for (const did of route.candidate_dids ?? []) if (!/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${did}`);
+      }
+    }
+  }
+}
+
 export function lintPack(): string[] {
   const problems: string[] = [];
   const map = loadMap();
@@ -177,6 +277,7 @@ export function lintPack(): string[] {
     for (const b of p.brands) lintBrand(b, problems, true);
   }
   lintResearchAnchors(map, problems);
+  lintResearchPacks(problems);
   lintCodeForBrandTokens(brandTokens(map), problems);
   return problems;
 }

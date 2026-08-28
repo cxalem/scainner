@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "pack_id": "new-brand-research-v2",
+  "version": 2,
+  "research_date": "2026-08-29",
+  "mode": "candidate_discovery_only",
+  "policy": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "forbidden_services": ["10", "11", "14", "27", "28", "2E", "2F", "31", "34", "35", "36", "37", "3D"],
+    "candidate_decodes_are_hypotheses": true
+  },
+  "profiles": [
+    {
+      "brand_id": "byd",
+      "brand_name": "BYD",
+      "status": "platform_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "byd_atto3_battery",
+          "platform": "Atto 3 / Yuan Plus family",
+          "protocol": "can11_500",
+          "req": "7E7",
+          "resp": "7EF",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["byd.atto3.route.7e7_7ef", "byd.atto3.dids.battery_core"],
+          "candidate_dids": ["0005", "0008", "0009", "002F", "0031", "0032"]
+        }
+      ]
+    },
+    {
+      "brand_id": "porsche",
+      "brand_name": "Porsche",
+      "status": "platform_route_candidates",
+      "wmis": ["WP0"],
+      "routes": [
+        {
+          "route_id": "porsche_taycan_710_77a",
+          "platform": "Taycan",
+          "protocol": "can11_500",
+          "req": "710",
+          "resp": "77A",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["porsche.taycan.route.710_77a"],
+          "candidate_dids": ["2A53", "2AB2"]
+        }
+      ]
+    },
+    {
+      "brand_id": "jlr",
+      "brand_name": "Jaguar / Land Rover",
+      "status": "platform_route_candidates",
+      "wmis": ["SAJ", "SAL"],
+      "routes": [
+        {
+          "route_id": "jlr_ipace_bcm_gwm",
+          "platform": "Jaguar I-PACE",
+          "protocol": "can11_500",
+          "req": "726",
+          "resp": "72E",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["jlr.ipace.module_map"],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "jlr_ipace_becm",
+          "platform": "Jaguar I-PACE",
+          "protocol": "can11_500",
+          "req": "7E4",
+          "resp": "7EC",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["jlr.ipace.module_map"],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "jlr_ipace_abs",
+          "platform": "Jaguar I-PACE",
+          "protocol": "can11_500",
+          "req": "7E6",
+          "resp": "7EE",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["jlr.ipace.module_map"],
+          "candidate_dids": []
+        }
+      ]
+    },
+    {
+      "brand_id": "mg",
+      "brand_name": "MG / SAIC",
+      "status": "platform_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "mg4_gateway",
+          "platform": "MG4",
+          "protocol": "can11_500",
+          "req": "710",
+          "resp": "718",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["mg.mg4.route.gateway"],
+          "candidate_dids": ["B921", "D001"]
+        }
+      ]
+    },
+    {
+      "brand_id": "suzuki",
+      "brand_name": "Suzuki",
+      "status": "make_level_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "suzuki_700_708",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "700",
+          "resp": "708",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["suzuki.make.conventional_700_708"],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "suzuki_6f1_target_29",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "6F1",
+          "resp": "6F9",
+          "address_extension": "29",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["suzuki.make.targeted_6f1", "suzuki.did.wheelspeed.dbe4"],
+          "candidate_dids": ["DBE4"]
+        }
+      ]
+    },
+    {
+      "brand_id": "maxus",
+      "brand_name": "Maxus / SAIC",
+      "status": "platform_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "maxus_edeliver3_bms",
+          "platform": "eDeliver3",
+          "protocol": "can11_500",
+          "req": "748",
+          "resp": "7C8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["maxus.edeliver3.routes", "maxus.edeliver3.dids"],
+          "candidate_dids": ["E053", "E095", "E096", "E113", "E114"]
+        },
+        {
+          "route_id": "maxus_edeliver3_vcu",
+          "platform": "eDeliver3",
+          "protocol": "can11_500",
+          "req": "7E3",
+          "resp": "7EB",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": ["maxus.edeliver3.routes", "maxus.edeliver3.dids"],
+          "candidate_dids": ["F190"]
+        }
+      ]
+    },
+    {"brand_id":"livan_maple","brand_name":"Livan / Maple","status":"passive_only","wmis":[],"routes":[]},
+    {"brand_id":"rivian","brand_name":"Rivian","status":"identity_only_no_routes","wmis":["7FC","7PD"],"routes":[]},
+    {"brand_id":"lucid","brand_name":"Lucid","status":"identity_only_no_routes","wmis":["50E"],"routes":[]},
+    {"brand_id":"omoda","brand_name":"Omoda","status":"identity_only_no_routes","wmis":[],"routes":[]},
+    {"brand_id":"ferrari","brand_name":"Ferrari","status":"identity_only_no_routes","wmis":[],"routes":[]}
+  ],
+  "claims": [
+    {"claim_id":"byd.atto3.route.7e7_7ef","exact_claim":"The source polls 0x7E7 to 0x7EF on 500 kbit/s CAN for the Atto 3.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Atto 3 / Yuan Plus family only","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/e25b2a6e275cf08aec8ee1dbe567173d55b581dd/vehicle/OVMS.V3/components/vehicle_byd_atto3/src/vehicle_byd_atto3.cpp","revision":"e25b2a6e275cf08aec8ee1dbe567173d55b581dd","retrieved_at":"2026-08-29","license":"MIT"}},
+    {"claim_id":"byd.atto3.dids.battery_core","exact_claim":"The source polls 0005, 0008, 0009, 002F, 0031 and 0032 as battery candidates.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Atto 3 / Yuan Plus family only","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/e25b2a6e275cf08aec8ee1dbe567173d55b581dd/vehicle/OVMS.V3/components/vehicle_byd_atto3/src/vehicle_byd_atto3.cpp","revision":"e25b2a6e275cf08aec8ee1dbe567173d55b581dd","retrieved_at":"2026-08-29","license":"MIT"}},
+    {"claim_id":"porsche.taycan.route.710_77a","exact_claim":"The OBDb Taycan signal set uses service 22 on 0x710 to 0x77A, including 2A53 and 2AB2.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Porsche Taycan only","source":{"url":"https://github.com/OBDb/Porsche-Taycan/blob/b16a9b2a3a52056fa601593f4fcd51cce45ec388/signalsets/v3/default.json","revision":"b16a9b2a3a52056fa601593f4fcd51cce45ec388","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
+    {"claim_id":"jlr.ipace.module_map","exact_claim":"The OVMS I-PACE implementation defines explicit 11-bit module routes with response address offset 0x08.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Jaguar I-PACE only","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/8926e885c48cabeef259903c12e6499f00f496d4/vehicle/OVMS.V3/components/vehicle_jaguaripace/src/vehicle_jaguaripace.h","revision":"8926e885c48cabeef259903c12e6499f00f496d4","retrieved_at":"2026-08-29","license":"MIT"}},
+    {"claim_id":"mg.mg4.route.gateway","exact_claim":"The OBDb MG4 signal set uses service 22 on 0x710 to 0x718 for B921 and D001.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"MG4 only","source":{"url":"https://github.com/OBDb/MG-MG4/blob/a240001360c494891e32bae291e6d9c89f1281e7/signalsets/v3/default.json","revision":"a240001360c494891e32bae291e6d9c89f1281e7","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
+    {"claim_id":"suzuki.make.conventional_700_708","exact_claim":"The OBDb Suzuki default contains service-22 requests on 0x700 to 0x708.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"make-level dataset; platform applicability unknown","source":{"url":"https://github.com/OBDb/Suzuki/blob/340e3ac1383b81bafc842261289af70473adbc5a/signalsets/v3/default.json","revision":"340e3ac1383b81bafc842261289af70473adbc5a","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
+    {"claim_id":"suzuki.make.targeted_6f1","exact_claim":"The OBDb Suzuki default contains 0x6F1 extended-address targets including 0x29.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"make-level dataset; platform applicability unknown","source":{"url":"https://github.com/OBDb/Suzuki/blob/340e3ac1383b81bafc842261289af70473adbc5a/signalsets/v3/default.json","revision":"340e3ac1383b81bafc842261289af70473adbc5a","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
+    {"claim_id":"suzuki.did.wheelspeed.dbe4","exact_claim":"The source labels DBE4 on target 0x29 as a four-value wheel-speed candidate.","knowledge_state":"research_candidate","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"make-level dataset; decode remains a hypothesis","source":{"url":"https://github.com/OBDb/Suzuki/blob/340e3ac1383b81bafc842261289af70473adbc5a/signalsets/v3/default.json","revision":"340e3ac1383b81bafc842261289af70473adbc5a","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
+    {"claim_id":"maxus.edeliver3.routes","exact_claim":"The OVMS eDeliver3 source defines explicit BMS, VCU, gateway and EVCC routes with mixed response offsets.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Maxus eDeliver3 only","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/2cccfd8d8db854dae5944ab8e55a457d6ffa5fb4/vehicle/OVMS.V3/components/vehicle_maxus_edeliver3/src/med3_pids.h","revision":"2cccfd8d8db854dae5944ab8e55a457d6ffa5fb4","retrieved_at":"2026-08-29","license":"MIT"}},
+    {"claim_id":"maxus.edeliver3.dids","exact_claim":"The eDeliver3 source defines BMS E053, E095, E096, E113 and E114 plus VCU F190.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Maxus eDeliver3 only","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/2cccfd8d8db854dae5944ab8e55a457d6ffa5fb4/vehicle/OVMS.V3/components/vehicle_maxus_edeliver3/src/med3_pids.h","revision":"2cccfd8d8db854dae5944ab8e55a457d6ffa5fb4","retrieved_at":"2026-08-29","license":"MIT"}}
+  ]
+}

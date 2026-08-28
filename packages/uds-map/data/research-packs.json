@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "packs": [
+    "research/research-candidates-v2.json"
+  ]
+}

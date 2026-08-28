@@ -9,7 +9,8 @@
 //! bands. The plan version is `{brand}-{platform|unknown}-v{plan_revision}`.
 
 use super::pack_ext::{self, BandClass, ProfileModule};
-use crate::elm::uds_map::{self, hex16, ReadService, Route, UdsMap};
+use super::research;
+use crate::elm::uds_map::{self, hex16, ReadService, Route, RouteProtocol, UdsMap};
 use serde::Serialize;
 
 /// One identity read of a plan target.
@@ -64,6 +65,17 @@ fn address(value: u32) -> String {
         format!("{value:03X}")
     } else {
         format!("{value:08X}")
+    }
+}
+
+fn candidate_protocol(value: &str) -> Option<RouteProtocol> {
+    match value {
+        "can11_500" => Some(RouteProtocol::Can11_500),
+        "can11_250" => Some(RouteProtocol::Can11_250),
+        "can29_normal_fixed" => Some(RouteProtocol::Can29NormalFixed),
+        "can29_target_byte" => Some(RouteProtocol::Can29TargetByte),
+        "can29_custom" => Some(RouteProtocol::Can29Custom),
+        _ => None,
     }
 }
 
@@ -207,6 +219,61 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
             }
         })
         .collect();
+    // Research routes are a separate, lower-trust input. They are added only
+    // after an exact platform match and carry candidate DIDs as hypothesis
+    // probes. They never flow through `known_did` or receive trusted decodes.
+    let platform_key = uds_map::platform_for_vin(vin).map(|platform| platform.key);
+    for candidate in research::routes_for_context(vin, platform_key.as_deref()) {
+        let (Some(protocol), Some(req), Some(resp)) = (
+            candidate_protocol(&candidate.protocol),
+            u32::from_str_radix(&candidate.req, 16).ok(),
+            u32::from_str_radix(&candidate.resp, 16).ok(),
+        ) else {
+            continue;
+        };
+        if targets
+            .iter()
+            .any(|target| target.req == address(req) && target.resp == address(resp))
+        {
+            continue;
+        }
+        let dids = candidate
+            .candidate_dids
+            .iter()
+            .filter_map(|did| {
+                Some(PlannedRead {
+                    did: hex16(did)?,
+                    purpose: format!(
+                        "research candidate only; claims {}",
+                        candidate.claim_ids.join(", ")
+                    ),
+                })
+            })
+            .collect();
+        targets.push(PlanTarget {
+            key: format!("research_{}", candidate.route_id),
+            label: format!("Research candidate: {}", candidate.platform),
+            expected_family: "unknown".into(),
+            req: address(req),
+            resp: address(resp),
+            route: Route {
+                protocol,
+                req: address(req),
+                resp: address(resp),
+                target_byte: None,
+                address_extension: candidate.address_extension,
+                gateway: None,
+                source: None,
+            },
+            read_service: ReadService::DataByIdentifier,
+            dids,
+            sweep: Vec::new(),
+            source: format!(
+                "untrusted research candidate from {}; vehicle applicability untested",
+                candidate.claim_ids.join(", ")
+            ),
+        });
+    }
     // The sweep: one target, the route with the most live-data evidence.
     let sweep_target = modules
         .iter()
