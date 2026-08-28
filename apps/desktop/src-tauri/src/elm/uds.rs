@@ -89,6 +89,19 @@ impl UdsModule {
         Self::new(vin, key, label, req, resp, SOURCE_CUSTOM)
     }
 
+    /// The read service for one identifier on this module: the pack's
+    /// per-DID override first (`read_service_for_did`: DID > module >
+    /// platform > brand > standard), else the module's service.
+    pub fn service_for(&self, vin: Option<&str>, did: u16) -> ReadService {
+        match (
+            uds_map::can_address(&self.req),
+            uds_map::can_address(&self.resp),
+        ) {
+            (Some(req), Some(resp)) => uds_map::read_service_for_did(vin, req, resp, did),
+            _ => self.read_service,
+        }
+    }
+
     /// The module key the profile uses for an address pair.
     pub fn profile_key(req: u32, resp: u32) -> String {
         format!(
@@ -466,12 +479,24 @@ pub(crate) fn observe_did_evidence(
         Ok(DidEvidence {
             outcome: DiagnosticOutcome::malformed(
                 sid,
-                &format!("unexpected service {sid} response"),
+                format!("unexpected service {sid} response"),
             ),
             data: None,
             raw_response: Some(raw),
         })
     }
+}
+
+/// A module-bound known DID from the main map (which already consults the
+/// first overlay through the frozen contract) or any other overlay pack.
+fn known_did_any(
+    vin: Option<&str>,
+    req: u32,
+    resp: u32,
+    did: u16,
+) -> Option<&'static uds_map::KnownDid> {
+    uds_map::known_did(vin, req, resp, did)
+        .or_else(|| super::discovery::packs::overlay_known_did(vin, req, resp, did))
 }
 
 /// Routes this vehicle has reached, from its `discovered_modules` rows.
@@ -1107,7 +1132,7 @@ pub fn read_many(
     for did in dids.iter().take(64) {
         if let Some(data) = read_did_timeout(
             operation.driver(),
-            m.read_service,
+            m.service_for(vin, *did),
             *did,
             Duration::from_millis(600),
         )
@@ -1130,7 +1155,7 @@ pub fn read_one(
     let m = resolve(vin, module, &custom).ok_or("unknown module")?;
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
-    read_did(operation.driver(), m.read_service, did)
+    read_did(operation.driver(), m.service_for(vin, did), did)
         .map_err(|e| e.to_string())
         .map(|opt| opt.map(|d| to_hit(did, &d)))
 }
@@ -1151,6 +1176,7 @@ pub fn read_one(
 /// (a safety net now, not the everyday UX timer), and real cancellation via
 /// `cancel_scan` so a stuck scan releases within one DID's timeout instead of
 /// running to completion regardless.
+#[allow(clippy::too_many_arguments)]
 pub fn scan_range(
     drv: &mut ElmDriver,
     db: &Db,
@@ -1227,7 +1253,7 @@ pub fn scan_range(
         }
         match read_did_timeout(
             operation.driver(),
-            m.read_service,
+            m.service_for(vin, did),
             did,
             Duration::from_millis(600),
         ) {
@@ -1288,7 +1314,11 @@ pub fn poll_probes(
             continue;
         }
         for p in group {
-            if let Ok(Some(data)) = read_did(operation.driver(), m.read_service, p.did) {
+            if let Ok(Some(data)) = read_did(
+                operation.driver(),
+                m.service_for(vin.as_deref(), p.did),
+                p.did,
+            ) {
                 if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
                     let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
@@ -1654,7 +1684,7 @@ fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
                     uds_map::can_address(&m.resp)?,
                 ))
             })
-            .and_then(|(req, resp)| uds_map::known_did(vin, req, resp, probe.did))
+            .and_then(|(req, resp)| known_did_any(vin, req, resp, probe.did))
             .is_some_and(|k| {
                 k.offset.is_some() && k.len.is_some() && k.scale.is_some() && k.bias.is_some()
             });
@@ -1974,7 +2004,6 @@ fn discover_inner(
         if point_at(drv, &route, &mut addressing).is_err() {
             continue;
         }
-        let service = uds_map::read_service_for_module(vin.as_deref(), *req, *resp);
         // Identification and module enumeration above always run in the
         // default session. Only an exact VIN + module profile may deepen
         // the data-band sweep automatically.
@@ -2032,6 +2061,7 @@ fn discover_inner(
             if extended_session_open && sweep_i % 40 == 39 {
                 tester_present(drv);
             }
+            let service = uds_map::read_service_for_did(vin.as_deref(), *req, *resp, did);
             match read_did_timeout(drv, service, did, Duration::from_millis(timings.sweep_read)) {
                 Ok(Some(data)) => {
                     consecutive_errors = 0;
@@ -2039,7 +2069,7 @@ fn discover_inner(
                     // that is the whole point of researching the map:
                     // discovery on a known brand yields labeled
                     // sensors, not anonymous hex.
-                    let known = uds_map::known_did(vin.as_deref(), *req, *resp, did);
+                    let known = known_did_any(vin.as_deref(), *req, *resp, did);
                     // Module-aware lookup above is the primary guard;
                     // payload shape is the independent second guard.
                     // Never label or promote a formula that cannot
@@ -2184,7 +2214,6 @@ fn fast_refresh(
             continue;
         };
         let route = uds_map::route_for_module(vin, req, resp);
-        let service = uds_map::read_service_for_module(vin, req, resp);
         if let Err(error) = point_at(drv, &route, addressing) {
             module_probes.push(ModuleProbeResult {
                 request_address: format_can_address(req),
@@ -2271,6 +2300,7 @@ fn fast_refresh(
             if extended_session_open && sweep_i % 40 == 39 {
                 tester_present(drv);
             }
+            let service = uds_map::read_service_for_did(vin, req, resp, *did);
             let observation = observe_did(drv, service, *did, Duration::from_millis(500));
             let (outcome, data) = match observation {
                 Ok(observation) => observation,
@@ -2284,7 +2314,7 @@ fn fast_refresh(
             }
             if let Some(data) = data {
                 let known_entry =
-                    uds_map::known_did(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
+                    known_did_any(vin, req, resp, *did).filter(|k| match (k.offset, k.len) {
                         (Some(offset), Some(len)) => (offset as usize)
                             .checked_add(len as usize)
                             .is_some_and(|end| end <= data.len()),

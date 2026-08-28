@@ -1,9 +1,84 @@
+//! Physics sanity and naming (protocol §6 steps 6–7). Nothing here knows a
+//! brand: the scales a quantity may plausibly use, the reference each
+//! quantity is checked against and the labels candidates get all come from
+//! `packages/uds-map/data/scale_catalog.json` (multi-brand plan P2.6). The
+//! frozen `InheritedDecode` contract carries a unit but no `quantity`, so
+//! the catalogue's unit list is the bridge from a decode to its quantity.
+
 use super::contract::{
     ArrayMembership, Correlation, HypothesisInput, InheritedDecode, InheritedFit, Interpretation,
     Shape, Variability,
 };
 use super::events::EventSummary;
 use super::fit::{decode_payload, decoded_reference_fits};
+use serde::Deserialize;
+use std::sync::OnceLock;
+
+const SCALE_CATALOG_RAW: &str =
+    include_str!("../../../../../../packages/uds-map/data/scale_catalog.json");
+
+#[derive(Deserialize)]
+struct ScaleCatalog {
+    quantities: Vec<QuantityScales>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct QuantityScales {
+    pub quantity: String,
+    /// The standard-PID / derived reference the quantity is tested against.
+    pub reference: String,
+    pub units: Vec<String>,
+    /// Relative window around `1/scale` a fitted slope may sit in.
+    pub slope_tolerance: f64,
+    pub candidates: Vec<ScaleCandidate>,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct ScaleCandidate {
+    /// Reference units per raw count.
+    pub scale: f64,
+    pub unit: String,
+    pub label: String,
+    /// Payload byte widths the candidate is plausible for.
+    pub widths: Vec<u8>,
+}
+
+impl QuantityScales {
+    /// The candidate whose `1/scale` the fitted slope (raw per reference
+    /// unit) matches within the quantity's tolerance, for this width.
+    pub fn candidate_for(&self, slope: f64, width: u8) -> Option<&ScaleCandidate> {
+        self.candidates.iter().find(|c| {
+            let expected = 1.0 / c.scale;
+            c.widths.contains(&width)
+                && ((slope.abs() - expected) / expected).abs() <= self.slope_tolerance
+        })
+    }
+}
+
+pub(crate) fn scale_catalog() -> &'static [QuantityScales] {
+    static CATALOG: OnceLock<ScaleCatalog> = OnceLock::new();
+    &CATALOG
+        .get_or_init(|| {
+            serde_json::from_str(SCALE_CATALOG_RAW).expect("data/scale_catalog.json is malformed")
+        })
+        .quantities
+}
+
+/// The quantity a decode belongs to, by its unit (the contract carries no
+/// `quantity`). Case-insensitive on the unit string.
+pub(crate) fn quantity_for_unit(unit: &str) -> Option<&'static QuantityScales> {
+    let unit = unit.trim();
+    if unit.is_empty() {
+        return None;
+    }
+    scale_catalog()
+        .iter()
+        .find(|q| q.units.iter().any(|u| u.eq_ignore_ascii_case(unit)))
+}
+
+fn quantity(name: &str) -> Option<&'static QuantityScales> {
+    scale_catalog().iter().find(|q| q.quantity == name)
+}
 
 pub(crate) fn inherited_fit(
     input: &HypothesisInput,
@@ -49,21 +124,7 @@ pub(crate) fn inherited_fit(
 }
 
 fn expected_reference(decode: &InheritedDecode) -> Option<&'static str> {
-    let label = decode.label.to_ascii_lowercase();
-    if label.contains("wheel speed") || label == "vehicle speed" {
-        Some("speed")
-    } else if label.contains("steering") || label.contains("pinion") {
-        Some("steering_angle")
-    } else if label.contains("voltage") || decode.unit.eq_ignore_ascii_case("v") {
-        Some("voltage")
-    } else if label.contains("brake pressure")
-        || label.contains("brake pedal")
-        || label.contains("brake switch")
-    {
-        Some("braking")
-    } else {
-        None
-    }
+    quantity_for_unit(&decode.unit).map(|q| q.reference.as_str())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -114,20 +175,26 @@ pub(crate) fn candidate_interpretations(
         }
     }
 
+    // Wheel speeds: a four-value array tracking speed at a slope the
+    // catalogue lists for the quantity (raw per km/h), whatever the brand.
+    let speed_quantity = quantity("speed");
     let speed = correlations.iter().find(|fit| fit.reference == "speed");
-    if let (Some(speed), Some(array)) = (speed, array) {
-        if speed.r >= 0.98 && (94.0..=104.0).contains(&speed.slope) && array.group.len() == 4 {
+    if let (Some(speed), Some(array), Some(q)) = (speed, array, speed_quantity) {
+        if let Some(candidate) = q
+            .candidate_for(speed.slope, shape.len)
+            .filter(|_| speed.r >= 0.98 && array.group.len() == 4)
+        {
             let discriminated = array.side_split.is_some();
             interpretations.push(Interpretation {
-                label: "wheel speed ×0.01 km/h".into(),
+                label: candidate.label.clone(),
                 decode: Some(InheritedDecode {
-                    label: "wheel speed ×0.01 km/h".into(),
+                    label: candidate.label.clone(),
                     offset: 0,
                     len: shape.len,
-                    scale: 0.01,
+                    scale: candidate.scale,
                     bias: 0.0,
                     signed: false,
-                    unit: "km/h".into(),
+                    unit: candidate.unit.clone(),
                 }),
                 confidence: if discriminated { 0.88 } else { 0.6 },
                 evidence: vec![format!(
@@ -141,7 +208,7 @@ pub(crate) fn candidate_interpretations(
                 decode: None,
                 confidence: 0.42,
                 evidence: vec![format!("Tracks OBD speed strongly (r={:.3}).", speed.r)],
-                competing_with: vec!["wheel speed ×0.01 km/h".into()],
+                competing_with: vec![candidate.label.clone()],
             });
             if let Some(split) = &array.side_split {
                 notes.push(format!(
@@ -154,21 +221,25 @@ pub(crate) fn candidate_interpretations(
         }
     }
 
+    let angle_quantity = quantity("angle");
     let steering = correlations
         .iter()
         .find(|fit| fit.reference == "steering_angle");
     if let Some(fit) = steering.filter(|fit| fit.r.abs() >= 0.85) {
-        if (9.0..=11.0).contains(&fit.slope.abs()) && shape.len == 2 {
+        let candidate = angle_quantity
+            .and_then(|q| q.candidate_for(fit.slope, shape.len))
+            .filter(|_| shape.len == 2);
+        if let Some(candidate) = candidate {
             interpretations.push(Interpretation {
-                label: "steering or pinion angle ×0.1°".into(),
+                label: candidate.label.clone(),
                 decode: Some(InheritedDecode {
-                    label: "steering or pinion angle ×0.1°".into(),
+                    label: candidate.label.clone(),
                     offset: 0,
                     len: shape.len,
-                    scale: 0.1,
-                    bias: -fit.bias * 0.1,
+                    scale: candidate.scale,
+                    bias: -fit.bias * candidate.scale,
                     signed: shape.signed_guess,
-                    unit: "°".into(),
+                    unit: candidate.unit.clone(),
                 }),
                 confidence: 0.6,
                 evidence: vec![format!(
@@ -328,4 +399,38 @@ pub(crate) fn candidate_interpretations(
     }
 
     (interpretations, test, notes)
+}
+
+#[cfg(test)]
+mod catalog_tests {
+    use super::*;
+
+    #[test]
+    fn the_catalog_parses_and_maps_units_to_references() {
+        assert_eq!(quantity_for_unit("km/h").unwrap().reference, "speed");
+        assert_eq!(quantity_for_unit("MPH").unwrap().reference, "speed");
+        assert_eq!(quantity_for_unit("°").unwrap().reference, "steering_angle");
+        assert_eq!(quantity_for_unit("V").unwrap().reference, "voltage");
+        assert_eq!(quantity_for_unit("bar").unwrap().reference, "braking");
+        assert_eq!(quantity_for_unit("hPa").unwrap().reference, "braking");
+        assert_eq!(quantity_for_unit("flag").unwrap().reference, "braking");
+        assert!(quantity_for_unit("°C").is_none());
+        assert!(quantity_for_unit("").is_none());
+    }
+
+    #[test]
+    fn candidates_match_slopes_within_tolerance_per_width() {
+        let speed = quantity("speed").unwrap();
+        assert_eq!(speed.candidate_for(99.0, 2).unwrap().scale, 0.01);
+        assert_eq!(speed.candidate_for(16.0, 2).unwrap().scale, 0.0625);
+        assert_eq!(speed.candidate_for(1.0, 1).unwrap().scale, 1.0);
+        assert!(speed.candidate_for(50.0, 2).is_none(), "no listed scale");
+        assert!(
+            speed.candidate_for(99.0, 1).is_none(),
+            "width not plausible"
+        );
+        let angle = quantity("angle").unwrap();
+        assert_eq!(angle.candidate_for(-10.4, 2).unwrap().scale, 0.1);
+        assert!(angle.candidate_for(4.0, 2).is_none());
+    }
 }
