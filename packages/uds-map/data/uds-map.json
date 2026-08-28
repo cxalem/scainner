@@ -499,7 +499,7 @@
           "name": "Functional gateway used by Stellantis-era profiles",
           "confidence": "low",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-psa--stellantis-europe--highest-confidence-in-the-file",
+            "url": "packages/uds-map/RESEARCH.md#psa--stellantis-europe--highest-confidence-in-the-file",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -1754,9 +1754,9 @@
         }
       ],
       "gateway_behaviour": {
-        "silence_means": "absent",
+        "silence_means": "unreachable_pins",
         "writes_blocked": false,
-        "notes": "Body-network modules (BSI 752/652) sit on OBD pins an ELM327-class adapter is not wired to; a silent BSI is normal on pins 6/14, not filtering.",
+        "notes": "Body-network modules (BSI 752/652) sit on OBD pins an ELM327-class adapter is not wired to; a silent BSI on pins 6/14 means the route is not on this adapter path, not that the module is absent or filtered.",
         "source": {
           "url": "docs/uds/hunt_results.txt",
           "date": "2026-08-23",
@@ -1787,7 +1787,7 @@
           "licence": "GPL-3.0"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-psa--stellantis-europe--highest-confidence-in-the-file",
+          "url": "packages/uds-map/RESEARCH.md#psa--stellantis-europe--highest-confidence-in-the-file",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -3690,7 +3690,7 @@
           "ecu_families_expected": [],
           "notes": "Cars predating UDS use KWP2000 over TP2.0 and do not answer service 22; years not sourced.",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-vag-vw-audi--škoda-seat-cupra",
+            "url": "packages/uds-map/RESEARCH.md#vag-vw-audi--škoda-seat-cupra",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -3783,7 +3783,7 @@
           "licence": "MIT"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-vag-vw-audi--škoda-seat-cupra",
+          "url": "packages/uds-map/RESEARCH.md#vag-vw-audi--škoda-seat-cupra",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -5491,7 +5491,7 @@
           "name": "Engine, legacy OBD-II addressing",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-bmw--mini",
+            "url": "packages/uds-map/RESEARCH.md#bmw--mini",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -5975,7 +5975,7 @@
           "bias": 0.0,
           "confidence": "low",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-bmw--mini",
+            "url": "packages/uds-map/RESEARCH.md#bmw--mini",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -6107,7 +6107,7 @@
           "licence": "NOASSERTION"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-bmw--mini",
+          "url": "packages/uds-map/RESEARCH.md#bmw--mini",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -6156,7 +6156,7 @@
           "name": "Engine (MS). Legally mandated OBD ECUs sit at standard addresses; most other Mercedes modules do NOT",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
+            "url": "packages/uds-map/RESEARCH.md#mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -6173,7 +6173,7 @@
           "name": "Transmission (GS)",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
+            "url": "packages/uds-map/RESEARCH.md#mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -6881,7 +6881,7 @@
         "writes_blocked": false,
         "notes": "The OBD-port gateway silently drops traffic for unrecognised diagnostic CAN ids; a non-response may mean filtered, not absent.",
         "source": {
-          "url": "packages/uds-map/RESEARCH.md#4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
+          "url": "packages/uds-map/RESEARCH.md#mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -6890,7 +6890,7 @@
       "profiled_level": "routes_sourced",
       "sources": [
         {
-          "url": "packages/uds-map/RESEARCH.md#4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
+          "url": "packages/uds-map/RESEARCH.md#mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -7721,7 +7721,7 @@
           "name": "Engine ECU, standard OBD-II addressing",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-nissan--infiniti",
+            "url": "packages/uds-map/RESEARCH.md#nissan--infiniti",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -7738,7 +7738,7 @@
           "name": "Body control module (alliance addressing)",
           "confidence": "medium",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-nissan--infiniti",
+            "url": "packages/uds-map/RESEARCH.md#nissan--infiniti",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -8187,7 +8187,7 @@
           "licence": "CC-BY-SA-4.0"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-nissan--infiniti",
+          "url": "packages/uds-map/RESEARCH.md#nissan--infiniti",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -8639,24 +8639,24 @@
             {
               "offset": 14,
               "len": 1,
-              "signed": true,
+              "signed": false,
               "encoding": "be",
               "scale": 1.0,
               "bias": 0.0,
               "unit": "C",
               "quantity": "temperature",
-              "label": "Maximum battery module temperature"
+              "label": "Maximum battery module temperature (OVMS reads it unsigned)"
             },
             {
               "offset": 15,
               "len": 1,
-              "signed": true,
+              "signed": false,
               "encoding": "be",
               "scale": 1.0,
               "bias": 0.0,
               "unit": "C",
               "quantity": "temperature",
-              "label": "Minimum battery module temperature"
+              "label": "Minimum battery module temperature (OVMS reads it unsigned)"
             }
           ]
         },
@@ -10029,11 +10029,11 @@
               "len": 1,
               "signed": false,
               "encoding": "be",
-              "scale": 1.0,
+              "scale": 0.5,
               "bias": 0.0,
-              "unit": "raw",
-              "quantity": "raw",
-              "label": "Accelerator pedal (raw byte; scale not sourced)"
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "Accelerator pedal position (OVMS: byte 9 / 2)"
             }
           ],
           "offset": 14,
@@ -10047,7 +10047,7 @@
           "label": "Firmware long description string, could not be re-verified this pass in OVMS vehicle_hyundai_ioniq5, vehicle_kiasoulev, or the JejuSoul CSVs checked",
           "confidence": "low",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-hyundai--kia--genesis",
+            "url": "packages/uds-map/RESEARCH.md#hyundai--kia--genesis",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -10061,7 +10061,7 @@
           "label": "Firmware alternate long description string, could not be re-verified this pass in OVMS vehicle_hyundai_ioniq5, vehicle_kiasoulev, or the JejuSoul CSVs checked",
           "confidence": "low",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-hyundai--kia--genesis",
+            "url": "packages/uds-map/RESEARCH.md#hyundai--kia--genesis",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -10128,7 +10128,7 @@
           }
         ],
         "source": {
-          "url": "packages/uds-map/RESEARCH.md#4-hyundai--kia--genesis",
+          "url": "packages/uds-map/RESEARCH.md#hyundai--kia--genesis",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -10197,7 +10197,7 @@
           "licence": "MIT"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-hyundai--kia--genesis",
+          "url": "packages/uds-map/RESEARCH.md#hyundai--kia--genesis",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -10358,7 +10358,7 @@
           "name": "ABS module",
           "confidence": "low",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-ford",
+            "url": "packages/uds-map/RESEARCH.md#ford",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -10375,7 +10375,7 @@
           "name": "RCM restraints control module",
           "confidence": "low",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-ford",
+            "url": "packages/uds-map/RESEARCH.md#ford",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -10858,7 +10858,7 @@
           "bias": -40.0,
           "confidence": "medium",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-ford",
+            "url": "packages/uds-map/RESEARCH.md#ford",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -11160,7 +11160,7 @@
           "licence": "GPL-3.0"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-ford",
+          "url": "packages/uds-map/RESEARCH.md#ford",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -11460,6 +11460,7 @@
           },
           "modules": [],
           "binding": "unknown",
+          "read_service": "1A",
           "decodes": []
         },
         {
@@ -11479,6 +11480,7 @@
           },
           "modules": [],
           "binding": "unknown",
+          "read_service": "1A",
           "decodes": [
             {
               "offset": 0,
@@ -11557,8 +11559,8 @@
             2016
           ],
           "ecu_families_expected": [],
-          "read_service": "1A",
-          "notes": "GM and GM-era Opel (WMI W0L) before 2017: odometer DF and oil life 6D are read with KWP service 1A, not 22; GMLAN group 241/641 on 22 for tyre pressures.",
+          "read_service": "22",
+          "notes": "GM and GM-era Opel (WMI W0L) before 2017: the odometer (DF) and oil-life (6D) records are read with KWP service 1A (per-DID read_service on those entries); everything else documented, including the GMLAN 241/641 tyre pressures, is service 22.",
           "source": {
             "url": "https://github.com/meatpiHQ/wican-fw/blob/main/vehicle_profiles/opel/opel.json",
             "date": "2026-08-23",
@@ -12097,7 +12099,7 @@
           "read_service": "22",
           "notes": "US-market vehicles with the Security Gateway: reads (DTCs, live data, VIN) work, writes are blocked; some modules reported silent depending on gateway firmware.",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-fca--stellantis-north-america",
+            "url": "packages/uds-map/RESEARCH.md#fca--stellantis-north-america",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -12126,7 +12128,7 @@
         "writes_blocked": true,
         "notes": "Security Gateway (2018+ US market) blocks writes, reads work; some modules reported silent depending on gateway firmware.",
         "source": {
-          "url": "packages/uds-map/RESEARCH.md#4-fca--stellantis-north-america",
+          "url": "packages/uds-map/RESEARCH.md#fca--stellantis-north-america",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -12159,7 +12161,7 @@
           "licence": "MIT"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-fca--stellantis-north-america",
+          "url": "packages/uds-map/RESEARCH.md#fca--stellantis-north-america",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -12242,7 +12244,7 @@
           "name": "Hybrid ECU, legacy KWP2000 address on older Prius generations",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-toyota--lexus",
+            "url": "packages/uds-map/RESEARCH.md#toyota--lexus",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -12251,8 +12253,7 @@
             "protocol": "can11_500",
             "req": "7E2",
             "resp": "7EA"
-          },
-          "read_service": "1A"
+          }
         },
         {
           "req": "747",
@@ -12818,10 +12819,9 @@
             2009
           ],
           "ecu_families_expected": [],
-          "read_service": "1A",
-          "notes": "Older Prius generations: hybrid ECU at the legacy KWP address 7E2/7EA; version data via 1A 88 01.",
+          "notes": "Older Prius generations: hybrid ECU at the legacy KWP address 7E2/7EA. Version data is read with KWP 1A 88 01 (an identification record, not the module's data service; no DID entry exists for it, so no read_service override is encoded).",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-toyota--lexus",
+            "url": "packages/uds-map/RESEARCH.md#toyota--lexus",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -12878,7 +12878,7 @@
           "licence": "CC-BY-SA-4.0"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-toyota--lexus",
+          "url": "packages/uds-map/RESEARCH.md#toyota--lexus",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -13051,7 +13051,7 @@
           "name": "Engine control module, legacy 11-bit OBD-II addressing",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+            "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -13376,7 +13376,7 @@
           "note": "Honda Civic and Acura TLX signalsets; bit offsets deliberately not copied (base point unconfirmed)"
         },
         {
-          "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+          "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -14303,25 +14303,7 @@
         "JJ1"
       ],
       "confidence": "low",
-      "modules": [
-        {
-          "req": "7E0",
-          "resp": "7E8",
-          "name": "Engine control module",
-          "confidence": "medium",
-          "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
-            "date": "2026-08-23",
-            "type": "community",
-            "licence": "MIT"
-          },
-          "route": {
-            "protocol": "can11_500",
-            "req": "7E0",
-            "resp": "7E8"
-          }
-        }
-      ],
+      "modules": [],
       "did_bands": [
         {
           "from": "F100",
@@ -14329,7 +14311,7 @@
           "note": "identification; F100 used for the Subaru manufacturer-specific version string, plus ISO 14229 F180-F1FF",
           "confidence": "high",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+            "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -14342,7 +14324,7 @@
           "label": "Subaru manufacturer-specific version identifier",
           "confidence": "medium",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+            "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -14352,7 +14334,6 @@
           "decodes": []
         }
       ],
-      "read_service": "22",
       "identity_block": {
         "dids": [
           {
@@ -14397,7 +14378,7 @@
           }
         ],
         "source": {
-          "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+          "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -14414,17 +14395,17 @@
           "ecu_families_expected": [],
           "notes": "Solterra shares Toyota's bZ4X platform, so Toyota-style addressing is plausible but is speculation and is not encoded.",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+            "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
           }
         }
       ],
-      "profiled_level": "routes_sourced",
+      "profiled_level": "standard_only",
       "sources": [
         {
-          "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+          "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
@@ -14457,7 +14438,7 @@
           "note": "ISO 14229 standard identification block",
           "confidence": "medium",
           "source": {
-            "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+            "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
             "date": "2026-08-23",
             "type": "community",
             "licence": "MIT"
@@ -14531,7 +14512,7 @@
       "profiled_level": "standard_only",
       "sources": [
         {
-          "url": "packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi",
+          "url": "packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi",
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"

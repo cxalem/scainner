@@ -396,6 +396,9 @@ pub struct Platform {
 pub enum SilenceMeans {
     Absent,
     Filtered,
+    /// The module sits on connector pins this adapter path is not wired
+    /// to — silence says nothing about the module.
+    UnreachablePins,
     #[default]
     Unknown,
 }
@@ -557,6 +560,10 @@ pub struct KnownDid {
     /// this DID; such entries never label a module's answer.
     #[serde(default)]
     pub binding: Option<String>,
+    /// Read service for this record when it differs from the module's (a
+    /// KWP identification record read with `1A` on a `22` module).
+    #[serde(default)]
+    pub read_service: Option<ReadService>,
     #[serde(default)]
     pub unit: Option<String>,
     /// Mirror of `decodes[0]` (v8 shape, kept for existing callers).
@@ -1031,14 +1038,48 @@ pub fn identity_block_for_vin(vin: Option<&str>) -> IdentityBlock {
         .unwrap_or_default()
 }
 
-/// The read service for one module: module override, then brand default,
-/// then the standard default.
-pub fn read_service_for_module(vin: Option<&str>, req: u32, resp: u32) -> ReadService {
-    module_def(vin, req, resp)
-        .and_then(|m| m.read_service)
-        .or_else(|| brand_for_vin(vin).and_then(|b| b.read_service))
-        .or(map().standard.read_service)
+/// Read-service precedence shared by both accessors: DID > module >
+/// platform > brand > standard (`22`). A free function so the precedence
+/// itself is testable without a pack entry for every combination.
+pub fn resolve_read_service(
+    did: Option<ReadService>,
+    module: Option<ReadService>,
+    platform: Option<ReadService>,
+    brand: Option<ReadService>,
+    standard: Option<ReadService>,
+) -> ReadService {
+    did.or(module)
+        .or(platform)
+        .or(brand)
+        .or(standard)
         .unwrap_or_default()
+}
+
+/// The read service for one module: module override, then the platform
+/// selected by VIN (VDS pattern), then brand default, then the standard
+/// default. Per-DID overrides are honoured by [`read_service_for_did`].
+pub fn read_service_for_module(vin: Option<&str>, req: u32, resp: u32) -> ReadService {
+    resolve_read_service(
+        None,
+        module_def(vin, req, resp).and_then(|m| m.read_service),
+        platform_for_vin(vin).and_then(|p| p.read_service),
+        brand_for_vin(vin).and_then(|b| b.read_service),
+        map().standard.read_service,
+    )
+}
+
+/// The read service for one DID on one module: the DID's own override (a
+/// KWP identification record read with `1A` on a `22` module) first, then
+/// the [`read_service_for_module`] precedence. Only module-bound entries
+/// count.
+pub fn read_service_for_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> ReadService {
+    resolve_read_service(
+        known_did(vin, req, resp, did).and_then(|k| k.read_service),
+        module_def(vin, req, resp).and_then(|m| m.read_service),
+        platform_for_vin(vin).and_then(|p| p.read_service),
+        brand_for_vin(vin).and_then(|b| b.read_service),
+        map().standard.read_service,
+    )
 }
 
 /// Every decode of a DID on exactly this module (empty when the pack has
@@ -1876,22 +1917,7 @@ mod tests {
             ),
             ReadService::DataByIdentifier
         );
-        let with1a = brand_with(|b| {
-            b.modules
-                .iter()
-                .any(|m| m.read_service == Some(ReadService::EcuIdentification))
-        });
-        let m1a = with1a
-            .modules
-            .iter()
-            .find(|m| m.read_service == Some(ReadService::EcuIdentification))
-            .unwrap();
-        let svc = read_service_for_module(
-            Some(&vin_for(&with1a.id, "EXAMPLE")),
-            can_address(&m1a.req).unwrap(),
-            can_address(&m1a.resp).unwrap(),
-        );
-        assert_eq!(svc, ReadService::EcuIdentification);
+        let svc = ReadService::EcuIdentification;
         assert_eq!((svc.as_str(), svc.sid()), ("1A", 0x1A));
         assert_eq!(
             read_service_for_module(Some("ZZZ00000000000000"), 0x7E0, 0x7E8),
@@ -1901,6 +1927,138 @@ mod tests {
         assert_eq!(
             serde_json::to_value(ReadService::DataByLocalIdentifier).unwrap(),
             "21"
+        );
+    }
+
+    #[test]
+    fn read_service_for_did_honours_did_module_platform_brand_standard_precedence() {
+        use ReadService::*;
+        assert_eq!(
+            resolve_read_service(
+                Some(EcuIdentification),
+                Some(DataByLocalIdentifier),
+                Some(DataByIdentifier),
+                Some(DataByIdentifier),
+                Some(DataByIdentifier)
+            ),
+            EcuIdentification
+        );
+        assert_eq!(
+            resolve_read_service(
+                None,
+                Some(DataByLocalIdentifier),
+                Some(DataByIdentifier),
+                None,
+                None
+            ),
+            DataByLocalIdentifier
+        );
+        assert_eq!(
+            resolve_read_service(
+                None,
+                None,
+                Some(DataByLocalIdentifier),
+                Some(DataByIdentifier),
+                None
+            ),
+            DataByLocalIdentifier
+        );
+        assert_eq!(
+            resolve_read_service(
+                None,
+                None,
+                None,
+                Some(DataByLocalIdentifier),
+                Some(DataByIdentifier)
+            ),
+            DataByLocalIdentifier
+        );
+        assert_eq!(
+            resolve_read_service(None, None, None, None, Some(EcuIdentification)),
+            EcuIdentification
+        );
+        assert_eq!(
+            resolve_read_service(None, None, None, None, None),
+            DataByIdentifier
+        );
+
+        // No module carries a 1A override: 1A is a per-record service.
+        for b in &map().brands {
+            for m in &b.modules {
+                assert_ne!(
+                    m.read_service,
+                    Some(EcuIdentification),
+                    "{} {}",
+                    b.id,
+                    m.req
+                );
+            }
+        }
+        // A DID-level 1A record exists in data; unbound entries never change a module's service.
+        let (brand, entry) = map()
+            .brands
+            .iter()
+            .flat_map(|b| b.known_dids.iter().map(move |k| (b, k)))
+            .find(|(_, k)| k.read_service == Some(EcuIdentification))
+            .expect("a 1A identification record");
+        let vin = vin_for(&brand.id, "EXAMPLE");
+        let did = hex16(&entry.did).unwrap();
+        for m in &brand.modules {
+            let (req, resp) = (can_address(&m.req).unwrap(), can_address(&m.resp).unwrap());
+            let expected = if entry
+                .modules
+                .iter()
+                .any(|x| can_address(&x.req) == Some(req) && can_address(&x.resp) == Some(resp))
+            {
+                EcuIdentification
+            } else {
+                read_service_for_module(Some(&vin), req, resp)
+            };
+            assert_eq!(read_service_for_did(Some(&vin), req, resp, did), expected);
+        }
+        // A module-level override flows through the DID accessor (second brand).
+        let with21 = brand_with(|b| {
+            b.modules
+                .iter()
+                .any(|m| m.read_service == Some(DataByLocalIdentifier))
+        });
+        let m21 = with21
+            .modules
+            .iter()
+            .find(|m| m.read_service == Some(DataByLocalIdentifier))
+            .unwrap();
+        assert_eq!(
+            read_service_for_did(
+                Some(&vin_for(&with21.id, "EXAMPLE")),
+                can_address(&m21.req).unwrap(),
+                can_address(&m21.resp).unwrap(),
+                0x0001
+            ),
+            DataByLocalIdentifier
+        );
+        // Platform read services are consulted through a VIN-selectable platform.
+        let patterned = brand_with(|b| {
+            b.platforms
+                .iter()
+                .any(|p| p.vds_pattern.is_some() && p.read_service.is_some())
+        });
+        let p = patterned
+            .platforms
+            .iter()
+            .find(|p| p.vds_pattern.is_some() && p.read_service.is_some())
+            .unwrap();
+        let literal: String = p
+            .vds_pattern
+            .as_deref()
+            .unwrap()
+            .trim_start_matches('^')
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric())
+            .take(3)
+            .collect();
+        assert_eq!(
+            read_service_for_module(Some(&vin_for(&patterned.id, &literal)), 0x0001, 0x0002),
+            p.read_service.unwrap()
         );
     }
 

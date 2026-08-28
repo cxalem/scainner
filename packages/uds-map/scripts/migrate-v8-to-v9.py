@@ -138,8 +138,8 @@ BRAND_SOURCES: dict[str, dict[str, str]] = {
     "honda": {"modules": "obdb_honda", "bands": "obdb_honda", "dids": "obdb_honda"},
     "mazda": {"modules": "obdb_mazda", "bands": "obdb_mazda", "dids": "obdb_mazda"},
     "volvo": {"modules": "obdb_polestar2", "bands": "obdb_polestar2", "dids": "obdb_polestar2"},
-    "subaru": {"modules": "research:4-honda--acura-mazda-subaru-mitsubishi", "bands": "research:4-honda--acura-mazda-subaru-mitsubishi", "dids": "research:4-honda--acura-mazda-subaru-mitsubishi"},
-    "mitsubishi": {"modules": "car_hacking", "bands": "research:4-honda--acura-mazda-subaru-mitsubishi", "dids": "car_hacking"},
+    "subaru": {"modules": "research:honda--acura-mazda-subaru-mitsubishi", "bands": "research:honda--acura-mazda-subaru-mitsubishi", "dids": "research:honda--acura-mazda-subaru-mitsubishi"},
+    "mitsubishi": {"modules": "car_hacking", "bands": "research:honda--acura-mazda-subaru-mitsubishi", "dids": "car_hacking"},
     "tesla": {"modules": "opendbc_tesla", "bands": "opendbc_tesla", "dids": "opendbc_tesla"},
 }
 
@@ -149,7 +149,7 @@ MODULE_SOURCE: dict[tuple[str, str], str] = {
     ("psa", "6AD"): "project",
     ("psa", "6B5"): "project",
     ("psa", "6B4"): "wican_600e",
-    ("psa", "79B"): "research:4-psa--stellantis-europe--highest-confidence-in-the-file",
+    ("psa", "79B"): "research:psa--stellantis-europe--highest-confidence-in-the-file",
     ("vag", "7E0"): "ovms_vweup",
     ("vag", "7E5"): "obdb_id4",
     ("vag", "7E6"): "ovms_vweup",
@@ -160,23 +160,23 @@ MODULE_SOURCE: dict[tuple[str, str], str] = {
     ("cupra", "715"): "opendbc",
     ("cupra", "757"): "opendbc",
     ("bmw", "6F1"): "ovms_bmwi3",
-    ("bmw", "7E0"): "research:4-bmw--mini",
-    ("mercedes", "7E0"): "research:4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
-    ("mercedes", "7E1"): "research:4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
+    ("bmw", "7E0"): "research:bmw--mini",
+    ("mercedes", "7E0"): "research:mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
+    ("mercedes", "7E1"): "research:mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin",
     ("mercedes", "7E2"): "obdb_eqb",
     ("mercedes", "7E5"): "obdb_eqb",
     ("nissan", "743"): "obdb_leaf",
     ("nissan", "797"): "obdb_leaf",
-    ("nissan", "7E0"): "research:4-nissan--infiniti",
-    ("nissan", "745"): "research:4-nissan--infiniti",
+    ("nissan", "7E0"): "research:nissan--infiniti",
+    ("nissan", "745"): "research:nissan--infiniti",
     ("hyundai_kia", "7D6"): "ovms_soulev",
     ("hyundai_kia", "7B3"): "evnotipi",
     ("hyundai_kia", "730"): "opendbc",
     ("hyundai_kia", "7B1"): "opendbc",
     ("hyundai_kia", "7B7"): "opendbc",
     ("ford", "7E0"): "opendbc",
-    ("ford", "760"): "research:4-ford",
-    ("ford", "737"): "research:4-ford",
+    ("ford", "760"): "research:ford",
+    ("ford", "737"): "research:ford",
     ("gm", "7E0"): "opendbc",
     ("gm", "24B"): "opendbc",
     ("gm", "241"): "wican_sierra",
@@ -187,8 +187,8 @@ MODULE_SOURCE: dict[tuple[str, str], str] = {
     ("toyota", "7E0"): "opendbc",
     ("toyota", "7D2"): "obdb_prius",
     ("toyota", "747"): "obdb_toyota",
-    ("toyota", "7E2"): "research:4-toyota--lexus",
-    ("honda", "7E0"): "research:4-honda--acura-mazda-subaru-mitsubishi",
+    ("toyota", "7E2"): "research:toyota--lexus",
+    ("honda", "7E0"): "research:honda--acura-mazda-subaru-mitsubishi",
     ("volvo", "18DA10F1"): "obdb_polestar2",
 }
 
@@ -454,7 +454,7 @@ DID_SOURCE: dict[tuple[str, str], str] = {
     ("bmw", "580F"): "rcp_bmw",
     ("bmw", "586F"): "rcp_bmw",
     ("bmw", "56D7"): "rcp_bmw",
-    ("bmw", "F410"): "research:4-bmw--mini",
+    ("bmw", "F410"): "research:bmw--mini",
     ("nissan", "1203"): "ovms_leaf",
     ("nissan", "1205"): "ovms_leaf",
     ("hyundai_kia", "0101"): "ovms_ioniq5",
@@ -463,10 +463,10 @@ DID_SOURCE: dict[tuple[str, str], str] = {
     ("hyundai_kia", "C00B"): "ovms_ioniq5",
     ("hyundai_kia", "C002"): "ovms_ioniq5",
     ("hyundai_kia", "E004"): "ovms_ioniq5",
-    ("hyundai_kia", "F100"): "research:4-hyundai--kia--genesis",
-    ("hyundai_kia", "F110"): "research:4-hyundai--kia--genesis",
+    ("hyundai_kia", "F100"): "research:hyundai--kia--genesis",
+    ("hyundai_kia", "F110"): "research:hyundai--kia--genesis",
     ("ford", "DE00"): "opendbc",
-    ("ford", "F45C"): "research:4-ford",
+    ("ford", "F45C"): "research:ford",
     ("gm", "27C6"): "research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs",
     ("gm", "27AF"): "research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs",
     ("gm", "00DF"): "wican_opel",
@@ -481,13 +481,19 @@ DID_SOURCE: dict[tuple[str, str], str] = {
     ("volvo", "4028"): "obdb_polestar2",
 }
 
+# Per-DID read service (RESEARCH.md section 3.3): KWP identification records
+# read with 1A on modules that otherwise answer 22.
+DID_READ_SERVICE: dict[tuple[str, str], tuple[str, str]] = {
+    ("gm", "00DF"): ("1A", "wican_opel"),
+    ("gm", "006D"): ("1A", "wican_opel"),
+}
+
 # Per-module read service overrides (RESEARCH.md section 3.3).
 MODULE_READ_SERVICE: dict[tuple[str, str], tuple[str, str]] = {
     ("nissan", "79B"): ("21", "ovms_leaf"),
     ("renault", "79B"): ("21", "canze"),
     ("renault", "745"): ("21", "canze"),
     ("hyundai_kia", "7D6"): ("21", "ovms_soulev"),
-    ("toyota", "7E2"): ("1A", "research:33-not-every-brands-data-is-behind-service-0x22"),
 }
 
 # --------------------------------------------------------------------------
@@ -567,8 +573,8 @@ EXTRA_DECODES: dict[tuple[str, str], list[dict]] = {
         dec(4, 1, 0.5, 0.0, "%", "percentage", "BMS state of charge"),
         dec(10, 2, 0.1, 0.0, "A", "current", "HV battery current, positive when discharging", signed=True),
         dec(12, 2, 0.1, 0.0, "V", "voltage", "HV battery pack voltage"),
-        dec(14, 1, 1.0, 0.0, "C", "temperature", "Maximum battery module temperature", signed=True),
-        dec(15, 1, 1.0, 0.0, "C", "temperature", "Minimum battery module temperature", signed=True),
+        dec(14, 1, 1.0, 0.0, "C", "temperature", "Maximum battery module temperature (OVMS reads it unsigned)"),
+        dec(15, 1, 1.0, 0.0, "C", "temperature", "Minimum battery module temperature (OVMS reads it unsigned)"),
     ],
     ("hyundai_kia", "C00B"): [
         dec(4, 1, 0.2, 0.0, "PSI", "pressure", "TPMS tyre pressure front-left"),
@@ -584,7 +590,7 @@ EXTRA_DECODES: dict[tuple[str, str], list[dict]] = {
     ],
     ("hyundai_kia", "E004"): [
         dec(14, 1, 1.0, 0.0, "gear", "enum", "Gear (low nibble)", encoding="bitfield", bit_offset=0, bit_len=4),
-        dec(9, 1, 1.0, 0.0, "raw", "raw", "Accelerator pedal (raw byte; scale not sourced)"),
+        dec(9, 1, 0.5, 0.0, "%", "percentage", "Accelerator pedal position (OVMS: byte 9 / 2)"),
     ],
 }
 
@@ -628,13 +634,13 @@ VENDOR_IDENTITY: dict[str, tuple[list[dict], str]] = {
     "vag": ([{"did": "F802", "field": "vin", "layout": "iso_ascii"}], "vag_uds_ids"),
     "fca": ([{"did": "F132", "field": "software", "layout": "iso_ascii"}], "opendbc"),
     "honda": ([{"did": "F112", "field": "other", "layout": "raw"}], "obdb_honda"),
-    "subaru": ([{"did": "F100", "field": "software", "layout": "iso_ascii"}], "research:4-honda--acura-mazda-subaru-mitsubishi"),
+    "subaru": ([{"did": "F100", "field": "software", "layout": "iso_ascii"}], "research:honda--acura-mazda-subaru-mitsubishi"),
     "hyundai_kia": (
         [
             {"did": "F100", "field": "other", "layout": "iso_ascii"},
             {"did": "F110", "field": "other", "layout": "iso_ascii"},
         ],
-        "research:4-hyundai--kia--genesis",
+        "research:hyundai--kia--genesis",
     ),
 }
 
@@ -660,7 +666,7 @@ PLATFORMS: dict[str, list[dict]] = {
         platform("stellantis_era", (2017, None), "WMI W0V (Opel Automobile GmbH); Astra K onward inherits the Stellantis EV/PSA DID set on service 22 (wican astra.json extends fiat/600e.json).", "wican_astra", read_service="22"),
     ],
     "vag": [
-        platform("kwp2000_tp20", (None, None), "Cars predating UDS use KWP2000 over TP2.0 and do not answer service 22; years not sourced.", "research:4-vag-vw-audi--škoda-seat-cupra"),
+        platform("kwp2000_tp20", (None, None), "Cars predating UDS use KWP2000 over TP2.0 and do not answer service 22; years not sourced.", "research:vag-vw-audi--škoda-seat-cupra"),
         platform("pre_meb_e_up", (2013, 2020), "e-Up generation; the battery DIDs and formulas on 7E5/7ED were validated here (OVMS vehicle_vweup).", "ovms_vweup", read_service="22"),
         platform("meb", (2020, None), "ID.3/ID.4/ID.5; the legacy 11-bit 7E5/7ED module is still alive and carries 1E33/1E34/1E3B/1E3D and SOH 51E0 (74CB not present). A richer 29-bit FC00 + target-address surface exists but its request-id construction is unconfirmed and is deliberately not encoded.", "obdb_id4", read_service="22"),
     ],
@@ -692,15 +698,15 @@ PLATFORMS: dict[str, list[dict]] = {
         platform("wican_profiled", (None, None), "Transit and Focus RS Mk3 are the only two published wican-fw Ford profiles; BCM 726/72E carries battery, tyre and odometer data. Tyre-pressure scaling varies by platform (kPa vs PSI).", "wican_ford", read_service="22"),
     ],
     "gm": [
-        platform("pre_2017_gmlan", (None, 2016), "GM and GM-era Opel (WMI W0L) before 2017: odometer DF and oil life 6D are read with KWP service 1A, not 22; GMLAN group 241/641 on 22 for tyre pressures.", "wican_opel", read_service="1A"),
+        platform("pre_2017_gmlan", (None, 2016), "GM and GM-era Opel (WMI W0L) before 2017: the odometer (DF) and oil-life (6D) records are read with KWP service 1A (per-DID read_service on those entries); everything else documented, including the GMLAN 241/641 tyre pressures, is service 22.", "wican_opel", read_service="22"),
         platform("ultium", (2022, None), "Ultium EVs: 29-bit 14DACBF1 -> 142AF1CB scheme (neither normal-fixed nor 11-bit); battery telemetry 27xx and charger 54xx bands.", "research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs", read_service="22"),
     ],
     "fca": [
-        platform("sgw_2018", (2018, None), "US-market vehicles with the Security Gateway: reads (DTCs, live data, VIN) work, writes are blocked; some modules reported silent depending on gateway firmware.", "research:4-fca--stellantis-north-america", read_service="22"),
+        platform("sgw_2018", (2018, None), "US-market vehicles with the Security Gateway: reads (DTCs, live data, VIN) work, writes are blocked; some modules reported silent depending on gateway firmware.", "research:fca--stellantis-north-america", read_service="22"),
         platform("stellantis_ev", (2020, None), "Fiat 600e and siblings: HV battery block D410/D815/D860 on 6B4/694 (wican fiat/600e.json).", "wican_600e", read_service="22"),
     ],
     "toyota": [
-        platform("legacy_kwp_hybrid", (None, 2009), "Older Prius generations: hybrid ECU at the legacy KWP address 7E2/7EA; version data via 1A 88 01.", "research:4-toyota--lexus", read_service="1A"),
+        platform("legacy_kwp_hybrid", (None, 2009), "Older Prius generations: hybrid ECU at the legacy KWP address 7E2/7EA. Version data is read with KWP 1A 88 01 (an identification record, not the module's data service; no DID entry exists for it, so no read_service override is encoded).", "research:toyota--lexus"),
         platform("modern_ths", (2010, None), "2010s+ hybrids: hybrid vehicle control ECU at 7D2/7DA, cell-level battery data on 747/74F; sweep 1000-10FF and 1800-1FFF first.", "obdb_toyota", read_service="22"),
         platform("ths5_e_four", (2023, None), "5th-gen THS (XW60 Prius 2023+, e-Four AWD): 10A2 rear motor torque and 10A6 rear inverter temperatures on 7D2/7DA (single source).", "obdb_prius", read_service="22"),
     ],
@@ -713,7 +719,7 @@ PLATFORMS: dict[str, list[dict]] = {
         platform("cma_spa2", (2020, None), "XC40/C40 Recharge and Polestar 2 (VDS ED3 per NHTSA vPIC): standard 29-bit normal-fixed 18DA10F1/18DAF110 confirmed by a Mode 01 exchange in OBDb fixtures; manufacturer DIDs EE6F/4028 have unconfirmed request ids.", "vpic", vds="^ED3", read_service="22"),
     ],
     "subaru": [
-        platform("solterra_bz4x", (2023, None), "Solterra shares Toyota's bZ4X platform, so Toyota-style addressing is plausible but is speculation and is not encoded.", "research:4-honda--acura-mazda-subaru-mitsubishi"),
+        platform("solterra_bz4x", (2023, None), "Solterra shares Toyota's bZ4X platform, so Toyota-style addressing is plausible but is speculation and is not encoded.", "research:honda--acura-mazda-subaru-mitsubishi"),
     ],
     "mitsubishi": [
         platform("outlander_phev", (2013, None), "Outlander PHEV: DTC reads exist via proprietary KWP2000-flavoured sessions (10 92 / 18 00 FF 00) after a per-vehicle brute-force address scan; SOC/SOH live on an internal BMU bus not exposed at the connector. No read-only route encoded.", "car_hacking"),
@@ -725,9 +731,9 @@ PLATFORMS: dict[str, list[dict]] = {
 }
 
 GATEWAY: dict[str, dict] = {
-    "psa": {"silence_means": "absent", "writes_blocked": False, "notes": "Body-network modules (BSI 752/652) sit on OBD pins an ELM327-class adapter is not wired to; a silent BSI is normal on pins 6/14, not filtering.", "source": "project_hunt"},
-    "mercedes": {"silence_means": "filtered", "writes_blocked": False, "notes": "The OBD-port gateway silently drops traffic for unrecognised diagnostic CAN ids; a non-response may mean filtered, not absent.", "source": "research:4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin"},
-    "fca": {"silence_means": "unknown", "writes_blocked": True, "notes": "Security Gateway (2018+ US market) blocks writes, reads work; some modules reported silent depending on gateway firmware.", "source": "research:4-fca--stellantis-north-america"},
+    "psa": {"silence_means": "unreachable_pins", "writes_blocked": False, "notes": "Body-network modules (BSI 752/652) sit on OBD pins an ELM327-class adapter is not wired to; a silent BSI on pins 6/14 means the route is not on this adapter path, not that the module is absent or filtered.", "source": "project_hunt"},
+    "mercedes": {"silence_means": "filtered", "writes_blocked": False, "notes": "The OBD-port gateway silently drops traffic for unrecognised diagnostic CAN ids; a non-response may mean filtered, not absent.", "source": "research:mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin"},
+    "fca": {"silence_means": "unknown", "writes_blocked": True, "notes": "Security Gateway (2018+ US market) blocks writes, reads work; some modules reported silent depending on gateway firmware.", "source": "research:fca--stellantis-north-america"},
     "vag": {"silence_means": "unknown", "writes_blocked": False, "notes": "Gateway J533 (710/77A) is the only module directly on the OBD port and proxies the sub-buses.", "source": "vag_uds_ids"},
 }
 
@@ -752,7 +758,7 @@ PROFILED_LEVEL: dict[str, str] = {
     "toyota": "routes_sourced",
     "honda": "routes_sourced",
     "mazda": "routes_sourced",
-    "subaru": "routes_sourced",
+    "subaru": "standard_only",
     "mitsubishi": "standard_only",
     "tesla": "standard_only",
 }
@@ -760,6 +766,10 @@ PROFILED_LEVEL: dict[str, str] = {
 BRAND_READ_SERVICE: dict[str, str | None] = {b: "22" for b in PROFILED_LEVEL}
 BRAND_READ_SERVICE["mitsubishi"] = None
 BRAND_READ_SERVICE["tesla"] = None
+BRAND_READ_SERVICE["subaru"] = None
+
+# Modules dropped in v9 because their only source says nothing credible was found.
+DROP_MODULES: set[tuple[str, str]] = {("subaru", "7E0")}
 
 SCAN_POLICY: dict[str, tuple[str, str]] = {
     "bmw": ("conventional_11bit_and_target_byte_11bit", "research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs"),
@@ -805,6 +815,10 @@ def migrate_brand(b: dict) -> dict:
         return deepcopy(s)
 
     # modules
+    dropped = [m for m in b.get("modules", []) if (bid, m["req"]) in DROP_MODULES]
+    for m in dropped:
+        note(f"module {m['req']}/{m['resp']} dropped: its only citation says nothing credible was found", f"brands[{bid}].modules[{m['req']}]", defaults["modules"])
+    b["modules"] = [m for m in b.get("modules", []) if (bid, m["req"]) not in DROP_MODULES]
     for m in b.get("modules", []):
         sid = MODULE_SOURCE.get((bid, m["req"]), defaults["modules"])
         m["source"] = use(sid)
@@ -854,6 +868,10 @@ def migrate_brand(b: dict) -> dict:
         if not k.get("modules"):
             k["modules"] = []
             k["binding"] = "unknown"
+        if key in DID_READ_SERVICE:
+            svc, rsid = DID_READ_SERVICE[key]
+            k["read_service"] = svc
+            note(f"DID {k['did']} read with service {svc}", f"brands[{bid}].known_dids[{k['did']}].read_service", rsid)
         quantity = quantity_for(k.get("unit"), k["label"])
         decodes = list(EXTRA_DECODES.get(key, []))
         if key in CELL_BLOCKS:
@@ -1007,6 +1025,14 @@ def write_log() -> None:
     for fact, path, sid in log:
         lines.append(f"| {fact} | `{path}` | {sid} |")
     lines += [
+        "",
+        "## Review fixes (PR #57 review, 2026-08-28)",
+        "",
+        "- hyundai_kia `0101` decodes at bytes 14/15 are unsigned: the cited OVMS `hif_can_poll.cpp` reads them with `get_uint_buff_be<1>`; `E004` accelerator is byte 9 / 2 → `%` (same file, `res / 2.0`).",
+        "- RESEARCH.md anchors: the per-brand headings are `###` under `## 4.`, so slugs carry no `4-` prefix; every `RESEARCH.md#…` url is now checked against the file's heading slugs by `pnpm lint:pack`.",
+        "- No module-level `read_service: \"1A\"`: RESEARCH §3.3 documents `1A` for identification records (`1A 88 01`, `DF`, `6D`), not as a module's data service. The gm `00DF`/`006D` entries carry a per-DID `read_service`; the toyota and gm platforms keep the fact as notes. Precedence is DID → module → platform → brand → standard (`read_service_for_did`).",
+        "- subaru: the generic 7E0/7E8 module was dropped (its only citation says nothing credible was found) and the brand is `standard_only`.",
+        "- psa `gateway_behaviour.silence_means` is `unreachable_pins` (new value): BSI silence is pin routing on the adapter path, not absence.",
         "",
         "## Facts not migrated (and why)",
         "",

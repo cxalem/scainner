@@ -23,9 +23,9 @@
 
 The default read service (`"22"`) and the ISO 14229-1 identification block (`F187` part, `F191` hardware, `F195` software, `F197` system, `F18C` serial, `F18A` supplier, `F190` vin — all `iso_ascii`) that every brand inherits.
 
-### `brands[].read_service` · `modules[].read_service`
+### `brands[].read_service` · `modules[].read_service` · `platforms[].read_service` · `known_dids[].read_service`
 
-`"22"` ReadDataByIdentifier · `"21"` ReadDataByLocalIdentifier · `"1A"` ReadEcuIdentification. Resolution: module → brand → standard. Brands with no manufacturer routes (`standard_only`) carry none.
+`"22"` ReadDataByIdentifier · `"21"` ReadDataByLocalIdentifier · `"1A"` ReadEcuIdentification. **Precedence: DID → module → platform (only a platform selected by VIN through its `vds_pattern`) → brand → standard.** `read_service_for_module` / `readServiceForModule` resolve module → platform → brand → standard; `read_service_for_did` / `readServiceForDid` add the DID level, which exists for KWP identification records (`1A DF` odometer, `1A 6D` oil life) read on a module that otherwise answers `22` — a module never carries `1A` as its data service. Brands with no manufacturer routes (`standard_only`) carry none.
 
 ### `modules[].route`
 
@@ -62,7 +62,7 @@ The default read service (`"22"`) and the ISO 14229-1 identification block (`F18
 { "silence_means": "filtered", "writes_blocked": false, "notes": "…", "source": { … } }
 ```
 
-`silence_means`: `absent` · `filtered` · `unknown`. Brands without a sourced rule get `unknown` / `false` from the accessor.
+`silence_means`: `absent` · `filtered` · `unreachable_pins` (the module sits on connector pins this adapter path is not wired to — silence says nothing about the module) · `unknown`. Brands without a sourced rule get `unknown` / `false` from the accessor.
 
 ### `brands[].profiled_level` + `brands[].sources[]`
 
@@ -103,7 +103,8 @@ Same brand shape with `source` on every entry and `decodes[]` on every known DID
 |---|---|---|
 | `routeForModule(vin, req, resp)` | `route_for_module(vin, req, resp) -> Route` | explicit route or derived |
 | `identityBlockForVin(vin)` | `identity_block_for_vin(vin) -> IdentityBlock` | brand block or ISO |
-| `readServiceForModule(vin, req, resp)` | `read_service_for_module(vin, req, resp) -> ReadService` | module → brand → `22` |
+| `readServiceForModule(vin, req, resp)` | `read_service_for_module(vin, req, resp) -> ReadService` | module → platform → brand → `22` |
+| `readServiceForDid(vin, req, resp, did)` / `resolveReadService(levels)` | `read_service_for_did(vin, req, resp, did)` / `resolve_read_service(...)` | DID → module → platform → brand → `22` |
 | `decodesForDid(vin, req, resp, did)` | `decodes_for_did(vin, req, resp, did) -> Vec<Decode>` | module-scoped decodes |
 | `profiledLevelForVin(vin)` | `profiled_level_for_vin(vin) -> Option<ProfiledLevel>` | `None` for unknown WMI |
 | `gatewayBehaviourForVin(vin)` | `gateway_behaviour_for_vin(vin) -> GatewayBehaviour` | honest default |
@@ -115,7 +116,9 @@ Same brand shape with `source` on every entry and `decodes[]` on every known DID
 
 - `pnpm coverage` writes `packages/uds-map/COVERAGE.md` (per brand: WMIs, modules, known DIDs, decodable, module-bound, families, decodes with evidence, on-vehicle, read services, identity block, platforms, `profiled_level`, gateway, confidence; totals; decode shapes; unknown bindings; overlays; sources). `pnpm coverage:check` fails CI when it is stale.
 - `pnpm lint:pack` fails on: unbound DIDs without `binding: "unknown"`, missing `source`, scalar/`decodes[0]` disagreement, missing or unsupported `profiled_level`, malformed decodes, `vds_pattern` outside the subset, route ids differing from module ids, brand tokens in `src/*.ts`.
+- `pnpm lint:pack` also checks that every `packages/uds-map/RESEARCH.md#…` source url resolves to a heading slug computed from the file (GitHub slug rules).
 - Both run in the CI JavaScript job; the vitest suite also asserts `lintPack()` is empty and `COVERAGE.md` equals the generator output.
+- **Known gap (Phase 2):** the TypeScript side matches `vds_pattern` with the native `RegExp`, while Rust uses the documented subset matcher; the lint only checks the pattern's character set, not that both engines agree on every construct. A shared conformance test over the pack's patterns is owed in Phase 2.
 
 ## 5. Facts that could not be migrated into data (and why)
 
@@ -130,8 +133,10 @@ Same brand shape with `source` on every entry and `decodes[]` on every known DID
 | Toyota `106C` minimum SOC byte, `1F05`/`1074`/`1021` modules | offsets/modules not stated |
 | Hyundai `E004` accelerator scale, `0105` full health block | scale not stated (raw byte kept), health block only SOC at 25 |
 | BMW F/G-series ENET tester `F4` / gateway `10`, ZGW/GWS routes | unreproduced; kept as platform notes, `gateway` field unset |
-| GM `1A` DIDs `DF`/`6D` module | wican profile module not stated in the research; `binding: "unknown"`, platform `read_service: "1A"` |
+| GM `1A` DIDs `DF`/`6D` module | wican profile module not stated in the research; `binding: "unknown"` with a per-DID `read_service: "1A"` |
 | Mercedes KWP-era module read service | pairs sourced, service not — inherits the brand default with a platform note |
+| Toyota `1A 88 01` version record on `7E2/7EA` | an identification record, not a data DID; kept as a platform note (no DID entry, no module override) |
+| Subaru `7E0/7E8` | dropped: its only citation says nothing credible was found; the brand is `standard_only` |
 | Smart EQ 453 (OVMS `vehicle_smarteq`) | deliberately not folded into the Mercedes entry (different alliance platform); needs its own brand entry |
 | VDS patterns for most platforms (E-GMP, MEB, i3, Ultium, EQB, Zoe, Soul EV, C4 III, …) | no registry confirmation obtained; `vds_pattern: null` |
 | OVMS Ioniq 5 `0101` scales (current ×0.1 signed, voltage ×0.1, temps signed) | offsets are in RESEARCH.md; the scales were read from OVMS `hif_can_poll.cpp` directly (2026-08-28) and are cited to that file, confidence unchanged |

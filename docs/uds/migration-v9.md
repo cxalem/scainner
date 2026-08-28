@@ -12,7 +12,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID D411: 1 decodes from label/note text | `brands[psa].known_dids[D411].decodes` | project |
 | identity block: 4 vendor field(s) on top of ISO | `brands[psa].identity_block` | project_abs_research |
 | platform c41 (2020-now) | `brands[psa].platforms[c41]` | project |
-| gateway behaviour: silence means absent, writes_blocked=False | `brands[psa].gateway_behaviour` | project_hunt |
+| gateway behaviour: silence means unreachable_pins, writes_blocked=False | `brands[psa].gateway_behaviour` | project_hunt |
 | profiled_level decodes_verified | `brands[psa].profiled_level` | derived |
 | DID D410 bound to 6B4/694 | `brands[opel_psa].known_dids[D410].modules` | wican_600e |
 | DID D860 bound to 6B4/694 | `brands[opel_psa].known_dids[D860].modules` | wican_600e |
@@ -49,7 +49,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID F802 bound to 7E0/7E8 | `brands[vag].known_dids[F802].modules` | vag_uds_ids |
 | DID 51E0 bound to 7E5/7ED | `brands[vag].known_dids[51E0].modules` | obdb_id4 |
 | identity block: 1 vendor field(s) on top of ISO | `brands[vag].identity_block` | vag_uds_ids |
-| platform kwp2000_tp20 (?-now) | `brands[vag].platforms[kwp2000_tp20]` | research:4-vag-vw-audi--škoda-seat-cupra |
+| platform kwp2000_tp20 (?-now) | `brands[vag].platforms[kwp2000_tp20]` | research:vag-vw-audi--škoda-seat-cupra |
 | platform pre_meb_e_up (2013-2020) | `brands[vag].platforms[pre_meb_e_up]` | ovms_vweup |
 | platform meb (2020-now) | `brands[vag].platforms[meb]` | obdb_id4 |
 | gateway behaviour: silence means unknown, writes_blocked=False | `brands[vag].gateway_behaviour` | vag_uds_ids |
@@ -95,7 +95,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID 580F bound to 6F1/612 | `brands[bmw].known_dids[580F].modules` | rcp_bmw |
 | DID 586F bound to 6F1/612 | `brands[bmw].known_dids[586F].modules` | rcp_bmw |
 | DID 56D7 bound to 6F1/612 | `brands[bmw].known_dids[56D7].modules` | rcp_bmw |
-| DID F410 bound to 6F1/610 | `brands[bmw].known_dids[F410].modules` | research:4-bmw--mini |
+| DID F410 bound to 6F1/610 | `brands[bmw].known_dids[F410].modules` | research:bmw--mini |
 | scan policy conventional_11bit_and_target_byte_11bit | `brands[bmw].scan_policy` | research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs |
 | platform i3_ev (2013-2022) | `brands[bmw].platforms[i3_ev]` | ovms_bmwi3 |
 | platform d_can_combustion (?-now) | `brands[bmw].platforms[d_can_combustion]` | rcp_bmw |
@@ -118,7 +118,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | platform kwp_w203_w211 (2000-2009) | `brands[mercedes].platforms[kwp_w203_w211]` | w203 |
 | platform eqb_mfa2 (2023-2025) | `brands[mercedes].platforms[eqb_mfa2]` | obdb_eqb |
 | platform eva2_eqe_eqs (2021-now) | `brands[mercedes].platforms[eva2_eqe_eqs]` | obdb_eqb |
-| gateway behaviour: silence means filtered, writes_blocked=False | `brands[mercedes].gateway_behaviour` | research:4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin |
+| gateway behaviour: silence means filtered, writes_blocked=False | `brands[mercedes].gateway_behaviour` | research:mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin |
 | profiled_level routes_sourced | `brands[mercedes].profiled_level` | derived |
 | module 79B/7BB read service 21 | `brands[renault].modules[79B].read_service` | canze |
 | module 745/765 read service 21 | `brands[renault].modules[745].read_service` | canze |
@@ -164,7 +164,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID C002: 4 decodes from label/note text | `brands[hyundai_kia].known_dids[C002].decodes` | ovms_ioniq5 |
 | DID E004 bound to 7E2/7EA | `brands[hyundai_kia].known_dids[E004].modules` | ovms_ioniq5 |
 | DID E004: 2 decodes from label/note text | `brands[hyundai_kia].known_dids[E004].decodes` | ovms_ioniq5 |
-| identity block: 2 vendor field(s) on top of ISO | `brands[hyundai_kia].identity_block` | research:4-hyundai--kia--genesis |
+| identity block: 2 vendor field(s) on top of ISO | `brands[hyundai_kia].identity_block` | research:hyundai--kia--genesis |
 | platform ps_soul_ev (2014-2019) | `brands[hyundai_kia].platforms[ps_soul_ev]` | ovms_soulev |
 | platform e_gmp (2021-now) | `brands[hyundai_kia].platforms[e_gmp]` | ovms_ioniq5 |
 | profiled_level routes_sourced | `brands[hyundai_kia].profiled_level` | derived |
@@ -178,7 +178,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID 2815 bound to 726/72E | `brands[ford].known_dids[2815].modules` | wican_ford |
 | DID 2816 bound to 726/72E | `brands[ford].known_dids[2816].modules` | wican_ford |
 | DID 054B bound to 7E0/7E8 | `brands[ford].known_dids[054B].modules` | wican_ford |
-| DID F45C bound to 7E0/7E8 | `brands[ford].known_dids[F45C].modules` | research:4-ford |
+| DID F45C bound to 7E0/7E8 | `brands[ford].known_dids[F45C].modules` | research:ford |
 | DID F405 bound to 7E0/7E8 | `brands[ford].known_dids[F405].modules` | wican_ford |
 | DID F40F bound to 7E0/7E8 | `brands[ford].known_dids[F40F].modules` | wican_ford |
 | DID F42F bound to 7E0/7E8 | `brands[ford].known_dids[F42F].modules` | wican_ford |
@@ -190,6 +190,8 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID 5005 bound to 241/641 | `brands[gm].known_dids[5005].modules` | wican_sierra |
 | DID 27C6 bound to 14DACBF1/142AF1CB | `brands[gm].known_dids[27C6].modules` | research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs |
 | DID 27AF bound to 14DACBF1/142AF1CB | `brands[gm].known_dids[27AF].modules` | research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs |
+| DID 00DF read with service 1A | `brands[gm].known_dids[00DF].read_service` | wican_opel |
+| DID 006D read with service 1A | `brands[gm].known_dids[006D].read_service` | wican_opel |
 | platform pre_2017_gmlan (?-2016) | `brands[gm].platforms[pre_2017_gmlan]` | wican_opel |
 | platform ultium (2022-now) | `brands[gm].platforms[ultium]` | research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs |
 | profiled_level routes_sourced | `brands[gm].profiled_level` | derived |
@@ -199,11 +201,10 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID D860 bound to 6B4/694 | `brands[fca].known_dids[D860].modules` | wican_600e |
 | DID D815 bound to 6B4/694 | `brands[fca].known_dids[D815].modules` | wican_600e |
 | identity block: 1 vendor field(s) on top of ISO | `brands[fca].identity_block` | opendbc |
-| platform sgw_2018 (2018-now) | `brands[fca].platforms[sgw_2018]` | research:4-fca--stellantis-north-america |
+| platform sgw_2018 (2018-now) | `brands[fca].platforms[sgw_2018]` | research:fca--stellantis-north-america |
 | platform stellantis_ev (2020-now) | `brands[fca].platforms[stellantis_ev]` | wican_600e |
-| gateway behaviour: silence means unknown, writes_blocked=True | `brands[fca].gateway_behaviour` | research:4-fca--stellantis-north-america |
+| gateway behaviour: silence means unknown, writes_blocked=True | `brands[fca].gateway_behaviour` | research:fca--stellantis-north-america |
 | profiled_level routes_sourced | `brands[fca].profiled_level` | derived |
-| module 7E2/7EA read service 1A | `brands[toyota].modules[7E2].read_service` | research:33-not-every-brands-data-is-behind-service-0x22 |
 | F4xx mode-01 mirror band demoted to low | `brands[toyota].did_bands[F400]` | research:32-the-f4xx-obd-pid-mirror-band |
 | DID 1F5B bound to 7D2/7DA | `brands[toyota].known_dids[1F5B].modules` | obdb_toyota |
 | DID 1F9A: 2 decodes from label/note text | `brands[toyota].known_dids[1F9A].decodes` | obdb_toyota |
@@ -212,7 +213,7 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | DID 1022 bound to 7C0/7C8 | `brands[toyota].known_dids[1022].modules` | obdb_toyota |
 | DID 10A2 bound to 7D2/7DA | `brands[toyota].known_dids[10A2].modules` | obdb_prius |
 | DID 10A6 bound to 7D2/7DA | `brands[toyota].known_dids[10A6].modules` | obdb_prius |
-| platform legacy_kwp_hybrid (?-2009) | `brands[toyota].platforms[legacy_kwp_hybrid]` | research:4-toyota--lexus |
+| platform legacy_kwp_hybrid (?-2009) | `brands[toyota].platforms[legacy_kwp_hybrid]` | research:toyota--lexus |
 | platform modern_ths (2010-now) | `brands[toyota].platforms[modern_ths]` | obdb_toyota |
 | platform ths5_e_four (2023-now) | `brands[toyota].platforms[ths5_e_four]` | obdb_prius |
 | profiled_level routes_sourced | `brands[toyota].profiled_level` | derived |
@@ -246,9 +247,10 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | platform p1_p2_vida (?-2019) | `brands[volvo].platforms[p1_p2_vida]` | volvo_vida |
 | platform cma_spa2 (2020-now) | `brands[volvo].platforms[cma_spa2]` | vpic |
 | profiled_level routes_sourced | `brands[volvo].profiled_level` | derived |
-| identity block: 1 vendor field(s) on top of ISO | `brands[subaru].identity_block` | research:4-honda--acura-mazda-subaru-mitsubishi |
-| platform solterra_bz4x (2023-now) | `brands[subaru].platforms[solterra_bz4x]` | research:4-honda--acura-mazda-subaru-mitsubishi |
-| profiled_level routes_sourced | `brands[subaru].profiled_level` | derived |
+| module 7E0/7E8 dropped: its only citation says nothing credible was found | `brands[subaru].modules[7E0]` | research:honda--acura-mazda-subaru-mitsubishi |
+| identity block: 1 vendor field(s) on top of ISO | `brands[subaru].identity_block` | research:honda--acura-mazda-subaru-mitsubishi |
+| platform solterra_bz4x (2023-now) | `brands[subaru].platforms[solterra_bz4x]` | research:honda--acura-mazda-subaru-mitsubishi |
+| profiled_level standard_only | `brands[subaru].profiled_level` | derived |
 | platform outlander_phev (2013-now) | `brands[mitsubishi].platforms[outlander_phev]` | car_hacking |
 | profiled_level standard_only | `brands[mitsubishi].profiled_level` | derived |
 | platform model_3_y (2017-now) | `brands[tesla].platforms[model_3_y]` | vpic |
@@ -258,6 +260,14 @@ and now lives in `data/uds-map.json` at the JSON path shown, with the source it 
 | overlay 013D: tyre temperature at byte 2 (raw - 50 C) imported | `packs/obdb-citroen.json known_dids[013D].decodes[1]` | obdb_citroen |
 | overlay 013E: tyre temperature at byte 2 (raw - 50 C) imported | `packs/obdb-citroen.json known_dids[013E].decodes[1]` | obdb_citroen |
 | overlay 013F: tyre temperature at byte 2 (raw - 50 C) imported | `packs/obdb-citroen.json known_dids[013F].decodes[1]` | obdb_citroen |
+
+## Review fixes (PR #57 review, 2026-08-28)
+
+- hyundai_kia `0101` decodes at bytes 14/15 are unsigned: the cited OVMS `hif_can_poll.cpp` reads them with `get_uint_buff_be<1>`; `E004` accelerator is byte 9 / 2 → `%` (same file, `res / 2.0`).
+- RESEARCH.md anchors: the per-brand headings are `###` under `## 4.`, so slugs carry no `4-` prefix; every `RESEARCH.md#…` url is now checked against the file's heading slugs by `pnpm lint:pack`.
+- No module-level `read_service: "1A"`: RESEARCH §3.3 documents `1A` for identification records (`1A 88 01`, `DF`, `6D`), not as a module's data service. The gm `00DF`/`006D` entries carry a per-DID `read_service`; the toyota and gm platforms keep the fact as notes. Precedence is DID → module → platform → brand → standard (`read_service_for_did`).
+- subaru: the generic 7E0/7E8 module was dropped (its only citation says nothing credible was found) and the brand is `standard_only`.
+- psa `gateway_behaviour.silence_means` is `unreachable_pins` (new value): BSI silence is pin routing on the adapter path, not absence.
 
 ## Facts not migrated (and why)
 

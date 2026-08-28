@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderCoverage } from "../scripts/coverage.ts";
-import { lintPack } from "../scripts/lint.ts";
+import { headingSlug, lintPack, researchAnchors } from "../scripts/lint.ts";
 import { brandTokens, PKG_DIR } from "../scripts/pack.ts";
 import {
   addressesToProbe,
@@ -37,7 +37,9 @@ import {
   platformForVin,
   primaryDecode,
   profiledLevelForVin,
+  readServiceForDid,
   readServiceForModule,
+  resolveReadService,
   responseAddr,
   routeForModule,
 } from "./index.js";
@@ -376,10 +378,39 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     const vin = vinFor(withOverride.id);
     expect(readServiceForModule(vin, hexAny(m21.req)!, hexAny(m21.resp)!)).toBe("21");
     expect(readServiceForModule(vin, hexAny(m22.req)!, hexAny(m22.resp)!)).toBe("22");
-    const with1a = getMap().brands.find((b) => (b.modules ?? []).some((m) => m.read_service === "1A"))!;
-    const m1a = with1a.modules!.find((m) => m.read_service === "1A")!;
-    expect(readServiceForModule(vinFor(with1a.id), hexAny(m1a.req)!, hexAny(m1a.resp)!)).toBe("1A");
     expect(readServiceForModule("ZZZ00000000000000", 0x7e0, 0x7e8)).toBe("22");
+    // No module carries a 1A override: 1A is a per-record service (review fix 3).
+    for (const b of getMap().brands) for (const m of b.modules ?? []) expect(m.read_service, `${b.id} ${m.req}`).not.toBe("1A");
+  });
+
+  it("readServiceForDid: DID > module > platform > brand > standard", () => {
+    expect(resolveReadService({ did: "1A", module: "21", platform: "22", brand: "22", standard: "22" })).toBe("1A");
+    expect(resolveReadService({ module: "21", platform: "22", brand: "22" })).toBe("21");
+    expect(resolveReadService({ platform: "21", brand: "22" })).toBe("21");
+    expect(resolveReadService({ brand: "21", standard: "22" })).toBe("21");
+    expect(resolveReadService({ standard: "21" })).toBe("21");
+    expect(resolveReadService({})).toBe("22");
+    // A DID-level override exists in data (a KWP identification record).
+    const withDid = getMap().brands.find((b) => (b.known_dids ?? []).some((k) => k.read_service))!;
+    const k = withDid.known_dids!.find((k) => k.read_service)!;
+    expect(k.read_service).toBe("1A");
+    if (k.modules?.length) {
+      expect(readServiceForDid(vinFor(withDid.id), hexAny(k.modules[0].req)!, hexAny(k.modules[0].resp)!, hex16(k.did)!)).toBe("1A");
+    }
+    // Unbound entries never influence a module's service.
+    for (const m of withDid.modules ?? []) {
+      const svc = readServiceForDid(vinFor(withDid.id), hexAny(m.req)!, hexAny(m.resp)!, hex16(k.did)!);
+      expect(svc).toBe(readServiceForModule(vinFor(withDid.id), hexAny(m.req)!, hexAny(m.resp)!));
+    }
+    // A module-level override flows through the DID accessor.
+    const with21 = getMap().brands.find((b) => (b.modules ?? []).some((m) => m.read_service === "21"))!;
+    const m21 = with21.modules!.find((m) => m.read_service === "21")!;
+    expect(readServiceForDid(vinFor(with21.id), hexAny(m21.req)!, hexAny(m21.resp)!, 0x0001)).toBe("21");
+    // Platform read services are consulted only through a VIN-selectable platform.
+    const patterned = getMap().brands.find((b) => (b.platforms ?? []).some((p) => p.vds_pattern && p.read_service))!;
+    const p = patterned.platforms!.find((p) => p.vds_pattern && p.read_service)!;
+    const literal = p.vds_pattern!.replace(/^\^/, "").replace(/\[([^\]])[^\]]*\]/g, "$1");
+    expect(readServiceForModule(vinFor(patterned.id, literal), 0x0001, 0x0002)).toBe(p.read_service);
   });
 
   it("decodesForDid: module-scoped, empty for other modules and unknown bindings", () => {
@@ -467,6 +498,17 @@ describe("ecu_families (v8/v9)", () => {
 describe("pack lints and coverage (P1.6)", () => {
   it("the shipped pack passes every lint", () => {
     expect(lintPack()).toEqual([]);
+  });
+
+  it("every RESEARCH.md anchor cited by the pack resolves to a heading", () => {
+    expect(headingSlug("### 3.3 Not every brand's data is behind service `0x22`".replace(/^#+\s*/, ""))).toBe("33-not-every-brands-data-is-behind-service-0x22");
+    expect(headingSlug("PSA / Stellantis Europe — **highest confidence in the file**")).toBe("psa--stellantis-europe--highest-confidence-in-the-file");
+    const anchors = researchAnchors();
+    expect(anchors.has("ford")).toBe(true);
+    const raw = readFileSync(join(PKG_DIR, "data", "uds-map.json"), "utf-8");
+    const cited = new Set([...raw.matchAll(/RESEARCH\.md#([^"]+)"/g)].map((m) => m[1]));
+    expect(cited.size).toBeGreaterThan(5);
+    for (const a of cited) expect(anchors.has(a), `#${a}`).toBe(true);
   });
 
   it("brand tokens come from the data and include every brand id", () => {

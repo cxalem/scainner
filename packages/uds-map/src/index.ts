@@ -454,15 +454,42 @@ function standardSource() {
   return { url: "packages/uds-map/RESEARCH.md#1-what-is-in-scope", date: "2026-08-23", type: "community" as const, licence: "MIT" };
 }
 
-/** The read service for one module: module override, then brand default,
- * then the standard default (`22`). */
+/** Read-service precedence shared by both accessors: DID > module >
+ * platform > brand > standard (`22`). Exposed so the precedence itself is
+ * testable without a pack entry for every combination. */
+export function resolveReadService(levels: {
+  did?: ReadService;
+  module?: ReadService;
+  platform?: ReadService;
+  brand?: ReadService;
+  standard?: ReadService;
+}): ReadService {
+  return levels.did ?? levels.module ?? levels.platform ?? levels.brand ?? levels.standard ?? "22";
+}
+
+/** The read service for one module: module override, then the platform
+ * selected by VIN (VDS pattern), then brand default, then the standard
+ * default (`22`). Per-DID overrides are honoured by `readServiceForDid`. */
 export function readServiceForModule(vin: string | null | undefined, req: number, resp: number): ReadService {
-  return (
-    moduleDef(vin, req, resp)?.read_service ??
-    brandForVin(vin)?.read_service ??
-    getMap().standard.read_service ??
-    "22"
-  );
+  return resolveReadService({
+    module: moduleDef(vin, req, resp)?.read_service,
+    platform: platformForVin(vin)?.read_service,
+    brand: brandForVin(vin)?.read_service,
+    standard: getMap().standard.read_service,
+  });
+}
+
+/** The read service for one DID on one module: the DID's own override (a
+ * KWP identification record read with `1A` on a `22` module) first, then
+ * `readServiceForModule` precedence. Only module-bound entries count. */
+export function readServiceForDid(vin: string | null | undefined, req: number, resp: number, did: number): ReadService {
+  return resolveReadService({
+    did: knownDid(vin, did, { req, resp })?.read_service,
+    module: moduleDef(vin, req, resp)?.read_service,
+    platform: platformForVin(vin)?.read_service,
+    brand: brandForVin(vin)?.read_service,
+    standard: getMap().standard.read_service,
+  });
 }
 
 /** Every decode of a DID on exactly this module (empty when the pack has

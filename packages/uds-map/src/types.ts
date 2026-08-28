@@ -161,6 +161,10 @@ export interface KnownDid {
   /** Set when the research does not say which module carries this DID.
    * Such entries are never matched by module-scoped lookups. */
   binding?: "unknown";
+  /** Read service for this record when it differs from the module's (a KWP
+   * identification record read with `1A` on a `22` module). Precedence:
+   * DID > module > platform > brand > standard. */
+  read_service?: ReadService;
   unit?: string | null;
   /** Mirror of `decodes[0]` (kept for v8 consumers; lint checks agreement). */
   offset?: number | null;
@@ -233,7 +237,9 @@ export interface Platform {
   source: Source;
 }
 
-export type SilenceMeans = "absent" | "filtered" | "unknown";
+/** `unreachable_pins`: the module sits on OBD connector pins this adapter
+ * path is not wired to — silence says nothing about the module. */
+export type SilenceMeans = "absent" | "filtered" | "unreachable_pins" | "unknown";
 
 export interface GatewayBehaviour {
   silence_means: SilenceMeans;
