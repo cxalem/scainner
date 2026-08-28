@@ -213,6 +213,20 @@ class Client:
         return self.get("/sync/batch", after_reading_id=after_reading_id, limit=limit)
     def db_path(self): return self.get("/db-path")
 
+    # ---- discovery knowledge layer (Universal Discovery Protocol S3 + coverage) ----
+    def join_vehicle(self, vehicle_id: int):
+        """S3 join: match fingerprinted modules to ecu_families and register inherited
+        + unknown hypotheses. Local and idempotent; the car need not be connected."""
+        return self.post(f"/vehicles/{vehicle_id}/join")
+    def coverage(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/coverage")
+    def hypotheses(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/hypotheses")
+    def patch_hypothesis(self, hypothesis_id: int, **fields):
+        """Any of knowledge_state / vehicle_fit / activation / label. A refused
+        transition raises NotConfirmed (409) with .body['rule'] naming the rule."""
+        return self.request("PATCH", f"/hypotheses/{hypothesis_id}", fields)
+    def learning_state(self): return self.get("/learning-state")
+    def set_learning_state(self, on: bool): return self.request("PUT", "/learning-state", {"on": on})
+
     # ---- export ----
     def export_markdown(self, vehicle_id=None, since_hours=168.0):
         return self.get("/export/markdown", vehicle_id=vehicle_id, since_hours=since_hours)

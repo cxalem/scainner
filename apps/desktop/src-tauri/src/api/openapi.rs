@@ -94,6 +94,13 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/vehicles/{id}/name", "Rename a stored vehicle", &[], Some(r#"{"name": "Grey C4 2006"}"#), false, false),
     r("POST", "/vehicles/{id}/fuel-price", "Set the fuel price used for cost estimates", &[], Some(r#"{"price": 1.62}"#), false, false),
     r("GET", "/modules/{id}/dids", "Discovered DIDs of one module (by discovered_modules.id)", &[], None, false, false),
+    // discovery knowledge layer (Universal Discovery Protocol S3 + coverage)
+    r("GET", "/vehicles/{id}/coverage", "Coverage report from data: vehicle, standard, routes, identified modules, decode states, hypotheses, learning; every line carries evidence ids", &[], None, false, false),
+    r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation", &[], None, false, false),
+    r("POST", "/vehicles/{id}/join", "S3 join: match fingerprinted modules to ecu_families, register inherited + unknown hypotheses. Local, idempotent, no car needed", &[], None, false, false),
+    r("PATCH", "/hypotheses/{id}", "State transition; 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on)", &[], Some(r#"{"vehicle_fit": "matched", "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
+    r("GET", "/learning-state", "Whether learning activation is allowed ({\"on\": bool})", &[], None, false, false),
+    r("PUT", "/learning-state", "Switch the learning state", &[], Some(r#"{"on": true}"#), false, false),
     r("GET", "/fingerprint-experiment", "Local VIN-free ECU fingerprint cohort measurement", &[], None, false, false),
     r("GET", "/probes", "Decode definitions polled live for a vehicle", VEHICLE_Q, None, false, false),
     r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it)", &[], Some(r#"{"vehicle_id": 1, "module": "abs", "did": 54272, "label": "Wheel FL", "unit": "km/h", "offset": 0, "len": 2, "scale": 0.01, "bias": 0}"#), false, false),

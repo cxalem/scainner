@@ -647,41 +647,84 @@ pub fn decode_psa_references(payload: &[u8]) -> Vec<String> {
         .collect()
 }
 
+/// PSA `F0FE` ("ZI zone") payloads end with the current software /
+/// calibration reference as three packed-BCD bytes at offsets 21–23,
+/// printed as `96xxxxxx80` (e.g. `95 04 15` → `9695041580`). Byte 4 is the
+/// supplier code (`0D` = Continental/VDO). Layout per the arduino-psa-diag
+/// `UDS_FLASH.md` and PyPSADiag `IdentUDSECU.json` descriptions, which agree
+/// with each other and with the three ECUs captured on the C4 (research
+/// note `docs/research/c41-abs-did-research.md`, 2026-08-27).
+pub fn decode_psa_software_reference(payload: &[u8]) -> Option<String> {
+    let group = payload.get(21..24)?;
+    let mut digits = String::from("96");
+    for byte in group {
+        let (high, low) = (byte >> 4, byte & 0x0F);
+        if high > 9 || low > 9 {
+            return None;
+        }
+        digits.push(char::from(b'0' + high));
+        digits.push(char::from(b'0' + low));
+    }
+    digits.push_str("80");
+    Some(digits)
+}
+
+fn payload_bytes(observation: &VerificationObservation) -> Vec<u8> {
+    observation
+        .payload_hex
+        .as_deref()
+        .unwrap_or("")
+        .split_whitespace()
+        .filter_map(|pair| u8::from_str_radix(pair, 16).ok())
+        .collect()
+}
+
 /// Build a comparable fingerprint for a verification target from the PSA
 /// identity evidence it answered. Returns None when the target did not yield
 /// a decodable `F080` reference, so nothing is written for silent routes.
 ///
-/// The first reference is stored as the spare part number and the second as
-/// the software reference. That ordering follows the community reading of
-/// PSA `F080` and has not yet been confirmed against a label on this vehicle;
-/// the evidence entries name the source DID so the assumption stays visible.
+/// Field mapping (corrected 2026-08-27 after research): `F080` reference 1 is
+/// the hardware/spare-part reference → `spare_part_number`; `F080` reference
+/// 2 is a *complementary hardware reference* → `hardware_version`; the
+/// software/calibration reference comes from `F0FE` bytes 21–23 →
+/// `software_version`. The evidence entries name the source DID of every
+/// field.
 pub fn psa_identity_fingerprint(target: &VerificationTargetResult) -> Option<EcuFingerprint> {
     let (req, resp) = target.route.split_once('→')?;
-    let f080 = target
-        .observations
-        .iter()
-        .find(|item| item.did == "F080" && item.outcome.status == DiagnosticStatus::Answered)?;
-    let payload: Vec<u8> = f080
-        .payload_hex
-        .as_deref()?
-        .split_whitespace()
-        .filter_map(|pair| u8::from_str_radix(pair, 16).ok())
-        .collect();
-    let references = decode_psa_references(&payload);
+    let answered = |did: &str| {
+        target
+            .observations
+            .iter()
+            .find(|item| item.did == did && item.outcome.status == DiagnosticStatus::Answered)
+    };
+    let f080 = answered("F080")?;
+    let references = decode_psa_references(&payload_bytes(f080));
     let spare_part_number = references.first().cloned()?;
-    let software_version = references.get(1).cloned();
+    let hardware_version = references.get(1).cloned();
     let mut evidence = vec![EcuIdentityEvidence {
         did: 0xF080,
-        label: "PSA identity payload; reference 1 stored as part number, reference 2 as software reference (order unconfirmed on vehicle)".into(),
+        label: "PSA ZA zone: reference 1 = hardware/spare part, reference 2 = complementary hardware reference".into(),
         outcome: f080.outcome.clone(),
         raw_value: f080.payload_hex.clone(),
         decoded_value: Some(references.join(" / ")),
     }];
-    if let Some(serial) = target
-        .observations
-        .iter()
-        .find(|item| item.did == "F18C" && item.outcome.status == DiagnosticStatus::Answered)
-    {
+    let software_version =
+        answered("F0FE").and_then(|f0fe| {
+            let bytes = payload_bytes(f0fe);
+            let software = decode_psa_software_reference(&bytes);
+            evidence.push(EcuIdentityEvidence {
+                did: 0xF0FE,
+                label: format!(
+                "PSA ZI zone: software/calibration reference from bytes 21–23; supplier code {}",
+                bytes.get(4).map(|b| format!("{b:02X}")).unwrap_or_else(|| "?".into())
+            ),
+                outcome: f0fe.outcome.clone(),
+                raw_value: f0fe.payload_hex.clone(),
+                decoded_value: software.clone(),
+            });
+            software
+        });
+    if let Some(serial) = answered("F18C") {
         evidence.push(EcuIdentityEvidence {
             did: 0xF18C,
             label: "ECU serial number (excluded from the match key)".into(),
@@ -691,18 +734,23 @@ pub fn psa_identity_fingerprint(target: &VerificationTargetResult) -> Option<Ecu
         });
     }
     let mut key = format!("part={spare_part_number}");
+    if let Some(hardware) = &hardware_version {
+        key.push_str(&format!("|hw={hardware}"));
+    }
     if let Some(software) = &software_version {
         key.push_str(&format!("|sw={software}"));
     }
+    let fields_answered =
+        1 + u8::from(hardware_version.is_some()) + u8::from(software_version.is_some());
     Some(EcuFingerprint {
         request_address: req.trim().into(),
         response_address: resp.split(" + ").next().unwrap_or(resp).trim().into(),
-        fields_answered: 1 + u8::from(software_version.is_some()),
         spare_part_number: Some(spare_part_number),
-        hardware_version: None,
+        hardware_version,
         software_version,
         system_name: None,
         match_key: Some(key),
+        fields_answered,
         fields_total: 4,
         evidence,
     })
@@ -2750,6 +2798,11 @@ mod tests {
             observations: vec![
                 observation("F18C", "32 38 35", Some("285")),
                 observation("F080", "98 46 12 49 80 00 0D 98 20 60 93 80 70 12", None),
+                observation(
+                    "F0FE",
+                    "FF FF 00 00 0D 56 09 02 16 30 15 11 01 FF FF FF 00 02 00 00 01 95 04 15",
+                    None,
+                ),
             ],
             summary: None,
         };
@@ -2757,12 +2810,15 @@ mod tests {
         assert_eq!(fingerprint.request_address, "6AD");
         assert_eq!(fingerprint.response_address, "68D");
         assert_eq!(fingerprint.spare_part_number.as_deref(), Some("9846124980"));
-        assert_eq!(fingerprint.software_version.as_deref(), Some("9820609380"));
+        assert_eq!(fingerprint.hardware_version.as_deref(), Some("9820609380"));
+        assert_eq!(fingerprint.software_version.as_deref(), Some("9695041580"));
         assert_eq!(
             fingerprint.match_key.as_deref(),
-            Some("part=9846124980|sw=9820609380")
+            Some("part=9846124980|hw=9820609380|sw=9695041580")
         );
-        assert_eq!(fingerprint.fields_answered, 2);
+        assert_eq!(fingerprint.fields_answered, 3);
+        assert!(decode_psa_software_reference(&[0xFF; 24]).is_none());
+        assert!(decode_psa_software_reference(&[0x00; 10]).is_none());
         assert!(!fingerprint.match_key.unwrap().contains("285"));
 
         let silent = VerificationTargetResult {

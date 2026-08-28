@@ -9,6 +9,7 @@
 
 use crate::db::{self, Db};
 use crate::elm;
+use crate::elm::discovery;
 use crate::elm::obd::{DtcResult, EcuInfo, SensorReading};
 use crate::elm::supervisor::{ConnStatus, Request, Supervisor};
 use crate::elm::uds::ClearOutcome;
@@ -470,6 +471,60 @@ pub fn list_verification_runs(
 
 pub fn verification_run(state: &AppState, id: i64) -> Option<(db::VerificationRunRow, String)> {
     state.db.verification_run(id)
+}
+
+// ---------- discovery knowledge layer (plan A6) ----------
+
+/// S3 join for one vehicle: families → inherited hypotheses. Local, no car.
+pub fn join_vehicle(state: &AppState, vehicle_id: i64) -> Option<discovery::join::JoinSummary> {
+    state.db.vehicle(vehicle_id)?;
+    Some(discovery::join::join_vehicle(
+        &state.db,
+        elm::uds_map::map(),
+        vehicle_id,
+    ))
+}
+
+pub fn coverage(state: &AppState, vehicle_id: i64) -> Option<discovery::coverage::CoverageReport> {
+    discovery::coverage::coverage(&state.db, elm::uds_map::map(), vehicle_id)
+}
+
+pub fn list_hypotheses(state: &AppState, vehicle_id: i64) -> Vec<db::HypothesisRow> {
+    state.db.list_hypotheses(vehicle_id)
+}
+
+pub fn learning_state(state: &AppState) -> bool {
+    state
+        .db
+        .setting_get(discovery::state::LEARNING_STATE_SETTING)
+        .map(|v| v == "on")
+        .unwrap_or(false)
+}
+
+/// Switch the learning state. Turning it off cascades: every hypothesis
+/// polled as `learning` (on any vehicle) goes back to `disabled`, so the
+/// supervisor never keeps reading DIDs the flag no longer allows. Returns
+/// how many hypotheses were disabled.
+pub fn set_learning_state(state: &AppState, on: bool) -> usize {
+    state.db.setting_set(
+        discovery::state::LEARNING_STATE_SETTING,
+        if on { "on" } else { "off" },
+    );
+    if on {
+        0
+    } else {
+        state.db.disable_learning_hypotheses()
+    }
+}
+
+/// State transition with the rules enforced; `Err` is the violated rule.
+pub fn patch_hypothesis(
+    state: &AppState,
+    id: i64,
+    patch: &db::HypothesisPatch,
+) -> Result<Option<db::HypothesisRow>, discovery::state::RuleViolation> {
+    let learning_on = learning_state(state);
+    state.db.patch_hypothesis(id, patch, learning_on)
 }
 
 /// Markdown briefing about the car, ready to paste into any AI chat.
