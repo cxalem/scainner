@@ -320,6 +320,15 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/vehicles/{id}/name", post(set_vehicle_name))
         .route("/vehicles/{id}/fuel-price", post(set_fuel_price))
         .route("/modules/{id}/dids", get(module_dids))
+        // discovery knowledge layer
+        .route("/vehicles/{id}/coverage", get(vehicle_coverage))
+        .route("/vehicles/{id}/hypotheses", get(vehicle_hypotheses))
+        .route("/vehicles/{id}/join", post(vehicle_join))
+        .route("/hypotheses/{id}", axum::routing::patch(patch_hypothesis))
+        .route(
+            "/learning-state",
+            get(learning_state).put(set_learning_state),
+        )
         .route("/fingerprint-experiment", get(fingerprint_experiment))
         .route("/probes", get(probes).post(add_probe))
         .route(
@@ -751,6 +760,88 @@ async fn module_dids(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> A
     ok(ops::discovered_dids(&api.state, id))
 }
 
+// ---------- discovery knowledge layer ----------
+
+fn no_vehicle(id: i64) -> ApiError {
+    ApiError::msg(StatusCode::NOT_FOUND, format!("no vehicle #{id}"))
+}
+
+async fn vehicle_coverage(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    match ops::coverage(&api.state, id) {
+        Some(report) => ok(report),
+        None => Err(no_vehicle(id)),
+    }
+}
+
+async fn vehicle_hypotheses(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    if ops::vehicle_info(&api.state, id).is_none() {
+        return Err(no_vehicle(id));
+    }
+    ok(ops::list_hypotheses(&api.state, id))
+}
+
+async fn vehicle_join(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    match ops::join_vehicle(&api.state, id) {
+        Some(summary) => ok(summary),
+        None => Err(no_vehicle(id)),
+    }
+}
+
+/// State transition on one hypothesis. A rule violation is a 409 whose body
+/// names the rule and the reason, so an agent can explain instead of retry.
+async fn patch_hypothesis(
+    State(api): State<Arc<ApiState>>,
+    Path(id): Path<i64>,
+    body: Bytes,
+) -> ApiResult {
+    let patch: crate::db::HypothesisPatch = parse_required(&body)?;
+    if patch.knowledge_state.is_none()
+        && patch.vehicle_fit.is_none()
+        && patch.activation.is_none()
+        && patch.label.is_none()
+    {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "send at least one of knowledge_state, vehicle_fit, activation, label",
+        ));
+    }
+    match ops::patch_hypothesis(&api.state, id, &patch) {
+        Ok(Some(row)) => ok(row),
+        Ok(None) => Err(ApiError::msg(
+            StatusCode::NOT_FOUND,
+            format!("no hypothesis #{id}"),
+        )),
+        // A value outside the vocabulary is a malformed request (400); a
+        // real transition rule is a conflict with the row's state (409).
+        Err(violation) => {
+            let status = if violation.rule == "unknown_state_value" {
+                StatusCode::BAD_REQUEST
+            } else {
+                StatusCode::CONFLICT
+            };
+            Err(ApiError::new(
+                status,
+                json!({ "error": violation.reason, "rule": violation.rule }),
+            ))
+        }
+    }
+}
+
+async fn learning_state(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(json!({ "on": ops::learning_state(&api.state) }))
+}
+
+#[derive(Deserialize)]
+struct LearningStateBody {
+    on: bool,
+}
+
+async fn set_learning_state(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: LearningStateBody = parse_required(&body)?;
+    let disabled = ops::set_learning_state(&api.state, b.on);
+    ok(json!({ "on": b.on, "disabled": disabled }))
+}
+
 async fn fingerprint_experiment(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::fingerprint_experiment(&api.state))
 }
@@ -1048,6 +1139,192 @@ mod tests {
         assert!(body.as_array().unwrap().iter().any(|m| m["key"] == "abs"));
     }
 
+    /// The knowledge layer end to end through the router: join the seeded
+    /// C4, read its coverage and hypotheses, then walk a hypothesis through
+    /// the state rules.
+    #[tokio::test]
+    async fn join_coverage_and_hypothesis_rules_through_the_router() {
+        let (api, db) = test_api();
+        let c4 = crate::elm::discovery::join::fixtures::seed_c4(&db);
+        let vehicle = c4.vehicle_id;
+
+        let (status, _) = call(&api, "GET", "/vehicles/999/coverage", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        let (status, _) = call(&api, "POST", "/vehicles/999/join", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+
+        let (status, body) = call(
+            &api,
+            "POST",
+            &format!("/vehicles/{vehicle}/join"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["inherited_created"], 16);
+        assert_eq!(body["unknown_created"], 5);
+
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/coverage"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["status"], "partial");
+        assert_eq!(body["decodes"]["inherited_untested"]["count"], 16);
+        assert_eq!(body["identified"]["family_matches"], 3);
+        assert_eq!(body["learning"]["learning_state_on"], false);
+
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/hypotheses"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        let rows = body.as_array().unwrap();
+        assert_eq!(rows.len(), 21);
+        let d400 = rows
+            .iter()
+            .find(|h| h["module_id"] == c4.abs && h["did"] == 0xD400)
+            .unwrap();
+        let id = d400["id"].as_i64().unwrap();
+        assert_eq!(d400["vehicle_fit"], "untested");
+        assert_eq!(d400["activation"], "disabled");
+
+        // Rule: enabled needs matched → 409 naming the rule.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"activation": "enabled"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["rule"], "enabled_requires_matched");
+
+        // Rule: learning needs the learning state.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"activation": "learning"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["rule"], "learning_requires_learning_state");
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/learning-state",
+            Some(TOKEN),
+            Some(r#"{"on": true}"#),
+        )
+        .await;
+        assert_eq!((status, body["on"].as_bool()), (StatusCode::OK, Some(true)));
+        let (status, body) = call(&api, "GET", "/learning-state", Some(TOKEN), None).await;
+        assert_eq!((status, body["on"].as_bool()), (StatusCode::OK, Some(true)));
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"activation": "learning"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["activation"], "learning");
+
+        // A value outside the vocabulary is a 400, not a 409.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"vehicle_fit": "maybe"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(body["rule"], "unknown_state_value");
+
+        // Switching learning off cascades to every learning hypothesis.
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/learning-state",
+            Some(TOKEN),
+            Some(r#"{"on": false}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["on"], false);
+        assert_eq!(body["disabled"], 1);
+        let (_, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/hypotheses"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert!(body
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|h| h["activation"] == "disabled"));
+
+        // Confirming on this car unlocks enabled.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"vehicle_fit": "matched", "activation": "enabled"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["vehicle_fit"], "matched");
+        assert_eq!(body["activation"], "enabled");
+
+        let (status, _) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        let (status, _) = call(
+            &api,
+            "PATCH",
+            "/hypotheses/999",
+            Some(TOKEN),
+            Some(r#"{"label": "x"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+
+        let (_, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/coverage"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(body["decodes"]["matched"]["hypothesis_ids"][0], id);
+        assert_eq!(body["decodes"]["enabled"]["count"], 1);
+    }
+
     /// Every documented route must be served, and every route the decision
     /// record requires must be documented.
     #[tokio::test]
@@ -1089,6 +1366,11 @@ mod tests {
             "/vehicles/{id}/modules",
             "/modules/{id}/dids",
             "/vehicles/{id}/evidence-map",
+            "/vehicles/{id}/coverage",
+            "/vehicles/{id}/hypotheses",
+            "/vehicles/{id}/join",
+            "/hypotheses/{id}",
+            "/learning-state",
             "/fingerprint-experiment",
             "/probes",
             "/probes/{id}",

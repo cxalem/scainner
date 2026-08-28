@@ -1,3 +1,5 @@
+pub mod correlation;
+pub mod discovery;
 pub mod driver;
 pub mod obd;
 pub mod operation;

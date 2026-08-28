@@ -18,7 +18,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Band, Brand, Confidence, KnownDid, ModuleDef, UdsMap } from "./types.js";
+import type { Band, Brand, Confidence, EcuFamily, KnownDid, ModuleDef, UdsMap } from "./types.js";
 
 export type * from "./types.js";
 
@@ -275,4 +275,16 @@ export function decodeKnownDid(known: KnownDid, bytes: number[] | Uint8Array): n
   let raw = 0;
   for (let i = 0; i < len; i++) raw = raw * 256 + arr[offset + i];
   return raw * scale + bias;
+}
+
+/** Every ECU family in the map (empty on maps older than v8). */
+export function ecuFamilies(): EcuFamily[] {
+  return getMap().ecu_families ?? [];
+}
+
+/** The family whose hardware references contain this part reference —
+ * the byte-level match the protocol calls a Strong/Weak join. */
+export function familyForHardwareRef(hardwareRef: string): EcuFamily | undefined {
+  const wanted = hardwareRef.trim();
+  return ecuFamilies().find((f) => f.hardware_refs.some((r) => r === wanted));
 }
