@@ -82,7 +82,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/uds/clear", "Clear one module's fault memory (UDS 14), verified before/after", &[], Some(r#"{"module": "abs", "confirmed": true}"#), true, true),
     // evidence protocol
     r("POST", "/verification/parked", "Run the current parked verification plan (read-only 0x22; minutes). Saves a verification run.", &[], None, true, false),
-    r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "6A0", "resp": "68A", "dids": [54272, 54273], "step": "brake", "condition": "brake pedal pressed", "plan_version": "citroen-c41-v4", "repeats": 3}"#), true, false),
+    r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "6A0", "resp": "68A", "dids": [54272, 54273], "step": "brake", "condition": "brake pedal pressed", "plan_version": "citroen-c41-v3", "repeats": 3}"#), true, false),
     r("GET", "/verification/runs", "Index of saved runs (no JSON bodies), newest first", &[("vehicle_id", "vehicle id"), ("plan_version", "exact plan version"), ("limit", "max rows (default 50)")], None, false, false),
     r("GET", "/verification/runs/{id}", "One run with its full result JSON", &[], None, false, false),
     // knowledge
@@ -258,5 +258,21 @@ mod tests {
         }
         let ops: usize = paths.values().map(|p| p.as_object().unwrap().len()).sum();
         assert_eq!(ops, ROUTES.len(), "document has extra operations");
+    }
+
+    #[test]
+    fn capture_example_uses_the_current_plan_version() {
+        // `ROUTES` is a const slice, so the example is a literal; keep it in
+        // step with the producer's constant rather than a copy of it.
+        let capture = ROUTES
+            .iter()
+            .find(|r| r.path == "/verification/capture")
+            .unwrap();
+        let example: Value = serde_json::from_str(capture.body.unwrap()).unwrap();
+        assert_eq!(
+            example["plan_version"],
+            crate::elm::uds::PARKED_PLAN_VERSION,
+            "OpenAPI example plan_version drifted from the producer"
+        );
     }
 }

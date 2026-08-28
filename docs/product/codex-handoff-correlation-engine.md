@@ -24,7 +24,7 @@ Track B for the exact deliverables and expected results.
 
 You may create/edit only:
 - `apps/desktop/src-tauri/src/elm/correlation/**` except `contract.rs`
-- `apps/desktop/src-tauri/tests/fixtures/correlation/**`
+- `apps/desktop/src-tauri/tests/fixtures/psa/c41/correlation/**`
 - `apps/desktop/src-tauri/src/elm/correlation/README.md`
 - optionally `scripts/correlation_replay.py`
 
@@ -36,7 +36,7 @@ proposed change in the PR description.
 
 ## Inputs you already have (fixtures to convert)
 
-All under `apps/desktop/docs/workflows/evidence/`; read
+All under `apps/desktop/docs/workflows/evidence/psa/c41/`; read
 `apps/desktop/docs/workflows/parked-vehicle-verification.md` for what each
 one is and what was concluded on the car:
 

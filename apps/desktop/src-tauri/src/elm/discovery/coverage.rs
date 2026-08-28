@@ -414,7 +414,12 @@ mod tests {
         let connection = db.start_connection("ELM327", "test");
         db.link_connection_vehicle(connection, c4.vehicle_id);
         let run = db
-            .insert_verification_run(c4.vehicle_id, connection, "citroen-c41-v4", "{}")
+            .insert_verification_run(
+                c4.vehicle_id,
+                connection,
+                crate::elm::uds::PARKED_PLAN_VERSION,
+                "{}",
+            )
             .unwrap();
         join_vehicle(&db, uds_map::map(), c4.vehicle_id);
 

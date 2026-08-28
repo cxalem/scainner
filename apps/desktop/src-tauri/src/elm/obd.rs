@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn replays_a_complete_redacted_citroen_scan() {
-        let raw = include_str!("../../tests/fixtures/elm/citroen-clean-redacted.json");
+        let raw = include_str!("../../tests/fixtures/psa/c41/elm/citroen-clean-redacted.json");
         let mut driver = ElmDriver::from_replay_json(raw).unwrap();
 
         let scan = scan_dtcs(&mut driver).expect("captured scan should decode");
@@ -338,7 +338,9 @@ mod tests {
 
     #[test]
     fn missing_vin_still_returns_the_detected_kline_protocol() {
-        let raw = include_str!("../../tests/fixtures/elm/peugeot-no-vin-redacted.json");
+        let raw = include_str!(
+            "../../tests/fixtures/psa/unknown-platform/elm/peugeot-no-vin-redacted.json"
+        );
         let mut driver = ElmDriver::from_replay_json(raw).unwrap();
 
         let info = read_ecu_info(&mut driver).expect("missing VIN is not a transport failure");

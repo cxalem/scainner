@@ -5,10 +5,10 @@ Execution log for `multi-brand-implementation-plan.md` v1.1. One branch per phas
 Started 2026-08-28.
 
 ## Phase 0 — Hygiene
-- ☐ P0.1 Plan-version producer derives `{brand}-{platform}-v{n}`; fix the `v3`/`v4` mismatch in tests, OpenAPI and docs
-- ☐ P0.2 Correct stale DID counts in `packages/uds-map/README.md` and `RESEARCH.md`
-- ☐ P0.3 Move fixtures and evidence into `{brand}/{platform}/` directories; update paths in tests and scripts
-- ☐ P0.4 `scripts/lint_brand_tokens.py` + CI step with a baseline allow-list that must only shrink
+- ☑ (#56) P0.1 Plan-version producer derives `{brand}-{platform}-v{n}`; fix the `v3`/`v4` mismatch in tests, OpenAPI and docs
+- ☑ (#56) P0.2 Correct stale DID counts in `packages/uds-map/README.md` and `RESEARCH.md`
+- ☑ (#56) P0.3 Move fixtures and evidence into `{brand}/{platform}/` directories; update paths in tests and scripts
+- ☑ (#56) P0.4 `scripts/lint_brand_tokens.py` + CI step with a baseline allow-list that must only shrink
 
 ## Phase 1 — Pack schema v9 and data migration
 - ☐ P1.1 Schema: `read_service` (brand + module), `modules[].route` tuple, `identity_block`, `platforms[]`, `gateway_behaviour`, `profiled_level`, `source` on every entry
@@ -56,3 +56,4 @@ Started 2026-08-28.
 
 ## Log
 - 2026-08-28 — backlog created; Phase 0 started.
+- 2026-08-28 — Phase 0 done on `feat/mb-phase0-hygiene` (#56, stacked on #55): `PARKED_PLAN_VERSION` const, counts corrected (197 / 112 / 3 families / 16 decodes), fixtures and evidence under `psa/c41/` and `psa/unknown-platform/`, `lint_brand_tokens.py` in CI with a 59-token / 9-file baseline. 148 Rust tests, 21 uds-map tests.

@@ -1,5 +1,9 @@
 # ELM replay fixtures
 
+This directory holds only synthetic outcome fixtures. Captures from real
+vehicles live under `../{brand}/{platform}/elm/` (see `../README.md`); the
+rules below apply to those too.
+
 These fixtures exercise scanner workflows through the same `ElmDriver::cmd`
 boundary used by a real adapter. Steps are ordered deliberately: an unexpected,
 missing, or additional command fails the replay instead of returning a convenient

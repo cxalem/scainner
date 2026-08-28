@@ -321,6 +321,12 @@ fn observe_did_evidence(
     }
 }
 
+/// Version tag stamped on every `parked_verification()` report. It names the
+/// plan as it runs today (the v3 target set below: identity DIDs plus the ABS
+/// sweep). Bump it whenever the targets, DIDs or sweep ranges change; tests,
+/// OpenAPI examples and docs read this constant instead of repeating it.
+pub const PARKED_PLAN_VERSION: &str = "citroen-c41-v3";
+
 /// A reproducible, parked-car evidence pass for the unresolved Citroen C4
 /// C41 candidates. Every vehicle-facing request is ReadDataByIdentifier
 /// (0x22) in the ECU's default session. The plan never opens 10 03, controls
@@ -469,7 +475,7 @@ pub fn parked_verification(drv: &mut ElmDriver) -> ParkedVerificationReport {
     }
     ParkedVerificationReport {
         run_id: None,
-        plan_version: "citroen-c41-v3".into(),
+        plan_version: PARKED_PLAN_VERSION.into(),
         safety: "parked, read-only 0x22 requests, default diagnostic session".into(),
         targets: results,
     }

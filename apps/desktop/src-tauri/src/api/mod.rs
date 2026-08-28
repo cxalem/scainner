@@ -1101,7 +1101,7 @@ mod tests {
             .insert_verification_run(
                 vehicle_id,
                 connection_id,
-                "citroen-c41-v4",
+                crate::elm::uds::PARKED_PLAN_VERSION,
                 r#"{"step":"brake"}"#,
             )
             .unwrap();
@@ -1110,8 +1110,10 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body[0]["vin"], "VF7TEST0000000001");
 
-        let path =
-            format!("/verification/runs?vehicle_id={vehicle_id}&plan_version=citroen-c41-v4");
+        let path = format!(
+            "/verification/runs?vehicle_id={vehicle_id}&plan_version={}",
+            crate::elm::uds::PARKED_PLAN_VERSION
+        );
         let (status, body) = call(&api, "GET", &path, Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body[0]["id"], run_id);

@@ -185,7 +185,7 @@ VID=$(sc $API/status | jq -r .vehicle_id)
 cap() {  # $1 step, $2 condition
   sc -X POST $API/verification/capture -d "{
     \"req\":\"6A0\",\"resp\":\"68A\",\"dids\":[54272,54273,54274,54275,54282],
-    \"step\":\"$1\",\"condition\":\"$2\",\"plan_version\":\"citroen-c41-v4\",\"repeats\":3}"
+    \"step\":\"$1\",\"condition\":\"$2\",\"plan_version\":\"citroen-c41-v3\",\"repeats\":3}"
 }
 A1=$(cap baseline "pedal released")        # ask the operator to hold each condition
 B=$(cap brake "brake pedal pressed")
@@ -207,7 +207,7 @@ diff_dids "$A1" "$B"    # DIDs that changed when the pedal was pressed
 diff_dids "$A1" "$A2"   # should be empty: anything here is noise, not signal
 
 # 4. Everything was saved: list and re-read the runs later.
-sc "$API/verification/runs?vehicle_id=$VID&plan_version=citroen-c41-v4" | jq
+sc "$API/verification/runs?vehicle_id=$VID&plan_version=citroen-c41-v3" | jq
 sc $API/verification/runs/$(echo "$B" | jq .run_id) | jq .result
 ```
 
@@ -218,10 +218,10 @@ from scripts.scainner_api import Client
 c = Client()                      # reads api-token / api-port from the app data dir
 c.connect(); c.wait_connected()
 dids = [0xD400, 0xD401, 0xD402, 0xD403, 0xD40A]
-a1 = c.capture("6A0", "68A", dids, "baseline", "pedal released", "citroen-c41-v4")
+a1 = c.capture("6A0", "68A", dids, "baseline", "pedal released", "citroen-c41-v3")
 input("press and hold the brake pedal, then Enter")
-b  = c.capture("6A0", "68A", dids, "brake", "brake pedal pressed", "citroen-c41-v4")
-a2 = c.capture("6A0", "68A", dids, "baseline", "pedal released again", "citroen-c41-v4")
+b  = c.capture("6A0", "68A", dids, "brake", "brake pedal pressed", "citroen-c41-v3")
+a2 = c.capture("6A0", "68A", dids, "baseline", "pedal released again", "citroen-c41-v3")
 print(c.diff_captures(a1, b))     # {did: (baseline payloads, condition payloads)}
 print(c.diff_captures(a1, a2))    # noise floor — should be {}
 ```

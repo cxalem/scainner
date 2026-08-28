@@ -15,8 +15,8 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE = ROOT / "apps/desktop/docs/workflows/evidence"
-OUT = ROOT / "apps/desktop/src-tauri/tests/fixtures/correlation"
+EVIDENCE = ROOT / "apps/desktop/docs/workflows/evidence/psa/c41"
+OUT = ROOT / "apps/desktop/src-tauri/tests/fixtures/psa/c41/correlation"
 CAMERA_SOURCE = None
 
 

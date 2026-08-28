@@ -4,7 +4,7 @@
 Each subcommand is one test from the protocol's next-actions list. Every
 request is read-only except `dtc`, which sends the confirm-gated UDS 14
 clear on the engine ECU at the operator's explicit request. Raw evidence
-is written to apps/desktop/docs/workflows/evidence/.
+is written to apps/desktop/docs/workflows/evidence/psa/c41/.
 
   python3 scripts/c41_session2.py connect          # connect + wait
   python3 scripts/c41_session2.py circle 60        # wheel order: slow tight circle
@@ -18,7 +18,7 @@ import csv, json, os, sys, time
 sys.path.insert(0, os.path.dirname(__file__))
 from scainner_api import Client  # noqa: E402
 
-EVIDENCE = os.path.join(os.path.dirname(__file__), "..", "apps", "desktop", "docs", "workflows", "evidence")
+EVIDENCE = os.path.join(os.path.dirname(__file__), "..", "apps", "desktop", "docs", "workflows", "evidence", "psa", "c41")
 os.makedirs(EVIDENCE, exist_ok=True)
 STAMP = time.strftime("%Y-%m-%d-%H%M")
 api = Client()
