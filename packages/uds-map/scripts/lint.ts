@@ -165,6 +165,8 @@ type ResearchClaim = {
   source_fidelity?: string;
   vehicle_applicability?: string;
   scope?: string;
+  action_if_connected?: string;
+  promotion_test?: string;
   source?: { url?: string; revision?: string; retrieved_at?: string; license?: string };
 };
 
@@ -232,7 +234,8 @@ function lintResearchPacks(problems: string[]): void {
       if (!claim.claim_id || claims.has(claim.claim_id)) problems.push(`${where}: missing or duplicate id`);
       else claims.add(claim.claim_id);
       if (!claim.exact_claim || !claim.scope || !claim.knowledge_state || !claim.source_fidelity) problems.push(`${where}: incomplete evidence fields`);
-      if (claim.vehicle_applicability !== "untested_by_project") problems.push(`${where}: research import must start untested_by_project`);
+      if (!new Set(["untested_by_project", "partially_project_confirmed"]).has(claim.vehicle_applicability ?? "")) problems.push(`${where}: invalid vehicle applicability`);
+      if (pack.pack_id === "existing-brand-hypotheses-v3-delta" && (!claim.action_if_connected || !claim.promotion_test)) problems.push(`${where}: cleaned v3 claims require an action and promotion test`);
       const revision = claim.source?.revision;
       if (!revision || !SHA40.test(revision)) problems.push(`${where}: source revision must be a 40-character commit SHA`);
       if (!claim.source?.url || (revision && !claim.source.url.includes(revision))) problems.push(`${where}: source URL must be pinned to its revision`);

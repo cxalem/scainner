@@ -323,6 +323,11 @@ mod tests {
         vec![(0x74A, 0x64A), (0x6AD, 0x68D), (0x6B5, 0x695)]
     }
 
+    fn vin_for_brand(id: &str) -> String {
+        let brand = map().brands.iter().find(|brand| brand.id == id).unwrap();
+        format!("{}EXAMPLE00000000", brand.wmi[0])
+    }
+
     #[test]
     fn the_generator_reproduces_the_recorded_plan_from_pack_data() {
         let vin = verified_brand_vin();
@@ -444,5 +449,21 @@ mod tests {
         assert_eq!(plan.targets[0].expected_family, "unknown");
         assert!(plan.targets[0].dids.iter().any(|d| d.did == 0xF187));
         assert!(generate(None, &[], map()).targets.is_empty());
+    }
+
+    #[test]
+    fn a_weak_existing_brand_gets_candidate_routes_without_trusted_decodes() {
+        let vin = vin_for_brand("subaru");
+        let plan = generate(Some(&vin), &[], map());
+        let candidates: Vec<&PlanTarget> = plan
+            .targets
+            .iter()
+            .filter(|target| target.key.starts_with("research_"))
+            .collect();
+        assert_eq!(candidates.len(), 2);
+        assert!(candidates.iter().all(|target| target.sweep.is_empty()));
+        assert!(candidates
+            .iter()
+            .all(|target| target.source.contains("vehicle applicability untested")));
     }
 }
