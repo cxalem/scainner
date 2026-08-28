@@ -6,7 +6,7 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 
 | Brand | WMIs | Modules | DIDs | Decodable | Bound | Families | Decodes | On vehicle | Read svc | Identity | Platforms | Level | Gateway | Conf |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---:|---|---|---|
-| psa | 8 | 23 | 33 | 21 | 33 | 3 | 21 (16 ev.) | 17 | 22 | iso + 4 vendor | 1 | decodes_verified | absent | high |
+| psa | 8 | 23 | 33 | 21 | 33 | 3 | 21 (16 ev.) | 17 | 22 | iso + 4 vendor | 1 | decodes_verified | unreachable_pins | high |
 | opel_psa | 3 | 6 | 3 | 3 | 3 | 0 | 3 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
 | vag | 15 | 20 | 31 | 17 | 26 (5 unknown) | 0 | 18 | 0 | 22 | iso + 1 vendor | 3 | routes_sourced | unknown | high |
 | skoda | 4 | 10 | 4 | 0 | 4 | 0 | 0 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
@@ -18,16 +18,16 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 | nissan | 17 | 5 | 11 | 5 | 11 | 0 | 5 | 0 | 21, 22 | iso | 2 (2 vds) | routes_sourced | unknown | high |
 | hyundai_kia | 18 | 16 | 11 | 9 | 9 (2 unknown) | 0 | 113 | 0 | 21, 22 | iso + 2 vendor | 2 | routes_sourced | unknown | high |
 | ford | 22 | 9 | 18 | 16 | 15 (3 unknown) | 0 | 16 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
-| gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 1A, 22 | iso | 2 | routes_sourced | unknown | low |
+| gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 22 | iso | 2 | routes_sourced | unknown | low |
 | fca | 21 | 7 (1) | 7 | 5 | 3 (4 unknown) | 0 | 5 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown, writes blocked | low |
-| toyota | 29 | 10 | 11 | 7 | 6 (5 unknown) | 0 | 8 | 0 | 1A, 22 | iso | 3 | routes_sourced | unknown | high |
+| toyota | 29 | 10 | 11 | 7 | 6 (5 unknown) | 0 | 8 | 0 | 22 | iso | 3 | routes_sourced | unknown | high |
 | honda | 20 | 7 (6) | 7 | 0 | 6 (1 unknown) | 0 | 0 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown | medium |
 | mazda | 15 | 4 | 13 | 11 | 8 (5 unknown) | 0 | 11 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
 | volvo | 9 | 1 (1) | 2 | 2 | 0 (2 unknown) | 0 | 2 | 0 | 22 | iso | 2 (1 vds) | routes_sourced | unknown | medium |
-| subaru | 7 | 1 | 1 | 0 | 0 (1 unknown) | 0 | 0 | 0 | 22 | iso + 1 vendor | 1 | routes_sourced | unknown | low |
+| subaru | 7 | 0 | 1 | 0 | 0 (1 unknown) | 0 | 0 | 0 | — | iso + 1 vendor | 1 | standard_only | unknown | low |
 | mitsubishi | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 1 | standard_only | unknown | low |
 | tesla | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 2 (2 vds) | standard_only | unknown | high |
-| **total** | 251 | 180 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 19 brands | 21 brands | 33 (5 vds) | 1 decodes_verified / 0 routes_verified / 18 routes_sourced / 2 standard_only | 3 brands | |
+| **total** | 251 | 179 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 18 brands | 21 brands | 33 (5 vds) | 1 decodes_verified / 0 routes_verified / 17 routes_sourced / 3 standard_only | 3 brands | |
 
 ## Profiled levels
 
@@ -35,20 +35,19 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 
 - **decodes_verified** (1): psa
 - **routes_verified** (0): —
-- **routes_sourced** (18): opel_psa, vag, skoda, seat, cupra, bmw, mercedes, renault, nissan, hyundai_kia, ford, gm, fca, toyota, honda, mazda, volvo, subaru
-- **standard_only** (2): mitsubishi, tesla
+- **routes_sourced** (17): opel_psa, vag, skoda, seat, cupra, bmw, mercedes, renault, nissan, hyundai_kia, ford, gm, fca, toyota, honda, mazda, volvo
+- **standard_only** (3): subaru, mitsubishi, tesla
 
 ## Decode shapes
 
-- `be`: 223
-- `be/signed`: 9
+- `be`: 225
+- `be/signed`: 7
 - `bitfield[0+4]`: 1
 
 ## Read services and routes
 
-- service `1A` on 1 module(s): toyota 7E2/7EA
 - service `21` on 4 module(s): renault 79B/7BB, renault 745/765, nissan 79B/7BB, hyundai_kia 7D6/7DE
-- route protocol `can11_500`: 171 module(s)
+- route protocol `can11_500`: 170 module(s)
 - route protocol `can29_custom`: 1 module(s)
 - route protocol `can29_normal_fixed`: 8 module(s)
 
@@ -113,14 +112,14 @@ Known DIDs whose module the research does not name (`modules: []`, `binding: "un
 | https://vpic.nhtsa.dot.gov/api/ | oem | public domain (US federal) | nissan, tesla, volvo |
 | packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band | community | MIT | cupra, fca, ford, mercedes, seat, skoda, toyota, vag |
 | packages/uds-map/RESEARCH.md#35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs | community | MIT | bmw, gm, honda |
-| packages/uds-map/RESEARCH.md#4-bmw--mini | community | MIT | bmw |
-| packages/uds-map/RESEARCH.md#4-fca--stellantis-north-america | community | MIT | fca |
-| packages/uds-map/RESEARCH.md#4-ford | community | MIT | ford |
-| packages/uds-map/RESEARCH.md#4-honda--acura-mazda-subaru-mitsubishi | community | MIT | honda, mitsubishi, subaru |
-| packages/uds-map/RESEARCH.md#4-hyundai--kia--genesis | community | MIT | hyundai_kia |
-| packages/uds-map/RESEARCH.md#4-mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin | community | MIT | mercedes |
-| packages/uds-map/RESEARCH.md#4-nissan--infiniti | community | MIT | nissan |
-| packages/uds-map/RESEARCH.md#4-psa--stellantis-europe--highest-confidence-in-the-file | community | MIT | psa |
-| packages/uds-map/RESEARCH.md#4-toyota--lexus | community | MIT | toyota |
-| packages/uds-map/RESEARCH.md#4-vag-vw-audi--škoda-seat-cupra | community | MIT | vag |
+| packages/uds-map/RESEARCH.md#bmw--mini | community | MIT | bmw |
+| packages/uds-map/RESEARCH.md#fca--stellantis-north-america | community | MIT | fca |
+| packages/uds-map/RESEARCH.md#ford | community | MIT | ford |
+| packages/uds-map/RESEARCH.md#honda--acura-mazda-subaru-mitsubishi | community | MIT | honda, mitsubishi, subaru |
+| packages/uds-map/RESEARCH.md#hyundai--kia--genesis | community | MIT | hyundai_kia |
 | packages/uds-map/RESEARCH.md#job-2-outcome-extension-newer-models | community | MIT | honda |
+| packages/uds-map/RESEARCH.md#mercedes-benz--weakest-brand-in-the-file-by-a-wide-margin | community | MIT | mercedes |
+| packages/uds-map/RESEARCH.md#nissan--infiniti | community | MIT | nissan |
+| packages/uds-map/RESEARCH.md#psa--stellantis-europe--highest-confidence-in-the-file | community | MIT | psa |
+| packages/uds-map/RESEARCH.md#toyota--lexus | community | MIT | toyota |
+| packages/uds-map/RESEARCH.md#vag-vw-audi--škoda-seat-cupra | community | MIT | vag |

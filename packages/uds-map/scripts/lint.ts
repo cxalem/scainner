@@ -12,11 +12,69 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { brandTokens, fullScalar, loadMap, loadPacks, PKG_DIR, scalarAgrees, sourceOk } from "./pack.ts";
+import type { Source } from "../src/types.ts";
 import type { Brand, Decode } from "../src/types.ts";
 
 const ENCODINGS = new Set(["be", "le", "bcd", "ascii", "bitfield"]);
 const LEVELS = new Set(["standard_only", "routes_sourced", "routes_verified", "decodes_verified"]);
 const VDS_SUBSET = /^[\^$.\[\]\-?*+A-Z0-9]+$/;
+
+/** GitHub's heading slug: lowercase, drop everything but letters, digits,
+ * spaces and hyphens, spaces to hyphens. */
+export function headingSlug(heading: string): string {
+  return heading
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N} -]/gu, "")
+    .replace(/ /g, "-");
+}
+
+export function researchAnchors(): Set<string> {
+  const text = readFileSync(join(PKG_DIR, "RESEARCH.md"), "utf-8");
+  const out = new Set<string>();
+  for (const line of text.split("\n")) {
+    const m = /^#{1,6}\s+(.*)$/.exec(line);
+    if (m) out.add(headingSlug(m[1]));
+  }
+  return out;
+}
+
+/** Every `Source` in a brand, wherever it sits. */
+function sourcesIn(b: Brand): Source[] {
+  const out: Source[] = [];
+  for (const m of b.modules ?? []) {
+    if (m.source) out.push(m.source);
+    if (m.route?.source) out.push(m.route.source);
+  }
+  for (const band of b.did_bands ?? []) if (band.source) out.push(band.source);
+  for (const k of b.known_dids ?? []) if (k.source) out.push(k.source);
+  if (b.identity_block?.source) out.push(b.identity_block.source);
+  for (const p of b.platforms ?? []) if (p.source) out.push(p.source);
+  if (b.gateway_behaviour?.source) out.push(b.gateway_behaviour.source);
+  out.push(...(b.sources ?? []));
+  return out;
+}
+
+const RESEARCH_URL = /^packages\/uds-map\/RESEARCH\.md(?:#(.*))?$/;
+
+function lintResearchAnchors(map: ReturnType<typeof loadMap>, problems: string[]): void {
+  const anchors = researchAnchors();
+  const seen = new Set<string>();
+  const check = (where: string, s: Source | undefined) => {
+    if (!s) return;
+    const m = RESEARCH_URL.exec(s.url);
+    if (!m) return;
+    const anchor = m[1];
+    if (anchor === undefined || anchors.has(anchor)) return;
+    const key = `${where}:${anchor}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    problems.push(`${where}: RESEARCH.md anchor #${anchor} does not match any heading`);
+  };
+  if (map.standard.identity_block) check("standard.identity_block", map.standard.identity_block.source);
+  for (const b of map.brands) for (const s of sourcesIn(b)) check(b.id, s);
+  for (const f of map.ecu_families ?? []) check(`family ${f.id}`, f.source);
+}
 
 function lintDecode(where: string, d: Decode, problems: string[]): void {
   if (!ENCODINGS.has(d.encoding)) problems.push(`${where}: unknown encoding ${d.encoding}`);
@@ -118,6 +176,7 @@ export function lintPack(): string[] {
     if (!p.id || !p.license || !p.source) problems.push(`overlay ${p.id ?? "?"}: missing id/license/source`);
     for (const b of p.brands) lintBrand(b, problems, true);
   }
+  lintResearchAnchors(map, problems);
   lintCodeForBrandTokens(brandTokens(map), problems);
   return problems;
 }
