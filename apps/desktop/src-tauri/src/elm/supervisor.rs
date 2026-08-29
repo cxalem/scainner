@@ -594,7 +594,7 @@ fn run_loop(
 /// are known not to work before reaching the one that does. Rather than
 /// hardcode that assumption (which would be wrong for better-behaved
 /// hardware), we learn it: the level that last succeeded is persisted
-/// (`car_info` key `bt_connect_level`) and the ladder starts there next
+/// (`app_settings` key `bt_connect_level:<adapter identity>`) and the ladder starts there next
 /// time. A dongle that only ever needs attempt 0 stays fast forever; one
 /// that needs attempt 2 skips straight to it after the first connection.
 fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
@@ -631,11 +631,11 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
         }
     };
     let pin = profile.pin.clone();
-    let start = db
-        .setting_get("bt_connect_level")
-        .and_then(|v| v.parse::<u8>().ok())
-        .filter(|&level| level <= 2)
-        .unwrap_or(0);
+    // The learned level is per adapter (review #65): a level 2 learned on
+    // a sulking Bluetooth dongle must not make a USB adapter skip the only
+    // step that can work for it.
+    let level_key = profile.learned_level_key();
+    let start = profile.ladder_start(db.setting_get(&level_key));
     if start > 0 {
         log::debug!("connect: skipping to attempt {start} (learned from last successful connect)");
     }
@@ -684,18 +684,21 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                 for probe_try in 0..tries {
                     let probe = d.cmd("ATZ", per_try);
                     log::trace!("connect attempt {attempt} probe {probe_try}: ATZ -> {probe:?}");
-                    if matches!(&probe, Ok(r) if r.contains("ELM")) {
+                    if ElmDriver::reset_alive(&probe) {
                         alive = true;
                         break;
                     }
                     std::thread::sleep(Duration::from_secs(1));
                 }
                 if alive {
-                    db.setting_set("bt_connect_level", &attempt.to_string());
+                    db.setting_set(&level_key, &attempt.to_string());
                     return Ok(d);
                 }
                 if attempt == 2 {
-                    return Err("port opens but ELM stays silent after 3 BT cycles".into());
+                    return Err(
+                        "port opens but the adapter never returns a prompt after 3 BT cycles"
+                            .into(),
+                    );
                 }
             }
             Err(e) => {
@@ -720,12 +723,12 @@ fn connect_tcp(profile: &AdapterProfile) -> Result<ElmDriver, String> {
             Ok(mut d) => {
                 for _ in 0..2 {
                     let probe = d.cmd("ATZ", Duration::from_secs(5));
-                    if matches!(&probe, Ok(r) if r.contains("ELM")) {
+                    if ElmDriver::reset_alive(&probe) {
                         return Ok(d);
                     }
                     std::thread::sleep(Duration::from_secs(1));
                 }
-                last = "socket opens but ELM stays silent".into();
+                last = "socket opens but the adapter never returns a prompt".into();
             }
             Err(e) => {
                 log::debug!("tcp connect attempt {attempt}: {e}");

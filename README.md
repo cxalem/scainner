@@ -104,6 +104,14 @@ app's settings (or over the API: `GET /adapters` lists candidate serial ports
 and paired Bluetooth devices, `GET|PUT /adapter` reads/writes the profile);
 nothing about a particular dongle is compiled in.
 
+Supported adapter classes: genuine ELM327 and its clones (any firmware
+version), STN11xx/STN22xx-based adapters such as OBDLink (identified via
+`STI`), and generic AT-compatible adapters that print no banner at all.
+The liveness check only requires that a reset (`ATZ`) comes back with a
+prompt; the identification string from `ATI` (or `STI`) is recorded as
+`device_kind`. Adapters that do not speak the ELM AT command set
+(J2534 pass-thru, proprietary USB protocols) are not supported.
+
 The profile (`app_settings` keys `adapter.*`):
 
 | key | meaning |

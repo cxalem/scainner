@@ -76,7 +76,14 @@ impl TimingProfile {
     }
 }
 
+/// The JSON field names of `AdapterProfile`, for rejecting unknown keys in
+/// a partial `PUT /adapter` body instead of silently dropping them.
+pub const FIELDS: [&str; 8] = [
+    "kind", "path", "bt_addr", "pin", "host", "port", "baud", "timing",
+];
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AdapterProfile {
     pub kind: AdapterKind,
     /// Serial port path (`elm_serial`).
@@ -168,6 +175,49 @@ impl AdapterProfile {
         ]
     }
 
+    /// What physically identifies this adapter: the Bluetooth address, else
+    /// the serial path, else `host:port`. The learned Bluetooth escalation
+    /// level is keyed by it so a level learned on one dongle never applies
+    /// to a different adapter.
+    pub fn identity(&self) -> String {
+        match self.kind {
+            AdapterKind::ElmSerial => format!(
+                "{}:{}",
+                self.kind.as_str(),
+                self.bt_addr
+                    .clone()
+                    .or_else(|| self.path.clone())
+                    .unwrap_or_default()
+            ),
+            AdapterKind::TcpElm => format!(
+                "{}:{}:{}",
+                self.kind.as_str(),
+                self.host.clone().unwrap_or_default(),
+                self.port
+            ),
+        }
+    }
+
+    /// `app_settings` key of the escalation level last known to work for
+    /// this adapter (`bt_connect_level:<identity>`).
+    pub fn learned_level_key(&self) -> String {
+        format!("bt_connect_level:{}", self.identity())
+    }
+
+    /// Where the Bluetooth escalation ladder starts: the stored level for
+    /// this adapter, but always 0 when there is no Bluetooth address — the
+    /// ladder's steps 1 and 2 cannot run for a USB adapter, so a learned
+    /// level would only skip the one step that can succeed.
+    pub fn ladder_start(&self, stored: Option<String>) -> u8 {
+        if self.bt_addr.is_none() {
+            return 0;
+        }
+        stored
+            .and_then(|v| v.parse::<u8>().ok())
+            .filter(|&level| level <= 2)
+            .unwrap_or(0)
+    }
+
     /// Trim every field and treat blanks as unset (a JSON body with
     /// `"path": ""` means "clear it"); MACs are lower-cased.
     pub fn normalized(mut self) -> Self {
@@ -195,6 +245,13 @@ impl AdapterProfile {
                     return Err("adapter.port must be 1..65535".into());
                 }
             }
+        }
+        if !super::elm_serial::SUPPORTED_BAUDS.contains(&self.baud) {
+            return Err(format!(
+                "adapter.baud {} is not supported (use one of {:?})",
+                self.baud,
+                super::elm_serial::SUPPORTED_BAUDS
+            ));
         }
         if self.pin.is_empty()
             || self.pin.len() > 16
@@ -337,6 +394,53 @@ mod tests {
             back, original,
             "empty stored values must not fall back to the environment"
         );
+    }
+
+    #[test]
+    fn the_learned_ladder_level_is_per_adapter_and_ignored_without_bluetooth() {
+        let usb = AdapterProfile {
+            path: Some("/dev/ttyUSB0".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            usb.ladder_start(Some("2".into())),
+            0,
+            "no bt_addr: always attempt 0"
+        );
+        assert_eq!(usb.identity(), "elm_serial:/dev/ttyUSB0");
+
+        let bt = AdapterProfile {
+            path: Some("/dev/cu.OBDII".into()),
+            bt_addr: Some("aa-bb-cc-dd-ee-ff".into()),
+            ..Default::default()
+        };
+        assert_eq!(bt.ladder_start(Some("2".into())), 2);
+        assert_eq!(bt.ladder_start(Some("7".into())), 0, "out of range → 0");
+        assert_eq!(bt.ladder_start(None), 0);
+        assert_eq!(
+            bt.learned_level_key(),
+            "bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff"
+        );
+        assert_ne!(usb.learned_level_key(), bt.learned_level_key());
+
+        let wifi = AdapterProfile {
+            kind: AdapterKind::TcpElm,
+            host: Some("192.168.0.10".into()),
+            ..Default::default()
+        };
+        assert_eq!(wifi.identity(), "tcp_elm:192.168.0.10:35000");
+    }
+
+    #[test]
+    fn unsupported_baud_rates_are_rejected_by_validate() {
+        let p = AdapterProfile {
+            path: Some("/dev/ttyUSB0".into()),
+            baud: 12345,
+            ..Default::default()
+        };
+        assert!(p.validate().unwrap_err().contains("adapter.baud"));
+        let p = AdapterProfile { baud: 38400, ..p };
+        assert!(p.validate().is_ok());
     }
 
     #[test]

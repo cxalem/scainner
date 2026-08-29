@@ -93,44 +93,65 @@ impl ElmDriver {
         self.extended_session_open = open;
     }
 
-    /// ATZ (retried) → ATI/STI (banner) → ATE0 → ATSP0. Returns the ELM
-    /// version string.
-    pub fn init(&mut self) -> Result<String, ElmError> {
-        let mut version = None;
-        for _ in 0..5 {
-            match self.cmd("ATZ", Duration::from_secs(6)) {
-                Ok(r) if r.contains("ELM") => {
-                    version = Some(
-                        r.split(['\r', '\n'])
-                            .map(str::trim)
-                            .find(|l| l.contains("ELM"))
-                            .unwrap_or("ELM327")
-                            .to_string(),
-                    );
-                    break;
-                }
-                _ => std::thread::sleep(self.timing.scale(Duration::from_millis(800))),
-            }
+    /// The liveness rule for a reset (`ATZ`) answer: the adapter is alive
+    /// when it came back with a prompt and no error — whatever it printed
+    /// as a banner. STN chips, generic clones and adapters that print no
+    /// banner at all pass; a silent link or an error does not.
+    pub fn reset_alive(probe: &Result<String, ElmError>) -> bool {
+        match probe {
+            Ok(r) => r.contains('>') && !r.to_ascii_uppercase().contains("ERROR"),
+            Err(_) => false,
         }
-        let version =
-            version.ok_or_else(|| ElmError::Handshake("no ELM banner after ATZ".into()))?;
+    }
+
+    /// First non-empty, non-`?`/`OK` line of an adapter answer, prompt
+    /// stripped.
+    fn first_line(raw: &str) -> Option<String> {
+        raw.split(['\r', '\n'])
+            .map(|l| l.trim().trim_end_matches('>').trim())
+            .find(|l| !l.is_empty() && *l != "?" && !l.eq_ignore_ascii_case("OK"))
+            .map(str::to_string)
+    }
+
+    /// ATZ (retried until it returns a prompt) → ATE0 → ATI (and STI, for
+    /// STN chips) → ATSP0. Returns the adapter's identification string:
+    /// the `ATI` banner, else the `STI` one, else the `ELM` line of the
+    /// reset banner, else a generic label.
+    pub fn init(&mut self) -> Result<String, ElmError> {
+        let mut reset = None;
+        for _ in 0..5 {
+            let probe = self.cmd("ATZ", Duration::from_secs(6));
+            if Self::reset_alive(&probe) {
+                reset = probe.ok();
+                break;
+            }
+            std::thread::sleep(self.timing.scale(Duration::from_millis(800)));
+        }
+        let reset = reset
+            .ok_or_else(|| ElmError::Handshake("no prompt after ATZ (adapter silent)".into()))?;
         self.cmd("ATE0", Duration::from_secs(3))?;
-        // The chip's own banner: `ATI` on every ELM-compatible; `STI` only
-        // answers on STN (OBDLink) chips, `?` elsewhere. Best-effort — a
-        // clone that chokes on either still connects.
+        // Identification: `ATI` on every ELM-compatible; `STI` answers on
+        // STN (OBDLink) chips — which also answer `ATI` with an emulated
+        // ELM banner, so it is asked regardless — and `?` elsewhere.
+        // Best-effort: a clone that chokes on either still connects.
         let ati = self.cmd("ATI", Duration::from_secs(3)).unwrap_or_default();
         let sti = self.cmd("STI", Duration::from_secs(3)).ok();
         let kind = transport::profile::device_kind_from_banner(&ati, sti.as_deref());
-        let banner = ati
-            .split(['\r', '\n'])
-            .map(|l| l.trim().trim_end_matches('>').trim())
-            .find(|l| !l.is_empty())
-            .map(str::to_string);
+        let banner = Self::first_line(&ati)
+            .or_else(|| sti.as_deref().and_then(Self::first_line))
+            .or_else(|| {
+                reset
+                    .split(['\r', '\n'])
+                    .map(str::trim)
+                    .find(|l| l.contains("ELM"))
+                    .map(str::to_string)
+            })
+            .unwrap_or_else(|| "ELM327-compatible (no banner)".to_string());
         log::info!("adapter banner {banner:?} → device_kind {kind}");
-        self.banner = banner.or_else(|| Some(version.clone()));
+        self.banner = Some(banner.clone());
         self.device_kind = Some(kind);
         self.cmd("ATSP0", Duration::from_secs(3))?;
-        Ok(version)
+        Ok(banner)
     }
 }
 
@@ -214,6 +235,73 @@ mod tests {
         let info = driver.describe();
         assert_eq!(info.kind, "replay");
         assert_eq!(info.banner.as_deref(), Some("ELM327 v2.3"));
+        driver.assert_replay_complete();
+    }
+
+    fn handshake(atz: &str, ati: &str, sti: &str) -> String {
+        format!(
+            r#"{{
+            "schema_version": 1,
+            "name": "handshake",
+            "contains_vehicle_identifiers": false,
+            "steps": [
+                {{"command": "ATZ", "response": {atz}}},
+                {{"command": "ATE0", "response": "OK\r>"}},
+                {{"command": "ATI", "response": {ati}}},
+                {{"command": "STI", "response": {sti}}},
+                {{"command": "ATSP0", "response": "OK\r>"}}
+            ]
+        }}"#
+        )
+    }
+
+    #[test]
+    fn an_stn_style_banner_connects_and_identifies_the_chip() {
+        let raw = handshake(
+            r#""\r\rSTN1170 v4.0.1\r\r>""#,
+            r#""ELM327 v1.3a\r>""#,
+            r#""STN1170 v4.0.1\r>""#,
+        );
+        let mut driver = ElmDriver::from_replay_json(&raw).unwrap();
+        assert_eq!(driver.init().unwrap(), "ELM327 v1.3a");
+        assert_eq!(driver.device_kind(), "stn1170");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn a_prompt_only_reset_is_alive_and_gets_a_generic_label() {
+        let raw = handshake(r#""\r\r>""#, r#""?\r>""#, r#""?\r>""#);
+        let mut driver = ElmDriver::from_replay_json(&raw).unwrap();
+        assert_eq!(driver.init().unwrap(), "ELM327-compatible (no banner)");
+        assert_eq!(driver.device_kind(), "elm_unknown");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn a_reset_without_a_prompt_is_not_alive() {
+        assert!(!ElmDriver::reset_alive(&Ok("ELM327 v1.5".into())));
+        assert!(!ElmDriver::reset_alive(&Ok("BUS ERROR\r>".into())));
+        assert!(!ElmDriver::reset_alive(&Err(ElmError::NoResponse)));
+        assert!(ElmDriver::reset_alive(&Ok("\r\r>".into())));
+        assert!(ElmDriver::reset_alive(&Ok("STN1170 v4.0.1\r\r>".into())));
+
+        let raw = r#"{
+            "schema_version": 1,
+            "name": "silent adapter",
+            "contains_vehicle_identifiers": false,
+            "steps": [
+                {"command": "ATZ", "error": "no_response"},
+                {"command": "ATZ", "error": "no_response"},
+                {"command": "ATZ", "error": "no_response"},
+                {"command": "ATZ", "error": "no_response"},
+                {"command": "ATZ", "error": "no_response"}
+            ]
+        }"#;
+        let replay = transport::replay::Replay::from_json(raw).unwrap();
+        // Fast timing keeps the five retry sleeps short.
+        let mut driver = ElmDriver::new(Box::new(replay), TimingProfile::Fast);
+        let err = driver.init().unwrap_err();
+        assert!(matches!(err, ElmError::Handshake(_)), "{err}");
         driver.assert_replay_complete();
     }
 

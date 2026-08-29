@@ -484,6 +484,10 @@ pub fn set_adapter_profile(
     for (key, value) in profile.to_settings() {
         state.db.setting_set(key, &value);
     }
+    // A changed profile is a different (or differently reachable) adapter:
+    // forget the escalation level learned for it so the ladder starts from
+    // the cheap step again.
+    state.db.setting_set(&profile.learned_level_key(), "0");
     Ok(profile)
 }
 

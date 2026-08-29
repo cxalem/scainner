@@ -9,6 +9,11 @@ use super::{read_until_prompt, Transport, TransportInfo};
 use crate::elm::driver::ElmError;
 use std::time::Duration;
 
+/// The baud rates the termios path can set. `AdapterProfile::validate`
+/// rejects anything else so a bad setting fails at `PUT /adapter`, not at
+/// connect time.
+pub const SUPPORTED_BAUDS: [u32; 6] = [9600, 19200, 38400, 57600, 115_200, 230_400];
+
 pub struct ElmSerial {
     #[cfg(unix)]
     fd: std::os::unix::io::RawFd,
@@ -25,7 +30,7 @@ impl ElmSerial {
     pub fn open(path: &str, baud: u32) -> Result<Self, ElmError> {
         let speed = baud_constant(baud).ok_or_else(|| {
             ElmError::Open(format!(
-                "unsupported baud rate {baud} (use 9600, 19200, 38400, 57600, 115200 or 230400)"
+                "unsupported baud rate {baud} (supported: {SUPPORTED_BAUDS:?})"
             ))
         })?;
         let path_owned = path.to_string();

@@ -1013,6 +1013,20 @@ async fn adapter_set(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult
             "body must be a JSON object of adapter profile fields",
         ));
     };
+    let unknown: Vec<&str> = patch
+        .keys()
+        .map(String::as_str)
+        .filter(|k| !crate::elm::transport::profile::FIELDS.contains(k))
+        .collect();
+    if !unknown.is_empty() {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            format!(
+                "unknown adapter profile field(s) {unknown:?}; valid fields are {:?}",
+                crate::elm::transport::profile::FIELDS
+            ),
+        ));
+    }
     for (key, value) in patch {
         merged.insert(key, value);
     }
@@ -1144,6 +1158,50 @@ mod tests {
         let (status, body) = call(&api, "GET", "/adapters", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert!(body["adapters"].is_array());
+
+        // Review #65: unknown keys are refused, not silently dropped.
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/adapter",
+            Some(TOKEN),
+            Some(r#"{"hots": "192.168.0.11"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert!(
+            body["error"].as_str().unwrap_or("").contains("hots"),
+            "{body}"
+        );
+
+        // Review #65: baud is validated against the serial transport's list.
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/adapter",
+            Some(TOKEN),
+            Some(r#"{"baud": 12345}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+
+        // Review #65: a profile change resets the learned escalation level
+        // for that adapter, and the level is keyed per adapter.
+        db.setting_set("bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff", "2");
+        let (status, _) = call(
+            &api,
+            "PUT",
+            "/adapter",
+            Some(TOKEN),
+            Some(r#"{"kind": "elm_serial", "path": "/dev/cu.OBDII", "bt_addr": "AA-BB-CC-DD-EE-FF"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(
+            db.setting_get("bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff")
+                .as_deref(),
+            Some("0")
+        );
     }
 
     #[tokio::test]
