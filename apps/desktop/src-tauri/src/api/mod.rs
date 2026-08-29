@@ -313,7 +313,10 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/verification/runs/{id}", get(verification_run))
         // knowledge
         .route("/vehicles", get(vehicles))
-        .route("/vehicles/{id}", get(vehicle))
+        .route(
+            "/vehicles/{id}",
+            get(vehicle).delete(delete_vehicle_private_data),
+        )
         .route("/vehicles/{id}/modules", get(vehicle_modules))
         .route("/vehicles/{id}/evidence-map", get(vehicle_evidence_map))
         .route("/vehicles/{id}/report", get(vehicle_report))
@@ -325,6 +328,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/vehicles/{id}/parked-plan", get(vehicle_parked_plan))
         .route("/vehicles/{id}/hypotheses", get(vehicle_hypotheses))
         .route("/vehicles/{id}/join", post(vehicle_join))
+        .route("/knowledge/candidates", get(knowledge_candidates))
         .route("/hypotheses/{id}", axum::routing::patch(patch_hypothesis))
         .route(
             "/learning-state",
@@ -710,6 +714,10 @@ async fn vehicles(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::list_vehicles(&api.state))
 }
 
+async fn knowledge_candidates(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::knowledge_candidates(&api.state))
+}
+
 async fn vehicle(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
     match ops::vehicle_info(&api.state, id) {
         Some(v) => ok(v),
@@ -718,6 +726,39 @@ async fn vehicle(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiRe
             format!("no vehicle #{id}"),
         )),
     }
+}
+
+async fn delete_vehicle_private_data(
+    State(api): State<Arc<ApiState>>,
+    Path(id): Path<i64>,
+    body: Bytes,
+) -> ApiResult {
+    let confirmation: ConfirmBody = parse_body(&body)?;
+    let Some(vehicle) = ops::vehicle_info(&api.state, id) else {
+        return Err(no_vehicle(id));
+    };
+    if !confirmation.confirmed {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            json!({
+                "error": "Vehicle deletion is permanent. Re-send with {\"confirmed\":true}.",
+                "confirm_with": { "confirmed": true },
+                "vehicle": vehicle,
+                "reusable_knowledge_candidates": ops::knowledge_candidates(&api.state).len(),
+            }),
+        ));
+    }
+    if !ops::delete_vehicle_private_data(&api.state, id) {
+        return Err(ApiError::msg(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("could not delete private data for vehicle #{id}"),
+        ));
+    }
+    ok(json!({
+        "deleted_vehicle_id": id,
+        "reusable_knowledge_retained": true,
+        "knowledge_candidates": ops::knowledge_candidates(&api.state).len(),
+    }))
 }
 
 async fn vehicle_modules(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {

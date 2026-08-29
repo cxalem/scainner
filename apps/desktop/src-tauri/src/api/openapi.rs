@@ -89,6 +89,7 @@ pub const ROUTES: &[RouteDoc] = &[
     // knowledge
     r("GET", "/vehicles", "Every vehicle known locally", &[], None, false, false),
     r("GET", "/vehicles/{id}", "One vehicle row", &[], None, false, false),
+    r("DELETE", "/vehicles/{id}", "Permanently delete owner-specific vehicle history while retaining de-identified reusable knowledge", &[], Some(r#"{"confirmed": true}"#), false, true),
     r("GET", "/vehicles/{id}/modules", "Discovered modules with DID counts and ECU fingerprints", &[], None, false, false),
     r("GET", "/vehicles/{id}/evidence-map", "Evidence-only topology for one vehicle", &[], None, false, false),
     r("GET", "/vehicles/{id}/report", "Per-vehicle report (stats, scans, connections)", &[], None, false, false),
@@ -99,6 +100,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/vehicles/{id}/coverage", "Coverage report from data: vehicle, standard, routes, identified modules, decode states, hypotheses, learning; every line carries evidence ids", &[], None, false, false),
     r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation", &[], None, false, false),
     r("POST", "/vehicles/{id}/join", "S3 join: match fingerprinted modules to ecu_families, register inherited + unknown hypotheses. Local, idempotent, no car needed", &[], None, false, false),
+    r("GET", "/knowledge/candidates", "De-identified reusable signal knowledge, independent of private vehicle records", &[], None, false, false),
     r("PATCH", "/hypotheses/{id}", "State transition; 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on)", &[], Some(r#"{"vehicle_fit": "matched", "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
     r("GET", "/learning-state", "Whether learning activation is allowed ({\"on\": bool})", &[], None, false, false),
     r("PUT", "/learning-state", "Switch the learning state", &[], Some(r#"{"on": true}"#), false, false),
