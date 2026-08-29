@@ -465,16 +465,16 @@ function buildGuidedSteps(v: DemoVehicle) {
       .slice(0, 3)
       .map((o) => o.did.toUpperCase());
 
-  const baseline = (n: number, next: string | null): GuidedStep => ({
-    id: n === 0 ? "baseline" : `baseline_${n}`,
+  const baseline = (id: string, d: PackDid, next: string | null): GuidedStep => ({
+    id,
     kind: "baseline",
-    module: picked[0] ? moduleOf(picked[0]) : null,
+    module: moduleOf(d),
     hypotheses: [],
     precondition: { parked: true, ignition: "on" },
     instruction: "Leave the vehicle at rest with no driver input, then capture.",
     condition_label: "baseline",
     capture: {
-      dids: picked.map((d) => d.did.toUpperCase()),
+      dids: [d.did.toUpperCase()],
       reference_dids: {},
       repeats,
       hold_seconds: 0,
@@ -489,11 +489,11 @@ function buildGuidedSteps(v: DemoVehicle) {
     on_failure: null,
   });
 
-  const input = (d: PackDid, next: string): GuidedStep => {
+  const input = (d: PackDid, n: number, next: string): GuidedStep => {
     const did = d.did.toUpperCase();
     const text = didText(d) ?? "Hold the condition described by the hypothesis, then capture.";
     return {
-      id: `input_${did.toLowerCase()}`,
+      id: `input_${n}`,
       kind: "input",
       module: moduleOf(d),
       hypotheses: [did],
@@ -512,13 +512,16 @@ function buildGuidedSteps(v: DemoVehicle) {
     };
   };
 
+  // One independent triplet per experiment, chained in order (same shape
+  // as the backend's generator): before-baseline, input, after-baseline.
   const steps: GuidedStep[] = [];
   picked.forEach((d, i) => {
-    const inputId = `input_${d.did.toLowerCase()}`;
-    steps.push(baseline(i, inputId));
-    steps.push(input(d, `baseline_${i + 1}`));
+    const n = i + 1;
+    const next = i + 1 < picked.length ? `baseline_before_${n + 1}` : null;
+    steps.push(baseline(`baseline_before_${n}`, d, `input_${n}`));
+    steps.push(input(d, n, `baseline_after_${n}`));
+    steps.push(baseline(`baseline_after_${n}`, d, next));
   });
-  steps.push(baseline(picked.length, null));
 
   return {
     vehicle_id: v.id,
@@ -860,6 +863,12 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           stored: [], pending: [], permanent: [],
         },
       } as T;
+    }
+    case "uds_read_many": {
+      // Reference reads for a guided step: every asked DID answers with a
+      // stable placeholder payload.
+      const dids = ((args?.dids as number[] | undefined) ?? []).slice(0, 64);
+      return dids.map((did) => ({ did, hex: "00 00", ascii: ".." })) as T;
     }
     case "uds_read":
       return null as T;

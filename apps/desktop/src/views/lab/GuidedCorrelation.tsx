@@ -15,9 +15,13 @@ import { useGuidedSteps, type GuidedStep } from "@/views/lab/plan";
  *
  * The steps are not written here (multi-brand plan P4.2): the backend
  * generates the state tree (universal discovery protocol section 9) from
- * the vehicle's open hypotheses and its known facts, and this card renders
- * whatever it is handed — baseline, input, baseline — with the plan
- * version composed from the pack revision.
+ * the vehicle's open hypotheses and its known facts — one independent
+ * triplet per experiment, `baseline_before_<i>` / `input_<i>` /
+ * `baseline_after_<i>`, all on the input's module and DID set. Captures
+ * are keyed by step id, an input is diffed against ITS before-baseline and
+ * "returned" is judged against ITS after-baseline. Reference DIDs a step
+ * names on other modules are read right before and right after the
+ * primary capture and stored with it.
  */
 
 type Reading = { did: string; payloads: Array<string | null>; stable: boolean; outcome: { status: string; nrc: number | null } };
@@ -30,6 +34,10 @@ type Capture = {
   repeats: number;
   readings: Reading[];
 };
+/** `[before, after]` hex payloads of one reference DID; null = no answer. */
+type ReferenceReads = Record<string, Record<string, [string | null, string | null]>>;
+type StoredCapture = Capture & { step_id: string; references: ReferenceReads; reference_errors: string[] };
+type UdsHit = { did: number; hex: string; ascii: string };
 
 type Verdict = "changed" | "stable" | "noisy" | "missing";
 
@@ -52,12 +60,25 @@ const verdictVariant: Record<Verdict, "ok" | "warn" | "muted" | "error"> = {
   missing: "error",
 };
 
+const hex4 = (n: number) => n.toString(16).toUpperCase().padStart(4, "0");
+/** `REQ/RESP` address → the `/uds/modules` key the backend routes by. */
+const moduleKey = (address: string) => address.replace("/", "_").toLowerCase();
+
+/** The before/after baselines of an input, by position in its triplet. */
+function tripletOf(script: GuidedStep[], index: number): { before: GuidedStep | null; after: GuidedStep | null } {
+  const step = script[index];
+  if (!step || step.kind !== "input") return { before: null, after: null };
+  const before = script[index - 1]?.kind === "baseline" ? script[index - 1] : null;
+  const after = script[index + 1]?.kind === "baseline" ? script[index + 1] : null;
+  return { before, after };
+}
+
 export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean; vehicleId: number | null }) {
   const t = useT();
   const tree = useGuidedSteps(vehicleId);
   const [moduleAddress, setModuleAddress] = useState<string | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [captures, setCaptures] = useState<Capture[]>([]);
+  const [captures, setCaptures] = useState<StoredCapture[]>([]);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +91,7 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
   }, [allSteps]);
 
   useEffect(() => {
-    // Default to the module with the most steps to run.
+    // Default to the module with the most experiments to run.
     setModuleAddress((current) => {
       if (current && modules.includes(current)) return current;
       const counts = modules.map((m) => [m, allSteps.filter((s) => s.kind === "input" && s.module === m).length] as const);
@@ -78,7 +99,7 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
     });
   }, [modules, allSteps]);
 
-  // The tree is linear per module: baseline, input, baseline, …
+  // Triplets share one module, so filtering by module keeps them whole.
   const script: GuidedStep[] = useMemo(
     () => allSteps.filter((s) => s.module === moduleAddress),
     [allSteps, moduleAddress],
@@ -88,16 +109,33 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
   const planVersion = tree.data?.plan_version ?? "";
   const step = script[stepIndex];
   const finished = script.length > 0 && stepIndex >= script.length;
-  const baseline = captures.find((c) => c.condition === "baseline") ?? null;
   const latest = captures[captures.length - 1] ?? null;
+  const byStep = useMemo(() => new Map(captures.map((c) => [c.step_id, c])), [captures]);
   const targetDids = useMemo(() => (step?.capture.dids ?? []).map((d) => parseInt(d, 16)).filter((n) => Number.isFinite(n)), [step]);
   const needsConfirmation = step?.operator_confirmation != null && !confirmed.has(step.id);
+
+  const readReferences = async (s: GuidedStep): Promise<{ reads: Record<string, Record<string, string | null>>; errors: string[] }> => {
+    const reads: Record<string, Record<string, string | null>> = {};
+    const errors: string[] = [];
+    for (const [address, dids] of Object.entries(s.capture.reference_dids)) {
+      const wanted = dids.map((d) => parseInt(d, 16)).filter((n) => Number.isFinite(n));
+      if (wanted.length === 0) continue;
+      try {
+        const hits = await invoke<UdsHit[]>("uds_read_many", { module: moduleKey(address), dids: wanted });
+        reads[address] = Object.fromEntries(wanted.map((d) => [hex4(d), hits.find((h) => h.did === d)?.hex ?? null]));
+      } catch (cause) {
+        errors.push(`${address}: ${String(cause instanceof Error ? cause.message : cause)}`);
+      }
+    }
+    return { reads, errors };
+  };
 
   const capture = async () => {
     if (!req || !resp || !step) return;
     setBusy(true);
     setError(null);
     try {
+      const before = await readReferences(step);
       const result = await invoke<Capture>("correlation_capture", {
         req,
         resp,
@@ -107,7 +145,15 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
         planVersion,
         repeats,
       });
-      setCaptures((all) => [...all, result]);
+      const after = await readReferences(step);
+      const references: ReferenceReads = {};
+      for (const address of new Set([...Object.keys(before.reads), ...Object.keys(after.reads)])) {
+        references[address] = {};
+        for (const did of new Set([...Object.keys(before.reads[address] ?? {}), ...Object.keys(after.reads[address] ?? {})])) {
+          references[address][did] = [before.reads[address]?.[did] ?? null, after.reads[address]?.[did] ?? null];
+        }
+      }
+      setCaptures((all) => [...all, { ...result, step_id: step.id, references, reference_errors: [...before.errors, ...after.errors] }]);
       setStepIndex((i) => i + 1);
     } catch (cause) {
       setError(String(cause instanceof Error ? cause.message : cause));
@@ -117,9 +163,10 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
   };
 
   const skip = () => setStepIndex((i) => {
-    // Skipping an input also skips its return-to-baseline partner.
+    // Skipping an input also skips its after-baseline: the triplet is one
+    // experiment, and half of one is no evidence.
     const next = i + 1;
-    return script[next]?.kind === "baseline" && script[i]?.kind !== "baseline" ? next + 1 : next;
+    return script[next]?.kind === "baseline" && script[i]?.kind === "input" ? next + 1 : next;
   });
 
   const restart = () => {
@@ -128,16 +175,19 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
     setError(null);
   };
 
-  // Per-condition candidates: DIDs that changed during the input AND came
-  // back in the baseline captured right after it.
+  // Per-experiment candidates: DIDs that changed during the input against
+  // its own before-baseline AND came back in its own after-baseline.
   const candidates = useMemo(() => {
     const out: Array<{ condition: string; did: string; before: string; during: string; returned: boolean }> = [];
-    if (!baseline) return out;
-    captures.forEach((c, i) => {
-      if (c.condition === "baseline") return;
-      const after = captures.slice(i + 1).find((x) => x.condition === "baseline");
+    script.forEach((s, i) => {
+      if (s.kind !== "input") return;
+      const c = byStep.get(s.id);
+      const { before: beforeStep, after: afterStep } = tripletOf(script, i);
+      const before = beforeStep ? byStep.get(beforeStep.id) : undefined;
+      const after = afterStep ? byStep.get(afterStep.id) : undefined;
+      if (!c || !before) return;
       for (const reading of c.readings) {
-        const base = baseline.readings.find((r) => r.did === reading.did);
+        const base = before.readings.find((r) => r.did === reading.did);
         if (classify(base, reading) !== "changed") continue;
         const afterReading = after?.readings.find((r) => r.did === reading.did);
         out.push({
@@ -150,14 +200,20 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
       }
     });
     return out;
-  }, [captures, baseline]);
+  }, [script, byStep]);
 
-  const diffRows = useMemo(() => {
-    if (!latest || latest.condition === "baseline" || !baseline) return [];
-    return latest.readings
-      .map((r) => ({ reading: r, base: baseline.readings.find((b) => b.did === r.did), verdict: classify(baseline.readings.find((b) => b.did === r.did), r) }))
+  // Diff of the latest input against ITS before-baseline.
+  const latestDiff = useMemo(() => {
+    const idx = script.findIndex((s) => s.id === latest?.step_id);
+    if (!latest || idx < 0 || script[idx].kind !== "input") return null;
+    const beforeStep = tripletOf(script, idx).before;
+    const before = beforeStep ? byStep.get(beforeStep.id) : undefined;
+    if (!before) return null;
+    const rows = latest.readings
+      .map((r) => ({ reading: r, base: before.readings.find((b) => b.did === r.did), verdict: classify(before.readings.find((b) => b.did === r.did), r) }))
       .sort((a, b) => Number(b.verdict === "changed") - Number(a.verdict === "changed"));
-  }, [latest, baseline]);
+    return { capture: latest, rows };
+  }, [latest, script, byStep]);
 
   const g = t.lab.guidedCorrelation;
   const preconditionText = (s: GuidedStep) => {
@@ -167,6 +223,8 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
     if (typeof s.precondition.engine === "string") parts.push(g.preconditionEngine(s.precondition.engine));
     return parts.join(" ");
   };
+  const referenceRows = (c: StoredCapture) =>
+    Object.entries(c.references).flatMap(([address, dids]) => Object.entries(dids).map(([did, [b, a]]) => ({ address, did, before: b, after: a })));
 
   return (
     <Card>
@@ -206,7 +264,7 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
               </p>
               <span className="flex items-center gap-1">
                 {step.optional && <Badge variant="muted">{g.optional}</Badge>}
-                <Badge variant={step.kind === "baseline" ? "muted" : "default"}>{step.condition_label}</Badge>
+                <Badge variant={step.kind === "baseline" ? "muted" : "default"}>{step.id}</Badge>
               </span>
             </div>
             {preconditionText(step) && (
@@ -215,6 +273,11 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
               </p>
             )}
             <p className="mt-2 text-sm">{step.kind === "baseline" ? g.baselineInstruction : step.instruction}</p>
+            {Object.keys(step.capture.reference_dids).length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {g.references}: {Object.entries(step.capture.reference_dids).map(([m, d]) => `${m} ${d.join(", ")}`).join(" · ")}
+              </p>
+            )}
             {needsConfirmation && (
               <div className="mt-2 rounded-md border border-border bg-background p-2 text-sm">
                 <p className="text-muted-foreground">{g.confirmPrompt}</p>
@@ -252,7 +315,12 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
 
         {latest && (
           <p className="text-xs text-muted-foreground">
-            {g.lastCapture(latest.condition, String(latest.run_id ?? "—"), latest.readings.filter((r) => r.stable).length, latest.readings.length, latest.repeats)}
+            {g.lastCapture(latest.step_id, String(latest.run_id ?? "—"), latest.readings.filter((r) => r.stable).length, latest.readings.length, latest.repeats)}
+          </p>
+        )}
+        {latest && latest.reference_errors.length > 0 && (
+          <p role="alert" className="text-xs text-amber-700 dark:text-amber-400">
+            {g.referenceUnreachable}: {latest.reference_errors.join(" · ")}
           </p>
         )}
 
@@ -279,21 +347,29 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
           </div>
         )}
 
-        {diffRows.length > 0 && (
-          <details className="rounded-md border border-border p-3" open={diffRows.some((r) => r.verdict === "changed")}>
+        {latestDiff && latestDiff.rows.length > 0 && (
+          <details className="rounded-md border border-border p-3" open={latestDiff.rows.some((r) => r.verdict === "changed")}>
             <summary className="cursor-pointer text-sm">
-              {g.diffSummary(latest?.condition ?? "", diffRows.filter((r) => r.verdict === "changed").length, diffRows.filter((r) => r.verdict === "noisy").length)}
+              {g.diffSummary(latestDiff.capture.step_id, latestDiff.rows.filter((r) => r.verdict === "changed").length, latestDiff.rows.filter((r) => r.verdict === "noisy").length)}
             </summary>
             <div className="mt-2 overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead><tr className="text-muted-foreground"><th className="pb-1">{g.thDid}</th><th>{g.thBaseline}</th><th>{g.thThisStep}</th><th>{g.thVerdict}</th></tr></thead>
                 <tbody>
-                  {diffRows.map(({ reading, base, verdict }) => (
+                  {latestDiff.rows.map(({ reading, base, verdict }) => (
                     <tr key={reading.did} className="border-t border-border font-mono">
                       <td className="py-1 pr-3">{reading.did}</td>
                       <td className="py-1 pr-3">{base?.payloads.join(" · ") ?? "—"}</td>
                       <td className="py-1 pr-3">{reading.payloads.map((p) => p ?? "—").join(" · ")}</td>
                       <td className="py-1"><Badge variant={verdictVariant[verdict]}>{g.verdict[verdict]}</Badge></td>
+                    </tr>
+                  ))}
+                  {referenceRows(latestDiff.capture).map((r) => (
+                    <tr key={`${r.address}-${r.did}`} className="border-t border-border font-mono text-muted-foreground">
+                      <td className="py-1 pr-3">{r.address} {r.did}</td>
+                      <td className="py-1 pr-3">{r.before ?? "—"}</td>
+                      <td className="py-1 pr-3">{r.after ?? "—"}</td>
+                      <td className="py-1"><Badge variant="muted">{g.reference}</Badge></td>
                     </tr>
                   ))}
                 </tbody>

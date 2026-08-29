@@ -68,6 +68,12 @@ export type Dictionary = {
       connectedSuffix: string;
       unnamed: (id: number) => string;
     };
+    // Shown while a car is connected but another vehicle is being browsed:
+    // every view is an archive then, live controls are off.
+    archive: {
+      browsing: (name: string) => string;
+      returnToConnected: string;
+    };
   };
   workshop: {
     title: string;
@@ -440,6 +446,9 @@ export type Dictionary = {
       notYet: string;
       candidateNote: string;
       diffSummary: (condition: string, changed: number, noisy: number) => string;
+      references: string;
+      reference: string;
+      referenceUnreachable: string;
       verdict: { changed: string; stable: string; noisy: string; missing: string };
     };
   };

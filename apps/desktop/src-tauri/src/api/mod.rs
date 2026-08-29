@@ -1491,11 +1491,37 @@ mod tests {
         .await;
         let steps = body["steps"].as_array().unwrap();
         assert!(!steps.is_empty());
-        assert_eq!(steps[0]["kind"], "baseline");
-        assert_eq!(steps.len() % 2, 1, "baseline, (input, baseline)*");
+        assert_eq!(
+            steps.len() % 3,
+            0,
+            "(baseline_before, input, baseline_after)*"
+        );
         let mut saw_optional = false;
         for (i, step) in steps.iter().enumerate() {
-            if i % 2 == 1 {
+            let n = i / 3 + 1;
+            match i % 3 {
+                0 => {
+                    assert_eq!(step["id"], format!("baseline_before_{n}"));
+                    assert_eq!(step["kind"], "baseline");
+                    assert_eq!(step["on_success"], steps[i + 1]["id"]);
+                    assert_eq!(step["module"], steps[i + 1]["module"]);
+                    assert_eq!(step["capture"]["dids"], steps[i + 1]["capture"]["dids"]);
+                }
+                2 => {
+                    assert_eq!(step["id"], format!("baseline_after_{n}"));
+                    assert_eq!(step["kind"], "baseline");
+                    assert_eq!(step["module"], steps[i - 1]["module"]);
+                    assert_eq!(step["capture"]["dids"], steps[i - 1]["capture"]["dids"]);
+                    let next = steps
+                        .get(i + 1)
+                        .map(|s| s["id"].clone())
+                        .unwrap_or(serde_json::Value::Null);
+                    assert_eq!(step["on_success"], next, "triplets chain in order");
+                }
+                _ => {}
+            }
+            if i % 3 == 1 {
+                assert_eq!(step["id"], format!("input_{n}"));
                 assert_eq!(step["kind"], "input");
                 assert_eq!(steps[i + 1]["kind"], "baseline");
                 assert_eq!(step["on_success"], steps[i + 1]["id"]);
@@ -1514,6 +1540,13 @@ mod tests {
                 if test.contains("clutch") {
                     assert_eq!(step["applicable_if"]["gearbox"], "manual");
                     assert!(step["operator_confirmation"].is_string());
+                }
+                if test.contains("fall") {
+                    assert!(step["success"]["expected"]
+                        .as_object()
+                        .unwrap()
+                        .values()
+                        .all(|v| v == "monotonic_decrease"));
                 }
             }
         }

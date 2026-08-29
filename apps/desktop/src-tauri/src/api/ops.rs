@@ -651,6 +651,47 @@ pub fn ai_context(state: &AppState, vehicle_id: Option<i64>, since_hours: f64) -
 
 // ---------- guided correlation steps (multi-brand plan P4.2) ----------
 
+#[cfg(test)]
+mod guided_tests {
+    use super::expected_signature;
+
+    #[test]
+    fn signatures_follow_the_wording() {
+        assert_eq!(
+            expected_signature("pump the pedal; expect a fall to ~20 hPa"),
+            "monotonic_decrease"
+        );
+        assert_eq!(
+            expected_signature("value drops while braking"),
+            "monotonic_decrease"
+        );
+        assert_eq!(
+            expected_signature("expect the pressure to decrease"),
+            "monotonic_decrease"
+        );
+        assert_eq!(
+            expected_signature("expect a rise with pedal travel"),
+            "monotonic_increase"
+        );
+        assert_eq!(
+            expected_signature("temperature should increase after start"),
+            "monotonic_increase"
+        );
+        assert_eq!(
+            expected_signature("same slope with an offset"),
+            "monotonic_increase"
+        );
+        assert_eq!(
+            expected_signature("sign follows direction"),
+            "sign_positive"
+        );
+        assert_eq!(
+            expected_signature("press and release three times"),
+            "changed"
+        );
+    }
+}
+
 /// One node of the guided-step state tree (universal discovery protocol §9).
 /// Generated from the vehicle's open hypotheses, never written by hand: the
 /// app renders it, an API client or an agent walks it the same way.
@@ -769,11 +810,19 @@ fn condition_slug(test: &str) -> String {
     out.trim_end_matches('_').to_string()
 }
 
-fn expected_signature(test: &str) -> &'static str {
+/// Per-hypothesis success signature read from the test wording (protocol
+/// section 9: `changed`, `monotonic_increase`, `monotonic_decrease`,
+/// `sign_positive`). Words that describe a fall map to a decrease, words
+/// that describe a rise to an increase; anything else is `changed`.
+pub fn expected_signature(test: &str) -> &'static str {
     let t = test.to_ascii_lowercase();
+    let decreases = ["fall", "drop", "decrease", "lower", "down to"];
+    let increases = ["rise", "increase", "climb", "monotonic", "slope", "grow"];
     if t.contains("sign") {
         "sign_positive"
-    } else if t.contains("monoton") || t.contains("fall") || t.contains("slope") {
+    } else if decreases.iter().any(|w| t.contains(w)) {
+        "monotonic_decrease"
+    } else if increases.iter().any(|w| t.contains(w)) {
         "monotonic_increase"
     } else {
         "changed"
@@ -924,8 +973,9 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
             .map(|d| (d.clone(), signature.to_string()))
             .collect();
         let slug = condition_slug(test);
+        let index = inputs.len() + 1;
         inputs.push(GuidedStepNode {
-            id: format!("{}-{slug}", address.replace('/', "_").to_lowercase()),
+            id: format!("input_{index}"),
             kind: "input",
             module: Some(address.clone()),
             hypotheses,
@@ -952,24 +1002,31 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
         });
     }
 
-    // A→B→A: baseline, input, baseline, input, … with the edges wired.
+    // One independent experiment per input: `baseline_before_<i>`,
+    // `input_<i>`, `baseline_after_<i>`, all three on the input's module and
+    // DID set. Edges run within the triplet; triplets chain in order, so a
+    // diff always compares an input with its own baselines and never with a
+    // capture taken on another module or minutes earlier.
     let mut steps: Vec<GuidedStepNode> = Vec::new();
-    if let Some(first) = inputs.first() {
-        steps.push(baseline_node(
-            "baseline",
-            first.module.as_deref(),
-            first.capture.dids.clone(),
-        ));
-    }
+    let count = inputs.len();
     for (i, mut node) in inputs.into_iter().enumerate() {
-        let after_id = format!("baseline_{}", i + 1);
+        let n = i + 1;
+        let before_id = format!("baseline_before_{n}");
+        let after_id = format!("baseline_after_{n}");
+        let next_triplet = (n < count).then(|| format!("baseline_before_{}", n + 1));
+        let mut before = baseline_node(
+            &before_id,
+            node.module.as_deref(),
+            node.capture.dids.clone(),
+        );
+        before.on_success = Some(node.id.clone());
+        before.on_failure = Some(node.id.clone());
         node.on_success = Some(after_id.clone());
         node.on_failure = Some(after_id.clone());
-        let after = baseline_node(&after_id, node.module.as_deref(), node.capture.dids.clone());
-        if let Some(prev) = steps.last_mut() {
-            prev.on_success = Some(node.id.clone());
-            prev.on_failure = Some(node.id.clone());
-        }
+        let mut after = baseline_node(&after_id, node.module.as_deref(), node.capture.dids.clone());
+        after.on_success = next_triplet.clone();
+        after.on_failure = next_triplet;
+        steps.push(before);
         steps.push(node);
         steps.push(after);
     }

@@ -4,8 +4,17 @@
 Nothing here knows the vehicle: modules, identifiers, decodes, plan version
 and evidence path are all resolved at runtime from the running desktop app
 (`scripts/scainner_api.py`, apps/desktop/docs/api.md). Every request is
-read-only. Evidence lands in
-apps/desktop/docs/workflows/evidence/<brand>/<platform>/<plan_version>-<stamp>.json
+read-only.
+
+Raw captures are private vehicle data (they carry the VIN, ECU serials and
+database ids), so evidence lands OUTSIDE the repository, in the app's own
+data directory (the parent of `GET /db-path`):
+  <app data dir>/evidence/<brand>/<platform>/<plan_version>-<stamp>.json
+`--out DIR` overrides the root. Only a sanitized export may be committed:
+  python3 scripts/session.py export --sanitized <run.json> --out <path>
+strips VIN (F190 payloads and any 17-character VIN), ECU serials (F18C and
+every `serial`/`vin` field of the pack identity blocks), vehicle_id,
+connection ids and owner names (scripts/sanitize_evidence.py).
 
   python3 scripts/session.py connect                  # POST /connect, wait, print /status
   python3 scripts/session.py plan                     # the generated parked plan
@@ -14,6 +23,7 @@ apps/desktop/docs/workflows/evidence/<brand>/<platform>/<plan_version>-<stamp>.j
   python3 scripts/session.py sweep 7e0_7e8 F100 F1FF  # bounded identifier sweep
   python3 scripts/session.py log 300 --interval 1.0   # round-robin the open hypotheses
   python3 scripts/session.py coverage                 # what is still missing
+  python3 scripts/session.py export --sanitized RUN.json --out docs/.../RUN.json
 
 `<module>` is a `/uds/modules` key, or a `req/resp` / `req_resp` address pair.
 Every command accepts `--vehicle-id` (default: `vehicle_id` from `/status`).
@@ -30,7 +40,6 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 
 REPO = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
-EVIDENCE_ROOT = os.path.join(REPO, "apps", "desktop", "docs", "workflows", "evidence")
 READ_MANY_MAX = 64
 STEER_THRESHOLD = 10.0  # decoded steering units beyond which a turn is called
 
@@ -40,12 +49,26 @@ STEER_THRESHOLD = 10.0  # decoded steering units beyond which a turn is called
 class Session:
     """Lazy API client plus the vehicle facts every subcommand needs."""
 
-    def __init__(self, vehicle_id: int | None):
+    def __init__(self, vehicle_id: int | None, out_dir: str | None = None):
         from scainner_api import Client  # imported late so --help works app-less
         self.api = Client()
         self._vehicle_id = vehicle_id
         self._plan = None
         self._coverage = None
+        self._out_dir = out_dir
+
+    @property
+    def evidence_root(self) -> str:
+        """`--out`, else `<app data dir>/evidence` — the private directory next
+        to the SQLite file the app reports on GET /db-path. Never the repo."""
+        if self._out_dir:
+            return os.path.realpath(self._out_dir)
+        db_path = self.api.db_path()
+        if isinstance(db_path, dict):
+            db_path = db_path.get("path") or db_path.get("db_path") or ""
+        if not db_path:
+            sys.exit("GET /db-path returned nothing; pass --out DIR")
+        return os.path.join(os.path.dirname(str(db_path)), "evidence")
 
     @property
     def vehicle_id(self) -> int:
@@ -101,13 +124,15 @@ class Session:
         brand = self.plan.get("brand_id") or self.coverage.get("vehicle", {}).get("brand_id") or "unknown"
         platform = self.plan.get("platform") or "unknown"
         version = self.plan_version(correlation)
-        folder = os.path.join(EVIDENCE_ROOT, brand, platform)
+        folder = os.path.join(self.evidence_root, brand, platform)
+        if os.path.realpath(folder).startswith(REPO + os.sep):
+            sys.exit("refusing to write raw evidence inside the repository; use `export --sanitized` for that")
         os.makedirs(folder, exist_ok=True)
         path = os.path.join(folder, f"{version}-{time.strftime('%Y-%m-%d-%H%M%S')}.json")
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"kind": kind, "vehicle_id": self.vehicle_id, "plan_version": version,
                        "captured_at": iso_now(), "args": args, "result": result}, f, indent=1)
-        print(f"evidence -> {os.path.relpath(path, REPO)}")
+        print(f"evidence -> {path} (private; `export --sanitized` before committing)")
         return path
 
 
@@ -138,18 +163,18 @@ def decode(payload_hex: str | None, spec: dict) -> float | None:
 # ---- subcommands -----------------------------------------------------------
 
 def cmd_connect(a):
-    s = Session(a.vehicle_id)
+    s = Session(a.vehicle_id, a.out)
     s.api.connect()
     s.api.wait_connected(timeout=180)
     print(json.dumps(s.api.status(), indent=1))
 
 
 def cmd_plan(a):
-    print(json.dumps(Session(a.vehicle_id).plan, indent=1))
+    print(json.dumps(Session(a.vehicle_id, a.out).plan, indent=1))
 
 
 def cmd_run_plan(a):
-    s = Session(a.vehicle_id)
+    s = Session(a.vehicle_id, a.out)
     s.require_connected()
     print(f"running parked plan {s.plan_version()} ...", flush=True)
     report = s.api.parked_verification() or {}
@@ -161,7 +186,7 @@ def cmd_run_plan(a):
 
 
 def cmd_capture(a):
-    s = Session(a.vehicle_id)
+    s = Session(a.vehicle_id, a.out)
     s.require_connected()
     mod = s.resolve_module(a.module)
     dids = [hex_did(d) for d in a.dids] if a.dids else s.open_dids_for(mod)
@@ -178,7 +203,7 @@ def cmd_capture(a):
 
 
 def cmd_sweep(a):
-    s = Session(a.vehicle_id)
+    s = Session(a.vehicle_id, a.out)
     s.require_connected()
     mod = s.resolve_module(a.module)
     start, end = hex_did(a.start), hex_did(a.end)
@@ -194,7 +219,7 @@ def cmd_sweep(a):
 
 
 def cmd_log(a):
-    s = Session(a.vehicle_id)
+    s = Session(a.vehicle_id, a.out)
     s.require_connected()
     open_h = s.hypotheses()
     groups: dict[str, list[int]] = {}
@@ -256,8 +281,27 @@ def cmd_log(a):
     s.save_evidence("log", {"seconds": a.seconds, "interval": a.interval}, out, correlation=True)
 
 
+def cmd_export(a):
+    """Sanitized copy of one evidence file, safe to commit."""
+    if not a.sanitized:
+        sys.exit("only sanitized exports are supported: pass --sanitized")
+    from sanitize_evidence import identity_dids, sanitize_text, find_leaks
+    with open(a.run, encoding="utf-8") as f:
+        text = f.read()
+    dids = identity_dids()
+    clean = sanitize_text(text, dids)
+    leaks = find_leaks(clean, dids)
+    if leaks:
+        sys.exit(f"still leaking after sanitising: {', '.join(leaks)}")
+    out = a.out or os.path.splitext(a.run)[0] + ".sanitized.json"
+    os.makedirs(os.path.dirname(os.path.realpath(out)) or ".", exist_ok=True)
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(clean)
+    print(f"sanitized -> {out}")
+
+
 def cmd_coverage(a):
-    cov = Session(a.vehicle_id).coverage
+    cov = Session(a.vehicle_id, a.out).coverage
     print(json.dumps(cov, indent=1))
     remaining = cov.get("remaining") or []
     print(f"status: {cov.get('status')}; remaining: {'; '.join(remaining) if remaining else 'nothing'}")
@@ -272,6 +316,7 @@ def main(argv=None):
     def add(name, fn, help_):
         sp = sub.add_parser(name, help=help_)
         sp.add_argument("--vehicle-id", type=int, default=None, help="override the vehicle id from /status")
+        sp.add_argument("--out", default=None, help="evidence root (default: <app data dir>/evidence, never the repo)")
         sp.set_defaults(fn=fn)
         return sp
 
@@ -292,6 +337,11 @@ def main(argv=None):
     lg.add_argument("seconds", type=float)
     lg.add_argument("--interval", type=float, default=1.0, help="seconds between samples")
     add("coverage", cmd_coverage, "print /coverage and a one-line summary")
+    ex = sub.add_parser("export", help="sanitized copy of one evidence file (the only thing that may be committed)")
+    ex.add_argument("run", help="evidence JSON written by this script")
+    ex.add_argument("--sanitized", action="store_true", help="strip VIN, ECU serials, vehicle/connection ids, names")
+    ex.add_argument("--out", default=None, help="destination path (default: <run>.sanitized.json)")
+    ex.set_defaults(fn=cmd_export)
 
     a = p.parse_args(argv)
     a.fn(a)

@@ -141,7 +141,7 @@ sc $API/uds/modules/7e0_7e8/dtcs
 |---|---|
 | `POST /verification/parked` | run the parked plan generated from the vehicle's profile (identity block on every reached route with each module's read service, one bounded sweep over the brand's data bands); saves a `verification_runs` row, returns the `ParkedVerificationReport` with `run_id`; `plan_version` is `<brand>-<platform|unknown>-v<n>` |
 | `GET /vehicles/{id}/parked-plan` | the plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, budget) — no car traffic |
-| `GET /vehicles/{id}/guided-steps` | the guided-correlation state tree (protocol §9) generated from the vehicle's open hypotheses: `baseline`/`input` nodes, `applicable_if` and an `operator_confirmation` where a vehicle fact (gearbox) is unknown, car-moving nodes `optional` with preconditions; `plan_version` is `<brand>-<platform|unknown>-corr-v<n>` — no car traffic. The Lab's Guided correlation card renders exactly this |
+| `GET /vehicles/{id}/guided-steps` | the guided-correlation state tree (protocol §9) generated from the vehicle's open hypotheses: one independent triplet per experiment — `baseline_before_<i>`, `input_<i>`, `baseline_after_<i>`, all three on the input's module and DID set, edges within the triplet, triplets chained — `applicable_if` and an `operator_confirmation` where a vehicle fact (gearbox) is unknown, car-moving nodes `optional` with preconditions, `success.expected` per hypothesis (`changed`, `monotonic_increase`, `monotonic_decrease`, `sign_positive`); `plan_version` is `<brand>-<platform|unknown>-corr-v<n>` — no car traffic. The Lab's Guided correlation card renders exactly this: captures are keyed by step id, an input is diffed against its own before-baseline and "returned" against its own after-baseline, and `capture.reference_dids` are read with `/uds/read-many` right before and after the primary capture |
 | `POST /verification/capture` `{"req","resp","dids":[…],"step","condition","plan_version","repeats":3}` | one guided-correlation capture under a labelled physical condition; saves a run, returns the `CorrelationCapture` with `run_id` |
 | `GET /verification/runs?vehicle_id=&plan_version=&limit=50` | run index (no bodies), newest first |
 | `GET /verification/runs/{id}` | one run with its full `result` JSON |
@@ -180,7 +180,11 @@ baseline again). Module and identifiers come from the vehicle's own data:
 `GET /uds/modules` for the route, `GET /vehicles/{id}/hypotheses` for the
 open hypotheses, `GET /vehicles/{id}/guided-steps` for the step to run —
 nothing below is specific to one brand. `scripts/session.py` wraps this
-whole flow (`plan`, `run-plan`, `capture`, `sweep`, `log`, `coverage`).
+whole flow (`plan`, `run-plan`, `capture`, `sweep`, `log`, `coverage`) and
+writes raw evidence to the app's private data directory (next to the SQLite
+file from `GET /db-path`), never into the repository: raw captures carry the
+VIN, ECU serials and database ids. `session.py export --sanitized` (or
+`scripts/sanitize_evidence.py`) produces the only form that may be committed.
 
 ```sh
 # 1. Connect and wait for identity.
@@ -231,14 +235,14 @@ from scripts.scainner_api import Client
 c = Client()                      # reads api-token / api-port from the app data dir
 c.connect(); vid = c.wait_connected()["vehicle_id"]
 tree = c.guided_steps(vid)                 # generated from the car's open hypotheses
-step = next(s for s in tree["steps"] if s["kind"] == "input")
+before, step, after = tree["steps"][:3]    # one triplet: baseline_before_1, input_1, baseline_after_1
 req, resp = step["module"].split("/")
 dids = [int(d, 16) for d in step["capture"]["dids"]]
 plan = tree["plan_version"]                # e.g. "<brand>-<platform>-corr-v1"
-a1 = c.capture(req, resp, dids, "baseline", "baseline", plan)
+a1 = c.capture(req, resp, dids, before["id"], "baseline", plan)
 input(step["instruction"] + " — then Enter")
 b  = c.capture(req, resp, dids, step["id"], step["condition_label"], plan)
-a2 = c.capture(req, resp, dids, "baseline", "baseline", plan)
+a2 = c.capture(req, resp, dids, after["id"], "baseline", plan)
 print(c.diff_captures(a1, b))     # {did: (baseline payloads, condition payloads)}
 print(c.diff_captures(a1, a2))    # noise floor — should be {}
 ```

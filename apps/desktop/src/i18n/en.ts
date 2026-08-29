@@ -20,6 +20,10 @@ export const en: Dictionary = {
       connectedSuffix: " · connected",
       unnamed: (id) => `Vehicle #${id}`,
     },
+    archive: {
+      browsing: (name) => `Browsing ${name} — stored data only. The connected car is a different vehicle, so live controls are off here.`,
+      returnToConnected: "Return to connected vehicle",
+    },
     nav: {
       workshop: "Workshop",
       overview: "Overview",
@@ -443,7 +447,10 @@ export const en: Dictionary = {
       yes: "yes",
       notYet: "not yet",
       candidateNote: "A candidate becomes a sensor only after the same input moves the same byte in a repeat session and a decode is written. Nothing here is polled automatically.",
-      diffSummary: (condition, changed, noisy) => `Diff of ${condition} against baseline · ${changed} changed, ${noisy} noisy`,
+      diffSummary: (condition, changed, noisy) => `Diff of ${condition} against its before-baseline · ${changed} changed, ${noisy} noisy`,
+      references: "Reference reads on other modules",
+      reference: "reference",
+      referenceUnreachable: "Reference module not reachable, its reads are missing from this capture",
       verdict: { changed: "changed", stable: "stable", noisy: "noisy", missing: "no answer" },
     },
   },

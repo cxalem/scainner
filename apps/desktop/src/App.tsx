@@ -10,6 +10,8 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import { hasOnboarded, markOnboarded } from "@/lib/onboarding";
 import { startSyncLoop } from "@/lib/sync";
 import { useVehicles } from "@/features/vehicle/queries";
+import { resolveVehicleView } from "@/lib/vehicle-view";
+import { useT } from "@/i18n";
 import { Overview } from "@/views/Overview";
 import { Live } from "@/views/Live";
 import { History } from "@/views/History";
@@ -31,6 +33,7 @@ const DiscoveryFlow = lazy(() =>
 
 export default function App() {
   const queryClient = useQueryClient();
+  const t = useT();
   const [view, setView] = useState<ViewKey>("workshop");
   const [conn, setConn] = useState<ConnStatus>({ state: "disconnected" });
   const [live, setLive] = useState<LiveMap>({});
@@ -104,16 +107,25 @@ export default function App() {
   useEffect(() => {
     if (connectedVehicleId != null) setSelectedVehicleId(connectedVehicleId);
   }, [connectedVehicleId]);
-  const currentVehicleId =
-    selectedVehicleId != null && (vehicles.data ?? []).some((v) => v.id === selectedVehicleId)
-      ? selectedVehicleId
-      : (connectedVehicleId ?? (vehicles.data ?? [])[0]?.id ?? null);
+  const connected = conn.state === "connected";
+  // `viewVehicleId` is what the views show; `liveEnabled` is what they may
+  // do to the car. They only coincide on the connected vehicle — browsing
+  // another car turns every view into an archive (review of #66, item 1).
+  const { viewVehicleId, liveEnabled, browsing } = resolveVehicleView({
+    connected,
+    connectedVehicleId,
+    selectedVehicleId,
+    knownVehicleIds: (vehicles.data ?? []).map((v) => v.id),
+  });
+  const currentVehicleId = viewVehicleId;
   const currentVin =
     currentVehicleId === connectedVehicleId
       ? (conn.vin ?? null)
       : ((vehicles.data ?? []).find((v) => v.id === currentVehicleId)?.vin ?? null);
-
-  const connected = conn.state === "connected";
+  const browsedName = (() => {
+    const v = (vehicles.data ?? []).find((x) => x.id === currentVehicleId);
+    return v?.display_name || v?.vin || t.shell.vehicleSwitcher.unnamed(currentVehicleId ?? 0);
+  })();
   const recording = connected && Object.keys(live).length > 0;
 
   if (!onboarded) {
@@ -144,15 +156,27 @@ export default function App() {
         activeVehicleId={currentVehicleId}
         onSelectVehicle={setSelectedVehicleId}
       >
+        {browsing && (
+          <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
+            <span>{t.shell.archive.browsing(browsedName)}</span>
+            <button
+              type="button"
+              className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium hover:bg-muted"
+              onClick={() => setSelectedVehicleId(connectedVehicleId)}
+            >
+              {t.shell.archive.returnToConnected}
+            </button>
+          </div>
+        )}
         {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}
         {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
-        {view === "live" && <Live live={live} connected={connected} scanning={conn.scanning ?? false} />}
+        {view === "live" && <Live live={live} connected={liveEnabled} scanning={conn.scanning ?? false} />}
         {view === "history" && <History connState={conn.state} vehicleId={currentVehicleId} />}
-        {view === "diagnose" && <Diagnose connected={connected} vehicleId={currentVehicleId} />}
-        {view === "lab" && <Lab connected={connected} vehicleId={currentVehicleId} scanning={conn.scanning ?? false} />}
+        {view === "diagnose" && <Diagnose connected={liveEnabled} vehicleId={currentVehicleId} />}
+        {view === "lab" && <Lab connected={liveEnabled} vehicleId={currentVehicleId} scanning={conn.scanning ?? false} />}
         {view === "vehicle" && (
           <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
-            <Vehicle connected={connected} vehicleId={currentVehicleId} />
+            <Vehicle connected={liveEnabled} vehicleId={currentVehicleId} />
           </Suspense>
         )}
       </Shell>

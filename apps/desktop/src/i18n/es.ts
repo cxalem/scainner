@@ -20,6 +20,10 @@ export const es: Dictionary = {
       connectedSuffix: " · conectado",
       unnamed: (id) => `Vehículo #${id}`,
     },
+    archive: {
+      browsing: (name) => `Viendo ${name}: solo datos guardados. El coche conectado es otro vehículo, así que aquí los controles en vivo están desactivados.`,
+      returnToConnected: "Volver al vehículo conectado",
+    },
     nav: {
       workshop: "Taller",
       overview: "Resumen",
@@ -452,7 +456,10 @@ export const es: Dictionary = {
       yes: "sí",
       notYet: "aún no",
       candidateNote: "Un candidato solo se convierte en sensor cuando la misma acción mueve el mismo byte en una sesión repetida y se escribe una decodificación. Nada de esto se sondea automáticamente.",
-      diffSummary: (condition, changed, noisy) => `Diferencia de ${condition} frente a la base · ${changed} cambiados, ${noisy} ruidosos`,
+      diffSummary: (condition, changed, noisy) => `Diferencia de ${condition} frente a su base previa · ${changed} cambiados, ${noisy} ruidosos`,
+      references: "Lecturas de referencia en otros módulos",
+      reference: "referencia",
+      referenceUnreachable: "Módulo de referencia inalcanzable; sus lecturas faltan en esta captura",
       verdict: { changed: "cambió", stable: "estable", noisy: "ruidoso", missing: "sin respuesta" },
     },
   },

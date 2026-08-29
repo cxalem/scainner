@@ -152,6 +152,15 @@ async fn correlation_capture(
 }
 
 #[tauri::command]
+async fn uds_read_many(
+    state: State<'_>,
+    module: String,
+    dids: Vec<u16>,
+) -> Result<Vec<elm::uds::UdsHit>, String> {
+    ops::uds_read_many(&state, module, dids).await
+}
+
+#[tauri::command]
 fn parked_plan(state: State, vehicle_id: i64) -> Option<elm::discovery::plan::ParkedPlan> {
     ops::parked_plan(&state, vehicle_id)
 }
@@ -373,6 +382,7 @@ pub fn run() {
             discover_sensors,
             parked_verification,
             correlation_capture,
+            uds_read_many,
             parked_plan,
             guided_steps,
             discovered_modules,
