@@ -342,6 +342,8 @@ pub fn router(api: Arc<ApiState>) -> Router {
         )
         .route("/cases", get(cases).post(create_case))
         .route("/settings/{key}", get(setting_get).put(setting_set))
+        .route("/adapters", get(adapters))
+        .route("/adapter", get(adapter_get).put(adapter_set))
         .route("/sync/batch", get(sync_batch))
         .route("/db-path", get(db_path))
         // export
@@ -988,6 +990,42 @@ async fn setting_set(
     let b: SettingBody = parse_required(&body)?;
     ops::app_setting_set(&api.state, &key, &b.value);
     ok(json!({ "key": key, "value": b.value }))
+}
+
+// ---------- adapter profile ----------
+
+async fn adapters() -> ApiResult {
+    ok(json!({ "adapters": ops::list_adapters() }))
+}
+
+async fn adapter_get(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(ops::adapter_profile(&api.state))
+}
+
+/// Partial update: fields omitted from the body keep their current value.
+async fn adapter_set(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let current = serde_json::to_value(ops::adapter_profile(&api.state))
+        .map_err(|e| ApiError::msg(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()))?;
+    let patch: Value = parse_required(&body)?;
+    let (Value::Object(mut merged), Value::Object(patch)) = (current, patch) else {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "body must be a JSON object of adapter profile fields",
+        ));
+    };
+    for (key, value) in patch {
+        merged.insert(key, value);
+    }
+    let profile: crate::elm::transport::AdapterProfile =
+        serde_json::from_value(Value::Object(merged)).map_err(|e| {
+            ApiError::msg(
+                StatusCode::BAD_REQUEST,
+                &format!("invalid adapter profile: {e}"),
+            )
+        })?;
+    ops::set_adapter_profile(&api.state, &profile)
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, &e))?;
+    ok(profile)
 }
 
 #[derive(Deserialize)]

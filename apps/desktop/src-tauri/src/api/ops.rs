@@ -460,6 +460,32 @@ pub fn app_setting_set(state: &AppState, key: &str, value: &str) {
     state.db.setting_set(key, value);
 }
 
+// ---------- adapter profile (Phase 5: transport abstraction) ----------
+
+/// Candidate serial ports and paired Bluetooth devices on this machine.
+pub fn list_adapters() -> Vec<elm::transport::enumerate::AdapterCandidate> {
+    elm::transport::enumerate::candidates()
+}
+
+/// The active adapter profile: `adapter.*` settings with the
+/// `SCAINNER_OBD_*` environment fallback applied.
+pub fn adapter_profile(state: &AppState) -> elm::transport::AdapterProfile {
+    elm::transport::AdapterProfile::load(|key| state.db.setting_get(key))
+}
+
+/// Persist a profile after validating it. Takes effect at the next
+/// (re)connect; the supervisor re-reads the settings on every attempt.
+pub fn set_adapter_profile(
+    state: &AppState,
+    profile: &elm::transport::AdapterProfile,
+) -> Result<(), String> {
+    profile.validate()?;
+    for (key, value) in profile.to_settings() {
+        state.db.setting_set(key, &value);
+    }
+    Ok(())
+}
+
 pub fn list_verification_runs(
     state: &AppState,
     vehicle_id: Option<i64>,

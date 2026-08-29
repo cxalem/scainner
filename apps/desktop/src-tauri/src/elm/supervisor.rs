@@ -8,10 +8,11 @@
 //! `uds.rs` respectively. `handle_request` is the seam between them.
 
 use super::discovery;
-use super::driver::{self, ElmDriver};
+use super::driver::ElmDriver;
 use super::obd;
 use super::operation;
 use super::parser;
+use super::transport::{self, AdapterKind, AdapterProfile};
 use super::uds;
 use crate::db::Db;
 use serde::Serialize;
@@ -242,7 +243,15 @@ fn run_loop(
                 log::warn!("ATDPN did not report a CAN protocol; cleanup falls back to auto-detect")
             }
         }
-        let connection_id = db.start_connection(&version, "vgate_icar_pro");
+        let link = drv.describe();
+        log::info!(
+            "connected over {} {} (banner {:?}, device_kind {})",
+            link.kind,
+            link.target,
+            link.banner,
+            drv.device_kind()
+        );
+        let connection_id = db.start_connection(&version, &drv.device_kind());
         // Resolve this connection's vehicle. The VIN read decides whether
         // the app recognizes what's connected at all — retried up to 3
         // times (the first query right after the 0100 wake-up is the one
@@ -589,9 +598,39 @@ fn run_loop(
 /// time. A dongle that only ever needs attempt 0 stays fast forever; one
 /// that needs attempt 2 skips straight to it after the first connection.
 fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
-    let port = driver::port();
-    let bt_addr = driver::bt_addr();
-    let pin = std::env::var("SCAINNER_OBD_PIN").unwrap_or_else(|_| "1234".to_string());
+    let mut profile = AdapterProfile::load(|key| db.setting_get(key));
+    if profile.kind == AdapterKind::TcpElm {
+        return connect_tcp(&profile);
+    }
+    if profile.path.is_none() {
+        // Nothing configured yet: try the one port that looks like an
+        // adapter, so a fresh install with a single dongle still connects.
+        match transport::enumerate::guess_serial_path() {
+            Some(path) => {
+                log::info!(
+                    "connect: no adapter.path configured, using the only OBD-looking port {path}"
+                );
+                profile.path = Some(path);
+            }
+            None => {
+                return Err("no adapter configured: pick one under Settings → Adapter (PUT /adapter), or set SCAINNER_OBD_PORT".into());
+            }
+        }
+    }
+    let port = profile.path.clone().unwrap_or_default();
+    let bluetooth = transport::bluetooth::platform();
+    // Without a Bluetooth address (a USB adapter, or a profile the user has
+    // not completed) the ladder's Bluetooth steps have nothing to act on.
+    let bt_addr = profile.bt_addr.clone();
+    let cycle = |what: &str| -> Result<(), String> {
+        match &bt_addr {
+            Some(addr) => bluetooth.cycle(addr, &port),
+            None => Err(format!(
+                "{what}: port {port} is not available and no adapter.bt_addr is set to revive it (set it for a Bluetooth adapter, or plug the USB adapter back in)"
+            )),
+        }
+    };
+    let pin = profile.pin.clone();
     let start = db
         .setting_get("bt_connect_level")
         .and_then(|v| v.parse::<u8>().ok())
@@ -606,14 +645,21 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                 log::debug!("connect attempt 0: fast path — port exists, probing directly");
             } else {
                 log::debug!("connect attempt 0: no port node, bluetooth cycle...");
-                driver::bluetooth_cycle(&bt_addr)?;
+                cycle("connect attempt 0")?;
             }
         } else if attempt == 1 {
             log::debug!("connect attempt 1: bluetooth cycle...");
-            driver::bluetooth_cycle(&bt_addr)?;
+            cycle("connect attempt 1")?;
         } else {
             log::debug!("connect attempt 2: full PIN re-pair...");
-            driver::bluetooth_repair(&bt_addr, &pin)?;
+            match &bt_addr {
+                Some(addr) => bluetooth.repair(addr, &pin, &port)?,
+                None => {
+                    return Err(format!(
+                        "port {port} opens but the adapter stays silent, and no adapter.bt_addr is set to re-pair it"
+                    ))
+                }
+            }
         }
         // Let the RFCOMM channel settle before opening — opening too early
         // wedges it. Only needed after a cycle/repair; the fast path opens an
@@ -622,7 +668,7 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
             std::thread::sleep(Duration::from_secs(2));
         }
         log::debug!("connect attempt {attempt}: opening {port}");
-        match ElmDriver::open(&port) {
+        match ElmDriver::open(&profile) {
             Ok(mut d) => {
                 // Liveness probe: ATZ on the open port. Fast path gets one
                 // short try (a healthy link answers in <1s; a dead one should
@@ -662,6 +708,33 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
         }
     }
     unreachable!()
+}
+
+/// Wi-Fi adapters have no Bluetooth ladder: open the socket, probe once
+/// patiently (the first write after a socket open is often eaten), retry
+/// the open a couple of times.
+fn connect_tcp(profile: &AdapterProfile) -> Result<ElmDriver, String> {
+    let mut last = String::from("no attempt made");
+    for attempt in 0..3 {
+        match ElmDriver::open(profile) {
+            Ok(mut d) => {
+                for _ in 0..2 {
+                    let probe = d.cmd("ATZ", Duration::from_secs(5));
+                    if matches!(&probe, Ok(r) if r.contains("ELM")) {
+                        return Ok(d);
+                    }
+                    std::thread::sleep(Duration::from_secs(1));
+                }
+                last = "socket opens but ELM stays silent".into();
+            }
+            Err(e) => {
+                log::debug!("tcp connect attempt {attempt}: {e}");
+                last = e.to_string();
+            }
+        }
+        std::thread::sleep(Duration::from_secs(2));
+    }
+    Err(last)
 }
 
 fn answer_disconnected(req: Request) {

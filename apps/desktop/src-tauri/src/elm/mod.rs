@@ -6,5 +6,6 @@ pub mod operation;
 pub mod outcome;
 pub mod parser;
 pub mod supervisor;
+pub mod transport;
 pub mod uds;
 pub mod uds_map;
