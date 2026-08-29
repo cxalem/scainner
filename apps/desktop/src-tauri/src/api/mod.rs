@@ -1005,7 +1005,7 @@ async fn adapter_get(State(api): State<Arc<ApiState>>) -> ApiResult {
 /// Partial update: fields omitted from the body keep their current value.
 async fn adapter_set(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let current = serde_json::to_value(ops::adapter_profile(&api.state))
-        .map_err(|e| ApiError::msg(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string()))?;
+        .map_err(|e| ApiError::msg(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let patch: Value = parse_required(&body)?;
     let (Value::Object(mut merged), Value::Object(patch)) = (current, patch) else {
         return Err(ApiError::msg(
@@ -1020,11 +1020,11 @@ async fn adapter_set(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult
         serde_json::from_value(Value::Object(merged)).map_err(|e| {
             ApiError::msg(
                 StatusCode::BAD_REQUEST,
-                &format!("invalid adapter profile: {e}"),
+                format!("invalid adapter profile: {e}"),
             )
         })?;
-    ops::set_adapter_profile(&api.state, &profile)
-        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, &e))?;
+    let profile = ops::set_adapter_profile(&api.state, profile)
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?;
     ok(profile)
 }
 
@@ -1105,6 +1105,45 @@ mod tests {
         let value = serde_json::from_slice(&bytes)
             .unwrap_or_else(|_| Value::String(String::from_utf8_lossy(&bytes).into_owned()));
         (status, value)
+    }
+
+    #[tokio::test]
+    async fn adapter_profile_round_trips_and_is_validated() {
+        let (api, db) = test_api();
+        let (status, body) = call(&api, "GET", "/adapter", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["kind"], "elm_serial");
+        assert_eq!(body["timing"], "default");
+
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/adapter",
+            Some(TOKEN),
+            Some(r#"{"kind": "tcp_elm", "host": "192.168.0.10", "timing": "slow"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["port"], 35000, "omitted fields keep their value");
+        assert_eq!(
+            db.setting_get("adapter.host").as_deref(),
+            Some("192.168.0.10")
+        );
+        assert_eq!(db.setting_get("adapter.timing").as_deref(), Some("slow"));
+
+        let (status, body) = call(
+            &api,
+            "PUT",
+            "/adapter",
+            Some(TOKEN),
+            Some(r#"{"kind": "elm_serial", "path": ""}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+
+        let (status, body) = call(&api, "GET", "/adapters", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(body["adapters"].is_array());
     }
 
     #[tokio::test]

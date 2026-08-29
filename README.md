@@ -98,33 +98,41 @@ surface between them.
 
 ## Hardware
 
-Built and tested against a **vGate iCar Pro** (classic-Bluetooth variant) on
-**macOS**. The Bluetooth handling (PIN pairing, a "sulk mode" where the
-dongle periodically stops answering until re-paired) is specific to that
-dongle and this platform — see `apps/desktop/src-tauri/src/elm/driver.rs`, and
-`UDS_INVESTIGATION_LOG.md` for how it was diagnosed. If your dongle
-enumerates differently, override without touching code (from `apps/desktop`):
+Any **ELM327-compatible adapter** — classic Bluetooth (SPP), USB serial or
+Wi-Fi — speaking the standard AT command set. The adapter is chosen in the
+app's settings (or over the API: `GET /adapters` lists candidate serial ports
+and paired Bluetooth devices, `GET|PUT /adapter` reads/writes the profile);
+nothing about a particular dongle is compiled in.
 
-```bash
-SCAINNER_OBD_PORT=/dev/cu.YourDongle SCAINNER_OBD_MAC=aa-bb-cc-dd-ee-ff SCAINNER_OBD_PIN=0000 pnpm tauri dev
-```
+The profile (`app_settings` keys `adapter.*`):
 
-The pairing PIN is not standardized across ELM327 clones — it's whatever
-the manufacturer's Bluetooth module firmware expects. The app's default
-(`1234`) covers roughly 90% of clones; the next most common are `0000` and
-`1111`, occasionally `6789`. If pairing fails, try `SCAINNER_OBD_PIN` with
-those before assuming something else is wrong.
+| key | meaning |
+|---|---|
+| `adapter.kind` | `elm_serial` (Bluetooth SPP or USB serial port) or `tcp_elm` (Wi-Fi adapter) |
+| `adapter.path` | serial port: `/dev/cu.*` on macOS, `/dev/ttyUSB*` / `/dev/rfcomm*` on Linux |
+| `adapter.bt_addr` | Bluetooth MAC (`aa-bb-cc-dd-ee-ff`) — needed for automatic reconnection |
+| `adapter.pin` | Bluetooth pairing PIN (default `1234`; `0000`, `1111`, `6789` are the next most common — it is whatever the clone's firmware expects, not a standard) |
+| `adapter.host`, `adapter.port` | Wi-Fi adapter address (default port `35000`) |
+| `adapter.baud` | serial speed (default `115200`) |
+| `adapter.timing` | `fast` / `default` / `slow` multiplier on the handshake and read timeouts, for adapters or ECUs that answer late |
 
-Should work with any ELM327-compatible adapter with adjustments to the
-connection layer. Windows/Linux support is unimplemented (the Bluetooth
-reconnect logic shells out to macOS's `blueutil`) — see
-[`BACKLOG.md`](./BACKLOG.md).
+The connection row records the adapter's own `ATI`/`STI` banner as
+`device_kind` (`elm327_v2.3`, `stn1170`, …). For one release the
+`SCAINNER_OBD_PORT`, `SCAINNER_OBD_MAC` and `SCAINNER_OBD_PIN` environment
+variables still work as a fallback when the corresponding setting is unset;
+with nothing configured at all, the app tries the single serial port whose
+name looks like an adapter.
 
-Reconnecting escalates through three strategies, cheapest first: open the
-existing port directly, a plain Bluetooth disconnect/reconnect cycle, then a
-full unpair-and-re-pair. The app remembers which step last worked and starts
-there next time, so a dongle that always needs the full re-pair stops paying
-for the two failed cheap attempts first.
+Bluetooth reconnection escalates through three strategies, cheapest first:
+open the existing port directly, a plain Bluetooth disconnect/reconnect
+cycle, then a full unpair-and-re-pair with the PIN (some dongles stop
+answering on an existing pairing until re-paired). The app remembers which
+step last worked and starts there next time. The scripted cycle/re-pair is
+implemented on **macOS** (`brew install blueutil`); on Linux and Windows the
+app asks for manual pairing in the system Bluetooth settings instead of
+shelling out, and USB or Wi-Fi adapters need no Bluetooth step at all. The
+serial transport itself is POSIX (macOS, Linux); Windows serial ports are
+not implemented yet — use a Wi-Fi adapter there.
 
 ## Bring your own car
 

@@ -101,7 +101,7 @@ impl ElmDriver {
             match self.cmd("ATZ", Duration::from_secs(6)) {
                 Ok(r) if r.contains("ELM") => {
                     version = Some(
-                        r.lines()
+                        r.split(['\r', '\n'])
                             .map(str::trim)
                             .find(|l| l.contains("ELM"))
                             .unwrap_or("ELM327")
@@ -122,7 +122,7 @@ impl ElmDriver {
         let sti = self.cmd("STI", Duration::from_secs(3)).ok();
         let kind = transport::profile::device_kind_from_banner(&ati, sti.as_deref());
         let banner = ati
-            .lines()
+            .split(['\r', '\n'])
             .map(|l| l.trim().trim_end_matches('>').trim())
             .find(|l| !l.is_empty())
             .map(str::to_string);

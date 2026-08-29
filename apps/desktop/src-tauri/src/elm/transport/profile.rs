@@ -120,8 +120,11 @@ impl AdapterProfile {
         env: impl Fn(&str) -> Option<String>,
     ) -> Self {
         let defaults = Self::default();
-        let get = |key: &str, env_key: Option<&str>| {
-            non_empty(setting(key)).or_else(|| env_key.and_then(|k| non_empty(env(k))))
+        // A stored row — even an empty one — is authoritative; the
+        // environment is only consulted when the setting was never written.
+        let get = |key: &str, env_key: Option<&str>| match setting(key) {
+            Some(stored) => non_empty(Some(stored)),
+            None => env_key.and_then(|k| non_empty(env(k))),
         };
         Self {
             kind: get("adapter.kind", None)
@@ -165,6 +168,16 @@ impl AdapterProfile {
         ]
     }
 
+    /// Trim every field and treat blanks as unset (a JSON body with
+    /// `"path": ""` means "clear it"); MACs are lower-cased.
+    pub fn normalized(mut self) -> Self {
+        self.path = non_empty(self.path.take());
+        self.bt_addr = non_empty(self.bt_addr.take()).map(|s| s.to_ascii_lowercase());
+        self.host = non_empty(self.host.take());
+        self.pin = self.pin.trim().to_string();
+        self
+    }
+
     /// Reject profiles that cannot possibly connect, with a message the
     /// settings UI can show.
     pub fn validate(&self) -> Result<(), String> {
@@ -199,7 +212,7 @@ impl AdapterProfile {
 /// slugified, nothing → `elm_unknown`.
 pub fn device_kind_from_banner(ati: &str, sti: Option<&str>) -> String {
     fn clean(raw: &str) -> Option<String> {
-        raw.lines()
+        raw.split(['\r', '\n'])
             .map(|l| l.trim().trim_end_matches('>').trim())
             .find(|l| !l.is_empty() && *l != "?" && !l.eq_ignore_ascii_case("OK"))
             .map(str::to_string)

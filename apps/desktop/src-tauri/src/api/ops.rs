@@ -477,13 +477,14 @@ pub fn adapter_profile(state: &AppState) -> elm::transport::AdapterProfile {
 /// (re)connect; the supervisor re-reads the settings on every attempt.
 pub fn set_adapter_profile(
     state: &AppState,
-    profile: &elm::transport::AdapterProfile,
-) -> Result<(), String> {
+    profile: elm::transport::AdapterProfile,
+) -> Result<elm::transport::AdapterProfile, String> {
+    let profile = profile.normalized();
     profile.validate()?;
     for (key, value) in profile.to_settings() {
         state.db.setting_set(key, &value);
     }
-    Ok(())
+    Ok(profile)
 }
 
 pub fn list_verification_runs(
