@@ -61,7 +61,7 @@ Each screen: purpose · primary action · what it shows · data (API route) · s
 ### A2 Connect
 - **Purpose:** get a live link to one car.
 - **Primary:** "Connect". Secondary: "Choose adapter" (profile: serial / Wi-Fi ELM; adapters enumerated).
-- **Shows:** adapter state as a single line ("Looking for adapter → waking → talking to the car"), the car as soon as its VIN resolves (brand emblem, WMI-derived brand, VIN-less fallback → "Name this car").
+- **Shows:** adapter state as a single line ("Looking for adapter → waking → talking to the car"), the car as soon as its VIN resolves — the **3D brand emblem** animates in here (the reward for connecting; keep it as the vehicle's mark through the rest of the flow), WMI-derived brand, VIN-less fallback → "Name this car" with the neutral badge.
 - **Data:** `POST /connect`, `GET /status`, `GET /adapters`, `GET|PUT /adapter`, events `conn-status`, `unknown-brand`.
 - **States:** no adapter found (explain + "Choose adapter") · adapter but no car (ignition off?) · connected · unknown brand (callback → "We don't have a profile for this brand yet; standard diagnostics work, deep scan will be conservative").
 - **Replaces:** the Connect button in the shell + the AccountSyncCard adapter bits.
@@ -152,7 +152,7 @@ Each screen: purpose · primary action · what it shows · data (API route) · s
 | `lab/ModuleManager.tsx`, `lab/ModuleFaults.tsx` | Module routes come from the pack; adding one is Advanced in B1. Faults → C1. |
 | `views/Vehicle.tsx` + `vehicle/AccountSyncCard.tsx`, `VehicleEvidenceMap.tsx` | C3 + settings (account in A1/Settings). |
 | Nav (7 items, `advanced` flag) | Replaced by the 3-stage stepper + a Settings gear (account, adapter, language, learning drive). |
-| `VehicleScene.tsx` 3D scene | Keep the emblem (cheap identity cue) only if it stays under 300 ms to first paint; otherwise drop. |
+| `VehicleScene.tsx` 3D scene | **Keep.** The 3D brand emblem is the identity moment of the flow: it appears in A2 the instant the WMI resolves and stays as the vehicle's mark in the header/C3. Load it lazily after the connect screen paints so it never delays the step; fall back to the flat badge while it loads or for brands without a model. |
 
 Keep as-is behind the scenes: the API, MCP, session script, all backend behaviour.
 
@@ -180,7 +180,7 @@ Never the word "supported"; never a count without its scope.
 5. **Archive mode is visible**: a persistent banner and greyed primary actions when the selected car is not the connected one.
 6. **Plain words first, bytes on demand**: hex, DIDs, NRCs live behind an expander on every row.
 7. **Empty states teach**: what this step needs (parked, ignition on, a drive), how long, what it will and won't do.
-8. **No brand in the UI logic**: the emblem, names and defaults come from the pack; demo data uses three brands.
+8. **No brand in the UI logic**: the 3D emblem, names and defaults come from the pack's WMI table; demo data uses three brands. The emblem is the one deliberate flourish — everything else stays quiet so it reads as identity, not decoration.
 
 ## 7. Open questions for the design review
 
