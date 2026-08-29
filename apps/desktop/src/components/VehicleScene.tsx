@@ -43,6 +43,7 @@ import { ContactShadows } from "@react-three/drei";
 import { brandFromVin } from "@/lib/brand";
 import { STUDIO_LIGHTING, VEHICLE_MATERIALS } from "@/theme";
 import { EMBLEMS, NameplateEmblem } from "./emblems";
+import { cn } from "@/lib/utils";
 import { EmblemStarfield } from "./EmblemStarfield";
 
 export type SceneStatus = "disconnected" | "connecting" | "connected";
@@ -1254,7 +1255,27 @@ function BrandEmblemModel({
   );
 }
 
-export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: string | null }) {
+export function VehicleScene({
+  status,
+  vin,
+  brandKey,
+  caption,
+  className,
+  bare = false,
+}: {
+  status: SceneStatus;
+  vin?: string | null;
+  /** Show a brand by its emblem-registry key instead of deriving it from
+   *  the VIN (the login screen cycles through recognised marques). */
+  brandKey?: string | null;
+  /** Caption text bottom-left. Omit for the status default; null hides it. */
+  caption?: string | null;
+  /** Sizing/shape of the frame; defaults to the full-width card. */
+  className?: string;
+  /** No dust ground: the emblem floats over whatever is behind the frame
+   *  (the login panel's own dark glow). */
+  bare?: boolean;
+}) {
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
   // Dev-only override so any brand's emblem can be previewed by URL without
   // a real connected VIN, e.g. ?vin=VF1AAAAA000000000 for Renault. Inert
@@ -1265,10 +1286,13 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
   // its EMBLEMS registry key, e.g. ?brand=vauxhall. The only way to preview
   // a brand with no WMI entry (saic, vauxhall) — there is no VIN prefix
   // that could reach either through vinOverride alone.
-  const brandKeyOverride = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("brand") : null;
+  const brandKeyOverride = brandKey ?? (import.meta.env.DEV ? new URLSearchParams(window.location.search).get("brand") : null);
+  const captionText = caption === undefined
+    ? status === "disconnected" ? "Idle" : status === "connecting" ? "Discovering modules…" : "Live"
+    : caption;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72">
+    <div className={cn("relative h-64 w-full overflow-hidden rounded-md", className)}>
       {/* Dark ambient-dust ground instead of the old flat light fill —
           same starfield technique as the knowledge-base note
           (3-Resources/starfield-header/technique.md), tuned far slower
@@ -1278,7 +1302,7 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
           shows through. Does not touch the chrome material's reflection
           environment at all — that comes from StudioEnvironment's own
           offscreen PMREM bake, entirely separate from this visible layer. */}
-      <EmblemStarfield />
+      {!bare && <EmblemStarfield />}
       <Canvas
         dpr={[1, 1.75]}
         camera={{ position: [4.4, 2.6, 4.4], fov: 30 }}
@@ -1312,9 +1336,11 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
         </Suspense>
         <ContactShadows position={[0, 0.01, 0]} opacity={0.32} scale={7} blur={2.2} far={2} />
       </Canvas>
-      <p className="pointer-events-none absolute bottom-2 left-3 z-10 text-[10px] uppercase tracking-wide text-white/45">
-        {status === "disconnected" ? "Idle" : status === "connecting" ? "Discovering modules…" : "Live"}
-      </p>
+      {captionText && (
+        <p className="pointer-events-none absolute bottom-2 left-3 z-10 text-[10px] uppercase tracking-wide text-white/45">
+          {captionText}
+        </p>
+      )}
     </div>
   );
 }

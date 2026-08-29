@@ -1,79 +1,67 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Effect } from "effect";
 import { useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 import { listen } from "@/lib/tauri";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
 import { Shell, type ViewKey } from "@/components/Shell";
 import { ConnectGate } from "@/components/ConnectGate";
+import { Login } from "@/components/Login";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { hasOnboarded, markOnboarded } from "@/lib/onboarding";
 import { startSyncLoop } from "@/lib/sync";
 import { useVehicles } from "@/features/vehicle/queries";
+import { signOut, useSession } from "@/features/account/useSession";
 import { resolveVehicleView } from "@/lib/vehicle-view";
+import { Skeleton } from "@/components/ui";
 import { useT } from "@/i18n";
 import { Overview } from "@/views/Overview";
 import { Live } from "@/views/Live";
-import { History } from "@/views/History";
 import { Diagnose } from "@/views/Diagnose";
 import { Lab } from "@/views/Lab";
 import { Workshop } from "@/views/Workshop";
 import type { ConnStatus, Live as LiveMap } from "@scainner/core";
 
-// Code-split: pulls in three.js/@react-three (~450KB gzip) only once
-// something that needs the 3D scene — Overview (once connected),
-// DiscoveryFlow, or the Vehicle tab's own identity/data cards — actually
-// mounts, not on initial app load. Vehicle itself no longer renders the 3D
-// scene (that moved to Overview), it's still code-split for the shared
-// three.js chunk boundary.
+// Code-split: three.js/@react-three (~450KB gzip) loads only when a scene
+// actually mounts (login carousel, connect gate, overview, vehicle).
 const Vehicle = lazy(() => import("@/views/Vehicle").then((m) => ({ default: m.Vehicle })));
 const DiscoveryFlow = lazy(() =>
   import("@/components/DiscoveryFlow").then((m) => ({ default: m.DiscoveryFlow })),
 );
 
+// The gates, in order: language (once ever) → sign-in (until signed in, or
+// skipped for this session) → connect (until the first connect of this
+// session, or "browse saved cars") → the shell.
+type Stage = "onboarding" | "login" | "connect" | "shell";
+
 export default function App() {
   const queryClient = useQueryClient();
   const t = useT();
-  const [view, setView] = useState<ViewKey>("workshop");
+  const [view, setView] = useState<ViewKey>("overview");
   const [conn, setConn] = useState<ConnStatus>({ state: "disconnected" });
   const [live, setLive] = useState<LiveMap>({});
   const staleTimer = useRef<number | null>(null);
 
-  // Schema v2: the backend resolves the connected vehicle's identity itself
-  // and reports it on ConnStatus (vehicle_id/vin/display_name/
-  // vehicle_is_new). The old knownVins snapshot + car_info round trip are
-  // gone — vehicle_is_new IS the "have we seen this car before" answer,
-  // straight from the vehicles table, computed in the same transaction that
-  // created (or found) the row. See docs/workflows/data-core/plan.md.
   const [discoverVin, setDiscoverVin] = useState<string | null>(null);
-  // Sticky on purpose — once true it stays true for the rest of the app
-  // session, even across later disconnects. Gates the blank ConnectGate
-  // screen, not the Shell's own per-view "disconnected" states.
+  // Sticky for the app session: once connected, later disconnects stay in
+  // the shell instead of falling back to the connect gate.
   const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
-  // Persisted (lib/onboarding.ts), unlike hasConnectedOnce above — the
-  // language-confirm screen should show once ever on this install, not
-  // once per app session.
+  const [browsingOffline, setBrowsingOffline] = useState(false);
   const [onboarded, setOnboarded] = useState(() => hasOnboarded());
+  // Sign-in is for sync; "continue without an account" is a per-session choice.
+  const session = useSession();
+  const [offlineOk, setOfflineOk] = useState(false);
 
   useEffect(() => {
-    // Warm the DiscoveryFlow chunk (it drags in three.js) while the user is
-    // still looking at the connect gate, so first connect doesn't pay the
-    // chunk load inside the gate→overlay transition.
     void import("@/components/DiscoveryFlow");
-    // Cloud sync (lib/sync.ts): idempotent to call, no-op in browser
-    // preview, quietly does nothing until a user signs in.
     startSyncLoop();
     runPromise(Effect.flatMap(DeviceService, (device) => device.connStatus()))
       .then(setConn)
       .catch(() => {});
     const un1 = listen<ConnStatus>("conn-status", (e) => {
       setConn(e.payload);
-      // A new session can add data behind any view, and a blanket
-      // revalidate is cheap over local IPC — a curated per-command
-      // invalidation list would only rot as commands are added
-      // (decisions-plan.md: "Invalidate everything on connect, nothing on
-      // live-update"). live-update is deliberately excluded: it fires
-      // continuously and would thrash the cache.
+      // Invalidate everything on connect, nothing on live-update.
       if (e.payload.state === "connected") void queryClient.invalidateQueries();
     });
     const un2 = listen<LiveMap>("live-update", (e) => {
@@ -87,20 +75,14 @@ export default function App() {
     };
   }, [queryClient]);
 
-  // hasConnectedOnce is deliberately set in the SAME effect that decides
-  // whether the discovery overlay mounts, not a separate conn.state effect
-  // — batching both setStates in one render is what keeps Shell and
-  // DiscoveryFlow mounting together, so the overlay covers the dashboard's
-  // very first frame instead of flashing it uncovered first.
+  // Both state updates in the SAME effect so Shell and DiscoveryFlow mount
+  // in one render — the overlay covers the dashboard's first frame.
   useEffect(() => {
     if (conn.state !== "connected") return;
     if (conn.vehicle_is_new && conn.vin) setDiscoverVin(conn.vin);
     setHasConnectedOnce(true);
   }, [conn.state, conn.vehicle_is_new, conn.vin]);
 
-  // App-wide vehicle switcher (multi-brand plan P4.5): the connected car is
-  // the default; while disconnected, or when the database holds more than
-  // one vehicle, the sidebar selector sets the vehicle every view shows.
   const vehicles = useVehicles();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
   const connectedVehicleId = conn.vehicle_id ?? null;
@@ -108,90 +90,97 @@ export default function App() {
     if (connectedVehicleId != null) setSelectedVehicleId(connectedVehicleId);
   }, [connectedVehicleId]);
   const connected = conn.state === "connected";
-  // `viewVehicleId` is what the views show; `liveEnabled` is what they may
-  // do to the car. They only coincide on the connected vehicle — browsing
-  // another car turns every view into an archive (review of #66, item 1).
   const { viewVehicleId, liveEnabled, browsing } = resolveVehicleView({
     connected,
     connectedVehicleId,
     selectedVehicleId,
     knownVehicleIds: (vehicles.data ?? []).map((v) => v.id),
   });
-  const currentVehicleId = viewVehicleId;
+  // Browsing offline with nothing selected: default to the first stored car.
+  const currentVehicleId = viewVehicleId ?? (browsingOffline ? (vehicles.data?.[0]?.id ?? null) : null);
   const currentVin =
     currentVehicleId === connectedVehicleId
       ? (conn.vin ?? null)
       : ((vehicles.data ?? []).find((v) => v.id === currentVehicleId)?.vin ?? null);
-  const browsedName = (() => {
-    const v = (vehicles.data ?? []).find((x) => x.id === currentVehicleId);
-    return v?.display_name || v?.vin || t.shell.vehicleSwitcher.unnamed(currentVehicleId ?? 0);
-  })();
+  const currentVehicle = (vehicles.data ?? []).find((v) => v.id === currentVehicleId);
+  const currentName = currentVehicle?.display_name || currentVehicle?.vin || conn.display_name || null;
   const recording = connected && Object.keys(live).length > 0;
 
-  if (!onboarded) {
-    return (
-      <OnboardingGate
-        onDone={() => {
-          markOnboarded();
-          setOnboarded(true);
-        }}
-      />
-    );
-  }
+  const connect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()));
+  const disconnect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()));
+  const continueFromLogin = useCallback(() => setOfflineOk(true), []);
 
-  if (!hasConnectedOnce) {
-    return <ConnectGate conn={conn} onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))} />;
-  }
+  const stage: Stage | null = !onboarded
+    ? "onboarding"
+    : session === undefined
+      ? null
+      : !session && !offlineOk
+        ? "login"
+        : !hasConnectedOnce && !browsingOffline
+          ? "connect"
+          : "shell";
 
   return (
     <>
-      <Shell
-        view={view}
-        onNavigate={setView}
-        conn={conn}
-        recording={recording}
-        onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))}
-        onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
-        vehicles={vehicles.data ?? []}
-        activeVehicleId={currentVehicleId}
-        onSelectVehicle={setSelectedVehicleId}
-      >
-        {browsing && (
-          <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
-            <span>{t.shell.archive.browsing(browsedName)}</span>
-            <button
-              type="button"
-              className="rounded-md border border-border bg-card px-2 py-1 text-xs font-medium hover:bg-muted"
-              onClick={() => setSelectedVehicleId(connectedVehicleId)}
-            >
-              {t.shell.archive.returnToConnected}
-            </button>
-          </div>
+      <AnimatePresence mode="wait" initial={false}>
+        {stage === "onboarding" && (
+          <OnboardingGate
+            key="onboarding"
+            onDone={() => {
+              markOnboarded();
+              setOnboarded(true);
+            }}
+          />
         )}
-        {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}
-        {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
-        {view === "live" && <Live live={live} connected={liveEnabled} scanning={conn.scanning ?? false} />}
-        {view === "history" && <History connState={conn.state} vehicleId={currentVehicleId} />}
-        {view === "diagnose" && <Diagnose connected={liveEnabled} vehicleId={currentVehicleId} />}
-        {view === "lab" && <Lab connected={liveEnabled} vehicleId={currentVehicleId} scanning={conn.scanning ?? false} />}
-        {view === "vehicle" && (
-          <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
-            <Vehicle connected={liveEnabled} vehicleId={currentVehicleId} />
-          </Suspense>
+        {stage === "login" && <Login key="login" onContinue={continueFromLogin} />}
+        {stage === "connect" && (
+          <ConnectGate
+            key="connect"
+            conn={conn}
+            onConnect={connect}
+            canBrowse={(vehicles.data?.length ?? 0) > 0}
+            onBrowseOffline={() => setBrowsingOffline(true)}
+          />
         )}
-      </Shell>
+      </AnimatePresence>
+
+      {stage === "shell" && (
+        <Shell
+          view={view}
+          onNavigate={setView}
+          conn={conn}
+          recording={recording}
+          onConnect={connect}
+          onDisconnect={disconnect}
+          vehicles={vehicles.data ?? []}
+          activeVehicleId={currentVehicleId}
+          onSelectVehicle={setSelectedVehicleId}
+          browsing={browsing}
+          onReturnConnected={() => setSelectedVehicleId(connectedVehicleId)}
+          onSignOut={session ? () => void signOut() : undefined}
+          liveLabel={connected && liveEnabled && currentName ? `${currentName} · ${t.shell.switcher.connectedNote}` : null}
+        >
+          {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
+          {view === "diagnose" && <Diagnose connected={liveEnabled} vehicleId={currentVehicleId} />}
+          {view === "live" && (
+            <Live live={live} connected={liveEnabled} scanning={conn.scanning ?? false} connState={conn.state} vehicleId={currentVehicleId} />
+          )}
+          {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}
+          {view === "lab" && <Lab connected={liveEnabled} vehicleId={currentVehicleId} scanning={conn.scanning ?? false} />}
+          {view === "vehicle" && (
+            <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+              <Vehicle connected={liveEnabled} vehicleId={currentVehicleId} />
+            </Suspense>
+          )}
+        </Shell>
+      )}
+
       {discoverVin && (
-        // Fallback is a full-screen cover, NOT null — with a null fallback,
-        // the frames while the lazy chunk loads showed the dashboard
-        // uncovered (the "layout shift" flash on first connect).
-        <Suspense fallback={<div className="fixed inset-0 z-50 bg-background" />}>
+        <Suspense fallback={<div className="fixed inset-0 z-50 bg-bg" />}>
           <DiscoveryFlow
             vin={discoverVin}
             onDone={() => {
               setDiscoverVin(null);
-              // Replaces the old refreshKey counter (plan.md rule 3):
-              // Overview mounted before this car existed, so its own
-              // queries wouldn't otherwise know to refetch.
               queryClient.invalidateQueries({ queryKey: ["list_vehicles"] });
               queryClient.invalidateQueries({ queryKey: ["vehicle_report"] });
             }}

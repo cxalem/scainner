@@ -1,27 +1,48 @@
+// The app frame once you're in: a fixed sidebar (brand, vehicle switcher,
+// grouped nav, connection card, locale, sign-out) and a scrolling content
+// pane with the page head and the view. Every view change replays the page
+// entrance (Page keyed by view), so switching tabs is a continuous motion,
+// not a cut.
 import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
+  Archive,
   Car,
-  ChartLine,
+  ChevronsUpDown,
+  Clock,
   FlaskConical,
   Gauge,
-  Languages,
-  LayoutDashboard,
-  ClipboardList,
+  LogOut,
   Plug,
-  PlugZap,
   Stethoscope,
+  Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
-import { useCyclingLabel } from "@/components/ui";
+import { Wordmark } from "@/brand";
+import { Banner, Button, Dot, LiveChip, PageHeader, Pill, Seg, useCyclingLabel } from "@/components/ui";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { Page, Reveal } from "@/motion/components";
+import { appearVariants } from "@/motion";
 import type { ConnStatus } from "@scainner/core";
 import { useLocale, useT, type Locale } from "@/i18n";
 
-export type ViewKey = "workshop" | "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
+export type ViewKey = "overview" | "diagnose" | "live" | "workshop" | "lab" | "vehicle";
 
 export type VehicleOption = { id: number; vin: string | null; display_name: string | null };
+
+const NAV_ICON: Record<ViewKey, LucideIcon> = {
+  overview: Gauge,
+  diagnose: Stethoscope,
+  live: Activity,
+  workshop: Wrench,
+  lab: FlaskConical,
+  vehicle: Car,
+};
+const PRIMARY: ViewKey[] = ["overview", "diagnose", "live", "workshop"];
+const ADVANCED: ViewKey[] = ["lab", "vehicle"];
 
 export function Shell({
   view,
@@ -33,6 +54,11 @@ export function Shell({
   vehicles = [],
   activeVehicleId = null,
   onSelectVehicle,
+  browsing = false,
+  onReturnConnected,
+  badges,
+  onSignOut,
+  liveLabel,
   children,
 }: {
   view: ViewKey;
@@ -41,12 +67,18 @@ export function Shell({
   recording: boolean;
   onConnect: () => void;
   onDisconnect: () => Promise<unknown>;
-  /** App-wide vehicle switcher (multi-brand plan P4.5): every vehicle the
-   *  database knows; shown when there is more than one or nothing is
-   *  connected. The connected car stays the default. */
+  /** Every vehicle the database knows; the connected car is the default. */
   vehicles?: VehicleOption[];
   activeVehicleId?: number | null;
   onSelectVehicle?: (id: number | null) => void;
+  /** Archive mode: the selected car is not the one on the cable. */
+  browsing?: boolean;
+  onReturnConnected?: () => void;
+  /** Small counts next to a nav item (e.g. stored faults on Diagnose). */
+  badges?: Partial<Record<ViewKey, number>>;
+  onSignOut?: () => void;
+  /** Text for the "this car · live" chip on the page head; null hides it. */
+  liveLabel?: string | null;
   children: ReactNode;
 }) {
   const t = useT();
@@ -54,10 +86,9 @@ export function Shell({
   const connected = conn.state === "connected";
   const connecting = conn.state === "connecting";
   const connectLabel = useCyclingLabel(t.shell.connectPhrases, connecting, 700);
-  // No "disconnecting" ConnStatus state exists on the backend, so this is
-  // local, sync-tracked purely to give Disconnect the pending feedback it
-  // has none of today (interaction-audit.md worst offender list).
   const [disconnecting, setDisconnecting] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+
   const doDisconnect = async () => {
     setDisconnecting(true);
     try {
@@ -67,187 +98,229 @@ export function Shell({
     }
   };
 
-  const NAV: { key: ViewKey; label: string; icon: typeof Activity; advanced?: boolean }[] = [
-    { key: "workshop", label: t.shell.nav.workshop, icon: ClipboardList },
-    { key: "overview", label: t.shell.nav.overview, icon: LayoutDashboard },
-    { key: "live", label: t.shell.nav.live, icon: Activity },
-    { key: "history", label: t.shell.nav.history, icon: ChartLine },
-    { key: "diagnose", label: t.shell.nav.diagnose, icon: Stethoscope },
-    { key: "lab", label: t.shell.nav.lab, icon: FlaskConical, advanced: true },
-    { key: "vehicle", label: t.shell.nav.vehicle, icon: Car, advanced: true },
-  ];
-  const showSwitcher = vehicles.length > 1 || (!connected && vehicles.length > 0);
   const vehicleName = (v: VehicleOption) => v.display_name || v.vin || t.shell.vehicleSwitcher.unnamed(v.id);
-  const primary = NAV.filter((n) => !n.advanced);
-  const advanced = NAV.filter((n) => n.advanced);
+  const active = vehicles.find((v) => v.id === activeVehicleId) ?? null;
+  const connectedVehicle = vehicles.find((v) => v.id === conn.vehicle_id) ?? null;
+  const activeTitle = active
+    ? vehicleName(active)
+    : connected
+      ? (conn.display_name || conn.vin || t.shell.vehicleSwitcher.unnamed(conn.vehicle_id ?? 0))
+      : t.shell.vehicleSwitcher.label;
+  const activeSub = browsing ? t.shell.switcher.fromDatabase : connected ? t.shell.switcher.connectedNote : t.shell.switcher.notConnected;
+  const page = t.pages[view];
 
-  const item = (n: (typeof NAV)[number]) => {
-    const Icon = n.icon;
-    const active = view === n.key;
+  const navItem = (key: ViewKey) => {
+    const Icon = NAV_ICON[key];
+    const on = view === key;
+    const badge = badges?.[key];
     return (
       <button
-        key={n.key}
-        onClick={() => onNavigate(n.key)}
-        aria-current={active ? "page" : undefined}
+        key={key}
+        type="button"
+        onClick={() => {
+          onNavigate(key);
+          setSwitcherOpen(false);
+        }}
+        aria-current={on ? "page" : undefined}
         className={cn(
-          "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm font-medium",
-          "transition-[color,background-color,transform] duration-150 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+          "relative flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left text-[13px]",
+          "transition-[background-color,color] duration-150 hover:bg-accent-800",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          on ? "bg-surface text-text shadow-sm" : "text-neutral-400",
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-        {n.label}
+        <Icon className={cn("h-4 w-4 shrink-0", on ? "text-accent-400" : "text-neutral-600")} aria-hidden="true" />
+        <span className="flex-1">{t.shell.nav[key]}</span>
+        {badge != null && badge > 0 && (
+          <Pill variant="warn" className="min-w-4 justify-center px-[5px] py-px text-[10px]">
+            {badge}
+          </Pill>
+        )}
       </button>
     );
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border p-3">
-        <div className="mb-4 flex items-center gap-2 px-2 pt-1">
-          <Gauge className="h-5 w-5 text-primary" aria-hidden="true" />
-          <span className="text-sm font-semibold tracking-tight">{t.shell.appName}</span>
+    <div className="flex h-screen overflow-hidden bg-bg text-text">
+      <aside
+        className="flex h-full shrink-0 flex-col border-r border-divider bg-accent-900"
+        style={{ width: "var(--sidebar-width)" }}
+      >
+        <div className="flex items-center gap-2 px-4 pb-3 pt-4">
+          <Wordmark size="md" className="text-text" markClassName="text-accent-400" />
           {MOCK_MODE && (
-            <span
-              className="ml-auto rounded-full bg-warn/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warn"
-              title={t.shell.demoDataTooltip}
-            >
+            <Pill variant="warn" className="ml-auto" title={t.shell.demoDataTooltip}>
               {t.shell.demoData}
-            </span>
+            </Pill>
           )}
         </div>
 
-        {showSwitcher && (
-          <label className="mb-3 flex flex-col gap-1 px-2 text-xs text-muted-foreground">
-            {t.shell.vehicleSwitcher.label}
-            <select
-              className="h-8 w-full rounded-md border border-border bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              value={activeVehicleId ?? ""}
-              onChange={(e) => onSelectVehicle?.(e.target.value ? Number(e.target.value) : null)}
-            >
-              {vehicles.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {vehicleName(v)}
-                  {connected && conn.vehicle_id === v.id ? t.shell.vehicleSwitcher.connectedSuffix : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        {/* Vehicle switcher */}
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={() => setSwitcherOpen((o) => !o)}
+            aria-expanded={switcherOpen}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-md border border-divider bg-surface px-[11px] py-[9px] text-left shadow-sm",
+              "transition-colors duration-150 hover:border-accent-600",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+            )}
+          >
+            <Dot tone={browsing || !connected ? "muted" : "ok"} glow={connected && !browsing} className="h-[7px] w-[7px]" />
+            <span className="flex min-w-0 flex-1 flex-col gap-px">
+              <span className="truncate text-[13px]">{activeTitle}</span>
+              <span className="text-[10.5px] text-neutral-500">{activeSub}</span>
+            </span>
+            <ChevronsUpDown className="h-3.5 w-3.5 text-neutral-600" aria-hidden="true" />
+          </button>
+          <Reveal when={switcherOpen && vehicles.length > 0}>
+            <div className="mt-1.5 overflow-hidden rounded-md border border-divider bg-surface shadow-md">
+              {vehicles.map((v) => {
+                const isConnected = connected && v.id === conn.vehicle_id;
+                const Icon = isConnected ? Plug : Clock;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectVehicle?.(v.id);
+                      setSwitcherOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 border-b border-neutral-900 px-[11px] py-[9px] text-left last:border-b-0",
+                      "transition-colors hover:bg-accent-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent",
+                      v.id === activeVehicleId && "bg-accent-900",
+                    )}
+                  >
+                    <Icon className={cn("h-3.5 w-3.5 shrink-0", isConnected ? "text-ok" : "text-neutral-600")} aria-hidden="true" />
+                    <span className="flex min-w-0 flex-1 flex-col gap-px">
+                      <span className="truncate text-[12.5px]">{vehicleName(v)}</span>
+                      <span className="text-[10.5px] text-neutral-500">
+                        {isConnected ? t.shell.switcher.onCable : t.shell.switcher.storedNote}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Reveal>
+        </div>
 
-        <nav className="flex flex-col gap-0.5" aria-label="Main">
-          {primary.map(item)}
-          <div className="mx-2 my-2 border-t border-border" role="separator" />
-          {advanced.map(item)}
+        <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3" aria-label="Main">
+          <div className="flex flex-col gap-0.5 pb-2">
+            <div className="px-2 pb-[5px] pt-2.5 text-[10px] uppercase tracking-[0.12em] text-neutral-600">{t.shell.navGroups.primary}</div>
+            {PRIMARY.map(navItem)}
+          </div>
+          <div className="flex flex-col gap-0.5 pb-2">
+            <div className="px-2 pb-[5px] pt-2.5 text-[10px] uppercase tracking-[0.12em] text-neutral-600">{t.shell.navGroups.advanced}</div>
+            {ADVANCED.map(navItem)}
+          </div>
         </nav>
 
-        {/* mt-auto on this wrapper, not the connection card alone — adding
-            the locale toggle above the card had bumped the card's own
-            mt-auto to mt-2, which un-pinned it from the sidebar's bottom
-            (Alejandro, 2026-08-21: "the connection disconnect part is now
-            not at the bottom... it should be there"). Grouping both under
-            one mt-auto keeps the toggle directly above the card, and pins
-            the pair together at the bottom, same as before the toggle
-            existed. */}
-        <div className="mt-auto flex flex-col gap-2">
-          {/* Locale toggle: lives here rather than a Settings view (there
-              isn't one yet) — see docs/workflows/i18n/plan.md. Cheap to
-              move once a real Settings view exists. */}
-          <div className="flex items-center gap-1.5 px-2">
-            <Languages className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <div role="group" aria-label={t.shell.language} className="flex items-center gap-1">
-              {(["en", "es"] as Locale[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setLocale(option)}
-                  aria-pressed={locale === option}
-                  className={cn(
-                    "rounded-md px-1.5 py-0.5 text-xs font-medium uppercase transition-colors",
-                    locale === option ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-card p-3">
-            <div className="mb-2 flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  connected ? "bg-primary" : connecting ? "animate-pulse bg-warn" : "bg-muted-foreground/40"
-                )}
-              />
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium">
-                  {connected ? t.shell.status.connected : connecting ? t.shell.status.connecting : t.shell.status.disconnected}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {connected && recording
+        <div className="flex flex-col gap-2 border-t border-divider p-3">
+          <div className="flex flex-col gap-[7px] rounded-md border border-divider bg-surface px-[11px] py-2.5">
+            <div className="flex items-center gap-[7px]">
+              <Dot tone={connected ? "ok" : connecting ? "warn" : "muted"} pulse={connected || connecting} />
+              <span className="flex-1 truncate text-[11.5px] text-neutral-300">
+                {connected
+                  ? recording
                     ? t.shell.status.recording
-                    : connected
-                      ? conn.elm_version ?? t.shell.status.linkUp
-                      : connecting
-                        ? t.shell.status.wakingDongle
-                        : t.shell.status.ignitionThenConnect}
-                </p>
-              </div>
+                    : t.shell.status.connected
+                  : connecting
+                    ? t.shell.status.connecting
+                    : t.shell.status.disconnected}
+              </span>
             </div>
+            <span className="num truncate text-[10.5px] text-neutral-500">
+              {connected ? (conn.elm_version ?? t.shell.adapterFallback) : connecting ? connectLabel : t.shell.status.ignitionThenConnect}
+            </span>
             {connected ? (
-              <button
-                onClick={doDisconnect}
-                disabled={disconnecting}
-                className={cn(
-                  "flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-border text-xs font-medium",
-                  "transition-[color,background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]",
-                  "disabled:pointer-events-none disabled:opacity-50",
-                  "motion-reduce:transition-none motion-reduce:active:scale-100",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                )}
-              >
-                <Plug className="h-3.5 w-3.5" aria-hidden="true" /> {disconnecting ? t.shell.disconnecting : t.shell.disconnect}
-              </button>
+              <Button variant="ghost" size="sm" className="self-start px-2" onClick={doDisconnect} busy={disconnecting}>
+                {disconnecting ? t.shell.disconnecting : t.shell.disconnect}
+              </Button>
             ) : (
-              <button
-                onClick={onConnect}
-                disabled={connecting}
-                className={cn(
-                  "flex h-8 w-full items-center justify-center gap-1.5 rounded-md bg-primary text-xs font-medium text-primary-foreground",
-                  "transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]",
-                  "disabled:opacity-50 disabled:pointer-events-none",
-                  "motion-reduce:transition-none motion-reduce:active:scale-100",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                )}
-              >
-                <PlugZap className="h-3.5 w-3.5" aria-hidden="true" />
-                {connecting ? connectLabel : t.shell.connect}
-              </button>
+              <Button variant="ghost" size="sm" className="self-start px-2" onClick={onConnect} busy={connecting}>
+                {connecting ? t.shell.status.connecting : t.shell.connect}
+              </Button>
             )}
-            {conn.detail && conn.state === "disconnected" && (
-              <p className="mt-2 text-xs leading-snug text-destructive">{conn.detail}</p>
+            <AnimatePresence initial={false}>
+              {conn.detail && conn.state === "disconnected" && (
+                <motion.p
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  variants={appearVariants}
+                  className="text-[11px] leading-snug text-stop"
+                >
+                  {conn.detail}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Seg<Locale>
+              size="xs"
+              aria-label={t.shell.language}
+              value={locale}
+              onChange={setLocale}
+              options={[
+                { value: "en", label: "EN" },
+                { value: "es", label: "ES" },
+              ]}
+            />
+            <span className="flex-1" />
+            {onSignOut && (
+              <button
+                type="button"
+                onClick={onSignOut}
+                title={t.shell.signOut}
+                aria-label={t.shell.signOut}
+                className="flex rounded-sm p-1 text-neutral-500 transition-colors hover:text-accent-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <LogOut className="h-[15px] w-[15px]" aria-hidden="true" />
+              </button>
             )}
           </div>
         </div>
       </aside>
 
-      {/* overflow-y-scroll (not -auto): every page renders through here, so
-          this is the "content shifts left all over the place" bug
-          (Alejandro, 2026-08-21) — auto only reserves the scrollbar gutter
-          once a page's content actually overflows the viewport, so the
-          instant it does everything shifts. Same fix DiscoveryFlow.tsx
-          already applied to its own scroll area, just at the app-wide
-          level this time. */}
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <UpdateBanner />
-        <div className="min-h-0 flex-1 overflow-y-scroll">
-          <div className="mx-auto max-w-4xl p-6">{children}</div>
-        </div>
-      </main>
+        <Reveal when={browsing} mode="fade">
+          <Banner
+            tone="warn"
+            icon={Archive}
+            action={
+              onReturnConnected && (
+                <Button variant="ghost" size="sm" className="text-warn" onClick={onReturnConnected}>
+                  {t.shell.archive.returnToConnected}
+                  {connectedVehicle ? ` · ${vehicleName(connectedVehicle)}` : ""}
+                </Button>
+              )
+            }
+          >
+            {t.shell.archive.browsing(active ? vehicleName(active) : "")}
+          </Banner>
+        </Reveal>
+        {/* overflow-y-scroll, not auto: the gutter is always reserved so the
+            content never shifts sideways when a page grows past the fold. */}
+        <main className="min-h-0 flex-1 overflow-y-scroll px-[26px] pb-11 pt-6">
+          <div className="mx-auto flex w-full flex-col gap-[18px]" style={{ maxWidth: "var(--content-max-width)" }}>
+            <PageHeader
+              kicker={page.kicker}
+              title={page.title}
+              lede={page.lede(t.shell.appName)}
+              aside={liveLabel ? <LiveChip>{liveLabel}</LiveChip> : undefined}
+            />
+            <AnimatePresence mode="wait" initial={false}>
+              <Page key={view} className="flex flex-col gap-4">
+                {children}
+              </Page>
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

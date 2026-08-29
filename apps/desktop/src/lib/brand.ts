@@ -77,3 +77,17 @@ export function brandFromVin(vin: string | null | undefined): BrandInfo | null {
   if (!vin || vin.length < 3) return null;
   return WMI[vin.slice(0, 3).toUpperCase()] ?? null;
 }
+
+/** Every distinct marque the WMI table can name — the badge list, in
+ *  table order, de-duplicated by emblem key. Used for the "N brands
+ *  recognised" line and the login screen's emblem carousel. */
+export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
+  const seen = new Set<string>();
+  const out: BrandInfo[] = [];
+  for (const info of Object.values(WMI)) {
+    if (seen.has(info.key)) continue;
+    seen.add(info.key);
+    out.push(info);
+  }
+  return out;
+})();

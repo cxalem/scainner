@@ -36,6 +36,17 @@ export type Dictionary = {
     demoData: string;
     cloudSignInPrompt: string;
     demoDataTooltip: string;
+    // Sidebar nav group labels and the vehicle switcher's status lines.
+    navGroups: { primary: string; advanced: string };
+    switcher: {
+      onCable: string;
+      fromDatabase: string;
+      notConnected: string;
+      connectedNote: string;
+      storedNote: string;
+    };
+    signOut: string;
+    adapterFallback: string;
     nav: {
       workshop: string;
       overview: string;
@@ -588,6 +599,47 @@ export type Dictionary = {
       minVolts: string;
       readings: string;
     };
+  };
+  // Page heads: kicker / title / one-line lede per view.
+  pages: Record<"overview" | "diagnose" | "live" | "workshop" | "lab" | "vehicle", { kicker: string; title: string; lede: (app: string) => string }>;
+  // A1 — sign-in gate.
+  login: {
+    headline: string;
+    sub: (brands: number) => string;
+    signIn: string;
+    signInSub: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    sendLink: string;
+    sending: string;
+    codeLabel: string;
+    verify: string;
+    verifying: string;
+    checkInbox: string;
+    sentTo: (email: string) => string;
+    codeHint: string;
+    useAnother: string;
+    resend: string;
+    continueOffline: string;
+    localNote: (app: string) => string;
+    shareNote: string;
+  };
+  // A2 — connect gate.
+  gate: {
+    plugIn: string;
+    plugInBody: (app: string) => string;
+    reading: string;
+    readingBody: string;
+    recognised: (brand: string) => string;
+    recognisedBody: (brand: string) => string;
+    noAdapter: string;
+    plugToBegin: string;
+    readingVin: string;
+    brandUnknownYet: string;
+    connect: string;
+    connecting: string;
+    browseOffline: string;
+    lines: { lookingForAdapter: string; wakingBus: string; vinRead: (vin: string) => string; recognisedFrom: (brand: string, wmi: string) => string; adapterFound: (v: string) => string };
   };
   updater: {
     available: (version: string) => string;
