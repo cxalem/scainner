@@ -348,6 +348,27 @@ fn run_loop(
         // nowhere to file findings, so it is skipped too.
         if let Some(vehicle_id) = ctx.vehicle_id {
             if discovery::auto::enabled(&db) {
+                discovery::auto::notify_unknown_brand(resolved_vin.as_deref(), |notice| {
+                    log::info!(
+                        "discovery profile callback: reason={}, wmi={:?}; policy={}, scan_allowed={}",
+                        notice.reason,
+                        notice.wmi,
+                        notice.fallback_policy,
+                        notice.discovery_continues
+                    );
+                    let _ = app.emit(
+                        "unknown-brand",
+                        serde_json::json!({
+                            "vehicleId": vehicle_id,
+                            "classification": notice.classification,
+                            "reason": notice.reason,
+                            "wmi": notice.wmi,
+                            "brandId": notice.brand_id,
+                            "fallbackPolicy": notice.fallback_policy,
+                            "discoveryContinues": notice.discovery_continues,
+                        }),
+                    );
+                });
                 cancel_scan.store(false, Ordering::Relaxed);
                 set_scanning(&app, &status, true);
                 let progress = |phase: &str, current: u32, total: u32, detail: &str| {

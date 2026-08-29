@@ -44,6 +44,7 @@ const RELAYED_EVENTS: &[&str] = &[
     "live-update",
     "uds-scan-progress",
     "discovery-progress",
+    "unknown-brand",
 ];
 
 #[derive(Clone, Debug)]

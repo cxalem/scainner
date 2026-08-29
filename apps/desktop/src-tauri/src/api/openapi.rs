@@ -52,7 +52,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/", "Plain-text index of every route", &[], None, false, false),
     r("GET", "/health", "Liveness probe — the only route without auth", &[], None, false, false),
     r("GET", "/openapi.json", "This document", &[], None, false, false),
-    r("GET", "/events", "Server-Sent Events relay of conn-status, live-update, uds-scan-progress, discovery-progress", &[], None, false, false),
+    r("GET", "/events", "Server-Sent Events relay of conn-status, live-update, uds-scan-progress, discovery-progress, unknown-brand", &[], None, false, false),
     // connection
     r("POST", "/connect", "Start the connection supervisor (same loop as the UI's Connect: finds the adapter, cures Bluetooth sulk mode, keeps the link alive). Idempotent.", &[], None, false, false),
     r("POST", "/disconnect", "Stop the supervisor (cancels any running scan first)", &[], None, false, false),

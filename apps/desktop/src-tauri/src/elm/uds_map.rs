@@ -690,16 +690,21 @@ pub fn brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
     brand_for_vin_in(map(), vin)
 }
 
+fn wmi_prefix(vin: Option<&str>) -> Option<String> {
+    let prefix: String = vin?.chars().take(3).collect();
+    (prefix.chars().count() == 3).then(|| prefix.to_ascii_uppercase())
+}
+
 /// Same lookup against an explicit map (fixtures, the discovery layer).
 pub fn brand_for_vin_in<'a>(map: &'a UdsMap, vin: Option<&str>) -> Option<&'a Brand> {
-    let wmi = vin.filter(|v| v.len() >= 3)?[..3].to_uppercase();
+    let wmi = wmi_prefix(vin)?;
     map.brands
         .iter()
         .find(|b| b.wmi.iter().any(|w| w.eq_ignore_ascii_case(&wmi)))
 }
 
 fn overlay_brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
-    let wmi = vin.filter(|v| v.len() >= 3)?[..3].to_uppercase();
+    let wmi = wmi_prefix(vin)?;
     obdb_citroen().brands.iter().find(|b| {
         b.wmi
             .iter()

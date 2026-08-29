@@ -73,7 +73,7 @@ JSON `{"error": "..."}` with: `401` bad token, `400` bad body/params,
 | `GET /health` | `{ok, version, connection}` — no auth |
 | `GET /` | plain-text index of every route |
 | `GET /openapi.json` | OpenAPI 3 document (kept accurate by a test) |
-| `GET /events` | Server-Sent Events: `conn-status`, `live-update`, `uds-scan-progress`, `discovery-progress` — the very Tauri events the UI listens to |
+| `GET /events` | Server-Sent Events: `conn-status`, `live-update`, `uds-scan-progress`, `discovery-progress`, `unknown-brand` — the very Tauri events the UI listens to. `unknown-brand` covers unknown WMIs and known `standard_only` brands; it contains only WMI, optional brand id and fallback classification, never the full VIN. Read-only discovery continues only when that brand's scan policy permits enumeration. |
 
 ```sh
 sc -N $API/events        # streams: event: live-update\ndata: {"rpm":812,...}
