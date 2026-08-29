@@ -341,10 +341,11 @@ fn run_loop(
             if discovery::auto::enabled(&db) {
                 discovery::auto::notify_unknown_brand(resolved_vin.as_deref(), |notice| {
                     log::info!(
-                        "unknown brand callback: reason={}, wmi={:?}; continuing with {}",
+                        "discovery profile callback: reason={}, wmi={:?}; policy={}, scan_allowed={}",
                         notice.reason,
                         notice.wmi,
-                        notice.fallback_policy
+                        notice.fallback_policy,
+                        notice.discovery_continues
                     );
                     let _ = app.emit(
                         "unknown-brand",
@@ -353,6 +354,7 @@ fn run_loop(
                             "classification": notice.classification,
                             "reason": notice.reason,
                             "wmi": notice.wmi,
+                            "brandId": notice.brand_id,
                             "fallbackPolicy": notice.fallback_policy,
                             "discoveryContinues": notice.discovery_continues,
                         }),

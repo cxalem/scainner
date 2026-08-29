@@ -105,6 +105,7 @@ pub struct UnknownBrandNotice {
     pub classification: &'static str,
     pub reason: &'static str,
     pub wmi: Option<String>,
+    pub brand_id: Option<String>,
     pub fallback_policy: &'static str,
     pub discovery_continues: bool,
 }
@@ -113,22 +114,38 @@ pub struct UnknownBrandNotice {
 /// selected. This is a notification, not a gate: the caller continues with
 /// the manufacturer-agnostic fallback after the callback returns.
 pub fn notify_unknown_brand(vin: Option<&str>, callback: impl FnOnce(&UnknownBrandNotice)) -> bool {
-    if uds_map::brand_for_vin(vin).is_some() {
+    let brand = uds_map::brand_for_vin(vin);
+    let standard_only = brand
+        .is_some_and(|brand| brand.profiled_level == Some(uds_map::ProfiledLevel::StandardOnly));
+    if brand.is_some() && !standard_only {
         return false;
     }
     let normalized = vin.map(str::trim).filter(|value| !value.is_empty());
+    let scan_allowed = brand.is_none() || !uds_map::addresses_to_probe(vin).is_empty();
     let notice = UnknownBrandNotice {
-        classification: "unknown_brand",
-        reason: if normalized.is_some() {
+        classification: if standard_only {
+            "known_brand_unprofiled"
+        } else {
+            "unknown_brand"
+        },
+        reason: if standard_only {
+            "brand_not_profiled"
+        } else if normalized.is_some() {
             "wmi_not_profiled"
         } else {
             "vin_unavailable"
         },
         wmi: normalized
-            .filter(|value| value.len() >= 3)
-            .map(|value| value[..3].to_ascii_uppercase()),
-        fallback_policy: "manufacturer_agnostic_read_only",
-        discovery_continues: true,
+            .map(|value| value.chars().take(3).collect::<String>())
+            .filter(|value| value.chars().count() == 3)
+            .map(|value| value.to_ascii_uppercase()),
+        brand_id: brand.map(|brand| brand.id.clone()),
+        fallback_policy: if standard_only && !scan_allowed {
+            "brand_policy_no_enumeration"
+        } else {
+            "manufacturer_agnostic_read_only"
+        },
+        discovery_continues: scan_allowed,
     };
     callback(&notice);
     true
@@ -687,6 +704,7 @@ mod tests {
         assert_eq!(notices.len(), 1);
         assert_eq!(notices[0].wmi.as_deref(), Some("ZZZ"));
         assert_eq!(notices[0].reason, "wmi_not_profiled");
+        assert!(notices[0].brand_id.is_none());
         let json = serde_json::to_string(&notices[0]).unwrap();
         assert!(!json.contains("ZZZPRIVATE00000001"));
         assert!(notices[0].discovery_continues);
@@ -695,5 +713,27 @@ mod tests {
         assert!(notify_unknown_brand(None, |notice| notices.push(notice.clone())));
         assert_eq!(notices[0].reason, "vin_unavailable");
         assert!(notices[0].wmi.is_none());
+    }
+
+    #[test]
+    fn standard_only_brands_trigger_with_their_scan_policy() {
+        let brand = map()
+            .brands
+            .iter()
+            .find(|brand| brand.profiled_level == Some(uds_map::ProfiledLevel::StandardOnly))
+            .expect("the pack has a standard-only brand");
+        let vin = format!("{}EXAMPLE0000001", brand.wmi[0]);
+        let mut notice = None;
+        assert!(notify_unknown_brand(Some(&vin), |value| {
+            notice = Some(value.clone())
+        }));
+        let notice = notice.unwrap();
+        assert_eq!(notice.classification, "known_brand_unprofiled");
+        assert_eq!(notice.reason, "brand_not_profiled");
+        assert_eq!(notice.brand_id.as_deref(), Some(brand.id.as_str()));
+        assert_eq!(
+            notice.discovery_continues,
+            !uds_map::addresses_to_probe(Some(&vin)).is_empty()
+        );
     }
 }
