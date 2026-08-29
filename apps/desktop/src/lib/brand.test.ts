@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { brandFromVin, parseWmiTable, type BrandInfo } from "./brand";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 describe("brandFromVin", () => {
   it("resolves high-confidence WMI codes to the correct brand", () => {
@@ -44,6 +49,15 @@ describe("brandFromVin", () => {
     );
     expect(brandFromVin("WA1AAAAA000000000")).toEqual(
       expect.objectContaining({ key: "audi", name: "AUDI", confidence: "high" }),
+    );
+  });
+
+  it("carries the routing brand id for map-routed WMIs and null for badge-only marques", () => {
+    // VF3 is routed by the map (a group brand) and refined by the marque
+    // overlay; WP0 only exists in the overlay.
+    expect(typeof brandFromVin("VF3AAAAA000000000")?.brand).toBe("string");
+    expect(brandFromVin("WP0AAAAA000000000")).toEqual(
+      expect.objectContaining({ key: "porsche", brand: null }),
     );
   });
 
@@ -94,6 +108,15 @@ describe("parseWmiTable", () => {
       MISSING_CONFIDENCE: { key: "no-confidence", name: "NO CONFIDENCE", source: "fixture" },
     });
     expect(Object.keys(table)).toEqual(["GOOD"]);
+  });
+
+  it("accepts a string or null `brand` and drops anything else", () => {
+    const table = parseWmiTable({
+      ROUTED: { key: "ok", name: "OK", confidence: "high", source: "fixture", brand: "ok_group" },
+      BADGE: { key: "ok", name: "OK", confidence: "high", source: "fixture", brand: null },
+      BAD: { key: "ok", name: "OK", confidence: "high", source: "fixture", brand: 7 },
+    });
+    expect(Object.keys(table).sort()).toEqual(["BADGE", "ROUTED"]);
   });
 
   it("drops entries with the wrong field types instead of throwing", () => {
@@ -149,6 +172,48 @@ describe("parseWmiTable", () => {
       expect(typeof entry.name).toBe("string");
       expect(typeof entry.source).toBe("string");
       expect(["high", "medium-high", "medium", "low"]).toContain(entry.confidence);
+    }
+  });
+});
+
+describe("wmi.json is generated from the knowledge map", () => {
+  it("routes every WMI of every map brand", async () => {
+    const raw = (await import("../data/wmi.json")).default as Record<string, BrandInfo>;
+    const map = JSON.parse(
+      readFileSync(join(HERE, "../../../../packages/uds-map/data/uds-map.json"), "utf-8"),
+    ) as { brands: { id: string; wmi: string[] }[] };
+    for (const b of map.brands) {
+      for (const wmi of b.wmi) {
+        expect(raw[wmi], wmi).toBeDefined();
+        expect(typeof raw[wmi].brand, wmi).toBe("string");
+      }
+    }
+  });
+
+  it("keeps every marque-overlay row (key/name refinements survive regeneration)", async () => {
+    const raw = (await import("../data/wmi.json")).default as Record<string, BrandInfo>;
+    const overlay = (await import("../data/wmi-marques.json")).default as Record<string, { key: string; name: string }>;
+    for (const [wmi, o] of Object.entries(overlay)) {
+      expect(raw[wmi], wmi).toEqual(expect.objectContaining({ key: o.key, name: o.name }));
+    }
+  });
+});
+
+describe("emblem keys are reachable", () => {
+  // emblems.tsx is read as text on purpose: importing it drags three.js
+  // and GLTF loaders into a unit test for what is a data-consistency check.
+  it("every EMBLEMS key is a wmi.json key or an explicit preview-only emblem", async () => {
+    const src = readFileSync(join(HERE, "../components/emblems.tsx"), "utf-8");
+    const record = src.slice(src.indexOf("export const EMBLEMS"));
+    const keys = [...record.matchAll(/^  ([a-z][a-z0-9_-]*): (?:glb|stl)Emblem\(/gm)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(10);
+    const previewMatch = src.match(/export const PREVIEW_ONLY_EMBLEMS = \[([^\]]*)\]/);
+    expect(previewMatch).not.toBeNull();
+    const previewOnly = new Set([...previewMatch![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]));
+    const raw = (await import("../data/wmi.json")).default as Record<string, BrandInfo>;
+    const badgeKeys = new Set(Object.values(raw).map((e) => e.key));
+    for (const k of keys) {
+      expect(badgeKeys.has(k) || previewOnly.has(k), `emblem "${k}" is unreachable`).toBe(true);
     }
   });
 });

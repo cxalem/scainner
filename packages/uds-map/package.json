@@ -43,7 +43,9 @@
     "coverage": "node --experimental-strip-types scripts/coverage.ts",
     "coverage:check": "node --experimental-strip-types scripts/coverage.ts --check",
     "lint:pack": "node --experimental-strip-types scripts/lint.ts",
-    "prepublishOnly": "pnpm run build && pnpm run test"
+    "prepublishOnly": "pnpm run build && pnpm run test",
+    "wmi-table": "node --experimental-strip-types scripts/wmi-table.ts",
+    "wmi-table:check": "node --experimental-strip-types scripts/wmi-table.ts --check"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,356 +1,1808 @@
 {
-  "VR7": {
-    "key": "citroen",
-    "name": "CITROËN",
+  "19U": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
     "confidence": "medium",
-    "source": "NHTSA: Count 0 (expected, Citroën not sold in US). Two source lineages (search summary + Wikibooks) agree VR7 is Citroën's newer Stellantis-era code."
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
   },
-  "VF7": {
-    "key": "citroen",
-    "name": "CITROËN",
+  "19V": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "19X": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "1B3": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1B4": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1B7": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1C3": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1C4": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1C6": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1D7": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "1FA": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "1FB": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "1FC": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "1FD": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "1FM": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "1FT": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "1G1": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "1G2": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "1G4": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "1G6": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "1GC": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "1GT": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "1HG": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "1N4": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA: Count 0 (expected). Confirmed convergently by dot.report, Wikibooks, and an independent WMI CSV. Long-established classic Citroën code."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "VR1": {
-    "key": "ds",
-    "name": "DS",
-    "confidence": "medium-high",
-    "source": "NHTSA: Count 0 (expected, DS not sold in US). Two independent source lineages (search summary + Wikibooks) agree."
-  },
-  "VR3": {
-    "key": "peugeot",
-    "name": "PEUGEOT",
-    "confidence": "medium-high",
-    "source": "NHTSA: Count 0 for VR3 specifically (only VF3 is registered for Peugeot). Two sources agree VR3 is a newer Stellantis-era code alongside VF3."
-  },
-  "VF3": {
-    "key": "peugeot",
-    "name": "PEUGEOT",
+  "1N6": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: DecodeWMI(VF3) and GetWMIsForManufacturer(Peugeot) both return AUTOMOBILES PEUGEOT."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "W0L": {
-    "key": "opel",
-    "name": "OPEL",
+  "1VW": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
     "confidence": "high",
-    "source": "NHTSA confirms W0L = Adam Opel AG directly, with sibling codes W08/W04/W06 under the same entity. Wikibooks' claim that W0L is shared with Vauxhall is plausible but likely an oversimplification (see wmi-audit.md) - not relied on here, this entry is Opel-only."
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
   },
-  "ZFA": {
-    "key": "fiat",
-    "name": "FIAT",
+  "1YV": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "2C3": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "2C4": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "2FA": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "2FM": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "2FT": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "2G1": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "2HG": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "2HJ": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "2HK": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "2T1": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
     "confidence": "high",
-    "source": "NHTSA confirms directly: DecodeWMI(ZFA) -> FCA ITALY S.P.A., Make FIAT."
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
   },
-  "ZAR": {
-    "key": "alfa-romeo",
-    "name": "ALFA ROMEO",
+  "2T2": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
     "confidence": "high",
-    "source": "NHTSA confirms directly via DecodeWMI and GetWMIsForManufacturer: ALFA ROMEO S.P.A."
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
   },
-  "VF1": {
+  "2T3": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "3C4": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "3C6": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "3CZ": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "3FA": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "3G1": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "3HG": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "3KP": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "3MD": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "3MV": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "3MY": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "3MZ": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "3N1": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
+  },
+  "3N6": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
+  },
+  "3N8": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
+  },
+  "3VW": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
+  },
+  "4A3": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "4A4": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "4F2": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "4F4": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "4JG": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
+  },
+  "4S3": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "4S4": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "4T1": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "4T3": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "4T4": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "4US": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "55S": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
+  },
+  "58A": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "5FN": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "5FP": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "5FR": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "5J6": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "5J8": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "5LM": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "5N1": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
+  },
+  "5N3": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
+  },
+  "5NM": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "5NP": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "5NT": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "5TD": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "5TE": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "5TF": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "5UX": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "5XX": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "5XY": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "5YF": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "5YJ": {
+    "key": "tesla",
+    "name": "TESLA",
+    "brand": "tesla",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Tesla, Inc., USA, Passenger Car."
+  },
+  "5YM": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "6MM": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "7G2": {
+    "key": "tesla",
+    "name": "TESLA",
+    "brand": "tesla",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Tesla Gigafactory Texas code, Truck vehicle type (likely Cybertruck). Prior table had no Austin production represented at all."
+  },
+  "7JR": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[volvo].wmi"
+  },
+  "7SA": {
+    "key": "tesla",
+    "name": "TESLA",
+    "brand": "tesla",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Tesla Gigafactory Texas code, MPV vehicle type (likely Model Y). Prior table had no Austin production represented at all."
+  },
+  "8A1": {
     "key": "renault",
     "name": "RENAULT",
+    "brand": "renault",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Make EAGLE, RENAULT; Manufacturer RENAULT GROUP."
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
   },
-  "UU1": {
-    "key": "dacia",
-    "name": "DACIA",
+  "93U": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
     "confidence": "high",
-    "source": "NHTSA: no direct hit (expected, not sold in US). Corroborated by Wikibooks, an independent WMI CSV, and a real decoded example VIN (UU1K5220962751578 -> Dacia)."
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
   },
-  "WVW": {
-    "key": "volkswagen",
-    "name": "VOLKSWAGEN",
+  "93Y": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Volkswagen, Passenger Car, present in Volkswagen's registered manufacturer list."
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
   },
-  "WV1": {
-    "key": "volkswagen",
-    "name": "VOLKSWAGEN",
+  "9BW": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Volkswagen, Truck type, Volkswagen Group of America Inc."
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
   },
-  "WV2": {
-    "key": "volkswagen",
-    "name": "VOLKSWAGEN",
+  "AAV": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Volkswagen, MPV."
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
   },
-  "WAU": {
-    "key": "audi",
-    "name": "AUDI",
+  "J81": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "JA3": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "JA4": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "JA7": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "JB4": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "JC1": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "JC2": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "JF1": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "JF2": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "JF3": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "JF4": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "JH1": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "JH4": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "JHL": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[honda].wmi"
+  },
+  "JHM": {
+    "key": "honda",
+    "name": "HONDA",
+    "brand": "honda",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Audi AG, Germany."
+    "source": "NHTSA confirms directly: Honda Motor Co., Ltd., Passenger Car."
   },
-  "TRU": {
-    "key": "audi",
-    "name": "AUDI",
+  "JJ1": {
+    "key": "subaru",
+    "name": "SUBARU",
+    "brand": "subaru",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[subaru].wmi"
+  },
+  "JM1": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Audi AG, registered under Hungary (Győr plant, where TT/A3 are historically built)."
+    "source": "NHTSA confirms directly: Mazda Motor Corporation, Passenger Car."
   },
-  "VSS": {
-    "key": "seat",
-    "name": "SEAT",
-    "confidence": "medium-high",
-    "source": "NHTSA: no hit (expected, not sold in US). Wikibooks lists VSS as SEAT/Cupra shared; an older independent WMI CSV lists SEAT only. Shared-with-Cupra claim is plausible (same Martorell plant) but not authoritatively confirmed."
+  "JM2": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
   },
-  "TMB": {
-    "key": "skoda",
-    "name": "ŠKODA",
+  "JM3": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "JM6": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "JM7": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "JMZ": {
+    "key": "mazda",
+    "name": "MAZDA",
+    "brand": "mazda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mazda].wmi"
+  },
+  "JN1": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA: no hit (expected, not sold in US). Corroborated by Wikibooks, an independent CSV, dot.report, and Škoda's own official brand-story site (T=Czech Republic, M=Mladá Boleslav, B=Škoda)."
+    "source": "NHTSA confirms: Nissan Motor Company Ltd, but Make field is NISSAN, INFINITI, DATSUN. Not exclusive, still correctly attributed to Nissan."
   },
-  "WBA": {
-    "key": "bmw",
-    "name": "BMW",
+  "JN3": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: BMW AG, Germany, Passenger Car."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "WBS": {
-    "key": "bmw",
-    "name": "BMW",
+  "JN6": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: BMW M GMBH, Germany (BMW's M-division-specific code)."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "WBY": {
-    "key": "bmw",
-    "name": "BMW",
+  "JN8": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: BMW AG, Germany (BMW's i-series/electric code)."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "WDB": {
-    "key": "mercedes",
-    "name": "MERCEDES-BENZ",
+  "JNK": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "WDD": {
-    "key": "mercedes",
-    "name": "MERCEDES-BENZ",
+  "JNR": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "W1K": {
-    "key": "mercedes",
-    "name": "MERCEDES-BENZ",
+  "JNX": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany, Passenger Car."
+    "source": "packages/uds-map/data/uds-map.json brands[nissan].wmi"
   },
-  "W1N": {
-    "key": "mercedes",
-    "name": "MERCEDES-BENZ",
-    "confidence": "high",
-    "source": "NHTSA confirms directly: Mercedes-Benz AG, Germany, MPV/SUV line."
+  "JP3": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
   },
-  "WP0": {
-    "key": "porsche",
-    "name": "PORSCHE",
-    "confidence": "high",
-    "source": "NHTSA confirms directly: Dr. Ing. h.c.F. Porsche AG, Germany. Porsche's entire NHTSA-registered list is exactly {WP0, WP1}."
+  "JP4": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
   },
-  "WP1": {
-    "key": "porsche",
-    "name": "PORSCHE",
+  "JS2": {
+    "key": "suzuki",
+    "name": "SUZUKI",
+    "brand": null,
     "confidence": "high",
-    "source": "NHTSA confirms directly: same entity as WP0, Germany, MPV (Cayenne/Macan)."
+    "source": "Replaces JSA, removed 2026-08-21 after wmi-audit.md caught a real error: NHTSA confirms JSA is a motorcycle WMI (Suzuki Motor of America, shared with Kawasaki), not a car code. JS2 is Suzuki's actual passenger-car/truck code, NHTSA-confirmed plain SUZUKI."
+  },
+  "JT2": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JT3": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JT4": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JT5": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JT6": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JT8": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
   },
   "JTD": {
     "key": "toyota",
     "name": "TOYOTA",
+    "brand": "toyota",
     "confidence": "high",
     "source": "NHTSA confirms directly: Toyota Motor Corporation, Make TOYOTA, Passenger Car."
   },
   "JTE": {
     "key": "toyota",
     "name": "TOYOTA",
+    "brand": "toyota",
     "confidence": "high",
     "source": "NHTSA confirms: Toyota Motor Corporation, but Make field is TOYOTA, LEXUS, SUBARU (Subaru builds some Toyota-platform MPVs on this WMI). Not exclusive, still correctly attributed to Toyota."
+  },
+  "JTH": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JTJ": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JTK": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JTL": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JTM": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "JTN": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "KL1": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "KL8": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "KM8": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "KME": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "KMF": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "KMH": {
+    "key": "hyundai",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "NHTSA confirms: Hyundai Motor Co, but Make field is HYUNDAI, GENESIS (Hyundai's luxury spinoff). Not exclusive, still correctly attributed."
+  },
+  "KMT": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "KMU": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "KNA": {
+    "key": "kia",
+    "name": "KIA",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Kia Corporation, Passenger Car."
+  },
+  "KND": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "KNE": {
+    "key": "kia",
+    "name": "KIA",
+    "brand": null,
+    "confidence": "medium",
+    "source": "NHTSA: Count 0, absent from Kia's 9-row NHTSA list. One named source (vinspecify.com) says KNE = Korea-built Kia SUVs (Niro, Soul). Not independently corroborated by a second named source."
+  },
+  "LB3": {
+    "key": "geely",
+    "name": "GEELY",
+    "brand": null,
+    "confidence": "medium",
+    "source": "NHTSA: Count 0 for LB3 (GetWMIsForManufacturer(Geely) only returns LB2, a motorcycle code under a different entity). Several decoder-site sources support LB3 = core Geely models (Coolray, Emgrand, Atlas Pro), but Wikibooks directly contradicts the LB3-vs-L6T sub-brand split (disagreeing on where Geometry and mainline Geely sit) - genuinely unresolved per wmi-audit.md. Deliberately not adding L6T: it is at least partly Zeekr's (NHTSA-confirmed, Zeekr registered its own US entity under L6T in Nov 2024), and a wrong badge is worse than no badge."
+  },
+  "LE4": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "LGX": {
+    "key": "byd",
+    "name": "BYD",
+    "brand": null,
+    "confidence": "high",
+    "source": "NHTSA confirms directly via DecodeWMI and GetWMIsForManufacturer: BYD Auto Co., Ltd. Also corroborated by Wikibooks and an independent CSV - the strongest-sourced Chinese-brand code in the table."
+  },
+  "LPA": {
+    "key": "psa",
+    "name": "PSA",
+    "brand": "psa",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[psa].wmi"
+  },
+  "LPS": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[volvo].wmi"
+  },
+  "LRW": {
+    "key": "tesla",
+    "name": "TESLA",
+    "brand": "tesla",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[tesla].wmi"
+  },
+  "LSG": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
+  },
+  "LTN": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "LVS": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "LVV": {
+    "key": "chery",
+    "name": "CHERY",
+    "brand": null,
+    "confidence": "medium-high",
+    "source": "NHTSA: no hit (expected, not sold in US). Converges across Wikibooks, an independent CSV, and a China-vehicle-history site, all agreeing LVV = Chery (Wuhu plant)."
+  },
+  "LVY": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "high",
+    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Volvo China-built code (Daqing Volvo Car Manufacturing) - directly analogous to Tesla's Berlin code. Volvo previously had zero China-market coverage despite significant China-built export volumes (S60, S90)."
+  },
+  "LWV": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "LYV": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[volvo].wmi"
+  },
+  "MAJ": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "ML3": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "MNA": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "MNB": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "MP3": {
+    "key": "mitsubishi",
+    "name": "MITSUBISHI",
+    "brand": "mitsubishi",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[mitsubishi].wmi"
+  },
+  "MR0": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "NLH": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
+  },
+  "NMT": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[toyota].wmi"
+  },
+  "PE1": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "SAJ": {
+    "key": "jaguar",
+    "name": "JAGUAR",
+    "brand": null,
+    "confidence": "high",
+    "source": "Same as SAL - NHTSA CommonName is jointly Jaguar Land Rover, secondary sources confirm SAJ = Jaguar specifically."
+  },
+  "SAL": {
+    "key": "land-rover",
+    "name": "LAND ROVER",
+    "brand": null,
+    "confidence": "high",
+    "source": "NHTSA confirms the code exists, but its CommonName is jointly Jaguar Land Rover, not split by brand. Secondary sources confirm SAL = Land Rover specifically within JLR's range - a real, well-documented convention just not NHTSA-native."
   },
   "SB1": {
     "key": "toyota",
     "name": "TOYOTA",
+    "brand": "toyota",
     "confidence": "high",
     "source": "NHTSA confirms: Toyota Motor Corporation, UK. DateAvailableToPublic 2025-11-13 - a recently-registered UK-market code, older VIN decoders may not recognize it yet."
   },
-  "VNK": {
-    "key": "toyota",
-    "name": "TOYOTA",
-    "confidence": "high",
-    "source": "NHTSA confirms directly: Toyota Motor Manufacturing France S.A.S., Passenger Car (French Yaris plant)."
-  },
-  "JHM": {
-    "key": "honda",
-    "name": "HONDA",
-    "confidence": "high",
-    "source": "NHTSA confirms directly: Honda Motor Co., Ltd., Passenger Car."
+  "SFA": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
   },
   "SHH": {
     "key": "honda",
     "name": "HONDA",
+    "brand": "honda",
     "confidence": "high",
     "source": "NHTSA confirms directly: Honda of the U.K. Mfg., Ltd. (Swindon plant)."
   },
   "SHS": {
     "key": "honda",
     "name": "HONDA",
+    "brand": "honda",
     "confidence": "high",
     "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed sibling of SHH - Honda UK (Swindon), MPV vehicle type where SHH is Passenger Car. Same manufacturer, different vehicle class, was missing despite SHH being present."
-  },
-  "JN1": {
-    "key": "nissan",
-    "name": "NISSAN",
-    "confidence": "high",
-    "source": "NHTSA confirms: Nissan Motor Company Ltd, but Make field is NISSAN, INFINITI, DATSUN. Not exclusive, still correctly attributed to Nissan."
-  },
-  "SJN": {
-    "key": "nissan",
-    "name": "NISSAN",
-    "confidence": "medium",
-    "source": "NHTSA: Count 0, not in the live registry. Two independent secondary sources agree SJN = Nissan Motor Manufacturing UK Ltd (Sunderland). NHTSA does separately confirm sibling code SJK for Nissan UK, which lends indirect credibility."
   },
   "SJK": {
     "key": "nissan",
     "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "medium-high",
     "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed sibling of SJN (Nissan UK, Sunderland plant) - if SJN turns out unreliable, SJK is the NHTSA-backed alternative for the same plant."
   },
-  "VSK": {
+  "SJN": {
     "key": "nissan",
     "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "medium",
-    "source": "NHTSA: Count 0. Two-plus secondary sources agree VSK = Nissan Motor Ibérica S.A. (Spain), used roughly 1993-1999, later also on Spain-built Navara D40. Possibly a stale legacy code."
+    "source": "NHTSA: Count 0, not in the live registry. Two independent secondary sources agree SJN = Nissan Motor Manufacturing UK Ltd (Sunderland). NHTSA does separately confirm sibling code SJK for Nissan UK, which lends indirect credibility."
   },
-  "JM1": {
-    "key": "mazda",
-    "name": "MAZDA",
-    "confidence": "high",
-    "source": "NHTSA confirms directly: Mazda Motor Corporation, Passenger Car."
-  },
-  "KMH": {
-    "key": "hyundai",
-    "name": "HYUNDAI",
-    "confidence": "high",
-    "source": "NHTSA confirms: Hyundai Motor Co, but Make field is HYUNDAI, GENESIS (Hyundai's luxury spinoff). Not exclusive, still correctly attributed."
+  "SKA": {
+    "key": "gm",
+    "name": "GM",
+    "brand": "gm",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[gm].wmi"
   },
   "TMA": {
     "key": "hyundai",
     "name": "HYUNDAI",
+    "brand": "hyundai_kia",
     "confidence": "medium-high",
     "source": "NHTSA: Count 0, not in Hyundai's 15-row NHTSA list. Two independently-named sources agree TMA = Czech-built Hyundai (Nošovice plant)."
   },
-  "KNA": {
-    "key": "kia",
-    "name": "KIA",
+  "TMB": {
+    "key": "skoda",
+    "name": "ŠKODA",
+    "brand": "skoda",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Kia Corporation, Passenger Car."
+    "source": "NHTSA: no hit (expected, not sold in US). Corroborated by Wikibooks, an independent CSV, dot.report, and Škoda's own official brand-story site (T=Czech Republic, M=Mladá Boleslav, B=Škoda)."
   },
-  "KNE": {
-    "key": "kia",
-    "name": "KIA",
+  "TMK": {
+    "key": "skoda",
+    "name": "SKODA",
+    "brand": "skoda",
     "confidence": "medium",
-    "source": "NHTSA: Count 0, absent from Kia's 9-row NHTSA list. One named source (vinspecify.com) says KNE = Korea-built Kia SUVs (Niro, Soul). Not independently corroborated by a second named source."
+    "source": "packages/uds-map/data/uds-map.json brands[skoda].wmi"
+  },
+  "TML": {
+    "key": "skoda",
+    "name": "SKODA",
+    "brand": "skoda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[skoda].wmi"
+  },
+  "TMP": {
+    "key": "skoda",
+    "name": "SKODA",
+    "brand": "skoda",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[skoda].wmi"
+  },
+  "TRU": {
+    "key": "audi",
+    "name": "AUDI",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Audi AG, registered under Hungary (Győr plant, where TT/A3 are historically built)."
+  },
+  "TW2": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
   },
   "U5Y": {
     "key": "kia",
     "name": "KIA",
+    "brand": "hyundai_kia",
     "confidence": "medium",
     "source": "NHTSA confirms it exists, but as HYUNDAI-KIA AMERICA TECHNICAL CENTER INC (HATCI), Make HYUNDAI, KIA - a joint Hyundai/Kia R&D-entity code, not Kia-exclusive. Labeling it Kia is directionally fine but technically incomplete."
   },
-  "JS2": {
-    "key": "suzuki",
-    "name": "SUZUKI",
+  "U6Y": {
+    "key": "hyundai_kia",
+    "name": "HYUNDAI",
+    "brand": "hyundai_kia",
     "confidence": "high",
-    "source": "Replaces JSA, removed 2026-08-21 after wmi-audit.md caught a real error: NHTSA confirms JSA is a motorcycle WMI (Suzuki Motor of America, shared with Kawasaki), not a car code. JS2 is Suzuki's actual passenger-car/truck code, NHTSA-confirmed plain SUZUKI."
+    "source": "packages/uds-map/data/uds-map.json brands[hyundai_kia].wmi"
   },
-  "LB3": {
-    "key": "geely",
-    "name": "GEELY",
-    "confidence": "medium",
-    "source": "NHTSA: Count 0 for LB3 (GetWMIsForManufacturer(Geely) only returns LB2, a motorcycle code under a different entity). Several decoder-site sources support LB3 = core Geely models (Coolray, Emgrand, Atlas Pro), but Wikibooks directly contradicts the LB3-vs-L6T sub-brand split (disagreeing on where Geometry and mainline Geely sit) - genuinely unresolved per wmi-audit.md. Deliberately not adding L6T: it is at least partly Zeekr's (NHTSA-confirmed, Zeekr registered its own US entity under L6T in Nov 2024), and a wrong badge is worse than no badge."
-  },
-  "LGX": {
-    "key": "byd",
-    "name": "BYD",
+  "UU1": {
+    "key": "dacia",
+    "name": "DACIA",
+    "brand": "renault",
     "confidence": "high",
-    "source": "NHTSA confirms directly via DecodeWMI and GetWMIsForManufacturer: BYD Auto Co., Ltd. Also corroborated by Wikibooks and an independent CSV - the strongest-sourced Chinese-brand code in the table."
+    "source": "NHTSA: no direct hit (expected, not sold in US). Corroborated by Wikibooks, an independent WMI CSV, and a real decoded example VIN (UU1K5220962751578 -> Dacia)."
   },
-  "LVV": {
-    "key": "chery",
-    "name": "CHERY",
+  "UU5": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
+  },
+  "VF1": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Make EAGLE, RENAULT; Manufacturer RENAULT GROUP."
+  },
+  "VF2": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
+  },
+  "VF3": {
+    "key": "peugeot",
+    "name": "PEUGEOT",
+    "brand": "psa",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: DecodeWMI(VF3) and GetWMIsForManufacturer(Peugeot) both return AUTOMOBILES PEUGEOT."
+  },
+  "VF6": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
+  },
+  "VF7": {
+    "key": "citroen",
+    "name": "CITROËN",
+    "brand": "psa",
+    "confidence": "high",
+    "source": "NHTSA: Count 0 (expected). Confirmed convergently by dot.report, Wikibooks, and an independent WMI CSV. Long-established classic Citroën code."
+  },
+  "VNK": {
+    "key": "toyota",
+    "name": "TOYOTA",
+    "brand": "toyota",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Toyota Motor Manufacturing France S.A.S., Passenger Car (French Yaris plant)."
+  },
+  "VNV": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
+  },
+  "VR1": {
+    "key": "ds",
+    "name": "DS",
+    "brand": "psa",
     "confidence": "medium-high",
-    "source": "NHTSA: no hit (expected, not sold in US). Converges across Wikibooks, an independent CSV, and a China-vehicle-history site, all agreeing LVV = Chery (Wuhu plant)."
+    "source": "NHTSA: Count 0 (expected, DS not sold in US). Two independent source lineages (search summary + Wikibooks) agree."
   },
-  "WF0": {
-    "key": "ford",
-    "name": "FORD",
+  "VR3": {
+    "key": "peugeot",
+    "name": "PEUGEOT",
+    "brand": "psa",
+    "confidence": "medium-high",
+    "source": "NHTSA: Count 0 for VR3 specifically (only VF3 is registered for Peugeot). Two sources agree VR3 is a newer Stellantis-era code alongside VF3."
+  },
+  "VR7": {
+    "key": "citroen",
+    "name": "CITROËN",
+    "brand": "psa",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0 (expected, Citroën not sold in US). Two source lineages (search summary + Wikibooks) agree VR7 is Citroën's newer Stellantis-era code."
+  },
+  "VS5": {
+    "key": "renault",
+    "name": "RENAULT",
+    "brand": "renault",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Ford Werke AG, Germany, Passenger Car."
+    "source": "packages/uds-map/data/uds-map.json brands[renault].wmi"
   },
   "VS6": {
     "key": "ford",
     "name": "FORD",
+    "brand": "ford",
     "confidence": "medium",
     "source": "NHTSA: Count 0, absent from Ford's full 78-row NHTSA list. Two-plus independent sources agree VS6 = Ford's Almussafes/Valencia, Spain plant, no contradicting source found."
   },
-  "YV1": {
-    "key": "volvo",
-    "name": "VOLVO",
+  "VS7": {
+    "key": "psa",
+    "name": "PSA",
+    "brand": "psa",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Volvo Car Corporation, Sweden, Passenger Car."
+    "source": "packages/uds-map/data/uds-map.json brands[psa].wmi"
   },
-  "YV4": {
-    "key": "volvo",
-    "name": "VOLVO",
+  "VS8": {
+    "key": "psa",
+    "name": "PSA",
+    "brand": "psa",
     "confidence": "high",
-    "source": "NHTSA confirms directly: Volvo Car Corporation, Sweden, MPV/SUV line (e.g. XC90)."
+    "source": "packages/uds-map/data/uds-map.json brands[psa].wmi"
   },
-  "LVY": {
-    "key": "volvo",
-    "name": "VOLVO",
-    "confidence": "high",
-    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Volvo China-built code (Daqing Volvo Car Manufacturing) - directly analogous to Tesla's Berlin code. Volvo previously had zero China-market coverage despite significant China-built export volumes (S60, S90)."
-  },
-  "5YJ": {
-    "key": "tesla",
-    "name": "TESLA",
-    "confidence": "high",
-    "source": "NHTSA confirms directly: Tesla, Inc., USA, Passenger Car."
-  },
-  "XP7": {
-    "key": "tesla",
-    "name": "TESLA",
+  "VSK": {
+    "key": "nissan",
+    "name": "NISSAN",
+    "brand": "nissan",
     "confidence": "medium",
-    "source": "NHTSA: Count 0, absent from Tesla's 4-row NHTSA list (5YJ, SFZ, 7G2, 7SA). Five separate independent sources consistently identify XP7 as Tesla Gigafactory Berlin."
+    "source": "NHTSA: Count 0. Two-plus secondary sources agree VSK = Nissan Motor Ibérica S.A. (Spain), used roughly 1993-1999, later also on Spain-built Navara D40. Possibly a stale legacy code."
   },
-  "7G2": {
-    "key": "tesla",
-    "name": "TESLA",
-    "confidence": "high",
-    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Tesla Gigafactory Texas code, Truck vehicle type (likely Cybertruck). Prior table had no Austin production represented at all."
+  "VSS": {
+    "key": "seat",
+    "name": "SEAT",
+    "brand": "seat",
+    "confidence": "medium-high",
+    "source": "NHTSA: no hit (expected, not sold in US). Wikibooks lists VSS as SEAT/Cupra shared; an older independent WMI CSV lists SEAT only. Shared-with-Cupra claim is plausible (same Martorell plant) but not authoritatively confirmed."
   },
-  "7SA": {
-    "key": "tesla",
-    "name": "TESLA",
-    "confidence": "high",
-    "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Tesla Gigafactory Texas code, MPV vehicle type (likely Model Y). Prior table had no Austin production represented at all."
+  "VXE": {
+    "key": "opel_psa",
+    "name": "OPEL",
+    "brand": "opel_psa",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[opel_psa].wmi"
   },
-  "SAL": {
-    "key": "land-rover",
-    "name": "LAND ROVER",
-    "confidence": "high",
-    "source": "NHTSA confirms the code exists, but its CommonName is jointly Jaguar Land Rover, not split by brand. Secondary sources confirm SAL = Land Rover specifically within JLR's range - a real, well-documented convention just not NHTSA-native."
+  "VXK": {
+    "key": "opel_psa",
+    "name": "OPEL",
+    "brand": "opel_psa",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[opel_psa].wmi"
   },
-  "SAJ": {
-    "key": "jaguar",
-    "name": "JAGUAR",
+  "W0L": {
+    "key": "opel",
+    "name": "OPEL",
+    "brand": "gm",
     "confidence": "high",
-    "source": "Same as SAL - NHTSA CommonName is jointly Jaguar Land Rover, secondary sources confirm SAJ = Jaguar specifically."
+    "source": "NHTSA confirms W0L = Adam Opel AG directly, with sibling codes W08/W04/W06 under the same entity. Wikibooks' claim that W0L is shared with Vauxhall is plausible but likely an oversimplification (see wmi-audit.md) - not relied on here, this entry is Opel-only."
+  },
+  "W0V": {
+    "key": "opel_psa",
+    "name": "OPEL",
+    "brand": "opel_psa",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[opel_psa].wmi"
+  },
+  "W1K": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany, Passenger Car."
+  },
+  "W1N": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz AG, Germany, MPV/SUV line."
+  },
+  "W1Y": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
   },
   "WA1": {
     "key": "audi",
     "name": "AUDI",
+    "brand": "vag",
     "confidence": "high",
     "source": "Added 2026-08-21 from wmi-audit.md's 'worth considering' list. NHTSA-confirmed Audi AG, Germany, dedicated SUV/MPV-line code alongside WAU/TRU (passenger car) - covers Audi's Q-series SUVs."
+  },
+  "WAU": {
+    "key": "audi",
+    "name": "AUDI",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Audi AG, Germany."
+  },
+  "WB1": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "WB5": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "WBA": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: BMW AG, Germany, Passenger Car."
+  },
+  "WBS": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: BMW M GMBH, Germany (BMW's M-division-specific code)."
+  },
+  "WBX": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "WBY": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: BMW AG, Germany (BMW's i-series/electric code)."
+  },
+  "WDB": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany."
+  },
+  "WDC": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
+  },
+  "WDD": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Mercedes-Benz Cars, Germany."
+  },
+  "WDF": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
+  },
+  "WEB": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
+  },
+  "WF0": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Ford Werke AG, Germany, Passenger Car."
+  },
+  "WME": {
+    "key": "mercedes",
+    "name": "MERCEDES-BENZ",
+    "brand": "mercedes",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[mercedes].wmi"
+  },
+  "WMW": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "WMZ": {
+    "key": "bmw",
+    "name": "BMW",
+    "brand": "bmw",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[bmw].wmi"
+  },
+  "WP0": {
+    "key": "porsche",
+    "name": "PORSCHE",
+    "brand": null,
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Dr. Ing. h.c.F. Porsche AG, Germany. Porsche's entire NHTSA-registered list is exactly {WP0, WP1}."
+  },
+  "WP1": {
+    "key": "porsche",
+    "name": "PORSCHE",
+    "brand": null,
+    "confidence": "high",
+    "source": "NHTSA confirms directly: same entity as WP0, Germany, MPV (Cayenne/Macan)."
+  },
+  "WU1": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
+  },
+  "WUA": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
+  },
+  "WV1": {
+    "key": "volkswagen",
+    "name": "VOLKSWAGEN",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volkswagen, Truck type, Volkswagen Group of America Inc."
+  },
+  "WV2": {
+    "key": "volkswagen",
+    "name": "VOLKSWAGEN",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volkswagen, MPV."
+  },
+  "WV3": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
+  },
+  "WVG": {
+    "key": "vag",
+    "name": "VOLKSWAGEN GROUP",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "packages/uds-map/data/uds-map.json brands[vag].wmi"
+  },
+  "WVW": {
+    "key": "volkswagen",
+    "name": "VOLKSWAGEN",
+    "brand": "vag",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volkswagen, Passenger Car, present in Volkswagen's registered manufacturer list."
+  },
+  "XLC": {
+    "key": "ford",
+    "name": "FORD",
+    "brand": "ford",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[ford].wmi"
+  },
+  "XP7": {
+    "key": "tesla",
+    "name": "TESLA",
+    "brand": "tesla",
+    "confidence": "medium",
+    "source": "NHTSA: Count 0, absent from Tesla's 4-row NHTSA list (5YJ, SFZ, 7G2, 7SA). Five separate independent sources consistently identify XP7 as Tesla Gigafactory Berlin."
+  },
+  "YV1": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volvo Car Corporation, Sweden, Passenger Car."
+  },
+  "YV2": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[volvo].wmi"
+  },
+  "YV3": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[volvo].wmi"
+  },
+  "YV4": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: Volvo Car Corporation, Sweden, MPV/SUV line (e.g. XC90)."
+  },
+  "YV5": {
+    "key": "volvo",
+    "name": "VOLVO",
+    "brand": "volvo",
+    "confidence": "medium",
+    "source": "packages/uds-map/data/uds-map.json brands[volvo].wmi"
+  },
+  "ZAA": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "ZAC": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "ZAR": {
+    "key": "alfa-romeo",
+    "name": "ALFA ROMEO",
+    "brand": "fca",
+    "confidence": "high",
+    "source": "NHTSA confirms directly via DecodeWMI and GetWMIsForManufacturer: ALFA ROMEO S.P.A."
+  },
+  "ZAS": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "ZFA": {
+    "key": "fiat",
+    "name": "FIAT",
+    "brand": "fca",
+    "confidence": "high",
+    "source": "NHTSA confirms directly: DecodeWMI(ZFA) -> FCA ITALY S.P.A., Make FIAT."
+  },
+  "ZFB": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
+  },
+  "ZFC": {
+    "key": "fca",
+    "name": "FCA",
+    "brand": "fca",
+    "confidence": "low",
+    "source": "packages/uds-map/data/uds-map.json brands[fca].wmi"
   }
 }
