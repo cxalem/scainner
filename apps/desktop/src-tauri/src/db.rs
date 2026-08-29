@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 10;
+const SCHEMA_VERSION: i64 = 11;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -162,6 +162,35 @@ pub struct HypothesisSampleRow {
     pub ts_ms: i64,
     pub payload_hex: String,
     pub refs_json: Option<String>,
+}
+
+/// Reusable, de-identified knowledge learned from vehicle observations.
+/// Deliberately contains no vehicle, connection, VIN, serial, DTC, or raw
+/// payload field, so private vehicle deletion cannot remove product knowledge.
+#[derive(Serialize, Clone, Debug)]
+pub struct KnowledgeCandidateRow {
+    pub id: i64,
+    pub compatibility_key: String,
+    pub scope: String,
+    pub family_id: Option<String>,
+    pub module_address: String,
+    pub supplier: Option<String>,
+    pub spare_part_number: Option<String>,
+    pub hardware_version: Option<String>,
+    pub software_version: Option<String>,
+    pub system_name: Option<String>,
+    pub route_json: Option<String>,
+    pub did: u16,
+    pub payload_length: Option<i64>,
+    pub knowledge_state: String,
+    pub label: Option<String>,
+    pub decode_json: Option<String>,
+    pub shape_json: Option<String>,
+    pub interpretations_json: Option<String>,
+    pub confidence: Option<f64>,
+    pub discriminating_test: Option<String>,
+    pub first_observed_at: String,
+    pub last_observed_at: String,
 }
 
 /// Samples kept per hypothesis; older ones are dropped on insert.
@@ -919,6 +948,35 @@ impl Db {
             );
             CREATE INDEX IF NOT EXISTS idx_hypothesis_samples_hypothesis_ts
                 ON hypothesis_samples(hypothesis_id, ts_ms);
+            -- v11: reusable knowledge is projected here immediately. This
+            -- table intentionally has no FK to private vehicle history.
+            CREATE TABLE IF NOT EXISTS knowledge_candidates (
+                id INTEGER PRIMARY KEY,
+                compatibility_key TEXT NOT NULL,
+                scope TEXT NOT NULL CHECK (scope IN ('ecu_family','exact_ecu','observation')),
+                family_id TEXT,
+                module_address TEXT NOT NULL,
+                supplier TEXT,
+                spare_part_number TEXT,
+                hardware_version TEXT,
+                software_version TEXT,
+                system_name TEXT,
+                route_json TEXT,
+                did INTEGER NOT NULL,
+                payload_length INTEGER,
+                knowledge_state TEXT NOT NULL DEFAULT 'observed',
+                label TEXT,
+                decode_json TEXT,
+                shape_json TEXT,
+                interpretations_json TEXT,
+                confidence REAL,
+                discriminating_test TEXT,
+                first_observed_at TEXT NOT NULL DEFAULT (datetime('now')),
+                last_observed_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(compatibility_key, did)
+            );
+            CREATE INDEX IF NOT EXISTS idx_knowledge_candidates_family_did
+                ON knowledge_candidates(family_id, did);
             "#,
         )?;
         // v4: provenance makes discovery-owned probes safely
@@ -1156,6 +1214,48 @@ impl Db {
         .unwrap()
         .filter_map(Result::ok)
         .collect()
+    }
+
+    /// Permanently remove owner/vehicle history while retaining the separate
+    /// de-identified `knowledge_candidates` product knowledge.
+    pub fn delete_vehicle_private_data(&self, vehicle_id: i64) -> bool {
+        let mut conn = self.0.lock().unwrap();
+        let Ok(tx) = conn.transaction() else {
+            return false;
+        };
+        let exists = tx
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM vehicles WHERE id = ?1)",
+                params![vehicle_id],
+                |row| row.get::<_, bool>(0),
+            )
+            .unwrap_or(false);
+        if !exists {
+            return false;
+        }
+        let statements = [
+            "DELETE FROM hypothesis_samples WHERE hypothesis_id IN (SELECT id FROM hypotheses WHERE vehicle_id = ?1)",
+            "DELETE FROM hypotheses WHERE vehicle_id = ?1",
+            "DELETE FROM discovered_dids WHERE module_id IN (SELECT id FROM discovered_modules WHERE vehicle_id = ?1)",
+            "DELETE FROM discovered_modules WHERE vehicle_id = ?1",
+            "DELETE FROM route_outcomes WHERE vehicle_id = ?1",
+            "DELETE FROM verification_runs WHERE vehicle_id = ?1",
+            "DELETE FROM vehicle_parts WHERE vehicle_id = ?1",
+            "DELETE FROM diagnostic_cases WHERE vehicle_id = ?1",
+            "DELETE FROM dtc_codes WHERE vehicle_id = ?1",
+            "DELETE FROM dtc_scan_events WHERE vehicle_id = ?1",
+            "DELETE FROM writes_log WHERE vehicle_id = ?1",
+            "DELETE FROM uds_probes WHERE vehicle_id = ?1",
+            "DELETE FROM readings WHERE vehicle_id = ?1",
+            "DELETE FROM connections WHERE vehicle_id = ?1",
+            "DELETE FROM vehicles WHERE id = ?1",
+        ];
+        for sql in statements {
+            if tx.execute(sql, params![vehicle_id]).is_err() {
+                return false;
+            }
+        }
+        tx.commit().is_ok()
     }
 
     // ---------- workshop diagnostic cases ----------
@@ -1607,6 +1707,8 @@ impl Db {
              WHERE id = ?1",
             params![module_id],
         );
+        drop(conn);
+        self.sync_module_knowledge(module_id);
     }
 
     pub fn upsert_discovered_did(
@@ -1650,6 +1752,203 @@ impl Db {
                 );
             }
         }
+        drop(conn);
+        self.sync_knowledge_candidate(module_id, did);
+    }
+
+    /// Project a vehicle-scoped observation into reusable product knowledge.
+    /// Raw payloads and all owner identifiers stop at this boundary.
+    fn sync_knowledge_candidate(&self, module_id: i64, did: u16) {
+        let conn = self.0.lock().unwrap();
+        let source = conn.query_row(
+            "SELECT m.module_address, m.family_id, m.supplier,
+                    m.spare_part_number, m.hardware_version, m.software_version,
+                    m.system_name, m.route_json, d.byte_length,
+                    COALESCE(h.knowledge_state, 'observed'),
+                    COALESCE(h.label, d.label), h.decode_json, h.shape_json,
+                    h.interpretations_json, h.confidence, h.discriminating_test,
+                    m.fingerprint_match_key, COALESCE(m.cloud_id, 'legacy-' || m.id)
+             FROM discovered_modules m
+             JOIN discovered_dids d ON d.module_id = m.id AND d.did = ?2
+             LEFT JOIN hypotheses h ON h.module_id = m.id AND h.did = ?2
+             WHERE m.id = ?1",
+            params![module_id, did as i64],
+            |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, Option<String>>(1)?,
+                    r.get::<_, Option<String>>(2)?,
+                    r.get::<_, Option<String>>(3)?,
+                    r.get::<_, Option<String>>(4)?,
+                    r.get::<_, Option<String>>(5)?,
+                    r.get::<_, Option<String>>(6)?,
+                    r.get::<_, Option<String>>(7)?,
+                    r.get::<_, Option<i64>>(8)?,
+                    r.get::<_, String>(9)?,
+                    r.get::<_, Option<String>>(10)?,
+                    r.get::<_, Option<String>>(11)?,
+                    r.get::<_, Option<String>>(12)?,
+                    r.get::<_, Option<String>>(13)?,
+                    r.get::<_, Option<f64>>(14)?,
+                    r.get::<_, Option<String>>(15)?,
+                    r.get::<_, Option<String>>(16)?,
+                    r.get::<_, String>(17)?,
+                ))
+            },
+        );
+        let Ok((
+            address,
+            family,
+            supplier,
+            part,
+            hardware,
+            software,
+            system,
+            route,
+            length,
+            state,
+            label,
+            decode,
+            shape,
+            interpretations,
+            confidence,
+            test,
+            fingerprint,
+            observation_id,
+        )) = source
+        else {
+            return;
+        };
+        let (scope, compatibility_key) = if let Some(family) = family.as_deref() {
+            ("ecu_family", format!("family:{family}"))
+        } else if let Some(fingerprint) = fingerprint.as_deref() {
+            ("exact_ecu", format!("ecu:{fingerprint}"))
+        } else {
+            ("observation", format!("observation:{observation_id}"))
+        };
+        // Identity can arrive after the first responsive DID. Replace the
+        // earlier weak scope; do not leave duplicate observation/exact candidates.
+        if scope != "observation" {
+            let _ = conn.execute(
+                "DELETE FROM knowledge_candidates WHERE compatibility_key = ?1 AND did = ?2",
+                params![format!("observation:{observation_id}"), did as i64],
+            );
+        }
+        if scope == "ecu_family" {
+            if let Some(fingerprint) = fingerprint.as_deref() {
+                let _ = conn.execute(
+                    "DELETE FROM knowledge_candidates WHERE compatibility_key = ?1 AND did = ?2",
+                    params![format!("ecu:{fingerprint}"), did as i64],
+                );
+            }
+        }
+        let _ = conn.execute(
+            "INSERT INTO knowledge_candidates
+               (compatibility_key, scope, family_id, module_address, supplier,
+                spare_part_number, hardware_version, software_version, system_name,
+                route_json, did, payload_length, knowledge_state, label, decode_json,
+                shape_json, interpretations_json, confidence, discriminating_test)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+                     ?14, ?15, ?16, ?17, ?18, ?19)
+             ON CONFLICT(compatibility_key, did) DO UPDATE SET
+               payload_length = COALESCE(excluded.payload_length, payload_length),
+               knowledge_state = CASE
+                 WHEN knowledge_candidates.knowledge_state IN
+                      ('locally_confirmed','community_verified','oem_confirmed')
+                 THEN knowledge_candidates.knowledge_state
+                 ELSE excluded.knowledge_state END,
+               label = COALESCE(excluded.label, label),
+               decode_json = COALESCE(excluded.decode_json, decode_json),
+               shape_json = COALESCE(excluded.shape_json, shape_json),
+               interpretations_json = COALESCE(excluded.interpretations_json, interpretations_json),
+               confidence = COALESCE(excluded.confidence, confidence),
+               discriminating_test = COALESCE(excluded.discriminating_test, discriminating_test),
+               last_observed_at = datetime('now')",
+            params![
+                compatibility_key,
+                scope,
+                family,
+                address,
+                supplier,
+                part,
+                hardware,
+                software,
+                system,
+                route,
+                did as i64,
+                length,
+                state,
+                label,
+                decode,
+                shape,
+                interpretations,
+                confidence,
+                test
+            ],
+        );
+    }
+
+    fn sync_module_knowledge(&self, module_id: i64) {
+        let dids = {
+            let conn = self.0.lock().unwrap();
+            let mut stmt = match conn
+                .prepare("SELECT did FROM discovered_dids WHERE module_id = ?1 ORDER BY did")
+            {
+                Ok(stmt) => stmt,
+                Err(_) => return,
+            };
+            let found = match stmt.query_map(params![module_id], |r| r.get::<_, i64>(0)) {
+                Ok(rows) => rows.filter_map(Result::ok).collect::<Vec<_>>(),
+                Err(_) => return,
+            };
+            found
+        };
+        for did in dids {
+            self.sync_knowledge_candidate(module_id, did as u16);
+        }
+    }
+
+    pub fn knowledge_candidates(&self) -> Vec<KnowledgeCandidateRow> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, compatibility_key, scope, family_id, module_address,
+                        supplier, spare_part_number, hardware_version, software_version,
+                        system_name, route_json, did, payload_length, knowledge_state,
+                        label, decode_json, shape_json, interpretations_json, confidence,
+                        discriminating_test, first_observed_at, last_observed_at
+                 FROM knowledge_candidates ORDER BY compatibility_key, did",
+            )
+            .unwrap();
+        stmt.query_map([], |r| {
+            Ok(KnowledgeCandidateRow {
+                id: r.get(0)?,
+                compatibility_key: r.get(1)?,
+                scope: r.get(2)?,
+                family_id: r.get(3)?,
+                module_address: r.get(4)?,
+                supplier: r.get(5)?,
+                spare_part_number: r.get(6)?,
+                hardware_version: r.get(7)?,
+                software_version: r.get(8)?,
+                system_name: r.get(9)?,
+                route_json: r.get(10)?,
+                did: r.get::<_, i64>(11)? as u16,
+                payload_length: r.get(12)?,
+                knowledge_state: r.get(13)?,
+                label: r.get(14)?,
+                decode_json: r.get(15)?,
+                shape_json: r.get(16)?,
+                interpretations_json: r.get(17)?,
+                confidence: r.get(18)?,
+                discriminating_test: r.get(19)?,
+                first_observed_at: r.get(20)?,
+                last_observed_at: r.get(21)?,
+            })
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .collect()
     }
 
     pub fn discovered_summary(&self, vehicle_id: i64) -> Vec<DiscoveredModuleRow> {
@@ -1837,12 +2136,18 @@ impl Db {
         family_match: &str,
     ) -> bool {
         let conn = self.0.lock().unwrap();
-        conn.execute(
-            "UPDATE discovered_modules SET family_id = ?1, family_match = ?2 WHERE id = ?3",
-            params![family_id, family_match, module_id],
-        )
-        .map(|n| n > 0)
-        .unwrap_or(false)
+        let updated = conn
+            .execute(
+                "UPDATE discovered_modules SET family_id = ?1, family_match = ?2 WHERE id = ?3",
+                params![family_id, family_match, module_id],
+            )
+            .map(|n| n > 0)
+            .unwrap_or(false);
+        drop(conn);
+        if updated {
+            self.sync_module_knowledge(module_id);
+        }
+        updated
     }
 
     /// Store the full route tuple (protocol §9) on the module. Written by the
@@ -1873,7 +2178,7 @@ impl Db {
                 |r| r.get(0),
             )
             .ok();
-        match existing {
+        let result = match existing {
             Some(id) => {
                 let _ = conn.execute(
                     "UPDATE hypotheses SET
@@ -1917,7 +2222,10 @@ impl Db {
                 );
                 (conn.last_insert_rowid(), true)
             }
-        }
+        };
+        drop(conn);
+        self.sync_knowledge_candidate(h.module_id, h.did);
+        result
     }
 
     const HYPOTHESIS_SELECT: &str =
@@ -2021,7 +2329,11 @@ impl Db {
             ],
         );
         drop(conn);
-        Ok(self.hypothesis(id))
+        let row = self.hypothesis(id);
+        if let Some(row) = &row {
+            self.sync_knowledge_candidate(row.module_id, row.did);
+        }
+        Ok(row)
     }
 
     /// Writer: the S5 hypothesis poll (supervisor follow-up).
@@ -3948,5 +4260,118 @@ mod tests {
             ("matched", "enabled", "locally_confirmed")
         );
         assert!(db.patch_hypothesis(999, &confirm, false).unwrap().is_none());
+    }
+
+    #[test]
+    fn reusable_knowledge_is_immediate_deidentified_and_survives_vehicle_deletion() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7PRIVATE00000001");
+        let connection = db.start_connection("1.0", "vlink");
+        db.set_connection_protocol(connection, "CAN");
+        db.link_connection_vehicle(connection, vehicle);
+        db.insert_reading(connection, Some(vehicle), "speed", 42.0);
+        db.insert_dtc_scan(
+            Some(connection),
+            Some(vehicle),
+            false,
+            &["P1234".into()],
+            &[],
+            &[],
+            None,
+            None,
+        );
+        let module = db.upsert_discovered_module(vehicle, "6AD/68D", Some("ABS"));
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "UPDATE discovered_modules SET family_id = 'cont_esp_mk100_psa',
+                 supplier = 'Continental', spare_part_number = '9846124980',
+                 hardware_version = '9820609380', software_version = '9695041580'
+                 WHERE id = ?1",
+                params![module],
+            )
+            .unwrap();
+        }
+        db.upsert_discovered_did(module, 0xD400, "0F A0", 2, None);
+        let (hypothesis, _) = db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id: vehicle,
+            module_id: module,
+            did: 0xD400,
+            knowledge_state: "unknown".into(),
+            label: Some("Wheel speed".into()),
+            decode_json: Some(r#"{"scale":0.01,"unit":"km/h"}"#.into()),
+            family_id: Some("cont_esp_mk100_psa".into()),
+            ..Default::default()
+        });
+        db.patch_hypothesis(
+            hypothesis,
+            &HypothesisPatch {
+                knowledge_state: Some("locally_confirmed".into()),
+                vehicle_fit: Some("matched".into()),
+                activation: Some("enabled".into()),
+                label: None,
+            },
+            false,
+        )
+        .unwrap();
+
+        let learned = db.knowledge_candidates();
+        assert_eq!(learned.len(), 1);
+        assert_eq!(learned[0].scope, "ecu_family");
+        assert_eq!(learned[0].knowledge_state, "locally_confirmed");
+        assert_eq!(learned[0].label.as_deref(), Some("Wheel speed"));
+
+        // A later unvalidated observation from another compatible car
+        // deduplicates into the family row and cannot downgrade confirmation.
+        let (second_vehicle, _) = db.ensure_vehicle("VR7SECOND00000001");
+        let second_module = db.upsert_discovered_module(second_vehicle, "6AD/68D", Some("ABS"));
+        db.set_module_family(second_module, Some("cont_esp_mk100_psa"), "strong");
+        db.upsert_discovered_did(second_module, 0xD400, "00 00", 2, None);
+        db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id: second_vehicle,
+            module_id: second_module,
+            did: 0xD400,
+            knowledge_state: "unknown".into(),
+            family_id: Some("cont_esp_mk100_psa".into()),
+            ..Default::default()
+        });
+        assert_eq!(db.knowledge_candidates().len(), 1);
+        assert_eq!(
+            db.knowledge_candidates()[0].knowledge_state,
+            "locally_confirmed"
+        );
+
+        // Enforce the privacy boundary structurally, not only by convention.
+        let private_columns = {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = conn
+                .prepare("PRAGMA table_info(knowledge_candidates)")
+                .unwrap();
+            stmt.query_map([], |r| r.get::<_, String>(1))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect::<Vec<_>>()
+        };
+        for forbidden in [
+            "vehicle_id",
+            "connection_id",
+            "vin",
+            "serial",
+            "dtc",
+            "raw_sample",
+            "payload_hex",
+        ] {
+            assert!(!private_columns.iter().any(|column| column == forbidden));
+        }
+
+        assert!(db.delete_vehicle_private_data(vehicle));
+        assert!(db.vehicle(vehicle).is_none());
+        assert!(db.list_hypotheses(vehicle).is_empty());
+        assert!(db.dtc_history(Some(vehicle), 10).is_empty());
+        assert_eq!(db.knowledge_candidates().len(), 1);
+        assert_eq!(
+            db.knowledge_candidates()[0].family_id.as_deref(),
+            Some("cont_esp_mk100_psa")
+        );
     }
 }

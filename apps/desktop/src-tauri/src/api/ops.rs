@@ -364,6 +364,14 @@ pub fn list_vehicles(state: &AppState) -> Vec<db::VehicleListRow> {
     state.db.list_vehicles()
 }
 
+pub fn knowledge_candidates(state: &AppState) -> Vec<db::KnowledgeCandidateRow> {
+    state.db.knowledge_candidates()
+}
+
+pub fn delete_vehicle_private_data(state: &AppState, vehicle_id: i64) -> bool {
+    state.db.delete_vehicle_private_data(vehicle_id)
+}
+
 pub fn vehicle_report(state: &AppState, vehicle_id: i64) -> db::CarReport {
     state.db.vehicle_report(vehicle_id)
 }
