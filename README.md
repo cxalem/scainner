@@ -148,19 +148,24 @@ Standard sensors (Dashboard, Live, History, Diagnose, Report) work on any
 car — RPM, coolant, speed, fuel trims, fault codes, freeze frames. That's
 plain OBD2/SAE J1979, the same on every vehicle sold since the early 2000s.
 
-The UDS Lab's four built-in modules (BSI, ABS/ESP, cluster, engine) use
-PSA/Stellantis CAN addresses (Peugeot, Citroën, DS, Opel), sourced from
-[ludwig-v/arduino-psa-diag](https://github.com/ludwig-v/arduino-psa-diag).
-On any other brand they won't answer.
+The UDS Lab's module list is data-driven: for the connected VIN it lists
+the modules the knowledge map documents for that brand
+([`packages/uds-map`](./packages/uds-map) — 21 brands, see
+[`COVERAGE.md`](./packages/uds-map/COVERAGE.md); a Volkswagen Group car gets
+its gateway and engine addresses, a Renault gets its own set, and so on),
+plus any custom modules you add. A brand the map doesn't know gets the ISO
+identity block (F186/F187/F18A-style reads) and an empty list you can fill by
+hand.
 
-To reach deeper data on a different brand: find your ECUs' UDS
+To reach deeper data on an undocumented brand: find your ECUs' UDS
 request/response CAN IDs (car-hacking forums, brand-specific
 reverse-engineering projects) and add a module through the Lab's **Add
 module** button. The same scan/probe/clear workflow applies once it's there.
-`UDS_INVESTIGATION_LOG.md` documents the method used to find and verify the
-PSA addresses (broadcast probe → physical-address probe → session-open
-check, then a DID-range scan correlated against a known value to identify
-what an identifier measures) — the same method applies to any brand.
+`UDS_INVESTIGATION_LOG.md` documents the method used on the first supported
+brand to find and verify addresses (broadcast probe → physical-address probe
+→ session-open check, then a DID-range scan correlated against a known value
+to identify what an identifier measures) — the same method applies to any
+brand, and contributions to the map are welcome.
 
 ## Running it
 

@@ -220,6 +220,11 @@ class Client:
         return self.post(f"/vehicles/{vehicle_id}/join")
     def coverage(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/coverage")
     def hypotheses(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/hypotheses")
+    def parked_plan(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/parked-plan")
+    def guided_steps(self, vehicle_id: int):
+        """The guided-correlation state tree generated from the vehicle's open
+        hypotheses (protocol section 9); `steps[]` alternate baseline/input."""
+        return self.get(f"/vehicles/{vehicle_id}/guided-steps")
     def patch_hypothesis(self, hypothesis_id: int, **fields):
         """Any of knowledge_state / vehicle_fit / activation / label. A refused
         transition raises NotConfirmed (409) with .body['rule'] naming the rule."""

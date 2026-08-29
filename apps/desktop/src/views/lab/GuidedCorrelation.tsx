@@ -219,7 +219,7 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
               <div className="mt-2 rounded-md border border-border bg-background p-2 text-sm">
                 <p className="text-muted-foreground">{g.confirmPrompt}</p>
                 <p className="mt-1">{step.operator_confirmation}</p>
-                <Button size="sm" variant="outline" className="mt-2" onClick={() => setConfirmed((s) => new Set(s).add(step.id))}>
+                <Button variant="outline" className="mt-2" onClick={() => setConfirmed((s) => new Set(s).add(step.id))}>
                   {g.confirmYes}
                 </Button>
               </div>

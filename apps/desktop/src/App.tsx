@@ -9,6 +9,7 @@ import { ConnectGate } from "@/components/ConnectGate";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { hasOnboarded, markOnboarded } from "@/lib/onboarding";
 import { startSyncLoop } from "@/lib/sync";
+import { useVehicles } from "@/features/vehicle/queries";
 import { Overview } from "@/views/Overview";
 import { Live } from "@/views/Live";
 import { History } from "@/views/History";
@@ -94,8 +95,23 @@ export default function App() {
     setHasConnectedOnce(true);
   }, [conn.state, conn.vehicle_is_new, conn.vin]);
 
-  const currentVin = conn.vin ?? null;
-  const currentVehicleId = conn.vehicle_id ?? null;
+  // App-wide vehicle switcher (multi-brand plan P4.5): the connected car is
+  // the default; while disconnected, or when the database holds more than
+  // one vehicle, the sidebar selector sets the vehicle every view shows.
+  const vehicles = useVehicles();
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
+  const connectedVehicleId = conn.vehicle_id ?? null;
+  useEffect(() => {
+    if (connectedVehicleId != null) setSelectedVehicleId(connectedVehicleId);
+  }, [connectedVehicleId]);
+  const currentVehicleId =
+    selectedVehicleId != null && (vehicles.data ?? []).some((v) => v.id === selectedVehicleId)
+      ? selectedVehicleId
+      : (connectedVehicleId ?? (vehicles.data ?? [])[0]?.id ?? null);
+  const currentVin =
+    currentVehicleId === connectedVehicleId
+      ? (conn.vin ?? null)
+      : ((vehicles.data ?? []).find((v) => v.id === currentVehicleId)?.vin ?? null);
 
   const connected = conn.state === "connected";
   const recording = connected && Object.keys(live).length > 0;
@@ -124,6 +140,9 @@ export default function App() {
         recording={recording}
         onConnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()))}
         onDisconnect={() => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()))}
+        vehicles={vehicles.data ?? []}
+        activeVehicleId={currentVehicleId}
+        onSelectVehicle={setSelectedVehicleId}
       >
         {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}
         {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}

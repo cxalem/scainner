@@ -31,6 +31,7 @@
 // The OBJ is already Y-up (Wavefront convention, unlike the earlier Z-up STL
 // export), so ROTATION_FIX is the identity here — kept as a named constant
 // anyway, same as before, in case a future model swap needs correcting.
+import sceneModel from "@/data/scene-model.json";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
@@ -51,8 +52,9 @@ export type SceneStatus = "disconnected" | "connecting" | "connected";
 const DEFAULT_TINT = VEHICLE_MATERIALS.defaultTint; // near-white — shows the texture close to its native grayscale until a real color is picked
 const PULSE_COLOR = VEHICLE_MATERIALS.pulseColor;
 
-const MODEL_URL = "/models/citroen-c4.obj";
-const TEXTURE_URL = "/models/citroen-c4-diffuse-gray.jpg";
+// Asset paths live in data (src/data/scene-model.json), not here.
+const MODEL_URL: string = sceneModel.model;
+const TEXTURE_URL: string = sceneModel.texture;
 // Matches the previous placeholder's overall body length, so the existing
 // camera position/fov keep framing the car the same way.
 const TARGET_LENGTH = 3.6;
@@ -354,7 +356,7 @@ function useCarGeometry() {
   const group = useLoader(OBJLoader, MODEL_URL);
   return useMemo(() => {
     const mesh = group.children.find((c): c is THREE.Mesh => c instanceof THREE.Mesh);
-    if (!mesh) throw new Error("citroen-c4.obj: no mesh found in loaded OBJ");
+    if (!mesh) throw new Error(`${MODEL_URL}: no mesh found in loaded OBJ`);
     const geo = mesh.geometry.clone();
     geo.rotateX(ROTATION_FIX[0]);
     geo.rotateY(ROTATION_FIX[1]);

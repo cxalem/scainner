@@ -57,7 +57,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/connect", "Start the connection supervisor (same loop as the UI's Connect: finds the adapter, cures Bluetooth sulk mode, keeps the link alive). Idempotent.", &[], None, false, false),
     r("POST", "/disconnect", "Stop the supervisor (cancels any running scan first)", &[], None, false, false),
     r("GET", "/status", "ConnStatus: state, ELM version, VIN/vehicle identity, scanning flag", &[], None, false, false),
-    r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Grey C4 2006"}"#), true, false),
+    r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Workshop courtesy car"}"#), true, false),
     // standard OBD
     r("GET", "/live", "Latest live PID readings (the last live-update broadcast) with their age", &[], None, false, false),
     r("GET", "/readings", "Stored readings for one key, oldest first", &[("vehicle_id", "vehicle id (omit for unidentified rows)"), ("key", "reading key, e.g. rpm, coolant, voltage"), ("since", "window in hours (default 24)"), ("limit", "keep only the newest N points")], None, false, false),
@@ -94,7 +94,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/vehicles/{id}/modules", "Discovered modules with DID counts and ECU fingerprints", &[], None, false, false),
     r("GET", "/vehicles/{id}/evidence-map", "Evidence-only topology for one vehicle", &[], None, false, false),
     r("GET", "/vehicles/{id}/report", "Per-vehicle report (stats, scans, connections)", &[], None, false, false),
-    r("POST", "/vehicles/{id}/name", "Rename a stored vehicle", &[], Some(r#"{"name": "Grey C4 2006"}"#), false, false),
+    r("POST", "/vehicles/{id}/name", "Rename a stored vehicle", &[], Some(r#"{"name": "Workshop courtesy car"}"#), false, false),
     r("POST", "/vehicles/{id}/fuel-price", "Set the fuel price used for cost estimates", &[], Some(r#"{"price": 1.62}"#), false, false),
     r("GET", "/modules/{id}/dids", "Discovered DIDs of one module (by discovered_modules.id)", &[], None, false, false),
     // discovery knowledge layer (Universal Discovery Protocol S3 + coverage)
@@ -107,7 +107,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("PUT", "/learning-state", "Switch the learning state", &[], Some(r#"{"on": true}"#), false, false),
     r("GET", "/fingerprint-experiment", "Local VIN-free ECU fingerprint cohort measurement", &[], None, false, false),
     r("GET", "/probes", "Decode definitions polled live for a vehicle", VEHICLE_Q, None, false, false),
-    r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it)", &[], Some(r#"{"vehicle_id": 1, "module": "abs", "did": 54272, "label": "Wheel FL", "unit": "km/h", "offset": 0, "len": 2, "scale": 0.01, "bias": 0}"#), false, false),
+    r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it)", &[], Some(r#"{"vehicle_id": 1, "module": "7e0_7e8", "did": 61831, "label": "Example value", "unit": "", "offset": 0, "len": 2, "scale": 1, "bias": 0}"#), false, false),
     r("PATCH", "/probes/{id}", "Enable/disable ({\"enabled\": bool}) or replace the decode (full UdsProbe fields)", &[], Some(r#"{"enabled": false}"#), false, false),
     r("DELETE", "/probes/{id}", "Delete a probe", &[], None, false, false),
     r("GET", "/cases", "Diagnostic cases", VEHICLE_Q, None, false, false),

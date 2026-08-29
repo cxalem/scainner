@@ -24,7 +24,10 @@ npm install @scainner/uds-map
 ```ts
 import { brandForVin, bandsForVin, addressesToProbe, knownDid, decodeKnownDid } from "@scainner/uds-map";
 
-const vin = "VR7EXAMPLE0000001"; // a synthetic example VIN (PSA WMI prefix)
+// Synthetic example VINs — one per brand family, so the examples below don't
+// assume a single manufacturer's addressing.
+const vin = "VR7EXAMPLE0000001";  // WMI prefix of one European brand (PSA)
+const vin2 = "WVWEXAMPLE0000002"; // WMI prefix of another (VW Group)
 
 brandForVin(vin);
 // => { id: "psa", name: "PSA / Stellantis...", wmi: [...], modules: [...], ... }
@@ -47,13 +50,13 @@ decodeKnownDid(battery!, [0x05, 0x50]); // apply the primary decode to raw respo
 // => 13.6
 
 // v9: the per-module facts the discovery engine runs on
-routeForModule(vin, 0x6a8, 0x688);      // => { protocol: "can11_500", req: "6A8", resp: "688" }
-readServiceForModule(vin, 0x6a8, 0x688); // => "22" (module override → brand default → "22")
-identityBlockForVin(vin);                // => ISO DIDs first, then vendor layouts (e.g. packed-BCD part references)
+routeForModule(vin2, 0x7e0, 0x7e8);      // => { protocol: "can11_500", req: "7E0", resp: "7E8" } (generic OBD engine slot)
+readServiceForModule(vin2, 0x7e0, 0x7e8); // => "22" (module override → brand default → "22")
+identityBlockForVin(vin2);               // => ISO DIDs (F186/F187/F18A…) first, then vendor layouts (e.g. packed-BCD part references)
 decodesForDid(vin, 0x6ad, 0x68d, 0xd41f); // => every value in that DID's payload on that module
-platformForVin(vin);                     // => a platform whose sourced VDS pattern matches VIN 4-10, or undefined
-profiledLevelForVin(vin);                // => "standard_only" | "routes_sourced" | "routes_verified" | "decodes_verified"
-gatewayBehaviourForVin(vin);             // => { silence_means: "absent" | "filtered" | "unknown", writes_blocked }
+platformForVin(vin2);                    // => a platform whose sourced VDS pattern matches VIN 4-10, or undefined
+profiledLevelForVin(vin2);               // => "standard_only" | "routes_sourced" | "routes_verified" | "decodes_verified"
+gatewayBehaviourForVin(vin2);            // => { silence_means: "absent" | "filtered" | "unknown", writes_blocked }
 ```
 
 ### Why `addressesToProbe` matters: response addresses are not `request + 8`

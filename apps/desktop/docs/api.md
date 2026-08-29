@@ -130,7 +130,8 @@ sc -X POST $API/dtc/clear -d '{"confirmed": true}'  # actually clears
 | `POST /uds/clear` `{"module","confirmed": true}` | clear the module's fault memory — **confirm-gated** |
 
 ```sh
-sc -X POST $API/uds/read -d '{"module":"7e0_7e8","did":61831}'   # 0xF187
+sc -X POST $API/uds/read -d '{"module":"7e0_7e8","did":61831}'   # 0xF187 on the ISO engine route
+sc -X POST $API/uds/read -d '{"module":"7e1_7e9","did":61840}'   # 0xF190 (VIN) on a second ISO route
 sc -X POST $API/uds/scan -d '{"module":"7e0_7e8","from":61824,"to":62079}'
 sc $API/uds/modules/7e0_7e8/dtcs
 ```
@@ -140,6 +141,7 @@ sc $API/uds/modules/7e0_7e8/dtcs
 |---|---|
 | `POST /verification/parked` | run the parked plan generated from the vehicle's profile (identity block on every reached route with each module's read service, one bounded sweep over the brand's data bands); saves a `verification_runs` row, returns the `ParkedVerificationReport` with `run_id`; `plan_version` is `<brand>-<platform|unknown>-v<n>` |
 | `GET /vehicles/{id}/parked-plan` | the plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, budget) — no car traffic |
+| `GET /vehicles/{id}/guided-steps` | the guided-correlation state tree (protocol §9) generated from the vehicle's open hypotheses: `baseline`/`input` nodes, `applicable_if` and an `operator_confirmation` where a vehicle fact (gearbox) is unknown, car-moving nodes `optional` with preconditions; `plan_version` is `<brand>-<platform|unknown>-corr-v<n>` — no car traffic. The Lab's Guided correlation card renders exactly this |
 | `POST /verification/capture` `{"req","resp","dids":[…],"step","condition","plan_version","repeats":3}` | one guided-correlation capture under a labelled physical condition; saves a run, returns the `CorrelationCapture` with `run_id` |
 | `GET /verification/runs?vehicle_id=&plan_version=&limit=50` | run index (no bodies), newest first |
 | `GET /verification/runs/{id}` | one run with its full `result` JSON |
@@ -172,21 +174,31 @@ sc $API/uds/modules/7e0_7e8/dtcs
 
 ## Worked example: an agent runs a correlation capture and reads the diff
 
-Goal: find which ABS DIDs change when the brake pedal is pressed on a parked
-car (protocol step "A→B→A": baseline, condition, baseline again).
+Goal: find which identifiers on one module change when the brake pedal is
+pressed on a parked car (protocol step "A→B→A": baseline, condition,
+baseline again). Module and identifiers come from the vehicle's own data:
+`GET /uds/modules` for the route, `GET /vehicles/{id}/hypotheses` for the
+open hypotheses, `GET /vehicles/{id}/guided-steps` for the step to run —
+nothing below is specific to one brand. `scripts/session.py` wraps this
+whole flow (`plan`, `run-plan`, `capture`, `sweep`, `log`, `coverage`).
 
 ```sh
 # 1. Connect and wait for identity.
 sc -X POST $API/connect
 until [ "$(sc $API/status | jq -r .state)" = connected ]; do sleep 2; done
 VID=$(sc $API/status | jq -r .vehicle_id)
-[ "$VID" = null ] && VID=$(sc -X POST $API/vehicle/name -d '{"name":"Grey C4"}' | jq .vehicle_id)
+[ "$VID" = null ] && VID=$(sc -X POST $API/vehicle/name -d '{"name":"Workshop courtesy car"}' | jq .vehicle_id)
 
-# 2. Capture the same DIDs three times under three conditions.
+# 2. Take the first input step of the generated tree: its module, its DIDs
+#    and the composed plan version. Then capture under three conditions.
+STEP=$(sc $API/vehicles/$VID/guided-steps | jq '.steps[] | select(.kind=="input")' | jq -s '.[0]')
+PLAN=$(sc $API/vehicles/$VID/guided-steps | jq -r .plan_version)
+REQ=$(echo "$STEP" | jq -r '.module | split("/")[0]'); RESP=$(echo "$STEP" | jq -r '.module | split("/")[1]')
+DIDS=$(echo "$STEP" | jq -c '[.capture.dids[] | ("0x" + .) | tonumber? // 0]')
 cap() {  # $1 step, $2 condition
   sc -X POST $API/verification/capture -d "{
-    \"req\":\"6A0\",\"resp\":\"68A\",\"dids\":[54272,54273,54274,54275,54282],
-    \"step\":\"$1\",\"condition\":\"$2\",\"plan_version\":\"<brand>-<platform>-v1\",\"repeats\":3}"
+    \"req\":\"$REQ\",\"resp\":\"$RESP\",\"dids\":$DIDS,
+    \"step\":\"$1\",\"condition\":\"$2\",\"plan_version\":\"$PLAN\",\"repeats\":3}"
 }
 A1=$(cap baseline "pedal released")        # ask the operator to hold each condition
 B=$(cap brake "brake pedal pressed")
@@ -208,7 +220,7 @@ diff_dids "$A1" "$B"    # DIDs that changed when the pedal was pressed
 diff_dids "$A1" "$A2"   # should be empty: anything here is noise, not signal
 
 # 4. Everything was saved: list and re-read the runs later.
-sc "$API/verification/runs?vehicle_id=$VID&plan_version=<brand>-<platform>-v1" | jq
+sc "$API/verification/runs?vehicle_id=$VID&plan_version=$PLAN" | jq
 sc $API/verification/runs/$(echo "$B" | jq .run_id) | jq .result
 ```
 
@@ -217,12 +229,16 @@ The same flow in Python:
 ```python
 from scripts.scainner_api import Client
 c = Client()                      # reads api-token / api-port from the app data dir
-c.connect(); c.wait_connected()
-dids = [0xD400, 0xD401, 0xD402, 0xD403, 0xD40A]
-a1 = c.capture("6A0", "68A", dids, "baseline", "pedal released", "<brand>-<platform>-v1")
-input("press and hold the brake pedal, then Enter")
-b  = c.capture("6A0", "68A", dids, "brake", "brake pedal pressed", "<brand>-<platform>-v1")
-a2 = c.capture("6A0", "68A", dids, "baseline", "pedal released again", "<brand>-<platform>-v1")
+c.connect(); vid = c.wait_connected()["vehicle_id"]
+tree = c.guided_steps(vid)                 # generated from the car's open hypotheses
+step = next(s for s in tree["steps"] if s["kind"] == "input")
+req, resp = step["module"].split("/")
+dids = [int(d, 16) for d in step["capture"]["dids"]]
+plan = tree["plan_version"]                # e.g. "<brand>-<platform>-corr-v1"
+a1 = c.capture(req, resp, dids, "baseline", "baseline", plan)
+input(step["instruction"] + " — then Enter")
+b  = c.capture(req, resp, dids, step["id"], step["condition_label"], plan)
+a2 = c.capture(req, resp, dids, "baseline", "baseline", plan)
 print(c.diff_captures(a1, b))     # {did: (baseline payloads, condition payloads)}
 print(c.diff_captures(a1, a2))    # noise floor — should be {}
 ```
