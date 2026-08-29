@@ -61,7 +61,7 @@ Each screen: purpose · primary action · what it shows · data (API route) · s
 ### A2 Connect
 - **Purpose:** get a live link to one car.
 - **Primary:** "Connect". Secondary: "Choose adapter" (profile: serial / Wi-Fi ELM; adapters enumerated).
-- **Shows:** adapter state as a single line ("Looking for adapter → waking → talking to the car"), the car as soon as its VIN resolves — the **3D brand emblem** animates in here (the reward for connecting; keep it as the vehicle's mark through the rest of the flow), WMI-derived brand, VIN-less fallback → "Name this car" with the neutral badge.
+- **Shows:** adapter state as a single line ("Looking for adapter → waking → talking to the car"), and the **brand-recognition scene** (§5a) as soon as the VIN resolves: the 3D chrome emblem of the marque over the dust field, turning while modules are discovered, settling to a slow idle once live; the WMI-derived brand name; VIN-less fallback → "Name this car" with the chrome nameplate.
 - **Data:** `POST /connect`, `GET /status`, `GET /adapters`, `GET|PUT /adapter`, events `conn-status`, `unknown-brand`.
 - **States:** no adapter found (explain + "Choose adapter") · adapter but no car (ignition off?) · connected · unknown brand (callback → "We don't have a profile for this brand yet; standard diagnostics work, deep scan will be conservative").
 - **Replaces:** the Connect button in the shell + the AccountSyncCard adapter bits.
@@ -152,7 +152,7 @@ Each screen: purpose · primary action · what it shows · data (API route) · s
 | `lab/ModuleManager.tsx`, `lab/ModuleFaults.tsx` | Module routes come from the pack; adding one is Advanced in B1. Faults → C1. |
 | `views/Vehicle.tsx` + `vehicle/AccountSyncCard.tsx`, `VehicleEvidenceMap.tsx` | C3 + settings (account in A1/Settings). |
 | Nav (7 items, `advanced` flag) | Replaced by the 3-stage stepper + a Settings gear (account, adapter, language, learning drive). |
-| `VehicleScene.tsx` 3D scene | **Keep.** The 3D brand emblem is the identity moment of the flow: it appears in A2 the instant the WMI resolves and stays as the vehicle's mark in the header/C3. Load it lazily after the connect screen paints so it never delays the step; fall back to the flat badge while it loads or for brands without a model. |
+| `VehicleScene.tsx` + `EmblemStarfield.tsx` + `emblems.tsx` | **Keep as the brand-recognition scene** (fully specified in §5a). It moves from Overview to the Connect step and the vehicle header. |
 
 Keep as-is behind the scenes: the API, MCP, session script, all backend behaviour.
 
@@ -171,6 +171,35 @@ Next         Deep scan (≈ 4 min parked) · 6 guided steps · learning drive wo
 
 Never the word "supported"; never a count without its scope.
 
+## 5a. The brand-recognition scene (as built today — keep it)
+
+This is the moment the app shows it knows the car. It exists and works; the design pass should place it, not reinvent it. Everything below is what the code renders now (`VehicleScene.tsx`, `EmblemStarfield.tsx`, `emblems.tsx`, constants in `theme/rendering.ts`).
+
+**Where it appears.** Today: the Overview header. Target: the Connect step (A2) the instant the VIN resolves, then reduced as the vehicle's mark in the app header and on "Learn about this car" (C3). Card size today: full width, 256 px tall (288 px from the `sm` breakpoint), rounded corners, 1 px border.
+
+**Layers, back to front**
+
+1. **Dust field (2D canvas, behind the WebGL).** A dark warm ground — background gradient `#181614 → #221f1b` — with **70 particles** of ambient dust drifting slowly **leftwards** (0.02–0.06 px per frame) with a faint vertical wobble, wrapping at the edges. Sizes 1 / 1.6 / 2.3 / 3 px in the proportions 62 / 24 / 9 / 5 %; alpha 0.4 → 0.95 with size; colours from a warm three-tone palette `#fff6e6`, `#f0e6d2`, `#c9b995` weighted 30 / 40 / 30. It is deliberately *dust, not stars*: slow, sparse, warm. Freezes under `prefers-reduced-motion`.
+2. **The emblem (WebGL, transparent canvas over the dust).** The marque's logo as a real 3D object in **polished chrome**: base `#f4f6f8`, metalness 0.9, roughness 0.13, clearcoat 0.85 (clearcoat roughness 0.06) — a mirror-like metal with a lacquer layer, so it reflects its environment rather than showing flat highlights. **24 marques have modelled emblem geometry** (GLB files); any other recognised brand gets a **chrome nameplate** — the same material with the brand name printed in near-black `#181a1e` on a white face; an unknown brand shows "AUTO" on that nameplate. Emblems are centred on the origin and scaled to a common width so every brand reads at the same size.
+3. **Studio lighting (what the chrome reflects).** An offscreen studio environment, not a photo: a neutral grey backdrop (`0.32, 0.34, 0.37`), a bright overhead panel (2.4× white), a **cool panel** on one side (`1.3, 1.5, 1.8`) and a **warm panel** on the other (`1.8, 1.5, 1.2`), and a dark floor (`#3a3a3a`) — so the reflections have shape and a cool/warm split across the badge. Direct lights only define form: a key (0.6) and a soft fill (0.2), plus a **rim light** from behind-low in pale blue `#dfe8ff` (0.9) that draws a thin bright edge along the silhouette — the product-photography trick that makes it look lit, not just visible. ACES filmic tone mapping, exposure 1.15. A soft **contact shadow** under the emblem (opacity 0.32, blur 2.2) grounds it.
+4. **Camera.** Three-quarter view from above-front (`4.4, 2.6, 4.4`), narrow 30° field of view — the badge sits like a product shot, not a diagram.
+
+**Motion, driven by connection state**
+
+| State | Emblem | Caption (bottom-left, 10 px uppercase, 45 % white) |
+|---|---|---|
+| disconnected | still | "Idle" |
+| connecting (discovery running) | turns on its vertical axis at ~0.85 rad/s — visibly busy | "Discovering modules…" |
+| connected | slow idle turn, ~0.16 rad/s — alive, not busy | "Live" |
+
+Under `prefers-reduced-motion` the emblem does not rotate and the dust is static. While the emblem model loads, a neutral placeholder block in the default tint holds the space (no layout jump).
+
+**Rules for the design pass**
+- Keep the material and lighting exactly; they are tuned. Only placement, size and the caption copy are open.
+- The scene must never block a step: it loads lazily after the Connect screen paints.
+- The state → motion mapping is the only "status indicator" the scene needs; do not add badges over it.
+- Brand assets come from the emblem registry; adding a marque is a GLB file, never code. Brands without a GLB get the nameplate automatically, so no brand is ever "missing".
+
 ## 6. Design principles for the visual pass
 
 1. **Stepper, not tabs.** Three stages across the top, eleven steps as a left rail inside the stage; the current step is the whole screen.
@@ -180,7 +209,7 @@ Never the word "supported"; never a count without its scope.
 5. **Archive mode is visible**: a persistent banner and greyed primary actions when the selected car is not the connected one.
 6. **Plain words first, bytes on demand**: hex, DIDs, NRCs live behind an expander on every row.
 7. **Empty states teach**: what this step needs (parked, ignition on, a drive), how long, what it will and won't do.
-8. **No brand in the UI logic**: the 3D emblem, names and defaults come from the pack's WMI table; demo data uses three brands. The emblem is the one deliberate flourish — everything else stays quiet so it reads as identity, not decoration.
+8. **No brand in the UI logic**: the 3D emblem, names and defaults come from the pack's WMI table; demo data uses three brands. The brand-recognition scene (§5a) is the one deliberate flourish — everything else stays quiet so it reads as identity, not decoration.
 
 ## 7. Open questions for the design review
 
