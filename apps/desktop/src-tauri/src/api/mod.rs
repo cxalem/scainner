@@ -327,6 +327,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         // discovery knowledge layer
         .route("/vehicles/{id}/coverage", get(vehicle_coverage))
         .route("/vehicles/{id}/parked-plan", get(vehicle_parked_plan))
+        .route("/vehicles/{id}/guided-steps", get(vehicle_guided_steps))
         .route("/vehicles/{id}/hypotheses", get(vehicle_hypotheses))
         .route("/vehicles/{id}/join", post(vehicle_join))
         .route("/knowledge/candidates", get(knowledge_candidates))
@@ -821,6 +822,13 @@ async fn vehicle_coverage(State(api): State<Arc<ApiState>>, Path(id): Path<i64>)
 async fn vehicle_parked_plan(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
     match ops::parked_plan(&api.state, id) {
         Some(plan) => ok(plan),
+        None => Err(no_vehicle(id)),
+    }
+}
+
+async fn vehicle_guided_steps(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    match ops::guided_steps(&api.state, id) {
+        Some(steps) => ok(steps),
         None => Err(no_vehicle(id)),
     }
 }
@@ -1434,6 +1442,97 @@ mod tests {
             .all(|d| d["did"] != 0xF080)));
     }
 
+    /// Guided steps are generated from open hypotheses: a baseline before
+    /// and after every input, optional nodes for anything that moves the
+    /// car, an operator confirmation wherever the gearbox matters, and a
+    /// plan version composed from the pack revision.
+    #[tokio::test]
+    async fn guided_steps_are_generated_from_open_hypotheses() {
+        let (api, db) = test_api();
+        let seeded = crate::elm::discovery::join::fixtures::seed_c4(&db);
+        let vehicle = seeded.vehicle_id;
+        let (status, _) = call(&api, "GET", "/vehicles/999/guided-steps", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+
+        // Before the join: a valid, empty tree with the composed version.
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/guided-steps"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(body["steps"].as_array().unwrap().is_empty());
+        let version = body["plan_version"].as_str().unwrap();
+        let parked = crate::elm::discovery::plan::plan_version(Some(
+            db.vehicle(vehicle).unwrap().vin.as_deref().unwrap(),
+        ));
+        let (head, rev) = parked.rsplit_once("-v").unwrap();
+        assert_eq!(version, format!("{head}-corr-v{rev}"));
+        assert_eq!(body["facts"]["gearbox"], "unknown");
+
+        call(
+            &api,
+            "POST",
+            &format!("/vehicles/{vehicle}/join"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        let (_, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/guided-steps"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        let steps = body["steps"].as_array().unwrap();
+        assert!(!steps.is_empty());
+        assert_eq!(steps[0]["kind"], "baseline");
+        assert_eq!(steps.len() % 2, 1, "baseline, (input, baseline)*");
+        let mut saw_optional = false;
+        for (i, step) in steps.iter().enumerate() {
+            if i % 2 == 1 {
+                assert_eq!(step["kind"], "input");
+                assert_eq!(steps[i + 1]["kind"], "baseline");
+                assert_eq!(step["on_success"], steps[i + 1]["id"]);
+                assert!(!step["hypotheses"].as_array().unwrap().is_empty());
+                assert!(!step["capture"]["dids"].as_array().unwrap().is_empty());
+                let test = step["instruction"].as_str().unwrap().to_ascii_lowercase();
+                if test.starts_with("drive") || test.contains("roll") {
+                    assert_eq!(step["optional"], true);
+                    assert_eq!(step["precondition"]["parked"], false);
+                    saw_optional = true;
+                } else {
+                    assert_eq!(step["optional"], false);
+                    assert_eq!(step["precondition"]["parked"], true);
+                    assert_eq!(step["success"]["returns_after"], true);
+                }
+                if test.contains("clutch") {
+                    assert_eq!(step["applicable_if"]["gearbox"], "manual");
+                    assert!(step["operator_confirmation"].is_string());
+                }
+            }
+        }
+        // Optional (car-moving) nodes come after the stationary ones.
+        let first_optional = steps.iter().position(|s| s["optional"] == true);
+        if let Some(pos) = first_optional {
+            assert!(saw_optional);
+            assert!(steps[pos..]
+                .iter()
+                .filter(|s| s["kind"] == "input")
+                .all(|s| s["optional"] == true));
+        }
+        // A test that names another module's DID gets it as a reference.
+        assert!(steps.iter().any(|s| s["capture"]["reference_dids"]
+            .as_object()
+            .map(|m| !m.is_empty())
+            .unwrap_or(false)));
+    }
+
     /// The knowledge layer end to end through the router: join the seeded
     /// C4, read its coverage and hypotheses, then walk a hypothesis through
     /// the state rules.
@@ -1663,6 +1762,7 @@ mod tests {
             "/vehicles/{id}/evidence-map",
             "/vehicles/{id}/coverage",
             "/vehicles/{id}/hypotheses",
+            "/vehicles/{id}/guided-steps",
             "/vehicles/{id}/join",
             "/hypotheses/{id}",
             "/learning-state",

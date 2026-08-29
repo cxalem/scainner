@@ -197,9 +197,10 @@ brake-held step without touching anything else. The classifier now treats
 #### Drive 2026-08-27 18:44–18:49 (`citroen-c41-drive-v1`, evidence run #17)
 
 The app had lost the dongle after the parked session, so the capture ran
-outside it: `scripts/drive_logger.py` (read-only, same termios/handshake as
-`driver.rs`, revived the V-LINK with the blueutil unpair → pair 1234 → connect
-cure) polled nine ABS identifiers plus OBD speed/RPM/voltage round-robin at
+outside it: a stand-alone drive logger (the predecessor of `scripts/session.py
+log`, since removed; read-only, same termios/handshake as `driver.rs`, revived
+the V-LINK with the blueutil unpair → pair 1234 → connect cure) polled nine ABS
+identifiers plus OBD speed/RPM/voltage round-robin at
 ~1 Hz for 196 cycles. Raw CSV: `docs/workflows/evidence/psa/c41/citroen-c41-drive-v1-2026-08-27.csv`.
 The drive was ~200 m with normal braking, starting and ending with a reverse
 manoeuvre.
@@ -238,7 +239,7 @@ probes: `D41F` steering angle ×0.1 −1250° (±500° at full lock), `D42E` clu
 pedal ×0.5 % (`C8` while selecting R), `D405` ECU voltage ×0.1 V. Researched
 but unverified: `D45B` outside temperature, `D412` km since DSGi reset.
 
-#### Session 2, 2026-08-27 20:10–20:35 — through the agent API (`scripts/c41_session2.py`)
+#### Session 2, 2026-08-27 20:10–20:35 — through the agent API (a C4-specific script, the predecessor of `scripts/session.py`, since removed)
 
 Wheel order (runs #26–#40, `citroen-c41-corr-v1`, condition `turn_manoeuvre`):
 15 chained correlation captures of `D400–D403` + `D41F` at ~10 Hz during a

@@ -152,6 +152,16 @@ async fn correlation_capture(
 }
 
 #[tauri::command]
+fn parked_plan(state: State, vehicle_id: i64) -> Option<elm::discovery::plan::ParkedPlan> {
+    ops::parked_plan(&state, vehicle_id)
+}
+
+#[tauri::command]
+fn guided_steps(state: State, vehicle_id: i64) -> Option<ops::GuidedSteps> {
+    ops::guided_steps(&state, vehicle_id)
+}
+
+#[tauri::command]
 fn discovered_modules(state: State, vehicle_id: i64) -> Vec<db::DiscoveredModuleRow> {
     ops::discovered_modules(&state, vehicle_id)
 }
@@ -363,6 +373,8 @@ pub fn run() {
             discover_sensors,
             parked_verification,
             correlation_capture,
+            parked_plan,
+            guided_steps,
             discovered_modules,
             discovered_dids,
             fingerprint_experiment,

@@ -83,6 +83,7 @@ pub const ROUTES: &[RouteDoc] = &[
     // evidence protocol
     r("POST", "/verification/parked", "Run the parked verification plan generated from the vehicle's profile (read-only, each module's read service; minutes). Saves a verification run whose plan_version is <brand>-<platform>-v<n>.", &[], None, true, false),
     r("GET", "/vehicles/{id}/parked-plan", "The parked verification plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, plan_version). No car traffic.", &[], None, false, false),
+    r("GET", "/vehicles/{id}/guided-steps", "Guided-correlation step tree generated from the vehicle's open hypotheses (protocol section 9 nodes: baseline/input, applicable_if from vehicle facts, plan_version <brand>-<platform>-corr-v<n>). No car traffic.", &[], None, false, false),
     r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "7E0", "resp": "7E8", "dids": [61831, 61845], "step": "brake", "condition": "brake pedal pressed", "plan_version": "<brand>-<platform>-v1", "repeats": 3}"#), true, false),
     r("GET", "/verification/runs", "Index of saved runs (no JSON bodies), newest first", &[("vehicle_id", "vehicle id"), ("plan_version", "exact plan version"), ("limit", "max rows (default 50)")], None, false, false),
     r("GET", "/verification/runs/{id}", "One run with its full result JSON", &[], None, false, false),
