@@ -1,6 +1,5 @@
 {
   "apps/desktop/src-tauri/src/elm/discovery/packs.rs": 2,
-  "apps/desktop/src-tauri/src/elm/driver.rs": 1,
   "apps/desktop/src-tauri/src/elm/uds_map.rs": 3,
   "apps/desktop/src/components/VehicleScene.tsx": 3,
   "apps/desktop/src/i18n/en.ts": 4,

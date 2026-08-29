@@ -113,6 +113,9 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/cases", "Open a diagnostic case", &[], Some(r#"{"vehicle_id": 1, "complaint": "ABS light on", "odometer_km": 180000, "assigned_to": null}"#), false, false),
     r("GET", "/settings/{key}", "Read an app_settings value", &[], None, false, false),
     r("PUT", "/settings/{key}", "Write an app_settings value (api_token is refused)", &[], Some(r#"{"value": "..."}"#), false, false),
+    r("GET", "/adapters", "Candidate adapters on this machine: serial ports (/dev/cu.* on macOS, ttyUSB*/rfcomm*/ttyACM* on Linux) and paired Bluetooth devices (macOS), each with a likely_obd name heuristic", &[], None, false, false),
+    r("GET", "/adapter", "The active adapter profile (adapter.* settings, SCAINNER_OBD_* environment as fallback): kind elm_serial|tcp_elm, path, bt_addr, pin, host, port, baud, timing fast|default|slow", &[], None, false, false),
+    r("PUT", "/adapter", "Update the adapter profile (partial: omitted fields keep their value; validated). Applies at the next connect", &[], Some(r#"{"kind": "elm_serial", "path": "/dev/cu.OBDII-SPPDev", "bt_addr": "aa-bb-cc-dd-ee-ff", "pin": "1234", "timing": "default"}"#), false, false),
     r("GET", "/sync/batch", "One cloud-sync batch of rows", &[("after_reading_id", "watermark"), ("limit", "max readings (1..20000)")], None, false, false),
     r("GET", "/db-path", "Path of the SQLite file", &[], None, false, false),
     // export
