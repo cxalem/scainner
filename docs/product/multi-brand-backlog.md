@@ -48,11 +48,11 @@ Started 2026-08-28.
 - ☑ (#65) P5.2 Adapter profile in settings with enumeration; `device_kind` from the `ATI`/`STI` banner; per-adapter timing profile
 
 ## Gates
-- ☐ G1 Replay of the vehicle we own reproduces fingerprints, decodes and plan from pack data only
-- ☐ G2 Replays of ≥ 3 other brands cover `0x21`, 29-bit, > 8-byte shapes end-to-end
+- ☑ G1 Replay of the vehicle we own reproduces fingerprints, decodes and plan from pack data only — `plan::the_generator_reproduces_the_recorded_plan_from_pack_data`, `identity::the_verified_vehicle_payloads_still_yield_the_known_references` (#61)
+- ☑ G2 Replays of ≥ 3 other brands cover `0x21`, 29-bit, > 8-byte shapes end-to-end — ten `correlation::tests::shapes::*` tests over 10 brand fixture directories, `auto::a_second_brand_with_an_iso_block_and_a_service_21_module_reaches_coverage`, `api::a_second_brand_is_served_in_isolation` (#61)
 - ☐ G3 Any live vehicle of a profiled brand reaches a coverage report within 3 min (needs a car)
 - ☐ G4 Any live vehicle of a not-yet-profiled brand reports `protocol_not_profiled` (needs a car)
-- ☐ G5 `COVERAGE.md` generated in CI; ≥ 5 brands with fixtures
+- ☑ G5 `COVERAGE.md` generated and checked in CI (`coverage:check`); 10 brands with fixtures under `tests/fixtures/{brand}/` (#61)
 
 ## Log
 - 2026-08-28 — backlog created; Phase 0 started.
@@ -63,3 +63,4 @@ Started 2026-08-28.
 - 2026-08-28 — Phase 3 (P3.1–P3.3) done on `feat/mb-phase3-corpus` (#59, stacked on #57): `scripts/import_obdb_fixtures.py` + `SELECTION.json` import 59 verified fixtures (449 KB, 10 brand directories, 596 cases) from OBDb (CC BY-SA 4.0) and opendbc (MIT, synthetic framing) into `fixtures/{brand}/{platform}/{shape}/` with `docs/uds/CORPUS.md` provenance; shape tests discover them at run time; engine analyses > 8-byte payloads, flags offset-binary windows, bit-packed masks and ASCII. `0x1A` and ASCII have no captured framing in any open source; P3.4 stays with Phase 2. 169 Rust tests; brand-token baseline unchanged (59).
 - 2026-08-29 — Phase 5 done on `feat/mb-phase5-transport` (#65, stacked on the Phase 2/3 integration branch): `elm/transport/` with the `Transport` trait (`ElmSerial` termios at any path/baud, `TcpElm` Wi-Fi, `Replay`), `BluetoothControl` (macOS `blueutil` with MAC/PIN/port from the profile; manual-pairing error elsewhere), `AdapterProfile` from `adapter.*` settings with the `SCAINNER_OBD_*` env fallback for one release, `fast|default|slow` timing multiplier on every driver timeout, `GET /adapters` (serial nodes + paired Bluetooth devices, `likely_obd`) and `GET|PUT /adapter`, `connections.device_kind` from the `ATI`/`STI` banner; `ElmDriver` is a thin wrapper and `uds.rs`/`obd.rs` are untouched. `driver.rs` has no compiled-in port or MAC. 208 Rust tests; brand-token baseline 20 → 19 (6 files). Not done: Windows serial, BLE, non-macOS Bluetooth automation, the settings UI (Phase 4).
 - 2026-08-29 — Phase 4 (#66): guided steps generated from hypotheses, `session.py`, pack-derived WMI table and demo vehicles, app-wide vehicle switcher; `apps/desktop/src` at zero brand tokens (baseline 20 → 6, all in `src-tauri`).
+- 2026-08-29 — Gates G1, G2, G5 verified on `main` after #61 (the tests named above are in the passing suite). Remaining open: G3/G4 (need a live vehicle of a profiled / not-yet-profiled brand — run `scripts/session.py connect && session.py coverage` on the next reachable car), Phase 5 review fixes on #65, Phase 4 review on #66.
