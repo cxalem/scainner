@@ -1,0 +1,5 @@
+{
+  "_comment": "The shipped 3D vehicle asset (multi-brand audit section 5.6: dormant, one car). Paths are data so no vehicle name lives in code; swap the files to change the model.",
+  "model": "/models/citroen-c4.obj",
+  "texture": "/models/citroen-c4-diffuse-gray.jpg"
+}

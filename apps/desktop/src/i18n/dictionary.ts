@@ -61,6 +61,19 @@ export type Dictionary = {
     // Shared by Shell's own Connect button and ConnectGate (the pre-first-
     // connect screen) — same cycling label, two call sites.
     connectPhrases: [string, string];
+    // App-wide vehicle switcher (multi-brand plan P4.5): shown when the
+    // database holds more than one vehicle or nothing is connected.
+    vehicleSwitcher: {
+      label: string;
+      connectedSuffix: string;
+      unnamed: (id: number) => string;
+    };
+    // Shown while a car is connected but another vehicle is being browsed:
+    // every view is an archive then, live controls are off.
+    archive: {
+      browsing: (name: string) => string;
+      returnToConnected: string;
+    };
   };
   workshop: {
     title: string;
@@ -375,6 +388,68 @@ export type Dictionary = {
       checkingProgress: (did: string, current: number, total: number) => string;
       noAnswersYetNote: string;
       probeAction: string;
+    };
+    parkedVerification: {
+      cardTitle: string;
+      beforeStarting: string;
+      step1: string;
+      step2: string;
+      step3: (targets: number, identityReads: number, sweepReads: number) => string;
+      readOnly: string;
+      running: string;
+      run: string;
+      connectToRun: string;
+      nameFirst: string;
+      savedAs: (runId: string, plan: string) => string;
+      answered: (answered: number, total: number) => string;
+      expected: (family: string) => string;
+      thDid: string;
+      thPurpose: string;
+      thResult: string;
+      thEvidence: string;
+      refused: (nrc: string) => string;
+    };
+    guidedCorrelation: {
+      cardTitle: string;
+      explainer: (repeats: number) => string;
+      moduleLabel: string;
+      identifiersPerCapture: (n: number) => string;
+      connectToStart: string;
+      nameFirst: string;
+      noSteps: string;
+      stepOf: (index: number, total: number) => string;
+      baselineTitle: string;
+      baselineInstruction: string;
+      optional: string;
+      preconditionStationary: string;
+      preconditionMoves: string;
+      preconditionEngine: (state: string) => string;
+      confirmPrompt: string;
+      confirmYes: string;
+      reading: (n: number, repeats: number) => string;
+      capture: (condition: string) => string;
+      skip: string;
+      skipOptional: string;
+      restart: string;
+      complete: (captures: number, plan: string) => string;
+      newSession: string;
+      lastCapture: (condition: string, runId: string, stable: number, total: number, repeats: number) => string;
+      candidates: string;
+      thCondition: string;
+      thDid: string;
+      thBaseline: string;
+      thDuring: string;
+      thReturned: string;
+      thThisStep: string;
+      thVerdict: string;
+      yes: string;
+      notYet: string;
+      candidateNote: string;
+      diffSummary: (condition: string, changed: number, noisy: number) => string;
+      references: string;
+      reference: string;
+      referenceUnreachable: string;
+      verdict: { changed: string; stable: string; noisy: string; missing: string };
     };
   };
   vehicle: {

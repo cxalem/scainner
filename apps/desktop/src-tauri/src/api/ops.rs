@@ -648,3 +648,394 @@ pub fn ai_context(state: &AppState, vehicle_id: Option<i64>, since_hours: f64) -
     ));
     md
 }
+
+// ---------- guided correlation steps (multi-brand plan P4.2) ----------
+
+#[cfg(test)]
+mod guided_tests {
+    use super::expected_signature;
+
+    #[test]
+    fn signatures_follow_the_wording() {
+        assert_eq!(
+            expected_signature("pump the pedal; expect a fall to ~20 hPa"),
+            "monotonic_decrease"
+        );
+        assert_eq!(
+            expected_signature("value drops while braking"),
+            "monotonic_decrease"
+        );
+        assert_eq!(
+            expected_signature("expect the pressure to decrease"),
+            "monotonic_decrease"
+        );
+        assert_eq!(
+            expected_signature("expect a rise with pedal travel"),
+            "monotonic_increase"
+        );
+        assert_eq!(
+            expected_signature("temperature should increase after start"),
+            "monotonic_increase"
+        );
+        assert_eq!(
+            expected_signature("same slope with an offset"),
+            "monotonic_increase"
+        );
+        assert_eq!(
+            expected_signature("sign follows direction"),
+            "sign_positive"
+        );
+        assert_eq!(
+            expected_signature("press and release three times"),
+            "changed"
+        );
+    }
+}
+
+/// One node of the guided-step state tree (universal discovery protocol §9).
+/// Generated from the vehicle's open hypotheses, never written by hand: the
+/// app renders it, an API client or an agent walks it the same way.
+#[derive(serde::Serialize, Clone, Debug)]
+pub struct GuidedStepNode {
+    pub id: String,
+    /// `baseline` or `input`.
+    pub kind: &'static str,
+    /// `REQ/RESP` of the module the capture reads.
+    pub module: Option<String>,
+    pub hypotheses: Vec<String>,
+    pub precondition: serde_json::Map<String, serde_json::Value>,
+    pub instruction: String,
+    pub condition_label: String,
+    pub capture: GuidedCapture,
+    pub success: GuidedSuccess,
+    /// Vehicle facts the step needs; the app asks the operator when a fact
+    /// is not known.
+    pub applicable_if: serde_json::Map<String, serde_json::Value>,
+    pub optional: bool,
+    /// Question the operator must answer before the step is offered, when a
+    /// fact it depends on is not in the database.
+    pub operator_confirmation: Option<String>,
+    pub safety: &'static str,
+    pub estimated_seconds: u32,
+    pub on_success: Option<String>,
+    pub on_failure: Option<String>,
+}
+
+#[derive(serde::Serialize, Clone, Debug, Default)]
+pub struct GuidedCapture {
+    pub dids: Vec<String>,
+    pub reference_dids: HashMap<String, Vec<String>>,
+    pub repeats: u8,
+    pub hold_seconds: u32,
+}
+
+#[derive(serde::Serialize, Clone, Debug, Default)]
+pub struct GuidedSuccess {
+    pub expected: HashMap<String, String>,
+    pub returns_after: bool,
+}
+
+#[derive(serde::Serialize, Clone, Debug)]
+pub struct GuidedSteps {
+    pub vehicle_id: i64,
+    /// `{brand}-{platform|unknown}-corr-v{plan_revision}`.
+    pub plan_version: String,
+    pub repeats: u8,
+    pub facts: serde_json::Map<String, serde_json::Value>,
+    pub steps: Vec<GuidedStepNode>,
+}
+
+const GUIDED_SAFETY: &str = "read-only; you control the car; stop if anything feels wrong";
+const GUIDED_REPEATS: u8 = 3;
+
+/// `{brand}-{platform|unknown}-corr-v{n}`: the parked plan's version with
+/// the correlation marker, so both kinds of run share one revision.
+pub fn correlation_plan_version(vin: Option<&str>) -> String {
+    let parked = discovery::plan::plan_version(vin);
+    match parked.rsplit_once("-v") {
+        Some((head, rev)) => format!("{head}-corr-v{rev}"),
+        None => format!("{parked}-corr"),
+    }
+}
+
+/// What a discriminating test asks of the operator, read from its wording.
+/// Keyword classes, not brands: the same words describe the same physical
+/// action on every car.
+struct TestShape {
+    moves_car: bool,
+    needs_gear_selector: bool,
+    needs_clutch: bool,
+    engine: Option<&'static str>,
+}
+
+fn shape_of(test: &str) -> TestShape {
+    let t = test.to_ascii_lowercase();
+    let moves_car = t.starts_with("drive") || t.contains("roll") || t.contains("drive:");
+    let needs_gear_selector = t.contains("reverse")
+        || t.contains("select r")
+        || t.contains("gear")
+        || t.contains("neutral");
+    let needs_clutch = t.contains("clutch");
+    let engine = if t.contains("engine off") {
+        Some("off")
+    } else if t.contains("engine running") {
+        Some("running")
+    } else {
+        None
+    };
+    TestShape {
+        moves_car,
+        needs_gear_selector,
+        needs_clutch,
+        engine,
+    }
+}
+
+/// Stable, label-safe condition name from the test text.
+fn condition_slug(test: &str) -> String {
+    let mut out = String::new();
+    let mut last_sep = true;
+    for c in test.chars() {
+        if c.is_ascii_alphanumeric() {
+            out.push(c.to_ascii_lowercase());
+            last_sep = false;
+        } else if !last_sep {
+            out.push('_');
+            last_sep = true;
+        }
+        if out.len() >= 40 {
+            break;
+        }
+    }
+    out.trim_end_matches('_').to_string()
+}
+
+/// Per-hypothesis success signature read from the test wording (protocol
+/// section 9: `changed`, `monotonic_increase`, `monotonic_decrease`,
+/// `sign_positive`). Words that describe a fall map to a decrease, words
+/// that describe a rise to an increase; anything else is `changed`.
+pub fn expected_signature(test: &str) -> &'static str {
+    let t = test.to_ascii_lowercase();
+    let decreases = ["fall", "drop", "decrease", "lower", "down to"];
+    let increases = ["rise", "increase", "climb", "monotonic", "slope", "grow"];
+    if t.contains("sign") {
+        "sign_positive"
+    } else if decreases.iter().any(|w| t.contains(w)) {
+        "monotonic_decrease"
+    } else if increases.iter().any(|w| t.contains(w)) {
+        "monotonic_increase"
+    } else {
+        "changed"
+    }
+}
+
+fn baseline_node(id: &str, module: Option<&str>, dids: Vec<String>) -> GuidedStepNode {
+    let mut precondition = serde_json::Map::new();
+    precondition.insert("parked".into(), true.into());
+    precondition.insert("parking_brake".into(), true.into());
+    precondition.insert("hands_off".into(), true.into());
+    GuidedStepNode {
+        id: id.into(),
+        kind: "baseline",
+        module: module.map(str::to_string),
+        hypotheses: Vec::new(),
+        precondition,
+        instruction: "Hands off everything: no pedals, wheel centred, no gear engaged, parking brake on. Then capture.".into(),
+        condition_label: "baseline".into(),
+        capture: GuidedCapture {
+            dids,
+            reference_dids: HashMap::new(),
+            repeats: GUIDED_REPEATS,
+            hold_seconds: 0,
+        },
+        success: GuidedSuccess {
+            expected: HashMap::new(),
+            returns_after: false,
+        },
+        applicable_if: serde_json::Map::new(),
+        optional: false,
+        operator_confirmation: None,
+        safety: GUIDED_SAFETY,
+        estimated_seconds: 20,
+        on_success: None,
+        on_failure: None,
+    }
+}
+
+/// The guided-step tree for one vehicle: open hypotheses that carry a
+/// discriminating test, grouped by module and test, each input bracketed
+/// by a baseline (A→B→A). Steps that move the car are optional with an
+/// explicit precondition; steps that need a gear selector or a clutch carry
+/// `applicable_if` plus an operator confirmation while the gearbox is not a
+/// known fact. `None` when the vehicle does not exist.
+pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
+    let vehicle = state.db.vehicle(vehicle_id)?;
+    let vin = vehicle.vin.as_deref();
+    let rows = state.db.list_hypotheses(vehicle_id);
+    let open: Vec<&db::HypothesisRow> =
+        rows.iter().filter(|h| h.vehicle_fit != "matched").collect();
+    let did_hex = |d: u16| format!("{d:04X}");
+
+    // Facts the database and the pack can vouch for. The gearbox is not
+    // recorded anywhere yet, so it is `unknown` and the steps say so.
+    let mut facts = serde_json::Map::new();
+    facts.insert("vin_known".into(), vin.is_some().into());
+    facts.insert(
+        "brand".into(),
+        elm::uds_map::brand_for_vin(vin)
+            .map(|b| b.id.clone())
+            .into(),
+    );
+    facts.insert(
+        "platform".into(),
+        elm::uds_map::platform_for_vin(vin).map(|p| p.key).into(),
+    );
+    facts.insert("gearbox".into(), "unknown".into());
+    let gearbox_known = false;
+
+    // Group (module, test) in first-seen order.
+    let mut groups: Vec<(String, String, Vec<&db::HypothesisRow>)> = Vec::new();
+    for h in &open {
+        let Some(test) = h.discriminating_test.as_deref() else {
+            continue;
+        };
+        let address = h.module_address.to_uppercase();
+        match groups
+            .iter_mut()
+            .find(|(a, t, _)| *a == address && t == test)
+        {
+            Some((_, _, list)) => list.push(h),
+            None => groups.push((address, test.to_string(), vec![h])),
+        }
+    }
+    // Stationary tests first, then those that move the car: information
+    // per minute, and the optional nodes last.
+    groups.sort_by_key(|(_, test, _)| shape_of(test).moves_car);
+
+    let mut inputs: Vec<GuidedStepNode> = Vec::new();
+    for (address, test, members) in &groups {
+        let shape = shape_of(test);
+        let hypotheses: Vec<String> = members.iter().map(|h| did_hex(h.did)).collect();
+        // Every open hypothesis on the module without a test of its own
+        // rides along: any input may be the one that moves it.
+        let mut dids = hypotheses.clone();
+        for h in &open {
+            if h.module_address.eq_ignore_ascii_case(address)
+                && h.discriminating_test.is_none()
+                && !dids.contains(&did_hex(h.did))
+            {
+                dids.push(did_hex(h.did));
+            }
+        }
+        // A DID of another module named in the test is a reference read.
+        let mut reference_dids: HashMap<String, Vec<String>> = HashMap::new();
+        for h in &rows {
+            if h.module_address.eq_ignore_ascii_case(address) {
+                continue;
+            }
+            let hex = did_hex(h.did);
+            if test.to_uppercase().contains(&hex) {
+                reference_dids
+                    .entry(h.module_address.to_uppercase())
+                    .or_default()
+                    .push(hex);
+            }
+        }
+        let mut precondition = serde_json::Map::new();
+        precondition.insert("parked".into(), (!shape.moves_car).into());
+        precondition.insert("parking_brake".into(), (!shape.moves_car).into());
+        if let Some(engine) = shape.engine {
+            precondition.insert("engine".into(), engine.into());
+        }
+        if shape.moves_car {
+            precondition.insert("space_clear".into(), true.into());
+            precondition.insert("driver_seated".into(), true.into());
+        }
+        let mut applicable_if = serde_json::Map::new();
+        let mut operator_confirmation = None;
+        if shape.needs_clutch {
+            applicable_if.insert("gearbox".into(), "manual".into());
+            if !gearbox_known {
+                operator_confirmation = Some("Does this car have a clutch pedal?".to_string());
+            }
+        } else if shape.needs_gear_selector {
+            applicable_if.insert("gearbox".into(), "any".into());
+            if !gearbox_known {
+                operator_confirmation = Some(
+                    "Can you select the gear the step asks for and keep the car stationary?"
+                        .to_string(),
+                );
+            }
+        }
+        let signature = expected_signature(test);
+        let expected = hypotheses
+            .iter()
+            .map(|d| (d.clone(), signature.to_string()))
+            .collect();
+        let slug = condition_slug(test);
+        let index = inputs.len() + 1;
+        inputs.push(GuidedStepNode {
+            id: format!("input_{index}"),
+            kind: "input",
+            module: Some(address.clone()),
+            hypotheses,
+            precondition,
+            instruction: test.clone(),
+            condition_label: slug,
+            capture: GuidedCapture {
+                dids,
+                reference_dids,
+                repeats: GUIDED_REPEATS,
+                hold_seconds: if shape.moves_car { 0 } else { 8 },
+            },
+            success: GuidedSuccess {
+                expected,
+                returns_after: !shape.moves_car,
+            },
+            applicable_if,
+            optional: shape.moves_car,
+            operator_confirmation,
+            safety: GUIDED_SAFETY,
+            estimated_seconds: if shape.moves_car { 60 } else { 25 },
+            on_success: None,
+            on_failure: None,
+        });
+    }
+
+    // One independent experiment per input: `baseline_before_<i>`,
+    // `input_<i>`, `baseline_after_<i>`, all three on the input's module and
+    // DID set. Edges run within the triplet; triplets chain in order, so a
+    // diff always compares an input with its own baselines and never with a
+    // capture taken on another module or minutes earlier.
+    let mut steps: Vec<GuidedStepNode> = Vec::new();
+    let count = inputs.len();
+    for (i, mut node) in inputs.into_iter().enumerate() {
+        let n = i + 1;
+        let before_id = format!("baseline_before_{n}");
+        let after_id = format!("baseline_after_{n}");
+        let next_triplet = (n < count).then(|| format!("baseline_before_{}", n + 1));
+        let mut before = baseline_node(
+            &before_id,
+            node.module.as_deref(),
+            node.capture.dids.clone(),
+        );
+        before.on_success = Some(node.id.clone());
+        before.on_failure = Some(node.id.clone());
+        node.on_success = Some(after_id.clone());
+        node.on_failure = Some(after_id.clone());
+        let mut after = baseline_node(&after_id, node.module.as_deref(), node.capture.dids.clone());
+        after.on_success = next_triplet.clone();
+        after.on_failure = next_triplet;
+        steps.push(before);
+        steps.push(node);
+        steps.push(after);
+    }
+
+    Some(GuidedSteps {
+        vehicle_id,
+        plan_version: correlation_plan_version(vin),
+        repeats: GUIDED_REPEATS,
+        facts,
+        steps,
+    })
+}

@@ -1,27 +1,28 @@
 // VIN → manufacturer, from the WMI (World Manufacturer Identifier — the
-// VIN's first three characters, ISO 3780). This is a deliberately small,
-// curated table of common European/global passenger-car WMIs, not an
-// attempt at completeness: the UI needs a brand identity for the connected
-// car, and an unknown WMI simply falls back to a generic badge. Add rows
-// as unrecognized cars show up — `brandFromVin` logs nothing and never
-// throws.
+// VIN's first three characters, ISO 3780). The UI needs a brand identity
+// for the connected car; an unknown WMI simply falls back to a generic
+// badge. `brandFromVin` logs nothing and never throws.
 //
-// The table itself lives in `../data/wmi.json`, not inline here — this
-// file is a thin, validated lookup over that data (see docs/workflows/
-// car-data/plan.md). Each entry carries a `confidence` and `source` field
-// produced by the full-table audit (docs/workflows/3d-logos/wmi-audit.md):
-// "high" = NHTSA-confirmed directly, an obvious sibling of one, or (for
-// brands NHTSA can't cover because they don't sell in the US, e.g. VF7,
-// UU1, TMB) strongly convergent across three-plus independent secondary
-// sources, "medium-high"/"medium" = corroborated by fewer or weaker
-// secondary sources, or NHTSA-confirmed but not brand-exclusive (U5Y),
-// "low" = single-sourced or genuinely unconfirmed. Nothing below medium confidence is currently in the table —
-// entries the audit flagged as wrong or unresolved (JSA, JMZ, VXK) were
-// already removed or swapped for a confirmed alternative.
+// The table itself lives in `../data/wmi.json` and is GENERATED — do not
+// edit it by hand. `pnpm wmi-table` in packages/uds-map derives one row per
+// `brands[].wmi[]` entry of the knowledge map (packages/uds-map/data/
+// uds-map.json), refined by the marque overlay `../data/wmi-marques.json`
+// for marques that live inside a group brand (the group brand routes
+// diagnostics; the badge still wants the marque's own name and emblem
+// key). Overlay rows the map does not route are emitted with `brand: null`
+// (badge only). `pnpm wmi-table:check` fails CI when the table is stale.
+//
+// `confidence` and `source` are per row: overlay rows keep the strings from
+// the original full-table audit (docs/workflows/3d-logos/wmi-audit.md —
+// "high" = NHTSA-confirmed or strongly convergent across independent
+// secondary sources, "medium-high"/"medium" = fewer or weaker sources,
+// "low" = single-sourced); generated rows carry the map brand's confidence
+// and name the map as their source.
 //
 // `key` doubles as the 3D-emblem selector in VehicleScene (a brand with
 // modeled emblem geometry renders it; anything else renders a nameplate
-// badge with `name`).
+// badge with `name`). `brand` is the map brand id that routes the WMI, so
+// a consumer can tell "has a diagnostic profile" from "has a badge".
 
 import rawWmi from "../data/wmi.json";
 
@@ -32,6 +33,8 @@ export type BrandInfo = {
   name: string;
   confidence: Confidence;
   source: string;
+  /** Knowledge-map brand id that routes this WMI; null/absent = badge only. */
+  brand?: string | null;
 };
 
 const CONFIDENCE_VALUES: ReadonlySet<string> = new Set(["high", "medium-high", "medium", "low"]);
@@ -46,7 +49,8 @@ function isBrandInfo(value: unknown): value is BrandInfo {
     v.name.length > 0 &&
     typeof v.source === "string" &&
     typeof v.confidence === "string" &&
-    CONFIDENCE_VALUES.has(v.confidence)
+    CONFIDENCE_VALUES.has(v.confidence) &&
+    (v.brand === undefined || v.brand === null || typeof v.brand === "string")
   );
 }
 

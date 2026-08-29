@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderCoverage } from "../scripts/coverage.ts";
+import { renderWmiTable, WMI_TABLE_PATH } from "../scripts/wmi-table.ts";
 import { headingSlug, lintPack, researchAnchors } from "../scripts/lint.ts";
 import { brandTokens, PKG_DIR } from "../scripts/pack.ts";
 import {
@@ -519,6 +520,18 @@ describe("pack lints and coverage (P1.6)", () => {
   it("COVERAGE.md is the generator's current output (run `pnpm coverage`)", () => {
     const committed = readFileSync(join(PKG_DIR, "COVERAGE.md"), "utf-8");
     expect(committed).toBe(renderCoverage());
+  });
+
+  it("the desktop WMI table is the generator's current output (run `pnpm wmi-table`)", () => {
+    const committed = readFileSync(WMI_TABLE_PATH, "utf-8");
+    expect(committed).toBe(renderWmiTable());
+  });
+
+  it("the desktop WMI table routes every pack WMI to its brand", () => {
+    const table = JSON.parse(renderWmiTable()) as Record<string, { key: string; brand: string | null }>;
+    const map = getMap();
+    for (const b of map.brands) for (const w of b.wmi) expect(table[w]?.brand, w).toBeTruthy();
+    expect(Object.keys(table).length).toBeGreaterThanOrEqual(map.brands.reduce((n, b) => n + b.wmi.length, 0) - 5);
   });
 
   it("coverage totals reflect the pack (snapshot of the numbers that matter)", () => {

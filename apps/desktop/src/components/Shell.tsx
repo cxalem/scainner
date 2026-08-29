@@ -21,6 +21,8 @@ import { useLocale, useT, type Locale } from "@/i18n";
 
 export type ViewKey = "workshop" | "overview" | "live" | "history" | "diagnose" | "lab" | "vehicle";
 
+export type VehicleOption = { id: number; vin: string | null; display_name: string | null };
+
 export function Shell({
   view,
   onNavigate,
@@ -28,6 +30,9 @@ export function Shell({
   recording,
   onConnect,
   onDisconnect,
+  vehicles = [],
+  activeVehicleId = null,
+  onSelectVehicle,
   children,
 }: {
   view: ViewKey;
@@ -36,6 +41,12 @@ export function Shell({
   recording: boolean;
   onConnect: () => void;
   onDisconnect: () => Promise<unknown>;
+  /** App-wide vehicle switcher (multi-brand plan P4.5): every vehicle the
+   *  database knows; shown when there is more than one or nothing is
+   *  connected. The connected car stays the default. */
+  vehicles?: VehicleOption[];
+  activeVehicleId?: number | null;
+  onSelectVehicle?: (id: number | null) => void;
   children: ReactNode;
 }) {
   const t = useT();
@@ -65,6 +76,8 @@ export function Shell({
     { key: "lab", label: t.shell.nav.lab, icon: FlaskConical, advanced: true },
     { key: "vehicle", label: t.shell.nav.vehicle, icon: Car, advanced: true },
   ];
+  const showSwitcher = vehicles.length > 1 || (!connected && vehicles.length > 0);
+  const vehicleName = (v: VehicleOption) => v.display_name || v.vin || t.shell.vehicleSwitcher.unnamed(v.id);
   const primary = NAV.filter((n) => !n.advanced);
   const advanced = NAV.filter((n) => n.advanced);
 
@@ -104,6 +117,24 @@ export function Shell({
             </span>
           )}
         </div>
+
+        {showSwitcher && (
+          <label className="mb-3 flex flex-col gap-1 px-2 text-xs text-muted-foreground">
+            {t.shell.vehicleSwitcher.label}
+            <select
+              className="h-8 w-full rounded-md border border-border bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={activeVehicleId ?? ""}
+              onChange={(e) => onSelectVehicle?.(e.target.value ? Number(e.target.value) : null)}
+            >
+              {vehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {vehicleName(v)}
+                  {connected && conn.vehicle_id === v.id ? t.shell.vehicleSwitcher.connectedSuffix : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <nav className="flex flex-col gap-0.5" aria-label="Main">
           {primary.map(item)}

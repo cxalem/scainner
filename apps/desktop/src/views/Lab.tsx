@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { UdsHit } from "@scainner/core";
 import { useUdsModules } from "@/features/lab/queries";
 import { DidReader } from "@/views/lab/DidReader";
@@ -10,6 +10,7 @@ import { RangeScanner } from "@/views/lab/RangeScanner";
 import { ParkedVerification } from "@/views/lab/ParkedVerification";
 import { GuidedCorrelation } from "@/views/lab/GuidedCorrelation";
 import { useT } from "@/i18n";
+import { defaultSweepBand, useParkedPlan } from "@/views/lab/plan";
 
 /// Manufacturer-specific diagnostics (UDS beyond standard OBD2). Reads plus
 /// one write: the fault clear in ModuleFaults, which runs on the write
@@ -28,7 +29,15 @@ export function Lab({
   const t = useT();
   const modulesQuery = useUdsModules();
   const modules = modulesQuery.data ?? [];
-  const [mod, setMod] = useState("engine");
+  // No module key is a code constant (multi-brand plan P4.3): the default
+  // is the first module the knowledge map documents for the connected VIN,
+  // else the first custom one, else nothing.
+  const firstModule = (modules.find((m) => m.builtin) ?? modules[0])?.key ?? "";
+  const [mod, setMod] = useState("");
+  useEffect(() => {
+    if (!modules.some((m) => m.key === mod)) setMod(firstModule);
+  }, [modules, mod, firstModule]);
+  const plan = useParkedPlan(vehicleId);
   const [probeCandidate, setProbeCandidate] = useState<UdsHit | null>(null);
 
   const selected = modules.find((m) => m.key === mod);
@@ -51,7 +60,7 @@ export function Lab({
             ))}
           </select>
           {selected && !selected.builtin && (
-            <RemoveModuleButton module={selected} onRemoved={() => setMod("engine")} />
+            <RemoveModuleButton module={selected} onRemoved={() => setMod(firstModule)} />
           )}
         </div>
       </div>
@@ -70,7 +79,7 @@ export function Lab({
       <p className="-mt-2 text-xs text-muted-foreground">{t.lab.advanced.explainer}</p>
       <ModuleManager />
       <DidReader module={mod} connected={connected} />
-      <RangeScanner module={mod} connected={connected} onProbeCandidate={setProbeCandidate} />
+      <RangeScanner module={mod} connected={connected} defaultRange={defaultSweepBand(plan.data, mod)} onProbeCandidate={setProbeCandidate} />
       <ProbeManager
         module={mod}
         candidate={probeCandidate}

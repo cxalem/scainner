@@ -88,7 +88,7 @@ Severity: **B** blocking for multi-brand, **I** important, c cosmetic. Paths are
 
 | Sev | Where | What | Pattern |
 |---|---|---|---|
-| I | `scripts/c41_session2.py` (module keys `abs`/`engine`, DIDs, `×0.1−1250`, `×5`, `vehicle_id=2`, `c41-` filenames), `scripts/drive_logger.py` (C4 ABS DIDs, `6AD/68D`, `/dev/cu.V-LINK`), `scripts/correlation_replay.py` (C4 paths and routes) | Research scripts are C4 by name and content. | One `session.py` that resolves modules/DIDs/decodes from the pack by VIN, takes `vehicle_id` from `/status`, names evidence `{brand}-{platform}-{plan}`, degrades gracefully without a steering reference. `scainner_api.py` and `scainner_mcp.py` are already generic. |
+| I | `scripts/c41_session2.py` (module keys `abs`/`engine`, DIDs, `×0.1−1250`, `×5`, `vehicle_id=2`, `c41-` filenames), `scripts/drive_logger.py` (C4 ABS DIDs, `6AD/68D`, `/dev/cu.V-LINK`), `scripts/correlation_replay.py` (C4 paths and routes) | Research scripts are C4 by name and content. | One `session.py` that resolves modules/DIDs/decodes from the pack by VIN, takes `vehicle_id` from `/status`, names evidence `{brand}-{platform}-{plan}`, degrades gracefully without a steering reference. `scainner_api.py` and `scainner_mcp.py` are already generic. → replaced by `scripts/session.py` (Phase 4). |
 
 ### 5.6 Product surfaces default to PSA → *brand-neutral defaults, examples and copy*
 

@@ -306,6 +306,8 @@ function glbEmblem(file: string, opts?: { targetWidth?: number }): React.Compone
 // Registry: brand.key -> modeled emblem component. Anything not listed here
 // falls back to NameplateEmblem in VehicleScene. Adding a new brand is just
 // a new component plus a new entry, no changes needed elsewhere.
+export const PREVIEW_ONLY_EMBLEMS = ["saic", "vauxhall", "cupra"] as const;
+
 export const EMBLEMS: Record<string, React.ComponentType> = {
   volvo: glbEmblem("volvo.glb"),
   citroen: glbEmblem("citroen.glb"),
@@ -339,7 +341,9 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   // source settles the Seat/Cupra claim either. Either way there's no
   // confident WMI for either brand today, so the practical result is the
   // same: all three stay reachable via the dev ?brand= override so the
-  // geometry is ready the moment any of them gets one.
+  // geometry is ready the moment any of them gets one. The list is
+  // exported so brand.test.ts can assert every other EMBLEMS key is a
+  // wmi.json key (a modeled mark nothing can reach is a bug).
   saic: glbEmblem("saic.glb"),
   vauxhall: glbEmblem("vauxhall.glb"),
   cupra: glbEmblem("cupra.glb"),

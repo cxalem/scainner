@@ -17,9 +17,11 @@ THE BASELINE MAY ONLY SHRINK. Do not raise a count or add a file to
 a `source` instead (audit §8 rule 1). `--update` exists to record the *removal*
 of tokens; a review must reject an update that grows any number.
 
-What is scanned: `apps/desktop/src-tauri/src` and `apps/desktop/src`
-(`.rs .ts .tsx`). Skipped: anything under a `tests/` or `fixtures/` directory,
-test files (`tests.rs`, `*_test.rs`, `*.test.ts`, `*.test.tsx`), any `mock.ts`,
+What is scanned: `apps/desktop/src-tauri/src` and all production code under
+`apps/desktop/src` (`.rs .ts .tsx`; Phase 4 target: zero tokens there).
+Skipped: anything under a `tests/`, `fixtures/`, `data/` (generated tables such
+as `data/wmi.json`) or `mock/` (per-brand demo data) directory, test files
+(`tests.rs`, `*_test.rs`, `*.test.ts`, `*.test.tsx`), any `mock.ts`,
 comment-only lines (`//`, `///`, `//!`, `/* … */`, `*`, `{/* … */}`, SQL `--`),
 and brace-balanced `#[cfg(test)] mod … { … }` blocks in Rust files.
 
@@ -91,7 +93,7 @@ _MOD_OPEN = re.compile(r"^\s*(pub(\([^)]*\))?\s+)?mod\s+\w+\s*\{")
 
 def is_excluded(rel: str) -> bool:
     parts = rel.replace(os.sep, "/").split("/")
-    if "tests" in parts or "fixtures" in parts:
+    if "tests" in parts or "fixtures" in parts or "data" in parts or "mock" in parts:
         return True
     name = parts[-1]
     return (

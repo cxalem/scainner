@@ -23,15 +23,25 @@ type LiveProgress = { current: number; total: number; did: string; hits: number 
 export function RangeScanner({
   module,
   connected,
+  defaultRange = null,
   onProbeCandidate,
 }: {
   module: string;
   connected: boolean;
+  /** The vehicle's parked-plan sweep band for this module; the fields
+   *  start empty until the plan says where this brand keeps its data. */
+  defaultRange?: [number, number] | null;
   onProbeCandidate: (hit: UdsHit) => void;
 }) {
   const t = useT();
-  const [scanFrom, setScanFrom] = useState("D000");
-  const [scanTo, setScanTo] = useState("D3FF");
+  const [scanFrom, setScanFrom] = useState("");
+  const [scanTo, setScanTo] = useState("");
+  const [touched, setTouched] = useState(false);
+  useEffect(() => {
+    if (touched || !defaultRange) return;
+    setScanFrom(hex4(defaultRange[0]));
+    setScanTo(hex4(defaultRange[1]));
+  }, [defaultRange, touched]);
   const [hits, setHits] = useState<UdsHit[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -93,14 +103,14 @@ export function RangeScanner({
             aria-label={t.lab.rangeScanner.fromAriaLabel}
             className={inputCls + " w-24"}
             value={scanFrom}
-            onChange={(e) => setScanFrom(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
+            onChange={(e) => { setTouched(true); setScanFrom(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4)); }}
           />
           <span className="text-sm text-muted-foreground">{t.lab.rangeScanner.to}</span>
           <input
             aria-label={t.lab.rangeScanner.toAriaLabel}
             className={inputCls + " w-24"}
             value={scanTo}
-            onChange={(e) => setScanTo(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
+            onChange={(e) => { setTouched(true); setScanTo(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4)); }}
           />
           <Button onClick={scan} disabled={!connected || busy}>
             {busy

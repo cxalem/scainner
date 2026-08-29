@@ -57,7 +57,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/connect", "Start the connection supervisor (same loop as the UI's Connect: finds the adapter, cures Bluetooth sulk mode, keeps the link alive). Idempotent.", &[], None, false, false),
     r("POST", "/disconnect", "Stop the supervisor (cancels any running scan first)", &[], None, false, false),
     r("GET", "/status", "ConnStatus: state, ELM version, VIN/vehicle identity, scanning flag", &[], None, false, false),
-    r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Grey C4 2006"}"#), true, false),
+    r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Workshop courtesy car"}"#), true, false),
     // standard OBD
     r("GET", "/live", "Latest live PID readings (the last live-update broadcast) with their age", &[], None, false, false),
     r("GET", "/readings", "Stored readings for one key, oldest first", &[("vehicle_id", "vehicle id (omit for unidentified rows)"), ("key", "reading key, e.g. rpm, coolant, voltage"), ("since", "window in hours (default 24)"), ("limit", "keep only the newest N points")], None, false, false),
@@ -83,6 +83,7 @@ pub const ROUTES: &[RouteDoc] = &[
     // evidence protocol
     r("POST", "/verification/parked", "Run the parked verification plan generated from the vehicle's profile (read-only, each module's read service; minutes). Saves a verification run whose plan_version is <brand>-<platform>-v<n>.", &[], None, true, false),
     r("GET", "/vehicles/{id}/parked-plan", "The parked verification plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, plan_version). No car traffic.", &[], None, false, false),
+    r("GET", "/vehicles/{id}/guided-steps", "Guided-correlation step tree generated from the vehicle's open hypotheses (protocol section 9 nodes: baseline/input, applicable_if from vehicle facts, plan_version <brand>-<platform>-corr-v<n>). No car traffic.", &[], None, false, false),
     r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "7E0", "resp": "7E8", "dids": [61831, 61845], "step": "brake", "condition": "brake pedal pressed", "plan_version": "<brand>-<platform>-v1", "repeats": 3}"#), true, false),
     r("GET", "/verification/runs", "Index of saved runs (no JSON bodies), newest first", &[("vehicle_id", "vehicle id"), ("plan_version", "exact plan version"), ("limit", "max rows (default 50)")], None, false, false),
     r("GET", "/verification/runs/{id}", "One run with its full result JSON", &[], None, false, false),
@@ -93,7 +94,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/vehicles/{id}/modules", "Discovered modules with DID counts and ECU fingerprints", &[], None, false, false),
     r("GET", "/vehicles/{id}/evidence-map", "Evidence-only topology for one vehicle", &[], None, false, false),
     r("GET", "/vehicles/{id}/report", "Per-vehicle report (stats, scans, connections)", &[], None, false, false),
-    r("POST", "/vehicles/{id}/name", "Rename a stored vehicle", &[], Some(r#"{"name": "Grey C4 2006"}"#), false, false),
+    r("POST", "/vehicles/{id}/name", "Rename a stored vehicle", &[], Some(r#"{"name": "Workshop courtesy car"}"#), false, false),
     r("POST", "/vehicles/{id}/fuel-price", "Set the fuel price used for cost estimates", &[], Some(r#"{"price": 1.62}"#), false, false),
     r("GET", "/modules/{id}/dids", "Discovered DIDs of one module (by discovered_modules.id)", &[], None, false, false),
     // discovery knowledge layer (Universal Discovery Protocol S3 + coverage)
@@ -106,7 +107,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("PUT", "/learning-state", "Switch the learning state", &[], Some(r#"{"on": true}"#), false, false),
     r("GET", "/fingerprint-experiment", "Local VIN-free ECU fingerprint cohort measurement", &[], None, false, false),
     r("GET", "/probes", "Decode definitions polled live for a vehicle", VEHICLE_Q, None, false, false),
-    r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it)", &[], Some(r#"{"vehicle_id": 1, "module": "abs", "did": 54272, "label": "Wheel FL", "unit": "km/h", "offset": 0, "len": 2, "scale": 0.01, "bias": 0}"#), false, false),
+    r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it)", &[], Some(r#"{"vehicle_id": 1, "module": "7e0_7e8", "did": 61831, "label": "Example value", "unit": "", "offset": 0, "len": 2, "scale": 1, "bias": 0}"#), false, false),
     r("PATCH", "/probes/{id}", "Enable/disable ({\"enabled\": bool}) or replace the decode (full UdsProbe fields)", &[], Some(r#"{"enabled": false}"#), false, false),
     r("DELETE", "/probes/{id}", "Delete a probe", &[], None, false, false),
     r("GET", "/cases", "Diagnostic cases", VEHICLE_Q, None, false, false),
