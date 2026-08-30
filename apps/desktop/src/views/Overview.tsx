@@ -6,10 +6,8 @@ import { Suspense, lazy, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   Cable,
-  CheckCircle2,
   Database,
   History,
-  Info,
   ShieldCheck,
   ShieldQuestion,
   Timer,
@@ -20,7 +18,7 @@ import { Button, Card, CardHead, CardSkeleton, EmptyState, Field, Input, Mono, P
 import { Block } from "@/motion/components";
 import type { SceneStatus } from "@/components/VehicleScene";
 import { useNameCurrentVehicle, useVehicleReport, useVehicles } from "@/features/vehicle/queries";
-import { buildVerdicts, type Verdict } from "@/views/overview/buildVerdicts";
+import { buildVerdicts } from "@/views/overview/buildVerdicts";
 import { FuelCard } from "@/views/overview/FuelCard";
 import { useLocale, useT } from "@/i18n";
 
@@ -39,16 +37,10 @@ function SceneCard({ status, vin }: { status: SceneStatus; vin: string | null })
   return (
     <div className="flex h-[190px] overflow-hidden rounded-md border border-divider bg-surface shadow-sm">
       <Suspense fallback={<Skeleton className="h-[190px] w-full rounded-none" />}>
-        <VehicleScene status={status} vin={vin} className={SCENE_CLASS} />
+        <VehicleScene status={status} vin={vin} className={SCENE_CLASS} background="light" />
       </Suspense>
     </div>
   );
-}
-
-function verdictTone(v: Verdict): { icon: LucideIcon; className: string } {
-  if (v.status === "good") return { icon: CheckCircle2, className: "text-ok" };
-  if (v.status === "watch") return { icon: AlertTriangle, className: "text-warn" };
-  return { icon: AlertTriangle, className: "text-stop" };
 }
 
 function formatWhen(iso: string, locale: string): string {
@@ -236,6 +228,19 @@ export function Overview({
         : t.overview.verdict.headIssues(verdicts.filter((v) => v.status !== "good").length);
   const scanNote =
     report.scans_total > 0 ? t.overview.verdict.scanNote(report.scans_total, report.last ? formatWhen(report.last, locale) : null) : t.overview.verdict.noScanNote;
+  // One compact line about the scan specifically (not the full per-check
+  // detail list, which Diagnose already owns) — the fault-record verdict
+  // buildVerdicts also computes, reused directly rather than duplicated.
+  const scanInfo =
+    report.scans_total > 0
+      ? {
+          clean: report.scans_clean === report.scans_total,
+          text:
+            report.scans_clean === report.scans_total
+              ? t.overview.health.faultRecordClean(report.scans_total)
+              : t.overview.health.faultRecordSome(report.scans_total - report.scans_clean, report.scans_total),
+        }
+      : null;
 
   const tiles: { icon: LucideIcon; label: string; value: string; note: string }[] = [
     {
@@ -256,34 +261,39 @@ export function Overview({
 
   return (
     <>
+      {/* h-[190px], not h-full: matches SCENE_CLASS's own fixed height now
+          that the grid is items-start (each cell sizes to its own content,
+          see hero() below) — two independent-height cards side by side
+          need an explicit shared height, not mutual stretching, or one
+          crops the other's aspect (2026-08-30). justify-between spreads
+          the now-shorter content across that height instead of leaving it
+          bunched in the middle with dead space top and bottom. */}
       {hero(
-        <Card className="justify-center gap-3 px-[18px] py-4">
-          <div className="flex items-center gap-2.5">
-            <Pill variant={chip.variant} className="text-[11px]">{chip.text}</Pill>
-            <span className="text-[12px] text-neutral-500">{scanNote}</span>
-          </div>
-          <div className="max-w-[38ch] text-[19px] leading-[1.35]">{headline}</div>
-          <div className="flex flex-col gap-[7px]">
-            {verdicts.length === 0 ? (
+        <Card className="h-[190px] justify-between gap-3 px-[18px] py-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <Pill variant={chip.variant} className="text-[11px]">{chip.text}</Pill>
+              <span className="text-[12px] text-neutral-500">{scanNote}</span>
+            </div>
+            {/* A quick overview, not a report: headline + one line about
+                the scan specifically. The full per-check detail list
+                (buildVerdicts' other lines: engine/cooling/battery/turbo)
+                stays out of this card — too much for a glanceable summary;
+                Diagnose already owns the itemized version (2026-08-30). */}
+            <div className="max-w-[38ch] text-[19px] leading-[1.35]">{headline}</div>
+            {scanInfo && (
               <div className="flex items-start gap-2 text-[13px] leading-[1.5]">
-                <Info className="mt-0.5 h-[15px] w-[15px] shrink-0 text-neutral-500" aria-hidden="true" />
-                <span className="text-neutral-300">{t.overview.health.notEnoughData(t.shell.appName)}</span>
+                {scanInfo.clean ? (
+                  <ShieldCheck className="mt-0.5 h-[15px] w-[15px] shrink-0 text-ok" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="mt-0.5 h-[15px] w-[15px] shrink-0 text-warn" aria-hidden="true" />
+                )}
+                <span className="text-neutral-300">{scanInfo.text}</span>
               </div>
-            ) : (
-              verdicts.map((v) => {
-                const tone = verdictTone(v);
-                const Icon = tone.icon;
-                return (
-                  <div key={v.title} className="flex items-start gap-2 text-[13px] leading-[1.5]">
-                    <Icon className={`mt-0.5 h-[15px] w-[15px] shrink-0 ${tone.className}`} aria-hidden="true" />
-                    <span className="text-neutral-300">{v.text}</span>
-                  </div>
-                );
-              })
             )}
           </div>
           {onNavigate && (
-            <div className="mt-0.5 flex gap-2">
+            <div className="flex gap-2">
               <Button variant="primary" size="sm" onClick={() => onNavigate("diagnose")}>
                 {t.overview.verdict.openFaults}
               </Button>

@@ -176,7 +176,19 @@ export default function App() {
       )}
 
       {discoverVin && (
-        <Suspense fallback={<div className="fixed inset-0 z-50 bg-bg" />}>
+        // Same radial-gradient ground DiscoveryFlow's own root paints —
+        // covers the frame(s) before its lazy chunk resolves (prewarmed on
+        // mount, so this should rarely be visible) without the flash of a
+        // flat bg-bg rectangle that looked like a blank/broken page during
+        // the connect→dashboard handoff (2026-08-30).
+        <Suspense
+          fallback={
+            <div
+              className="fixed inset-0 z-50"
+              style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
+            />
+          }
+        >
           <DiscoveryFlow
             vin={discoverVin}
             onDone={() => {

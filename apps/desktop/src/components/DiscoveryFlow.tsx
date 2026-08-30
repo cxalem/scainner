@@ -13,7 +13,7 @@ import { VehicleScene } from "@/components/VehicleScene";
 import type { DtcResult, EcuInfo } from "@scainner/core";
 import { brandFromVin } from "@/lib/brand";
 import { decodeModelYear } from "@/lib/vin";
-import { appearVariants, fadeTransition, layoutTransition, screenVariants, staggerContainer, staggerItem } from "@/motion";
+import { appearVariants, backdropVariants, fadeTransition, layoutTransition, staggerContainer, staggerItem } from "@/motion";
 import { useT } from "@/i18n";
 
 type Step = "discovering" | "scanning" | "results";
@@ -70,17 +70,35 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
   const dtcCount = scan ? scan.stored.length + scan.pending.length : null;
   const brand = brandFromVin(vin);
   const modelYear = decodeModelYear(vin);
+
+  // In practice ConnectGate already preloaded this brand's GLB (its own
+  // brand resolves from the same conn.vin just before this overlay
+  // mounts) — this covers the case discovery mounts on its own, without
+  // going through the gate first, so the emblem doesn't rely on that
+  // earlier preload having happened.
+  useEffect(() => {
+    if (!brand) return;
+    void import("@/components/VehicleScene").then((m) => m.preloadEmblem(brand.key));
+  }, [brand]);
   const title = step === "discovering" ? t.discoveryFlow.step.discoveringTitle : step === "scanning" ? t.discoveryFlow.step.scanningTitle : t.discoveryFlow.step.resultsTitle;
   const subtitle = step === "discovering" ? t.discoveryFlow.step.discoveringSubtitle : step === "scanning" ? t.discoveryFlow.step.scanningSubtitle : t.discoveryFlow.step.resultsSubtitle;
 
   return (
+    // backdropVariants, not screenVariants: this is an OVERLAY on top of
+    // an already-painted Shell, not a screen replacing another screen with
+    // nothing behind either. screenVariants' slow 0.5s fade+rise meant the
+    // dashboard was fully visible THROUGH this semi-transparent backdrop
+    // for a good chunk of that half-second — exactly the "see the
+    // dashboard, then the scanning state" flash reported live (2026-08-30).
+    // backdropVariants is opacity-only and fast (150ms), so the covering
+    // background is effectively opaque almost immediately.
     <motion.div
       className="fixed inset-0 z-50 flex overflow-y-auto p-6 text-text"
       style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
       initial="hidden"
       animate="visible"
       exit="exit"
-      variants={screenVariants}
+      variants={backdropVariants}
     >
       {/* m-auto, not items-center: content taller than the viewport still scrolls. */}
       <div className="m-auto flex w-full max-w-[520px] flex-col gap-5 py-8">

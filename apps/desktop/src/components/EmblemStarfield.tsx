@@ -7,15 +7,33 @@
 // (softer, since this sits behind a chrome badge rather than plain text),
 // and run far slower — this is ambient dust, not a hyperspace effect.
 import { useEffect, useRef } from "react";
-import { PARTICLE_PALETTE } from "@/theme";
+import { PARTICLE_PALETTE, PARTICLE_PALETTE_LIGHT } from "@/theme";
 
-const PALETTE = PARTICLE_PALETTE.dust;
 const COLOR_WEIGHTS = [0.3, 0.4, 0.3];
 const SIZE_WEIGHTS = [0.62, 0.24, 0.09, 0.05]; // fraction of particles at each size below
 const SIZES = [1, 1.6, 2.3, 3];
-const SIZE_ALPHA = [0.4, 0.65, 0.85, 0.95];
+// Light tone's dots read at lower alpha than dark's — the bolder accent
+// fleck (palette index 2) stays punchy, the two faint tints stay faint,
+// so the mix looks like the reference (mostly-quiet dust, occasional
+// bolder purple speck) rather than a uniformly saturated confetti field.
+const SIZE_ALPHA_DARK = [0.4, 0.65, 0.85, 0.95];
+const SIZE_ALPHA_LIGHT = [0.25, 0.4, 0.55, 0.7];
 
-export function EmblemStarfield({ total = 70 }: { total?: number }) {
+export function EmblemStarfield({
+  total = 70,
+  tone = "dark",
+  fill = true,
+}: {
+  total?: number;
+  tone?: "dark" | "light";
+  /** false: transparent canvas, dust dots only, no background gradient
+   *  fill. For a surface that already has its own background one shade
+   *  off from the dust palette's own gradient (the login panel's purple
+   *  vs. the dust field's near-black) — filling anyway painted a visibly
+   *  different rectangle on top of it instead of one continuous panel
+   *  (2026-08-30). */
+  fill?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -23,6 +41,10 @@ export function EmblemStarfield({ total = 70 }: { total?: number }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    const palette = tone === "light" ? PARTICLE_PALETTE_LIGHT : PARTICLE_PALETTE;
+    const PALETTE = palette.dust;
+    const SIZE_ALPHA = tone === "light" ? SIZE_ALPHA_LIGHT : SIZE_ALPHA_DARK;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -74,11 +96,15 @@ export function EmblemStarfield({ total = 70 }: { total?: number }) {
 
     let raf = 0;
     function draw() {
-      const g = ctx!.createLinearGradient(0, 0, width, height);
-      g.addColorStop(0, PARTICLE_PALETTE.backgroundGradient[0]);
-      g.addColorStop(1, PARTICLE_PALETTE.backgroundGradient[1]);
-      ctx!.fillStyle = g;
-      ctx!.fillRect(0, 0, width, height);
+      if (fill) {
+        const g = ctx!.createLinearGradient(0, 0, width, height);
+        g.addColorStop(0, palette.backgroundGradient[0]);
+        g.addColorStop(1, palette.backgroundGradient[1]);
+        ctx!.fillStyle = g;
+        ctx!.fillRect(0, 0, width, height);
+      } else {
+        ctx!.clearRect(0, 0, width, height);
+      }
 
       for (let i = 0; i < total; i++) {
         const k = i * 2;
@@ -110,7 +136,7 @@ export function EmblemStarfield({ total = 70 }: { total?: number }) {
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [total]);
+  }, [total, tone, fill]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />;
 }

@@ -35,6 +35,17 @@ export function ConnectGate({
   const brand = brandFromVin(conn.vin);
   const brandKnown = brand != null && (connecting || connected);
 
+  // Warm the emblem's GLB the moment the VIN resolves a brand — before the
+  // scene actually swaps to show it (brandKnown gates that below), so the
+  // real emblem is usually already parsed by the time it needs to render
+  // instead of EmblemFallback's loading plaque (2026-08-30). useLoader's
+  // cache is shared by URL, so this also warms Overview/Vehicle's later
+  // renders of the same brand for the rest of the session.
+  useEffect(() => {
+    if (!brand) return;
+    void import("@/components/VehicleScene").then((m) => m.preloadEmblem(brand.key));
+  }, [brand]);
+
   // The connection log: one line per thing the backend told us, in order.
   // Rebuilt from ConnStatus transitions, so it only ever says what happened.
   const [lines, setLines] = useState<string[]>([]);
@@ -75,7 +86,11 @@ export function ConnectGate({
 
   return (
     <motion.div
-      className="relative flex h-screen items-center justify-center bg-bg text-text"
+      // fixed inset-0, not h-screen: see Login.tsx's own comment on the
+      // same fix — an h-screen sibling stacks in document flow instead of
+      // overlaying Shell during the exit fade, which showed up as a blank
+      // flash right at the connect→dashboard handoff (2026-08-30).
+      className="fixed inset-0 flex items-center justify-center bg-bg text-text"
       style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
       initial="hidden"
       animate="visible"

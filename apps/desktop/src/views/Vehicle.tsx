@@ -159,7 +159,13 @@ export function Vehicle({ connected, vehicleId = null }: { connected: boolean; v
             </div>
             <div className="h-[132px] w-[200px] shrink-0 overflow-hidden rounded-md border border-divider">
               <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
-                <VehicleScene status={connected ? "connected" : "disconnected"} vin={vehicle?.vin} caption={null} className="h-[132px] w-[200px]" />
+                <VehicleScene
+                  status={connected ? "connected" : "disconnected"}
+                  vin={vehicle?.vin}
+                  caption={null}
+                  className="h-[132px] w-[200px]"
+                  background="light"
+                />
               </Suspense>
             </div>
           </Card>

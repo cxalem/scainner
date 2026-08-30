@@ -33,6 +33,27 @@ export function Login({ onContinue }: { onContinue: () => void }) {
     return () => window.clearInterval(id);
   }, [brands.length]);
 
+  // Warm the current brand's GLB. Deliberately just the current one, NOT
+  // "current + next" — preloading two URLs concurrently through R3F's
+  // useLoader.preload visibly corrupted the render (2026-08-30, caught
+  // live): the carousel would land on a brand and show a DIFFERENT
+  // brand's mesh (confirmed via network-request logging that the right
+  // .glb was fetched, in the right order — so this is a shared-GLTFLoader-
+  // instance race between two concurrent loads, not a fetch-order bug).
+  // One sequential preload per tick has no concurrency to race, and still
+  // covers the common case: brands.length-1 ticks pass a with a stale (but
+  // correctly-brand-matched) cached emblem while today's real target — a
+  // near-instant load, no visible fallback — is verified below to already
+  // hold for the un-preloaded case too, so this exists mainly for the
+  // first tick, not to eliminate every fallback frame. Dynamic-importing
+  // VehicleScene, not emblems.tsx directly, reuses the exact chunk the
+  // lazy <VehicleScene/> below already loads, not a second one.
+  useEffect(() => {
+    const current = brands[idx];
+    if (!current) return;
+    void import("@/components/VehicleScene").then((m) => m.preloadEmblem(current.key));
+  }, [idx, brands]);
+
   // Signed in → straight through. The parent decides what comes next.
   useEffect(() => {
     if (otp.userEmail) onContinue();
@@ -44,7 +65,14 @@ export function Login({ onContinue }: { onContinue: () => void }) {
 
   return (
     <motion.div
-      className="grid h-screen min-h-0 bg-bg text-text"
+      // fixed inset-0, not h-screen: this and Shell are both normal-flow,
+      // non-positioned siblings in App.tsx's fragment. During the ~200ms
+      // exit fade (AnimatePresence mode="wait"), an h-screen sibling
+      // simply stacks in document flow — Shell renders directly below it,
+      // pushed out of the viewport until this one fully unmounts, which
+      // showed up as a blank flash right at the handoff (2026-08-30).
+      // fixed takes this out of flow entirely so it overlays Shell instead.
+      className="fixed inset-0 grid min-h-0 bg-bg text-text"
       style={{ gridTemplateColumns: "1.15fr 470px" }}
       initial="hidden"
       animate="visible"
@@ -64,11 +92,16 @@ export function Login({ onContinue }: { onContinue: () => void }) {
 
         <div className="relative flex min-h-[180px] flex-1 items-center justify-center">
           <Suspense fallback={null}>
+            {/* background="dust": particles + shadow, no filled ground —
+                this frame sits directly on the panel's own dark purple +
+                glow, which the dust field's near-black fill doesn't match;
+                filling anyway painted a visibly separate box instead of
+                one continuous panel (2026-08-30). */}
             <VehicleScene
               status="connecting"
               brandKey={current?.key ?? null}
               caption={null}
-              bare
+              background="dust"
               className="absolute inset-0 h-full w-full rounded-none"
             />
           </Suspense>

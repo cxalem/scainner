@@ -24,7 +24,10 @@ export function OnboardingGate({ onDone }: { onDone: () => void }) {
 
   return (
     <motion.div
-      className="relative flex h-screen items-center justify-center bg-bg text-text"
+      // fixed inset-0, not h-screen: see Login.tsx's own comment on the
+      // same fix — an h-screen sibling stacks in document flow instead of
+      // overlaying the next gate during the exit fade (2026-08-30).
+      className="fixed inset-0 flex items-center justify-center bg-bg text-text"
       style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
       initial="hidden"
       animate="visible"

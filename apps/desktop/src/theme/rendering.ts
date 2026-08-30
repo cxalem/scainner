@@ -80,6 +80,21 @@ export const PARTICLE_PALETTE = {
   backgroundGradient: ["#181614", "#221f1b"] as [string, string],
 } as const;
 
+// Light-ground variant of the same dust effect — for the emblem's
+// appearances on recurring dashboard surfaces (Overview, Vehicle) sitting
+// in an otherwise paper-white layout, where the dark PARTICLE_PALETTE
+// ground reads as a jarring hole rather than a moment (2026-08-30). The
+// warm cream dust above is tuned for a dark ground and disappears against
+// white, so this recolors the same three-tone weighting into the accent
+// ramp instead: two faint neutral/violet tints plus an occasional bolder
+// accent fleck, matching the app's own token values (index.css) so the
+// card reads as one surface with the paper background around it, not a
+// separately-designed insert.
+export const PARTICLE_PALETTE_LIGHT = {
+  dust: ["#d9d6e6", "#b5abfc", "#4634a8"] as [string, string, string],
+  backgroundGradient: ["#f7f6fb", "#f4f1fd"] as [string, string],
+} as const;
+
 // --- Vehicle body materials ------------------------------------------------
 // Colors for the per-car body models (StlCarModel, GlbCarModel, CarModel in
 // VehicleScene.tsx). All three are dormant (BrandEmblemModel is the active
@@ -88,8 +103,7 @@ export const PARTICLE_PALETTE = {
 // path, so a future revival doesn't reintroduce scattered literals.
 export const VEHICLE_MATERIALS = {
   // Near-white default paint tint — shows the body texture close to its
-  // native grayscale until a real color is picked. Also used by
-  // CarModelFallback, which IS on the active Suspense fallback path.
+  // native grayscale until a real color is picked.
   defaultTint: "#e3e5e8",
   // Discovery-pulse marker color (CarModel's hotspot animation).
   pulseColor: "#2b2f36",
