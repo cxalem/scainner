@@ -1325,6 +1325,30 @@ export function VehicleScene({
       {background !== "none" && (
         <EmblemStarfield tone={background === "light" ? "light" : "dark"} fill={background !== "dust"} />
       )}
+      {/* A plain CSS radial shadow, not just the WebGL ContactShadows
+          below — that one darkens its own catcher plane, which reads
+          clearly against Overview/Vehicle's light ground but has almost
+          no contrast against this dark panel (a dark shadow on an
+          already-dark surface is nearly invisible), reported live
+          (2026-08-30). Sits behind the transparent canvas, roughly under
+          where the emblem rests.
+          left-1/2 -translate-x-1/2, not inset-x-0 + mx-auto: a more
+          foolproof horizontal-centering technique against this container.
+          Wide and soft rather than tightly matched to any one emblem's
+          silhouette on purpose — the object keeps rotating and each GLB's
+          own modeled center varies slightly, so a precise per-brand
+          shadow isn't achievable with a static CSS layer; a generous,
+          low-opacity ambient "grounding" glow reads correctly regardless
+          (feedback: first pass was both too dark and looked off-center
+          for brands whose silhouette sits left/right of the object's
+          nominal center, 2026-08-30). */}
+      {background === "dust" && (
+        <div
+          aria-hidden="true"
+          className="absolute bottom-[16%] left-1/2 h-[16%] w-[56%] -translate-x-1/2"
+          style={{ background: "radial-gradient(ellipse, rgba(0,0,0,0.28), transparent 75%)" }}
+        />
+      )}
       <Canvas
         dpr={[1, 1.75]}
         camera={{ position: [4.4, 2.6, 4.4], fov: 30 }}

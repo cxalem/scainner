@@ -95,7 +95,16 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
     <motion.div
       className="fixed inset-0 z-50 flex overflow-y-auto p-6 text-text"
       style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
-      initial="hidden"
+      // initial={false}, not "hidden": this backdrop's whole job is to
+      // cover the connect→dashboard handoff, so it mounts fully opaque
+      // from its first frame — even backdropVariants' fast 150ms fade left
+      // a residual pale frame where Shell's still-loading page could show
+      // through before this reached full opacity (caught in a rapid-fire
+      // capture after the first fix, 2026-08-30). The card content below
+      // still animates in via its own stagger; only this covering layer
+      // skips the entrance fade. exit stays wired for if this is ever
+      // wrapped in AnimatePresence.
+      initial={false}
       animate="visible"
       exit="exit"
       variants={backdropVariants}
