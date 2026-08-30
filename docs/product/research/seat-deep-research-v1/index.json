@@ -1,0 +1,52 @@
+{
+  "pack": "seat-deep-research-v1",
+  "research_date": "2026-08-30",
+  "brand": "SEAT",
+  "baseline_map_version": 9,
+  "files": [
+    {
+      "file": "seat-profile-overlay.json",
+      "description": "Top-level additive overlay metadata and runtime recommendation."
+    },
+    {
+      "file": "platforms.json",
+      "description": "SEAT platform/generation segmentation and transport hypotheses."
+    },
+    {
+      "file": "connection-playbook.json",
+      "description": "Ordered runtime discovery algorithm for a connected SEAT."
+    },
+    {
+      "file": "transport-session-safety-policy.json",
+      "description": "Budgets, ranges, timeouts, session restrictions, NRC handling and SFD policy."
+    },
+    {
+      "file": "ecu-routes.json",
+      "description": "VAG UDS route catalogue plus exact Mii Electric route overrides."
+    },
+    {
+      "file": "did-candidates.json",
+      "description": "Model/platform/make-level and Mii Electric DID knowledge with separate decoder status."
+    },
+    {
+      "file": "ecu-family-hypotheses.json",
+      "description": "Reusable ECU-family candidates inferred from physical scans and source implementations."
+    },
+    {
+      "file": "observed-module-inventories.json",
+      "description": "Representative physical VCDS module inventories by platform."
+    },
+    {
+      "file": "validation-plan.json",
+      "description": "Physical/human validation plan and promotion gates."
+    },
+    {
+      "file": "conflicts-and-gaps.json",
+      "description": "Known source conflicts, anti-overwrite rules and research backlog."
+    },
+    {
+      "file": "source-ledger.json",
+      "description": "URL, revision/retrieval date, licence, scope and reliability for each source."
+    }
+  ]
+}

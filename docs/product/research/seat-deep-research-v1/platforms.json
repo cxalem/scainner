@@ -1,0 +1,363 @@
+{
+  "research_date": "2026-08-30",
+  "platforms": [
+    {
+      "id": "seat_legacy_kline",
+      "models_examples": [
+        "Ibiza/Cordoba 6L",
+        "Alhambra 7V",
+        "other pre-CAN holdovers"
+      ],
+      "approx_era": "pre-2008 / holdover-dependent",
+      "architecture": "K-line ISO9141/KWP1281/KWP2000, sometimes partial CAN for emissions/selected ECUs",
+      "transport_strategy": [
+        "kline_if_supported",
+        "standard_obd",
+        "do_not_assume_uds"
+      ],
+      "status": "platform_branch_required",
+      "evidence": {
+        "exact_claim": "Ross-Tech documents 6L Ibiza/Cordoba and 7V Alhambra as holdovers that may continue older K-line diagnostics.",
+        "source_refs": [
+          "S08"
+        ],
+        "scope": {
+          "vehicle_platform": "Legacy SEAT holdovers",
+          "ecu_route": "K-line / DLC"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "professional_documentation",
+          "independent_validation_status": "not_established",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": "Exact model/year/module protocol must be observed; not every ECU is necessarily K-line."
+      }
+    },
+    {
+      "id": "seat_pq35_can",
+      "models_examples": [
+        "Leon 1P",
+        "Altea 5P",
+        "Toledo 5P"
+      ],
+      "approx_era": "2004-2013 depending model",
+      "architecture": "CAN diagnostics with older VAG transport/protocol mixture; UDS appears on some ECUs",
+      "transport_strategy": [
+        "can11_500",
+        "tp2_or_uds_by_ecu",
+        "platform_route_catalog"
+      ],
+      "status": "strong_architecture_hypothesis",
+      "evidence": {
+        "exact_claim": "Ross-Tech lists Altea 5P, Toledo 5P and Leon 1P as direct-CAN diagnostic vehicles; VAG UDS routes supply module candidates where UDS is present.",
+        "source_refs": [
+          "S08",
+          "S04"
+        ],
+        "scope": {
+          "vehicle_platform": "PQ35-era SEAT",
+          "ecu_route": "CAN11 / mixed ECU protocols"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "professional_documentation",
+          "independent_validation_status": "not_established",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": null
+      }
+    },
+    {
+      "id": "seat_pq25_mixed_ibiza_6j",
+      "models_examples": [
+        "Ibiza 6J/6P"
+      ],
+      "approx_era": "2008-2017",
+      "architecture": "Mixed K-line KWP2000, CAN TP2.0, CAN TP1.6 and UDS in same vehicle",
+      "transport_strategy": [
+        "kline",
+        "tp2_0",
+        "tp1_6",
+        "uds_can11"
+      ],
+      "status": "critical_special_case",
+      "evidence": {
+        "exact_claim": "Ibiza 6J can contain KWP2000 over K-line, normal CAN/TP2.0, TP1.6 and UDS across different controllers; TP1.6 is required for its ABS on documented examples.",
+        "source_refs": [
+          "S09",
+          "S10"
+        ],
+        "scope": {
+          "vehicle_platform": "Ibiza 6J",
+          "ecu_route": "mixed diagnostic transport"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "professional_documentation_plus_physical_scan",
+          "independent_validation_status": "multiple_ross_tech_sources",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": "Do not mark a silent UDS endpoint as an absent ECU until alternate transport support has been considered."
+      }
+    },
+    {
+      "id": "seat_alhambra_7n",
+      "models_examples": [
+        "Alhambra 7N"
+      ],
+      "approx_era": "2010-2020",
+      "architecture": "VW Sharan-related 7N CAN architecture; separate from MQB",
+      "transport_strategy": [
+        "can11_500",
+        "platform_specific_routes",
+        "uds_or_legacy_can_by_ecu"
+      ],
+      "status": "separate_branch",
+      "evidence": {
+        "exact_claim": "Ross-Tech lists 2011+ Alhambra as CAN-diagnostic; openDBC groups later Alhambra with the Sharan/PQ-family architecture rather than MQB.",
+        "source_refs": [
+          "S08",
+          "S05"
+        ],
+        "scope": {
+          "vehicle_platform": "Alhambra 7N",
+          "ecu_route": "CAN diagnostic network"
+        },
+        "confidence": "medium_high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "two_independent_implementations",
+          "independent_validation_status": "not_established",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": null
+      }
+    },
+    {
+      "id": "seat_mii_electric_shared_up",
+      "models_examples": [
+        "Mii electric"
+      ],
+      "approx_era": "electric model generation; gen1/gen2 rules in OVMS shared e-Up implementation",
+      "architecture": "11-bit ISO-TP/UDS; shared VW e-Up / Skoda Citigo-e implementation",
+      "transport_strategy": [
+        "can11_isotp",
+        "exact_route_allowlist",
+        "state_aware_polling"
+      ],
+      "status": "very_strong_platform_profile",
+      "evidence": {
+        "exact_claim": "OVMS defines exact ISO-TP ECU pairs and UDS DIDs for the shared e-Up/Mii electric/Citigo-e platform.",
+        "source_refs": [
+          "S06",
+          "S07"
+        ],
+        "scope": {
+          "vehicle_platform": "Mii electric shared e-Up platform",
+          "ecu_route": "multiple exact CAN11 UDS routes"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "operational_open_source_implementation",
+          "independent_validation_status": "implementation_supports_multiple_sibling_models",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": "Physically validate on a Mii electric and capture ECU F187/F195/F197 fingerprints before promoting decodes to SEAT-wide knowledge.",
+        "non_generalization_boundary": "These routes are Mii electric platform knowledge, not generic SEAT MQB knowledge."
+      }
+    },
+    {
+      "id": "seat_mqb",
+      "models_examples": [
+        "Leon 5F",
+        "Ateca"
+      ],
+      "approx_era": "Leon 2012/2013+, Ateca 2016+",
+      "architecture": "MQB; UDS/ODX/ASAM over CAN with J533 gateway",
+      "transport_strategy": [
+        "can11_500",
+        "known_uds_routes_first",
+        "identity_fingerprint",
+        "bounded_11bit_fallback"
+      ],
+      "status": "primary_spain_branch",
+      "evidence": {
+        "exact_claim": "SEAT confirms Leon III and Ateca are MQB; physical VCDS scans show UDS/ASAM controllers and recurring gateway/ABS/EPS module families.",
+        "source_refs": [
+          "S14",
+          "S15",
+          "S18",
+          "S19",
+          "S25"
+        ],
+        "scope": {
+          "vehicle_platform": "Leon 5F / Ateca MQB",
+          "ecu_route": "CAN11 UDS module network"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "oem_plus_multiple_physical_scans",
+          "independent_validation_status": "multiple_independent_vehicle_scans",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": null
+      }
+    },
+    {
+      "id": "seat_mqb_a0",
+      "models_examples": [
+        "Ibiza KJ (Mk5)",
+        "Arona KJ"
+      ],
+      "approx_era": "2017+",
+      "architecture": "MQB A0; UDS/ODX/ASAM over CAN",
+      "transport_strategy": [
+        "can11_500",
+        "known_vag_routes_first",
+        "identity_fingerprint"
+      ],
+      "status": "primary_spain_branch",
+      "evidence": {
+        "exact_claim": "SEAT officially identifies Ibiza Mk5 and Arona as MQB A0; VCDS scans show KJ-SE27 module inventories and UDS ASAM controllers.",
+        "source_refs": [
+          "S12",
+          "S13",
+          "S22",
+          "S23"
+        ],
+        "scope": {
+          "vehicle_platform": "Ibiza KJ / Arona KJ MQB A0",
+          "ecu_route": "CAN11 UDS network"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "oem_plus_physical_scans",
+          "independent_validation_status": "multiple_vehicle_models",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": null
+      }
+    },
+    {
+      "id": "seat_mqb_a_lwb",
+      "models_examples": [
+        "Tarraco KN"
+      ],
+      "approx_era": "2018+",
+      "architecture": "MQB A+ / MQB-A LWB; UDS/ODX/ASAM over CAN",
+      "transport_strategy": [
+        "can11_500",
+        "mqb_route_allowlist",
+        "identity_fingerprint"
+      ],
+      "status": "strong_platform_profile",
+      "evidence": {
+        "exact_claim": "SEAT officially identifies Tarraco as MQB A+/long-wheelbase; a physical KN-SE37 AutoScan shows a rich 3Q0 UDS module inventory.",
+        "source_refs": [
+          "S16",
+          "S24"
+        ],
+        "scope": {
+          "vehicle_platform": "Tarraco KN",
+          "ecu_route": "CAN11 UDS network"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "oem_plus_physical_scan",
+          "independent_validation_status": "not_established",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": null
+      }
+    },
+    {
+      "id": "seat_mqb_evo",
+      "models_examples": [
+        "Leon KL (Mk4)",
+        "Leon e-HYBRID"
+      ],
+      "approx_era": "2020+",
+      "architecture": "MQB Evo; GW2020; SFD on protected functions; UDS/ASAM basic reads remain available",
+      "transport_strategy": [
+        "can11_500",
+        "gateway_710_77a_first",
+        "sfd_read_only",
+        "identity_fingerprint"
+      ],
+      "status": "primary_modern_branch",
+      "evidence": {
+        "exact_claim": "SEAT confirms Leon IV uses MQB Evo; physical scans show 5WA GW2020 High / EV_GatewMQB2020 and SFD. Ross-Tech documents that SFD does not block basic identification, DTCs or measuring values.",
+        "source_refs": [
+          "S17",
+          "S20",
+          "S21",
+          "S11"
+        ],
+        "scope": {
+          "vehicle_platform": "Leon KL / MQB Evo",
+          "ecu_route": "CAN11 UDS + SFD"
+        },
+        "confidence": "high",
+        "knowledge_state": "source_confirmed",
+        "validation": {
+          "source_validation_status": "oem_plus_physical_scan_plus_professional_docs",
+          "independent_validation_status": "not_established",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": null
+      }
+    },
+    {
+      "id": "seat_special_unresolved",
+      "models_examples": [
+        "Exeo 3R",
+        "Toledo NH",
+        "Mii ICE"
+      ],
+      "approx_era": "varies",
+      "architecture": "Known to be VAG-derived but not normalized in this pass",
+      "transport_strategy": [
+        "vin_model_identification",
+        "passive_first",
+        "known_route_only",
+        "fallback_with_terminal_state"
+      ],
+      "status": "research_gap",
+      "evidence": {
+        "exact_claim": "These SEAT branches require dedicated source work before a generic MQB or PQ policy is applied.",
+        "source_refs": [
+          "S08"
+        ],
+        "scope": {
+          "vehicle_platform": "Special/unresolved SEAT branches",
+          "ecu_route": "unknown/mixed"
+        },
+        "confidence": "low",
+        "knowledge_state": "research_gap",
+        "validation": {
+          "source_validation_status": "source_observed",
+          "independent_validation_status": "not_established",
+          "project_physical_validation_status": "not_tested"
+        },
+        "promotion_test": null,
+        "non_generalization_boundary": "Do not infer MQB rules from brand alone."
+      }
+    }
+  ]
+}

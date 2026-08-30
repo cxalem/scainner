@@ -1,0 +1,81 @@
+{
+  "goal": "Promote online hypotheses into vehicle- and ECU-family-confirmed knowledge without overwriting stronger evidence.",
+  "test_fleet_priority": [
+    {
+      "vehicle": "Leon 5F",
+      "reason": "Large Spanish parc; core MQB and cross-VAG reuse"
+    },
+    {
+      "vehicle": "Ibiza KJ",
+      "reason": "Large Spanish parc; MQB A0"
+    },
+    {
+      "vehicle": "Leon KL",
+      "reason": "MQB Evo + SFD/GW2020"
+    },
+    {
+      "vehicle": "Arona KJ",
+      "reason": "MQB A0 SUV; compare with Ibiza"
+    },
+    {
+      "vehicle": "Ateca",
+      "reason": "MQB SUV; MK100 IPB family"
+    },
+    {
+      "vehicle": "Mii electric",
+      "reason": "Strong exact EV route/DID source and known steering-route exception"
+    },
+    {
+      "vehicle": "Ibiza 6J",
+      "reason": "Mixed transport edge case"
+    }
+  ],
+  "per_vehicle_sequence": [
+    "Record VIN/model/year/powertrain and adapter/firmware version.",
+    "Passive capture before requests.",
+    "Execute known-route presence phase within budget.",
+    "Read identity DIDs; save raw payloads.",
+    "Classify ECU family.",
+    "Query only model/platform/family candidates in default session.",
+    "Record all positive and negative responses, response times and raw payload lengths.",
+    "For candidate physical signals, perform controlled human actions (stationary where possible) and timestamp annotations.",
+    "Only use research-mode extended session when exact source+fingerprint gate is satisfied.",
+    "Compare the same ECU family on a second vehicle before family promotion."
+  ],
+  "promotion_rules": {
+    "vehicle_confirmed": "One physical SEAT vehicle reproduces route + DID + decoder and controlled behavior.",
+    "multi_vehicle_confirmed": "Two or more compatible SEAT vehicles reproduce it.",
+    "family_confirmed": "ECU identity/fingerprint matches and decoder is reproduced across two or more vehicles, potentially across VAG brands.",
+    "brand_wide": "Requires evidence across multiple platform families; expected to be rare."
+  },
+  "recommended_human_tests": [
+    {
+      "signal": "wheel_speed",
+      "test": "Low-speed straight-line roll, then gentle left/right turn; compare four wheel channels."
+    },
+    {
+      "signal": "steering_angle",
+      "test": "Stationary center->left->center->right; confirm sign, zero and scale."
+    },
+    {
+      "signal": "brake_pressure",
+      "test": "Stationary repeated light/medium brake presses; correlate pressure response."
+    },
+    {
+      "signal": "tpms",
+      "test": "Compare displayed/known cold tire pressures; do not deflate tires solely for validation."
+    },
+    {
+      "signal": "ambient/cabin_temperature",
+      "test": "Compare with stable independent thermometer after equilibration."
+    },
+    {
+      "signal": "12v_voltage_current",
+      "test": "Compare with trusted external measurement where safely possible; observe ignition-state transitions."
+    },
+    {
+      "signal": "hv_soc",
+      "test": "Compare with dashboard SOC and charging-state progression; no HV system access required."
+    }
+  ]
+}
