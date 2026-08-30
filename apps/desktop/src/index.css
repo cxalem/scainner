@@ -16,6 +16,10 @@
   --color-divider: var(--divider);
   --color-section: var(--section);
   --color-section-text: var(--section-text);
+  --color-section-headline: var(--section-headline);
+  --color-section-chip-text: var(--section-chip-text);
+  --color-section-chip-border: var(--section-chip-border);
+  --color-section-chip-bg: var(--section-chip-bg);
 
   --color-accent: var(--accent);
   --color-accent-100: var(--accent-100);
@@ -50,7 +54,7 @@
   --color-stop-bg: var(--stop-bg);
   --color-stop-line: var(--stop-line);
 
-  --color-white: #ffffff;
+  --color-white: var(--surface);
   --color-transparent: transparent;
 
   /* Legacy aliases — the names the pre-redesign views used. Mapped onto the

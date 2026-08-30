@@ -1,9 +1,28 @@
+// Workshop: the cases you have open, with the complaint that started each
+// one. Presentation only — the data is useDiagnosticCases /
+// useCreateDiagnosticCase, unchanged.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { ClipboardList, Plus } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, CardSkeleton } from "@/components/ui";
+import { FolderCheck, FolderOpen, Plus } from "lucide-react";
+import {
+  Banner,
+  Button,
+  Card,
+  CardSkeleton,
+  EmptyState,
+  Field,
+  Input,
+  Mono,
+  Pill,
+  Seg,
+  Select,
+} from "@/components/ui";
+import { Block, Item, List, Reveal } from "@/motion/components";
 import { useVehicles } from "@/features/vehicle/queries";
-import { useCreateDiagnosticCase, useDiagnosticCases } from "@/features/workshop/cases";
+import { useCreateDiagnosticCase, useDiagnosticCases, type DiagnosticCaseStatus } from "@/features/workshop/cases";
 import { useT } from "@/i18n";
+
+type Filter = "open" | "closed";
+const CLOSED: DiagnosticCaseStatus[] = ["completed", "cancelled"];
 
 export function Workshop({ connectedVehicleId }: { connectedVehicleId: number | null }) {
   const t = useT();
@@ -11,6 +30,7 @@ export function Workshop({ connectedVehicleId }: { connectedVehicleId: number | 
   const cases = useDiagnosticCases();
   const createCase = useCreateDiagnosticCase();
   const [showForm, setShowForm] = useState(false);
+  const [filter, setFilter] = useState<Filter>("open");
   const [vehicleId, setVehicleId] = useState<number | null>(connectedVehicleId);
   const [complaint, setComplaint] = useState("");
   const [odometer, setOdometer] = useState("");
@@ -21,9 +41,13 @@ export function Workshop({ connectedVehicleId }: { connectedVehicleId: number | 
   }, [connectedVehicleId]);
 
   const vehicleNames = useMemo(
-    () => new Map((vehicles.data ?? []).map((vehicle) => [vehicle.id, vehicle.display_name || vehicle.vin || t.workshop.unknownVehicle(vehicle.id)])),
+    () =>
+      new Map(
+        (vehicles.data ?? []).map((v) => [v.id, v.display_name || v.vin || t.workshop.unknownVehicle(v.id)]),
+      ),
     [t, vehicles.data],
   );
+  const nameOf = (id: number | null) => (id == null ? null : (vehicleNames.get(id) ?? t.workshop.unknownVehicle(id)));
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -40,70 +64,153 @@ export function Workshop({ connectedVehicleId }: { connectedVehicleId: number | 
     setShowForm(false);
   };
 
+  const visible = (cases.data ?? []).filter((c) =>
+    filter === "closed" ? CLOSED.includes(c.status) : !CLOSED.includes(c.status),
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{t.workshop.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t.workshop.subtitle}</p>
-        </div>
-        <Button onClick={() => setShowForm((value) => !value)}><Plus className="h-4 w-4" /> {t.workshop.newCase}</Button>
-      </div>
+    <>
+      <Block className="flex items-center gap-2.5">
+        <Button variant="primary" size="sm" icon={Plus} onClick={() => setShowForm((v) => !v)}>
+          {showForm ? t.workshop.closeForm : t.workshop.newCase}
+        </Button>
+        <Seg<Filter>
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: "open", label: t.workshop.filterOpen },
+            { value: "closed", label: t.workshop.filterClosed },
+          ]}
+        />
+      </Block>
 
-      {showForm && (
-        <Card>
-          <CardHeader><CardTitle>{t.workshop.intake}</CardTitle></CardHeader>
-          <CardContent>
-            <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium">{t.workshop.vehicle}</span>
-                <select className="h-9 rounded-md border border-border bg-background px-3" value={vehicleId ?? ""} onChange={(e) => setVehicleId(Number(e.target.value) || null)} required>
+      <Reveal when={showForm}>
+        <Card className="gap-3">
+          <form onSubmit={submit} className="flex flex-col gap-3">
+            <span className="text-[13.5px]">
+              {t.workshop.newCaseFor(nameOf(vehicleId) ?? t.workshop.selectVehicle)}
+            </span>
+            {connectedVehicleId == null && (
+              <Field label={t.workshop.vehicle} htmlFor="c-vehicle">
+                <Select
+                  id="c-vehicle"
+                  value={vehicleId ?? ""}
+                  onChange={(e) => setVehicleId(Number(e.target.value) || null)}
+                  required
+                >
                   <option value="">{t.workshop.selectVehicle}</option>
-                  {(vehicles.data ?? []).map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.display_name || vehicle.vin || t.workshop.unknownVehicle(vehicle.id)}</option>)}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium">{t.workshop.technician}</span>
-                <input className="h-9 rounded-md border border-border bg-background px-3" value={technician} onChange={(e) => setTechnician(e.target.value)} placeholder={t.workshop.optional} />
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm md:col-span-2">
-                <span className="font-medium">{t.workshop.complaint}</span>
-                <textarea className="min-h-24 rounded-md border border-border bg-background px-3 py-2" value={complaint} onChange={(e) => setComplaint(e.target.value)} placeholder={t.workshop.complaintPlaceholder} required />
-              </label>
-              <label className="flex flex-col gap-1.5 text-sm">
-                <span className="font-medium">{t.workshop.odometer}</span>
-                <input className="h-9 rounded-md border border-border bg-background px-3" type="number" min="0" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder={t.workshop.optional} />
-              </label>
-              <div className="flex items-end justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t.common.cancel}</Button>
-                <Button type="submit" disabled={createCase.isPending || vehicleId == null || !complaint.trim()}>{createCase.isPending ? t.workshop.creating : t.workshop.createCase}</Button>
-              </div>
-              {createCase.isError && <p className="text-sm text-destructive md:col-span-2">{t.workshop.createError} {String(createCase.error)}</p>}
-            </form>
-          </CardContent>
+                  {(vehicles.data ?? []).map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {vehicleNames.get(v.id)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+            <Field label={t.workshop.complaintPrompt} htmlFor="c-complaint">
+              <Input
+                id="c-complaint"
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                placeholder={t.workshop.complaintPlaceholderV2}
+                required
+                autoFocus
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t.workshop.odometer} htmlFor="c-odo">
+                <Input
+                  id="c-odo"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  className="num"
+                  value={odometer}
+                  onChange={(e) => setOdometer(e.target.value)}
+                  placeholder={t.workshop.optional}
+                />
+              </Field>
+              <Field label={t.workshop.technician} htmlFor="c-tech">
+                <Input
+                  id="c-tech"
+                  value={technician}
+                  onChange={(e) => setTechnician(e.target.value)}
+                  placeholder={t.workshop.optional}
+                />
+              </Field>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+                {t.common.cancel}
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                busy={createCase.isPending}
+                disabled={vehicleId == null || !complaint.trim()}
+              >
+                {createCase.isPending ? t.workshop.creating : t.workshop.openTheCase}
+              </Button>
+            </div>
+            <Reveal when={createCase.isError} mode="fade">
+              <Banner tone="stop" className="rounded-md">
+                {t.workshop.createError} {String(createCase.error)}
+              </Banner>
+            </Reveal>
+          </form>
         </Card>
-      )}
+      </Reveal>
 
-      {cases.isPending ? <CardSkeleton rows={4} /> : cases.isError ? (
-        <Card><CardContent className="pt-4 text-sm text-destructive">{t.workshop.loadError}</CardContent></Card>
-      ) : cases.data.length === 0 ? (
-        <Card><CardContent className="flex flex-col items-center gap-2 py-12 text-center"><ClipboardList className="h-6 w-6 text-muted-foreground" /><p className="font-medium">{t.workshop.emptyTitle}</p><p className="text-sm text-muted-foreground">{t.workshop.emptyBody}</p></CardContent></Card>
-      ) : (
-        <div className="grid gap-3">
-          {cases.data.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="flex items-start justify-between gap-5 pt-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3"><span className="font-mono text-xs text-muted-foreground">{item.reference}</span><Badge variant={item.status === "waiting" ? "warn" : "default"}>{item.status.replace("_", " ")}</Badge></div>
-                  <p className="mt-2 font-medium">{item.complaint}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{vehicleNames.get(item.vehicle_id) ?? t.workshop.unknownVehicle(item.vehicle_id)}{item.odometer_km != null ? ` · ${item.odometer_km.toLocaleString()} km` : ""}{item.assigned_to ? ` · ${item.assigned_to}` : ""}</p>
-                </div>
-                <time className="shrink-0 text-xs text-muted-foreground">{item.opened_at}</time>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+      <Block>
+        {cases.isPending ? (
+          <CardSkeleton rows={4} title={false} />
+        ) : cases.isError ? (
+          <Banner tone="stop" className="rounded-md">
+            {t.workshop.loadError}
+          </Banner>
+        ) : cases.data.length === 0 ? (
+          <Card flush>
+            <EmptyState icon={FolderOpen} title={t.workshop.emptyTitle} body={t.workshop.emptyBody} />
+          </Card>
+        ) : visible.length === 0 ? (
+          <Card flush>
+            <EmptyState icon={FolderCheck} tone="muted" title={t.workshop.noCasesInFilter} />
+          </Card>
+        ) : (
+          <List className="flex flex-col gap-[9px]">
+            {visible.map((item) => {
+              const closed = CLOSED.includes(item.status);
+              const Icon = closed ? FolderCheck : FolderOpen;
+              const meta = [
+                nameOf(item.vehicle_id),
+                item.odometer_km != null ? `${item.odometer_km.toLocaleString()} km` : null,
+                item.assigned_to,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <Item key={item.id}>
+                  <Card className="flex-row items-start gap-3.5 border border-transparent px-4 py-3.5 transition-colors duration-200 hover:border-accent-600">
+                    <Icon
+                      className={closed ? "mt-0.5 h-[17px] w-[17px] shrink-0 text-ok" : "mt-0.5 h-[17px] w-[17px] shrink-0 text-accent-400"}
+                      aria-hidden="true"
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="text-[13.5px]">{item.complaint}</span>
+                      <span className="text-[11.5px] text-neutral-500">{meta}</span>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-[5px]">
+                      <Pill variant={closed ? "ok" : "accent"}>{closed ? t.workshop.status.closed : t.workshop.status.open}</Pill>
+                      <Mono className="text-[11px] text-neutral-500">{item.opened_at}</Mono>
+                    </div>
+                  </Card>
+                </Item>
+              );
+            })}
+          </List>
+        )}
+      </Block>
+    </>
   );
 }

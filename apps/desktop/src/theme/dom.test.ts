@@ -1,10 +1,7 @@
-// dom.ts documents index.css's custom properties rather than redefining
-// them (see dom.ts's own header for why a second copy of the same value
-// would be a mistake). What's actually testable about that is drift: this
-// asserts DOM_TOKENS names every custom property index.css declares, by
-// reading index.css directly rather than hand-copying an expected list a
-// second time — a hand-copied list could drift right alongside dom.ts
-// without ever being caught.
+// dom.ts documents tokens.css's custom properties rather than redefining
+// them. What's testable is drift: DOM_TOKENS must name every property
+// tokens.css declares, and nothing it doesn't — read from the file itself,
+// not from a hand-copied list that could drift alongside dom.ts.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,32 +9,56 @@ import { describe, expect, it } from "vitest";
 import { DOM_TOKENS } from "./dom";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const tokensCss = () => readFileSync(join(__dirname, "./tokens.css"), "utf8");
+
+function declaredTokens(css: string): Set<string> {
+  const rootBlocks = [...css.matchAll(/^:root\s*\{([^}]*)\}/gm)].map((m) => m[1]).join("\n");
+  return new Set([...rootBlocks.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+}
 
 describe("DOM_TOKENS", () => {
-  it("names every custom property index.css actually declares", () => {
-    const css = readFileSync(join(__dirname, "../index.css"), "utf8");
-    // Only the `:root { ... }` blocks declare tokens — the `@theme inline`
-    // block maps them into Tailwind under different names and must not be
-    // scanned here. Scoping to :root (instead of filtering by value shape,
-    // e.g. oklch-only) means a future token with a digit in its name or a
-    // non-oklch value still gets caught rather than silently skipped.
-    const rootBlocks = [...css.matchAll(/^:root\s*\{([^}]*)\}/gm)].map((m) => m[1]).join("\n");
-    const declared = new Set([...rootBlocks.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
-    expect(declared.size).toBeGreaterThan(0); // sanity: the regex actually found index.css's tokens
-
+  it("names every custom property tokens.css declares", () => {
+    const declared = declaredTokens(tokensCss());
+    expect(declared.size).toBeGreaterThan(0);
     const documented = new Set<string>(Object.values(DOM_TOKENS));
-    for (const name of declared) {
-      // --radius is a layout token (rem), not a color — deliberately left
-      // out of DOM_TOKENS, which only documents the color palette.
-      if (name === "--radius") continue;
-      expect(documented.has(name)).toBe(true);
-    }
+    for (const name of declared) expect(documented.has(name), name).toBe(true);
   });
 
-  it("documents no name that index.css doesn't actually declare", () => {
+  it("documents no name that tokens.css doesn't declare", () => {
+    const declared = declaredTokens(tokensCss());
+    for (const name of Object.values(DOM_TOKENS)) expect(declared.has(name), name).toBe(true);
+  });
+
+  it("index.css maps tokens, it does not declare them", () => {
     const css = readFileSync(join(__dirname, "../index.css"), "utf8");
-    for (const name of Object.values(DOM_TOKENS)) {
-      expect(css.includes(`${name}:`)).toBe(true);
-    }
+    // The only :root block index.css may keep is the color-scheme one.
+    const declared = declaredTokens(css);
+    expect([...declared]).toEqual([]);
+  });
+
+  it("no component carries a raw hex color", () => {
+    // The brand mark (src/brand) and the 3D constants (rendering.ts) are the
+    // documented exceptions; everything else must go through tokens.
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const root = join(__dirname, "..");
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const p = join(dir, entry);
+        if (statSync(p).isDirectory()) {
+          if (entry === "brand" || entry === "data") continue;
+          walk(p);
+          continue;
+        }
+        if (!/\.(tsx?|css)$/.test(entry) || /\.test\.tsx?$/.test(entry)) continue;
+        if (p.endsWith("rendering.ts") || p.endsWith("tokens.css")) continue;
+        const src = readFileSync(p, "utf8");
+        // strip comments before matching so provenance notes don't count
+        const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+        if (/#[0-9a-fA-F]{6}\b/.test(code)) offenders.push(p.slice(root.length + 1));
+      }
+    };
+    walk(root);
+    expect(offenders).toEqual([]);
   });
 });

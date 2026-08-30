@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { BRAND, Wordmark } from "@/brand";
 import { Button, Field, Input } from "@/components/ui";
 import { useEmailOtp } from "@/features/account/useEmailOtp";
-import { RECOGNISED_BRANDS } from "@/lib/brand";
+import { MODELED_BRANDS } from "@/lib/brand";
 import { appearVariants, fadeVariants, screenVariants, staggerContainer, staggerItem } from "@/motion";
 import { useT } from "@/i18n";
 
@@ -23,7 +23,9 @@ export function Login({ onContinue }: { onContinue: () => void }) {
   const t = useT();
   const otp = useEmailOtp();
   const [idx, setIdx] = useState(0);
-  const brands = RECOGNISED_BRANDS;
+  // Only brands with a real modeled emblem — the carousel is the app's one
+  // deliberate visual flourish, so it never lands on a plain nameplate.
+  const brands = MODELED_BRANDS;
 
   useEffect(() => {
     if (brands.length === 0) return;
@@ -54,7 +56,7 @@ export function Login({ onContinue }: { onContinue: () => void }) {
         <div
           aria-hidden="true"
           className="animate-glow-slow absolute inset-0"
-          style={{ background: "radial-gradient(70% 55% at 62% 30%, rgba(145,132,217,0.32), transparent 72%)" }}
+          style={{ background: "radial-gradient(70% 55% at 62% 30%, var(--section-glow), transparent 72%)" }}
         />
         <motion.div variants={fadeVariants} initial="hidden" animate="visible" className="relative">
           <Wordmark size="lg" tone="color" className="text-section-text" />
@@ -78,7 +80,7 @@ export function Login({ onContinue }: { onContinue: () => void }) {
           animate="visible"
           variants={staggerContainer}
         >
-          <motion.h1 variants={appearVariants} className="text-[34px] leading-[1.14] text-[#f4f2fc]" style={{ textWrap: "pretty" }}>
+          <motion.h1 variants={appearVariants} className="text-[34px] leading-[1.14] text-section-headline" style={{ textWrap: "pretty" }}>
             {t.login.headline}
           </motion.h1>
           <motion.p variants={appearVariants} className="text-[14px] leading-[1.6] text-section-text/80">
@@ -97,7 +99,7 @@ export function Login({ onContinue }: { onContinue: () => void }) {
                 key={b.key}
                 className={cn(
                   "shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.08em] transition-all duration-500",
-                  on ? "border-[#b7abf0]/75 bg-[#9184d9]/22 text-[#f2effd]" : "border-section-text/15 text-section-text/40",
+                  on ? "border-section-chip-border bg-section-chip-bg text-section-chip-text" : "border-section-text/15 text-section-text/40",
                 )}
               >
                 {b.name}

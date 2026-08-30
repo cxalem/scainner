@@ -1,13 +1,17 @@
+// Polled probes: turns a DID found by hand into a recorded probe (polled
+// every ~30 s while connected, written to readings like any standard
+// sensor) and manages the ones already saved. Only probes the user created
+// explicitly — auto-discovered definitions are inventory, not telemetry.
 import { useEffect, useState } from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@/components/ui";
+import { Button, Card, Input, Mono, Note, Skeleton } from "@/components/ui";
+import { List, Item, Reveal } from "@/motion/components";
 import { hex4 } from "@/shared/domain/gauges";
 import type { UdsHit, UdsProbe } from "@scainner/core";
 import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/features/lab/queries";
 import { useT } from "@/i18n";
 
-const inputCls =
-  "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-
+// Raw UdsProbe schema field names, untranslated on purpose (same idiom as
+// hex CAN IDs/DIDs).
 const PROBE_FIELDS = [
   ["label", "text"],
   ["unit", "text"],
@@ -17,9 +21,6 @@ const PROBE_FIELDS = [
   ["bias", "number"],
 ] as const;
 
-/// Turns a DID found via the range scanner into a recorded probe (polled
-/// every ~30s while connected and written to the readings table like any
-/// standard sensor), and manages the list of probes already saved.
 export function ProbeManager({
   module,
   candidate,
@@ -32,11 +33,8 @@ export function ProbeManager({
   vehicleId: number | null;
 }) {
   const t = useT();
+  const p = t.lab.probeManager;
   const probesQuery = useListProbes(vehicleId);
-  // Auto-discovered definitions are inventory, not background telemetry:
-  // polling them continuously can put multiple ECUs into diagnostic
-  // sessions and cause dashboard communication warnings. This manager is
-  // exclusively for probes the user explicitly created.
   const probes = (probesQuery.data ?? []).filter((probe) => (probe.origin ?? "manual") === "manual");
   const addProbe = useAddProbe();
   const toggleProbe = useToggleProbe();
@@ -55,16 +53,8 @@ export function ProbeManager({
     addProbe.mutate(
       {
         probe: {
-          id: 0,
-          module,
-          did: draft.did ?? 0,
-          label: draft.label,
-          unit: draft.unit ?? "",
-          offset: draft.offset ?? 0,
-          len: draft.len ?? 1,
-          scale: draft.scale ?? 1,
-          bias: draft.bias ?? 0,
-          enabled: true,
+          id: 0, module, did: draft.did ?? 0, label: draft.label, unit: draft.unit ?? "",
+          offset: draft.offset ?? 0, len: draft.len ?? 1, scale: draft.scale ?? 1, bias: draft.bias ?? 0, enabled: true,
         },
         vehicleId,
       },
@@ -77,123 +67,92 @@ export function ProbeManager({
       },
     );
   };
-
   const cancel = () => {
     setDraft(null);
     onCandidateHandled();
   };
-
   const toggle = (probe: UdsProbe) => {
     setRowError(null);
-    toggleProbe.mutate(
-      { id: probe.id, enabled: !probe.enabled },
-      { onError: (e) => setRowError({ id: probe.id, msg: String(e instanceof Error ? e.message : e) }) },
-    );
+    toggleProbe.mutate({ id: probe.id, enabled: !probe.enabled }, { onError: (e) => setRowError({ id: probe.id, msg: String(e instanceof Error ? e.message : e) }) });
   };
-
   const remove = (probe: UdsProbe) => {
     setRowError(null);
-    deleteProbe.mutate(
-      { id: probe.id },
-      { onError: (e) => setRowError({ id: probe.id, msg: String(e instanceof Error ? e.message : e) }) },
-    );
+    deleteProbe.mutate({ id: probe.id }, { onError: (e) => setRowError({ id: probe.id, msg: String(e instanceof Error ? e.message : e) }) });
   };
 
   return (
-    <>
-      {draft && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.lab.probeManager.newProbeTitle(hex4(draft.did ?? 0), module)}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-end gap-2 text-sm">
-            {/* PROBE_FIELDS labels (label/unit/offset/len/scale/bias) stay
-                untranslated on purpose — they're the raw UdsProbe schema
-                field names, not prose, same idiom as the hex CAN
-                IDs/DIDs elsewhere in the Lab that also stay universal. */}
-            {PROBE_FIELDS.map(([field, type]) => (
-              <label key={field} className="flex flex-col gap-1 text-xs text-muted-foreground">
-                {field}
-                <input
-                  className={inputCls + " w-24 text-foreground"}
-                  type={type}
-                  step="any"
-                  value={((draft as Record<string, unknown>)[field] as string | number | undefined) ?? ""}
-                  onChange={(e) =>
-                    setDraft({ ...draft, [field]: type === "number" ? Number(e.target.value) : e.target.value })
-                  }
-                />
-              </label>
-            ))}
-            <Button onClick={save} disabled={!draft.label || addProbe.isPending}>
-              {addProbe.isPending ? t.lab.probeManager.saving : t.lab.probeManager.saveProbe}
-            </Button>
-            <Button variant="ghost" onClick={cancel} disabled={addProbe.isPending}>
-              {t.common.cancel}
-            </Button>
-            {saveError && <p className="w-full text-xs text-destructive">{saveError}</p>}
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.lab.probeManager.recordedCardTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {probesQuery.isPending ? (
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-full" />
+    <Card className="gap-[9px] px-4 py-3.5">
+      <span className="text-[13px]">{t.lab.drawer.polledProbes}</span>
+      <Reveal when={draft != null}>
+        {draft && (
+          <div className="flex flex-col gap-2 rounded-md bg-bg p-2.5">
+            <span className="text-[12.5px]">{p.newProbeTitle(hex4(draft.did ?? 0), module)}</span>
+            <div className="grid grid-cols-3 gap-2">
+              {PROBE_FIELDS.map(([field, type]) => (
+                <label key={field} className="flex flex-col gap-1 text-[11px] text-neutral-500">
+                  {field}
+                  <Input
+                    className="num min-h-8 py-1 text-[12px]"
+                    type={type}
+                    step="any"
+                    value={((draft as Record<string, unknown>)[field] as string | number | undefined) ?? ""}
+                    onChange={(e) => setDraft({ ...draft, [field]: type === "number" ? Number(e.target.value) : e.target.value })}
+                  />
+                </label>
+              ))}
             </div>
-          ) : probesQuery.isError ? (
-            <div className="flex items-center gap-2 text-sm text-destructive">
-              <span>{t.lab.probeManager.couldNotLoad}</span>
-              <Button variant="outline" onClick={() => probesQuery.refetch()}>
-                {t.common.retry}
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={cancel} disabled={addProbe.isPending}>
+                {t.common.cancel}
+              </Button>
+              <Button variant="primary" size="sm" onClick={save} busy={addProbe.isPending} disabled={!draft.label}>
+                {addProbe.isPending ? p.saving : p.saveProbe}
               </Button>
             </div>
-          ) : probes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t.lab.probeManager.noneYet}</p>
-          ) : (
-            <ul className="flex flex-col gap-1 text-sm">
-              {probes.map((probe) => {
-                const togglePending = toggleProbe.isPending && toggleProbe.variables?.id === probe.id;
-                const deletePending = deleteProbe.isPending && deleteProbe.variables?.id === probe.id;
-                return (
-                  <li key={probe.id} className="flex flex-col gap-0.5 border-b border-border/50 py-1.5 last:border-0">
-                    <div className="flex items-center justify-between">
-                      <span>
-                        <span className="font-medium">{probe.label}</span>{" "}
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {probe.module}/22{hex4(probe.did)} [{probe.offset}..{probe.offset + probe.len}] ×{probe.scale}+{probe.bias} {probe.unit}
-                        </span>
-                      </span>
-                      <span className="flex gap-2">
-                        <button
-                          className="rounded text-xs text-primary hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          onClick={() => toggle(probe)}
-                          disabled={togglePending}
-                        >
-                          {togglePending ? "…" : probe.enabled ? t.lab.probeManager.disable : t.lab.probeManager.enable}
-                        </button>
-                        <button
-                          className="rounded text-xs text-destructive hover:underline disabled:pointer-events-none disabled:opacity-50 transition-transform active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-                          onClick={() => remove(probe)}
-                          disabled={deletePending}
-                        >
-                          {deletePending ? "…" : t.lab.probeManager.delete}
-                        </button>
-                      </span>
-                    </div>
-                    {rowError?.id === probe.id && <p className="text-xs text-destructive">{rowError.msg}</p>}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-    </>
+            {saveError && <p className="text-[12px] text-stop">{saveError}</p>}
+          </div>
+        )}
+      </Reveal>
+      {probesQuery.isPending ? (
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      ) : probesQuery.isError ? (
+        <div className="flex items-center gap-2 text-[12.5px] text-stop">
+          <span>{p.couldNotLoad}</span>
+          <Button size="sm" onClick={() => probesQuery.refetch()}>
+            {t.common.retry}
+          </Button>
+        </div>
+      ) : probes.length === 0 ? (
+        <Note className="text-[11.5px]">{p.noneYet}</Note>
+      ) : (
+        <List className="flex flex-col">
+          {probes.map((probe) => {
+            const togglePending = toggleProbe.isPending && toggleProbe.variables?.id === probe.id;
+            const deletePending = deleteProbe.isPending && deleteProbe.variables?.id === probe.id;
+            return (
+              <Item key={probe.id} className="flex flex-col gap-0.5 border-b border-neutral-900 py-1.5 last:border-0">
+                <div className="flex items-center gap-2 text-[12.5px]">
+                  <Mono className="text-[11.5px] text-neutral-500">{probe.module}/22{hex4(probe.did)}</Mono>
+                  <span className={`min-w-0 flex-1 truncate ${probe.enabled ? "" : "text-neutral-500"}`}>{probe.label}</span>
+                  <Mono className="text-[11px] text-neutral-500">
+                    [{probe.offset}..{probe.offset + probe.len}] ×{probe.scale}+{probe.bias} {probe.unit}
+                  </Mono>
+                  <Button variant="ghost" size="sm" onClick={() => toggle(probe)} busy={togglePending}>
+                    {probe.enabled ? p.disable : p.enable}
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => remove(probe)} busy={deletePending}>
+                    {p.delete}
+                  </Button>
+                </div>
+                {rowError?.id === probe.id && <p className="text-[12px] text-stop">{rowError.msg}</p>}
+              </Item>
+            );
+          })}
+        </List>
+      )}
+    </Card>
   );
 }

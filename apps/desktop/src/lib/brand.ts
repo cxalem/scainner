@@ -78,9 +78,10 @@ export function brandFromVin(vin: string | null | undefined): BrandInfo | null {
   return WMI[vin.slice(0, 3).toUpperCase()] ?? null;
 }
 
-/** Every distinct marque the WMI table can name — the badge list, in
- *  table order, de-duplicated by emblem key. Used for the "N brands
- *  recognised" line and the login screen's emblem carousel. */
+/** Every distinct marque the WMI table can name — de-duplicated by emblem
+ *  key, in table order. Includes group-routing rows ("VOLKSWAGEN GROUP")
+ *  and marques with no modeled emblem — real for diagnostics, but not a
+ *  list to show off visually. See MODELED_BRANDS for that. */
 export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
   const seen = new Set<string>();
   const out: BrandInfo[] = [];
@@ -90,4 +91,37 @@ export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
     out.push(info);
   }
   return out;
+})();
+
+// Keys with a real modeled emblem (components/emblems.tsx's EMBLEMS
+// registry) — kept as plain data here, not imported from emblems.tsx,
+// which would drag three.js/GLTFLoader into every RECOGNISED_BRANDS
+// consumer. brand.test.ts asserts this list matches the registry exactly,
+// so it can't silently drift. saic/vauxhall/cupra have a modeled emblem
+// but no WMI entry (see emblems.tsx's own comment) — named by hand since
+// WMI has no casing for them to borrow.
+const MODELED_EMBLEM_KEYS = [
+  "volvo", "citroen", "audi", "bmw", "mercedes", "peugeot", "renault", "skoda",
+  "toyota", "volkswagen", "dacia", "hyundai", "kia", "opel", "fiat", "ford",
+  "geely", "byd", "chery", "tesla", "seat", "saic", "vauxhall", "cupra",
+] as const;
+const UNROUTED_EMBLEM_NAMES: Record<string, string> = { saic: "SAIC", vauxhall: "Vauxhall", cupra: "Cupra" };
+
+/** The brands the app can actually show a real 3D logo for — what the
+ *  login screen's emblem carousel and chip row cycle through. A strict
+ *  subset of RECOGNISED_BRANDS: group-routing rows (no single mark) and
+ *  marques with only a nameplate fallback are excluded on purpose, so the
+ *  one deliberate visual flourish never lands on a plain "AUTO" badge. */
+export const MODELED_BRANDS: readonly BrandInfo[] = (() => {
+  const byKey = new Map(RECOGNISED_BRANDS.map((b) => [b.key, b] as const));
+  return MODELED_EMBLEM_KEYS.map(
+    (key) =>
+      byKey.get(key) ?? {
+        key,
+        name: UNROUTED_EMBLEM_NAMES[key] ?? key.toUpperCase(),
+        confidence: "high" as const,
+        source: "modeled emblem, no WMI routing",
+        brand: null,
+      },
+  );
 })();

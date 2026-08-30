@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { brandFromVin, parseWmiTable, type BrandInfo } from "./brand";
+import { MODELED_BRANDS, brandFromVin, parseWmiTable, type BrandInfo } from "./brand";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -214,6 +214,21 @@ describe("emblem keys are reachable", () => {
     const badgeKeys = new Set(Object.values(raw).map((e) => e.key));
     for (const k of keys) {
       expect(badgeKeys.has(k) || previewOnly.has(k), `emblem "${k}" is unreachable`).toBe(true);
+    }
+  });
+
+  it("MODELED_BRANDS names exactly the EMBLEMS registry keys, no drift", async () => {
+    const src = readFileSync(join(HERE, "../components/emblems.tsx"), "utf-8");
+    const record = src.slice(src.indexOf("export const EMBLEMS"));
+    const registryKeys = new Set(
+      [...record.matchAll(/^  ([a-z][a-z0-9_-]*): (?:glb|stl)Emblem\(/gm)].map((m) => m[1]),
+    );
+    const modeledKeys = new Set(MODELED_BRANDS.map((b) => b.key));
+    expect(modeledKeys).toEqual(registryKeys);
+    // Every entry usable straight from a WMI-derived name/key, no gaps.
+    for (const b of MODELED_BRANDS) {
+      expect(typeof b.name).toBe("string");
+      expect(b.name.length).toBeGreaterThan(0);
     }
   });
 });

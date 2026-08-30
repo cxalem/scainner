@@ -1,20 +1,15 @@
 import { useState } from "react";
-import { Sparkles, X } from "lucide-react";
-import { motion } from "framer-motion";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useCyclingLabel } from "@/components/ui";
+import { Sparkles } from "lucide-react";
+import { Button, Dialog, Kicker, Mono, Note, Pill, useCyclingLabel } from "@/components/ui";
 import type { DtcResult, DtcScanRow } from "@scainner/core";
 import { AI_PHASES, generateCodeReport, getApiKey, getCodeReports, type SavedReport } from "@/lib/ai";
 import { decodeDtc, dtcInfo, localizedOrigin, localizedSubsystem, localizedSystem } from "@/lib/dtc";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
-import { backdropVariants, modalPanelVariants } from "@/motion";
 import { useLocale, useT } from "@/i18n";
 
-// Per-code detail: everything the app knows about one DTC, from high level
-// down — plain-language meaning (curated library), the code's
-// structural anatomy (works for ANY code), its full occurrence timeline
-// across scan history, the freeze frame if this code triggered one, ranked
-// common causes/symptoms, and a focused AI deep-dive for exactly this
-// fault on exactly this car.
+// Per-code detail reached from the past-scans table: meaning, the code's
+// anatomy (works for any code), its occurrence timeline, the freeze frame
+// if this code triggered one, causes/symptoms, and a focused AI deep-dive.
 export function DtcDetailModal({
   code,
   history,
@@ -36,19 +31,14 @@ export function DtcDetailModal({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasKey = !!getApiKey();
-  // Same stale-cache guard as AiReportCard.tsx — see lib/ai.ts's
-  // SavedReport.lang comment.
   const validReport = report && report.lang === locale && report.vehicleId === vehicleId ? report : null;
-  // Plain fetch outside `invoke`, no midpoint signal possible from the
-  // Anthropic API — cycled phrases instead of a static label so a 10-60s
-  // wait doesn't read as frozen (interaction-audit.md rule 3).
   const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const occurrences = history
     .filter((row) => row.stored.includes(code) || row.pending.includes(code) || row.permanent.includes(code))
     .map((row) => ({
       ts: row.ts,
-      role: row.stored.includes(code) ? "stored" : row.pending.includes(code) ? "pending" : "permanent",
+      role: (row.stored.includes(code) ? "stored" : row.pending.includes(code) ? "pending" : "permanent") as "stored" | "pending" | "permanent",
       voltage: row.voltage,
     }));
 
@@ -75,123 +65,84 @@ export function DtcDetailModal({
     }
   };
 
-  const roleLabel: Record<"stored" | "pending" | "permanent", string> = {
-    stored: t.diagnose.statusLabels.stored,
-    pending: t.diagnose.statusLabels.pending,
-    permanent: t.diagnose.statusLabels.permanent,
-  };
-
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/30 p-4 sm:p-8"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={t.diagnose.detailsFor(code)}
-      initial="hidden"
-      animate="visible"
-      variants={backdropVariants}
+    <Dialog
+      open
+      onClose={onClose}
+      width={640}
+      title={
+        <span className="flex items-baseline gap-2.5">
+          <Mono>{code}</Mono>
+          <span className="text-[13.5px] font-normal text-neutral-400">{info?.title ?? t.diagnose.detailModal.notInLibrary}</span>
+        </span>
+      }
     >
-      <motion.div className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()} variants={modalPanelVariants}>
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex flex-wrap items-center gap-2">
-              <span className="font-mono">{code}</span>
-            </CardTitle>
-            {/* info?.title stays English in Phase 1 — DTC_LIBRARY content,
-                Phase 3. */}
-            <p className="mt-1 text-sm font-medium">{info?.title ?? t.diagnose.detailModal.notInLibrary}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t.diagnose.detailModal.close}
-            className="rounded-md p-1 hover:bg-muted transition-transform active:scale-90 motion-reduce:transition-none motion-reduce:active:scale-100"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 text-sm">
-          {info && <p>{info.meaning}</p>}
+      <div className="flex max-h-[70vh] flex-col gap-[13px] overflow-y-auto pr-1 text-[13px]">
+        {info && <p className="max-w-[62ch] leading-[1.6] text-neutral-200">{info.meaning}</p>}
 
-          {structure && (
-            <div className="rounded-md border border-border bg-muted/40 p-3">
-              <p className="mb-1 font-medium">{t.diagnose.detailModal.codeAnatomy}</p>
-              <ul className="flex flex-col gap-0.5 text-muted-foreground">
-                <li>{t.diagnose.detailModal.system(localizedSystem(structure.system, locale))}</li>
-                {structure.subsystem && (
-                  <li>{t.diagnose.detailModal.area(localizedSubsystem(structure.subsystem, locale))}</li>
-                )}
-                <li>{localizedOrigin(structure.origin, locale)}</li>
-              </ul>
+        {structure && (
+          <div className="flex flex-col gap-1">
+            <Kicker>{t.diagnose.detailModal.codeAnatomy}</Kicker>
+            <span className="text-neutral-300">{t.diagnose.detailModal.system(localizedSystem(structure.system, locale))}</span>
+            {structure.subsystem && <span className="text-neutral-300">{t.diagnose.detailModal.area(localizedSubsystem(structure.subsystem, locale))}</span>}
+            <span className="text-neutral-500">{localizedOrigin(structure.origin, locale)}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1">
+          <Kicker>{t.diagnose.detailModal.whenItHappened}</Kicker>
+          {occurrences.length === 0 ? (
+            <Note>{t.diagnose.detailModal.notRecorded}</Note>
+          ) : (
+            occurrences.map((occ, i) => (
+              <div key={i} className="flex items-center justify-between border-b border-neutral-900 py-1 last:border-0">
+                <Mono className="text-[11.5px] text-neutral-500">{occ.ts} UTC</Mono>
+                <Pill variant={occ.role === "pending" ? "info" : "warn"}>{t.diagnose.statusLabels[occ.role]}</Pill>
+              </div>
+            ))
+          )}
+        </div>
+
+        {freeze && <FreezeFrame data={freeze} />}
+
+        {info && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-[5px]">
+              <Kicker>{t.diagnose.detailModal.commonCauses}</Kicker>
+              {info.causes.map((c, i) => (
+                <div key={c} className="flex gap-[9px] leading-[1.5]">
+                  <span className="text-accent-600">{i + 1}.</span>
+                  <span className="text-neutral-300">{c}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-[5px]">
+              <Kicker>{t.diagnose.detailModal.typicalSymptoms}</Kicker>
+              {info.symptoms.map((s) => (
+                <span key={s} className="text-neutral-300">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 border-t border-divider pt-3">
+          <div>
+            <Button variant="secondary" size="sm" icon={Sparkles} busy={generating} onClick={doGenerate} disabled={!hasKey}>
+              {generating ? generatingLabel : validReport ? t.diagnose.detailModal.regenerateAiDeepDive : t.diagnose.detailModal.aiDeepDive}
+            </Button>
+          </div>
+          {!hasKey && <Note className="text-[12px]">{t.diagnose.detailModal.setApiKeyHint}</Note>}
+          {error && <p className="text-[12px] text-stop">{error}</p>}
+          {validReport && (
+            <div className="flex flex-col gap-2 rounded-sm bg-bg p-3">
+              <Mono className="text-[11.5px] text-neutral-500">{t.diagnose.detailModal.generated(validReport.ts)}</Mono>
+              <div className="whitespace-pre-wrap leading-[1.6] text-neutral-200">{validReport.md}</div>
             </div>
           )}
-
-          <div>
-            <p className="mb-1 font-medium">{t.diagnose.detailModal.whenItHappened}</p>
-            {occurrences.length === 0 ? (
-              <p className="text-muted-foreground">{t.diagnose.detailModal.notRecorded}</p>
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {occurrences.map((occ, index) => (
-                  <li key={index} className="flex items-center justify-between border-b border-border py-1 last:border-0">
-                    <span className="font-mono text-xs text-muted-foreground">{occ.ts} UTC</span>
-                    <Badge variant={occ.role === "pending" ? "warn" : "error"}>{roleLabel[occ.role as "stored" | "pending" | "permanent"]}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {freeze && <FreezeFrame data={freeze} />}
-
-          {info && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="mb-1 font-medium">{t.diagnose.detailModal.commonCauses}</p>
-                <ol className="list-decimal pl-5 text-muted-foreground">
-                  {info.causes.map((cause) => (
-                    <li key={cause}>{cause}</li>
-                  ))}
-                </ol>
-              </div>
-              <div>
-                <p className="mb-1 font-medium">{t.diagnose.detailModal.typicalSymptoms}</p>
-                <ul className="list-disc pl-5 text-muted-foreground">
-                  {info.symptoms.map((symptom) => (
-                    <li key={symptom}>{symptom}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2 border-t border-border pt-3">
-            <div className="flex items-center gap-2">
-              <Button onClick={doGenerate} disabled={generating || !hasKey}>
-                <Sparkles className={"h-4 w-4" + (generating ? " animate-pulse" : "")} aria-hidden="true" />
-                {generating
-                  ? generatingLabel
-                  : validReport
-                    ? t.diagnose.detailModal.regenerateAiDeepDive
-                    : t.diagnose.detailModal.aiDeepDive}
-              </Button>
-            </div>
-            {!hasKey && <p className="text-xs text-muted-foreground">{t.diagnose.detailModal.setApiKeyHint}</p>}
-            {error && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">{error}</div>
-            )}
-            {validReport && (
-              <div className="rounded-md border border-border bg-muted/30 p-3">
-                <p className="mb-2 font-mono text-xs text-muted-foreground">{t.diagnose.detailModal.generated(validReport.ts)}</p>
-                <div className="whitespace-pre-wrap leading-relaxed">{validReport.md}</div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      </motion.div>
-    </motion.div>
+        </div>
+      </div>
+    </Dialog>
   );
 }

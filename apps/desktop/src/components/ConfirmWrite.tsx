@@ -1,20 +1,17 @@
-import { AlertTriangle } from "lucide-react";
-import { motion } from "framer-motion";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
-import { backdropVariants, modalPanelVariants } from "@/motion";
+import { Eraser } from "lucide-react";
+import { Button, Dialog } from "@/components/ui";
 import { useT } from "@/i18n";
 
-// The one confirmation pattern every write action goes through. This is part
-// 1 of the write-caps hard rule (confirmation + logged before/after +
-// documented reversal path). The modal always states what will change, on
-// which module, and whether it can be undone. The `reversal` text is
-// required on purpose: a write whose reversal story nobody wrote down does
-// not ship. Overlay modal, never an inline banner, so confirming a write
-// never shifts the layout (design principle: no layout shifts).
+// The one confirmation pattern every write action goes through. Part 1 of
+// the write-caps hard rule (confirmation + logged before/after + documented
+// reversal path). The dialog always states what will change, on which
+// module, and whether it can be undone; `reversal` is required on purpose.
+// Overlay, never inline, so confirming never shifts the layout.
 //
 // The backend refuses writes without `confirmed: true`; the confirm button
 // here is the only place the frontend sets that flag.
 export function ConfirmWrite({
+  open = true,
   title,
   module,
   whatChanges,
@@ -22,67 +19,74 @@ export function ConfirmWrite({
   confirmLabel,
   busy,
   busyLabel,
+  cancelLabel,
+  nowLine,
+  afterLine,
   onConfirm,
   onCancel,
 }: {
+  open?: boolean;
   title: string;
   module: string;
   whatChanges: string;
   reversal: string;
   confirmLabel: string;
   busy?: boolean;
-  // What the confirm button says while busy — every pending write action
-  // gets a visible label change, not just a disabled button (app-perf's
-  // interaction-feedback standard). Falls back to confirmLabel if omitted,
-  // so existing callers don't break, but every real write should pass one.
   busyLabel?: string;
+  cancelLabel?: string;
+  /** Optional Now / After summary box (what the car reports before and
+   *  what it will report after). */
+  nowLine?: string;
+  afterLine?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   const t = useT();
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex overflow-y-auto bg-foreground/30 p-4 backdrop-blur-sm"
-      onClick={onCancel}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      initial="hidden"
-      animate="visible"
-      variants={backdropVariants}
+    <Dialog
+      open={open}
+      onClose={() => {
+        if (!busy) onCancel();
+      }}
+      title={title}
+      icon={Eraser}
+      iconTone="warn"
+      actions={
+        <>
+          <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
+            {cancelLabel ?? t.common.cancel}
+          </Button>
+          <Button variant="primary" size="sm" onClick={onConfirm} busy={busy}>
+            {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
+          </Button>
+        </>
+      }
     >
-      <motion.div
-        className="m-auto w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
-        variants={modalPanelVariants}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-1.5">
-              <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" /> {title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            <p>
-              <span className="font-medium">{module}: </span>
-              {whatChanges}
-            </p>
-            <div className="rounded-md border border-border bg-muted/40 p-3">
-              <p className="mb-1 font-medium">{t.confirmWrite.canThisBeUndone}</p>
-              <p className="text-muted-foreground">{reversal}</p>
-            </div>
-            <p className="text-xs text-muted-foreground">{t.confirmWrite.savedToHistory}</p>
-            <div className="flex items-center gap-2">
-              <Button variant="destructive" onClick={onConfirm} disabled={busy}>
-                {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
-              </Button>
-              <Button variant="ghost" onClick={onCancel} disabled={busy}>
-                {t.common.cancel}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </motion.div>
+      <p className="text-[13px] leading-[1.6] text-neutral-400">
+        <span className="text-text">{module}: </span>
+        {whatChanges}
+      </p>
+      {(nowLine || afterLine) && (
+        <div className="flex flex-col gap-1.5 rounded-sm bg-bg px-[13px] py-[11px] text-[13px]">
+          {nowLine && (
+            <span className="flex gap-2">
+              <span className="w-[52px] shrink-0 text-neutral-500">{t.diagnose.v2.clear.now}</span>
+              <span>{nowLine}</span>
+            </span>
+          )}
+          {afterLine && (
+            <span className="flex gap-2">
+              <span className="w-[52px] shrink-0 text-neutral-500">{t.diagnose.v2.clear.after}</span>
+              <span>{afterLine}</span>
+            </span>
+          )}
+        </div>
+      )}
+      <div className="flex flex-col gap-1 text-[12px] leading-[1.55] text-neutral-500">
+        <span className="text-neutral-400">{t.confirmWrite.canThisBeUndone}</span>
+        <span>{reversal}</span>
+        <span>{t.confirmWrite.savedToHistory}</span>
+      </div>
+    </Dialog>
   );
 }

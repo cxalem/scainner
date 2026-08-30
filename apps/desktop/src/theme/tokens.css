@@ -20,9 +20,15 @@
   --text: #1d1a33;
   --divider: #e4e0f0;
 
-  /* The one dark ground in the app (login's left panel). */
+  /* The one dark ground in the app (login's left panel) and the tints
+     that only exist on it. */
   --section: #221d47;
   --section-text: #efedfa;
+  --section-headline: #f4f2fc;
+  --section-glow: rgba(145, 132, 217, 0.32);
+  --section-chip-text: #f2effd;
+  --section-chip-border: rgba(183, 171, 240, 0.75);
+  --section-chip-bg: rgba(145, 132, 217, 0.22);
 
   /* — accent (blurple) and its ramp — */
   --accent: #4634a8;

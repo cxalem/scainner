@@ -160,7 +160,7 @@ export default function App() {
           onSignOut={session ? () => void signOut() : undefined}
           liveLabel={connected && liveEnabled && currentName ? `${currentName} · ${t.shell.switcher.connectedNote}` : null}
         >
-          {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} />}
+          {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} onNavigate={setView} />}
           {view === "diagnose" && <Diagnose connected={liveEnabled} vehicleId={currentVehicleId} />}
           {view === "live" && (
             <Live live={live} connected={liveEnabled} scanning={conn.scanning ?? false} connState={conn.state} vehicleId={currentVehicleId} />
