@@ -5,7 +5,7 @@
 // the shell instead of kicking you back here.
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plug, PlugZap, ScanLine, Usb } from "lucide-react";
+import { ArrowRight, Plug, PlugZap, ScanLine, Usb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { BRAND } from "@/brand";
@@ -20,11 +20,21 @@ const VehicleScene = lazy(() => import("@/components/VehicleScene").then((m) => 
 export function ConnectGate({
   conn,
   onConnect,
+  onContinue,
   canBrowse = false,
   onBrowseOffline,
 }: {
   conn: ConnStatus;
   onConnect: () => void;
+  /** Called when the user clicks through to the dashboard once connected.
+   *  A KNOWN vehicle (not new — DiscoveryFlow owns that reveal instead)
+   *  waits here rather than auto-advancing: a timed reveal was tried and
+   *  reverted live (2026-08-30) — no fixed duration is right for every
+   *  reader, so this stays a deliberate click, same pattern as
+   *  DiscoveryFlow's own "Go to dashboard" button. Omit to auto-advance
+   *  (used for the brand-new-vehicle path, where this gate hands off
+   *  immediately and DiscoveryFlow's own button takes over). */
+  onContinue?: () => void;
   /** The database already holds cars: offer to browse them without a cable. */
   canBrowse?: boolean;
   onBrowseOffline?: () => void;
@@ -164,9 +174,15 @@ export function ConnectGate({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Button variant="primary" size="lg" icon={PlugZap} busy={connecting} onClick={onConnect} disabled={connected}>
-            {connecting ? t.gate.connecting : t.gate.connect}
-          </Button>
+          {connected && onContinue ? (
+            <Button variant="primary" size="lg" onClick={onContinue}>
+              {t.discoveryFlow.goToDashboard} <ArrowRight aria-hidden="true" />
+            </Button>
+          ) : (
+            <Button variant="primary" size="lg" icon={PlugZap} busy={connecting} onClick={onConnect} disabled={connected}>
+              {connecting ? t.gate.connecting : t.gate.connect}
+            </Button>
+          )}
           <span className="inline-flex items-center gap-[7px] text-[12px] text-neutral-500">
             <Usb className="h-[15px] w-[15px]" aria-hidden="true" />
             {conn.elm_version ?? t.shell.adapterFallback}

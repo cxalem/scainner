@@ -44,8 +44,14 @@ export default function App() {
   const staleTimer = useRef<number | null>(null);
 
   const [discoverVin, setDiscoverVin] = useState<string | null>(null);
-  // Sticky for the app session: once connected, later disconnects stay in
-  // the shell instead of falling back to the connect gate.
+  // Two different events, deliberately handled differently (2026-08-30):
+  // an INVOLUNTARY signal drop (conn.state flips to "disconnected" on its
+  // own — a loose OBD connector, the ignition cycling) should NOT yank you
+  // out of the shell mid-review, so this stays true once set; it is never
+  // reset by conn.state changing. A MANUAL disconnect — the sidebar
+  // button, an explicit user action — is a deliberate "I'm done with this
+  // car" and takes you back to the connect gate; see the disconnect()
+  // handler below, the only other place this is set.
   const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const [browsingOffline, setBrowsingOffline] = useState(false);
   const [onboarded, setOnboarded] = useState(() => hasOnboarded());
@@ -75,13 +81,29 @@ export default function App() {
     };
   }, [queryClient]);
 
-  // Both state updates in the SAME effect so Shell and DiscoveryFlow mount
-  // in one render — the overlay covers the dashboard's first frame.
+  // A brand-new vehicle: discoverVin + hasConnectedOnce in the SAME effect
+  // run, so Shell and DiscoveryFlow mount in one render — the overlay
+  // covers the dashboard's first frame. DiscoveryFlow's own "Go to
+  // dashboard" button is what actually gates the visible handoff from
+  // there.
+  //
+  // A KNOWN vehicle reconnecting has no such overlay, so without this it
+  // went straight from ConnectGate to the dashboard the instant "connected"
+  // fired — no chance to actually see "it recognized the car" (reported
+  // live, 2026-08-30). A fixed-duration auto-advance was tried and
+  // reverted the same day (no duration is right for every reader) — this
+  // stays on ConnectGate, which now shows its own "Go to dashboard" button
+  // once connected; hasConnectedOnce is left false here on purpose so
+  // ConnectGate keeps rendering until continueToDashboard (below) is
+  // called from that click.
   useEffect(() => {
     if (conn.state !== "connected") return;
-    if (conn.vehicle_is_new && conn.vin) setDiscoverVin(conn.vin);
-    setHasConnectedOnce(true);
+    if (conn.vehicle_is_new && conn.vin) {
+      setDiscoverVin(conn.vin);
+      setHasConnectedOnce(true);
+    }
   }, [conn.state, conn.vehicle_is_new, conn.vin]);
+  const continueToDashboard = useCallback(() => setHasConnectedOnce(true), []);
 
   const vehicles = useVehicles();
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
@@ -107,7 +129,13 @@ export default function App() {
   const recording = connected && Object.keys(live).length > 0;
 
   const connect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()));
-  const disconnect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()));
+  // A manual disconnect is a deliberate "I'm done with this car" — resets
+  // hasConnectedOnce so the app falls back to the connect gate, unlike an
+  // involuntary signal drop (see hasConnectedOnce's own comment above).
+  const disconnect = async () => {
+    await runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()));
+    setHasConnectedOnce(false);
+  };
   const continueFromLogin = useCallback(() => setOfflineOk(true), []);
 
   const stage: Stage | null = !onboarded
@@ -138,6 +166,7 @@ export default function App() {
             key="connect"
             conn={conn}
             onConnect={connect}
+            onContinue={continueToDashboard}
             canBrowse={(vehicles.data?.length ?? 0) > 0}
             onBrowseOffline={() => setBrowsingOffline(true)}
           />
