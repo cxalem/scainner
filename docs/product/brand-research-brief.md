@@ -401,7 +401,19 @@ the whole file, and squarely in scope for this pass.
   entry. 20 WMI codes route here (Honda + implicitly Acura).
 - **Škoda** and **SEAT** — 4 known DIDs each, **0 decoded**, both `vag`-group
   siblings that inherit VAG's routes but have no brand-specific decode work
-  yet.
+  yet. **SEAT has a first full research pass already** — see
+  `docs/product/research/seat-deep-research-v1/` (README.md there explains
+  its own scope). It's a staged research/import inbox, not a merge: 10
+  platform branches, 86 VAG route candidates + 12 exact Mii-electric route
+  overrides, 251 candidate DIDs (route/DID/decoder tracked as three
+  independent knowledge states, not one confidence number), 7 ECU-family
+  hypotheses, 28 graded sources, and its own conflicts-and-gaps and
+  validation-plan files. Its own merge rule is explicit:
+  `merge_mode: "additive_only"`, never overwrite `locally_confirmed` or
+  stronger project evidence, and defers DID/decoder promotion to physical
+  validation on a prioritized fleet (Leon 5F, Ibiza KJ, Leon KL, Arona,
+  Ateca, Mii electric, Ibiza 6J) it also lays out. Nothing from it has been
+  merged into `uds-map.json` yet.
 - **Subaru** — `standard_only`; only 1 known DID (unbound, `binding:
   "unknown"`), 0 decoded. No manufacturer routes in the map at all.
 - **Mitsubishi** — `standard_only`, literally zero known DIDs, zero modules.
