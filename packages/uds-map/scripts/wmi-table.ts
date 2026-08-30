@@ -61,7 +61,12 @@ export function buildWmiTable(): Record<string, WmiRow> {
   for (const b of map.brands) {
     for (const wmi of b.wmi) {
       const code = wmi.toUpperCase();
-      if (rows.has(code)) continue; // first brand in pack order routes a shared WMI
+      // First brand in pack order routes a shared WMI. This is a deliberate,
+      // evidence-based tie-break, not an arbitrary default: e.g. VSS is
+      // claimed by both `seat` (well-established, listed first) and `cupra`
+      // (an unverified analogy pending a real VIN — see that brand's own
+      // `sources[]` note in uds-map.json, and RESEARCH.md §4/§8).
+      if (rows.has(code)) continue;
       const o = overlay[code];
       rows.set(code, {
         key: o?.key ?? b.id,
