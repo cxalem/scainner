@@ -379,15 +379,17 @@ same file).
 | Chery | *(none)* | LVV | yes | — | — | — | badge + emblem only, no diagnostic profile |
 | Geely | *(none)* | LB3 | yes | — | — | — | badge + emblem only, no diagnostic profile |
 
-**Cupra's WMI note.** `uds-map.json`'s `cupra` brand entry claims WMI `VSS`
-(`packages/uds-map/data/uds-map.json`), but the generated `wmi.json` routes
-`VSS` to `seat` instead, and `emblems.tsx`'s own comment says Cupra "has no
-brand.ts WMI entry on purpose" — the SEAT/Cupra shared-WMI claim is
-"plausible and likely true, not authoritatively confirmed" per the
-`wmi-audit.md` full-table audit. Cupra's emblem is reachable today only via
-a `?brand=` dev override, not from a real VIN. This is a genuine open
-discrepancy between the diagnostic-routing data and the badge-routing data —
-worth resolving alongside any Cupra research.
+**Cupra's WMI note.** `uds-map.json`'s `cupra` brand entry claims WMI `VSS`,
+the same code `seat` claims. This is not a routing bug: `wmi-table.ts`'s
+shared-WMI tie-break deliberately resolves it to `seat` (documented at the
+tie-break site and in `cupra`'s own `sources[]` note, added 2026-08-30) —
+SEAT's `VSS` is well-established, Cupra's is an unverified analogy (same
+Martorell plant) that doesn't hold for the Born, built at VW Zwickau and
+possibly on a different code entirely. Cupra's emblem is reachable today
+only via a `?brand=` dev override, not from a real VIN. **The actual fix
+is research, not code**: a real Cupra Born VIN and a real Cupra Formentor
+VIN (`RESEARCH.md` §4/§8 item 1) — the single cheapest high-value target in
+the whole file, and squarely in scope for this pass.
 
 ---
 

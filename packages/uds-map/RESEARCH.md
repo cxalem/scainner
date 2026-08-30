@@ -283,10 +283,15 @@ byte identical to the VW/Audi entries in the same file.
 - **Cupra's WMI is genuinely unknown.** No source could be reached. Cupra became a
   standalone brand on 2018-01-31; Formentor and León are built in Martorell
   (alongside SEAT, so plausibly `VSS`), but the **Born is built at VW Zwickau in
-  Germany** and may well carry a German VW-family code instead. The map lists only
-  `VSS` at brand `confidence: low`. **Get a real Cupra Born VIN and a real Cupra
-  Formentor VIN before trusting Cupra routing** — this is the single cheapest
-  high-value fix available.
+  Germany** and may well carry a German VW-family code instead. The map lists
+  `VSS`, but that specific claim has no independent confirmation — the brand's
+  overall `confidence` field reflects the diagnostic-route evidence (several
+  modules confirmed/high), not the WMI, and is not a substitute for one. Because
+  `seat` and `cupra` both claim `VSS`, `wmi-table.ts` resolves the badge to `seat`
+  (documented at its tie-break site and in `cupra`'s own `sources[]` note) until
+  this is settled. **Get a real Cupra Born VIN and a real Cupra Formentor VIN
+  before trusting Cupra routing** — this is the single cheapest high-value fix
+  available.
 
 ### BMW / Mini
 
