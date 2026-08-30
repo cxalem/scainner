@@ -104,9 +104,9 @@ export const en: Dictionary = {
       clearedVerified: (before) =>
         `Cleared and verified: ${before === 0 ? "no" : before} code${before === 1 ? "" : "s"} before, none remaining.`,
       clearedButCameBack: (after) =>
-        `Cleared, but ${after} code${after === 1 ? "" : "s"} came straight back. ${
-          after === 1 ? "That is an active fault" : "Those are active faults"
-        }, not leftovers, and worth investigating.`,
+        `Cleared, but ${after} code${after === 1 ? "" : "s"} returned immediately — ${
+          after === 1 ? "an active fault" : "active faults"
+        }, not stored history.`,
       resetNote:
         "No ignition cycle is needed for the check-engine light. It goes off with the clear. Two things reset with it: readiness monitors re-run over your next few drives (relevant before a technical or emissions inspection, ITV in Spain), and permanent codes (if any) erase themselves only after the car self-verifies the fault is gone.",
       scanningPhrases: ["Reading trouble codes…", "Checking readiness monitors…", "Pulling freeze frame data…"],
@@ -288,14 +288,14 @@ export const en: Dictionary = {
       scansCleanNote: "no codes found",
     },
     verdict: {
-      chipGood: "Nothing to act on",
-      chipWatch: "Worth a look",
-      chipBad: "Needs attention",
+      chipGood: "No issues",
+      chipWatch: "Minor issue",
+      chipBad: "Attention needed",
       chipNone: "Not enough data",
-      headGood: "Everything measured looks the way it should.",
-      headIssues: (n) => (n === 1 ? "One thing worth looking at, nothing urgent." : `${n} things worth looking at.`),
-      headNoData: "Nothing recorded on this car yet. Connect and drive a little.",
-      headNoDataConnected: "Connected and reading. The picture builds itself as you drive.",
+      headGood: "No issues found.",
+      headIssues: (n) => (n === 1 ? "1 issue found." : `${n} issues found.`),
+      headNoData: "No data recorded yet. Connect and drive to start collecting readings.",
+      headNoDataConnected: "Connected and reading. Data accumulates as you drive.",
       scanNote: (total, last) => (last ? `${total} scans · last session ${last}` : `${total} scans`),
       noScanNote: "run a scan to see faults",
       openFaults: "Open the fault list",
@@ -309,27 +309,27 @@ export const en: Dictionary = {
     health: {
       notEnoughData: (app) => `Not enough data yet — drive a bit with ${app} connected.`,
       faultRecordTitle: "Fault record",
-      faultRecordClean: (total) => `All ${total} diagnostic scans came back clean — the car has no stored faults.`,
+      faultRecordClean: (total) => `${total} of ${total} scans found no stored faults.`,
       faultRecordSome: (withCodes, total) => `${withCodes} of ${total} scans found codes — check Diagnose.`,
       engineHealthTitle: "Engine health",
-      engineHealthGood: (ltft) => `Fuel trims are near zero (${ltft}%) — the engine is breathing and fueling exactly as designed.`,
-      engineHealthWatch: (ltft) => `Fuel trims are slightly off (${ltft}%) — nothing urgent, but worth watching the trend.`,
+      engineHealthGood: (ltft) => `Fuel trims are near zero (${ltft}%), within the expected range.`,
+      engineHealthWatch: (ltft) => `Fuel trims are slightly off (${ltft}%), outside the typical ±5% range.`,
       engineHealthBad: (ltft) =>
-        `Fuel trims are far from zero (${ltft}%) — the engine is compensating for something (possible air leak or sensor drift). Worth investigating.`,
+        `Fuel trims are far from zero (${ltft}%), outside the typical ±10% range. Common causes: an air leak or a drifting fuel-trim sensor.`,
       coolingTitle: "Cooling system",
       coolingNeverReached: (maxTemp) =>
-        `The engine hasn't reached full temperature in this period (max ${maxTemp}°C) — fine for short trips, but if it never reaches ~90°C on longer drives, the thermostat may be stuck open.`,
-      coolingOverheating: (maxTemp) => `Coolant peaked at ${maxTemp}°C — hotter than it should ever get. Check coolant level.`,
+        `Coolant has not reached operating temperature this period (max ${maxTemp}°C). Normal on short trips. If it stays below ~90°C on longer drives, the thermostat may be stuck open.`,
+      coolingOverheating: (maxTemp) => `Coolant peaked at ${maxTemp}°C, above the normal operating range. Check the coolant level.`,
       coolingGood: (maxTemp) =>
-        `Reaches proper operating temperature and never overheats (max ${maxTemp}°C). Thermostat and cooling system working as they should.`,
+        `Coolant reaches operating temperature and stays within range (max ${maxTemp}°C).`,
       batteryTitle: "Battery & charging",
       batteryLow: (minVoltage) =>
-        `Voltage dipped to ${minVoltage}V — deep dips can be normal during stop-start restarts, but if this trends down over weeks the battery is aging.`,
+        `Voltage dipped to ${minVoltage}V. Brief dips are normal during stop-start restarts. A downward trend over weeks indicates battery aging.`,
       batteryGood: (minVoltage, avgVoltage) =>
-        `Charging system healthy. Lowest voltage seen: ${minVoltage}V (normal stop-start behaviour), average ${avgVoltage}V.`,
+        `Voltage stayed within the normal range: minimum ${minVoltage}V, average ${avgVoltage}V.`,
       turboTitle: "Turbo",
-      turboFull: (bar) => `Turbo reached ${bar} bar of boost — delivering full pressure, no signs of leaks or wastegate issues.`,
-      turboLight: (bar) => `Turbo produced ${bar} bar of boost in this period — light driving; full-load health unknown until a harder run.`,
+      turboFull: (bar) => `Turbo reached ${bar} bar of boost, full rated pressure. No indication of leaks or wastegate issues.`,
+      turboLight: (bar) => `Turbo produced ${bar} bar of boost this period (light driving). Full-load condition not yet tested.`,
     },
     fuel: {
       cardTitle: "Fuel and range",
@@ -478,7 +478,7 @@ export const en: Dictionary = {
       clearedVerified: (before) =>
         `Cleared and verified: ${before === 0 ? "no faults" : before === 1 ? "1 fault" : `${before} faults`} before, none remaining.`,
       clearedButCameBack: (before, after) =>
-        `Cleared ${before}, but ${after} came straight back. Those are active faults, not leftovers, and worth investigating.`,
+        `Cleared ${before}, but ${after} returned immediately — active faults, not stored history.`,
       was: (codes) => `was: ${codes}`,
       stillPresent: (codes) => `still: ${codes}`,
       dashboardLightNote:

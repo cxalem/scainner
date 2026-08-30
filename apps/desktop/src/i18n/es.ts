@@ -104,9 +104,9 @@ export const es: Dictionary = {
       clearedVerified: (before) =>
         `Borrado y verificado: ${before === 0 ? "sin códigos" : `${before} código${before === 1 ? "" : "s"}`} antes, ninguno restante.`,
       clearedButCameBack: (after) =>
-        `Borrado, pero ${after} código${after === 1 ? "" : "s"} volvió${after === 1 ? "" : "n"} de inmediato. No ${
-          after === 1 ? "es un resto" : "son restos"
-        }: hay que revisarlo${after === 1 ? "" : "s"}, sigue${after === 1 ? "" : "n"} activo${after === 1 ? "" : "s"}.`,
+        `Borrado, pero ${after} código${after === 1 ? "" : "s"} volvió${after === 1 ? "" : "n"} de inmediato: ${
+          after === 1 ? "una avería activa" : "averías activas"
+        }, no historial guardado.`,
       resetNote:
         "No hace falta un ciclo de contacto para que se apague el testigo de avería: se apaga con el borrado. Dos cosas se reinician con esto: los monitores de disponibilidad vuelven a completarse en los próximos trayectos (relevante antes de una inspección técnica o de emisiones, la ITV en España), y los códigos permanentes (si los hay) solo se borran solos cuando el coche verifica que la avería ya no está presente.",
       scanningPhrases: [
@@ -294,14 +294,14 @@ export const es: Dictionary = {
       scansCleanNote: "sin códigos",
     },
     verdict: {
-      chipGood: "Nada que hacer",
-      chipWatch: "Merece un vistazo",
-      chipBad: "Necesita atención",
+      chipGood: "Sin problemas",
+      chipWatch: "Problema menor",
+      chipBad: "Requiere atención",
       chipNone: "Datos insuficientes",
-      headGood: "Todo lo medido está como debería.",
-      headIssues: (n) => (n === 1 ? "Una cosa que merece un vistazo, nada urgente." : `${n} cosas que merecen un vistazo.`),
-      headNoData: "Aún no hay nada registrado de este coche. Conecta y conduce un poco.",
-      headNoDataConnected: "Conectado y leyendo. La imagen se construye sola mientras conduces.",
+      headGood: "No se encontraron problemas.",
+      headIssues: (n) => (n === 1 ? "1 problema encontrado." : `${n} problemas encontrados.`),
+      headNoData: "Aún no hay datos registrados. Conecta y conduce para empezar a recopilar lecturas.",
+      headNoDataConnected: "Conectado y leyendo. Los datos se acumulan mientras conduces.",
       scanNote: (total, last) => (last ? `${total} escaneos · última sesión ${last}` : `${total} escaneos`),
       noScanNote: "haz un escaneo para ver averías",
       openFaults: "Abrir la lista de averías",
@@ -315,29 +315,29 @@ export const es: Dictionary = {
     health: {
       notEnoughData: (app) => `Aún no hay datos suficientes. Conduce un poco con ${app} conectado.`,
       faultRecordTitle: "Registro de averías",
-      faultRecordClean: (total) => `Los ${total} escaneos de diagnóstico salieron limpios: el coche no tiene averías almacenadas.`,
+      faultRecordClean: (total) => `${total} de ${total} escaneos no encontraron averías almacenadas.`,
       faultRecordSome: (withCodes, total) => `${withCodes} de ${total} escaneos encontraron códigos: revisa Diagnóstico.`,
       engineHealthTitle: "Salud del motor",
       engineHealthGood: (ltft) =>
-        `Los ajustes de combustible están casi en cero (${ltft}%): el motor respira e inyecta exactamente como está diseñado.`,
+        `Los ajustes de combustible están casi en cero (${ltft}%), dentro del rango esperado.`,
       engineHealthWatch: (ltft) =>
-        `Los ajustes de combustible están ligeramente desviados (${ltft}%): nada urgente, pero merece la pena vigilar la tendencia.`,
+        `Los ajustes de combustible están ligeramente desviados (${ltft}%), fuera del rango típico de ±5 %.`,
       engineHealthBad: (ltft) =>
-        `Los ajustes de combustible están lejos de cero (${ltft}%): el motor está compensando algo (posible fuga de aire o deriva de sensor). Merece la pena investigarlo.`,
+        `Los ajustes de combustible están lejos de cero (${ltft}%), fuera del rango típico de ±10 %. Causas habituales: una fuga de aire o un sensor de mezcla desviado.`,
       coolingTitle: "Sistema de refrigeración",
       coolingNeverReached: (maxTemp) =>
-        `El motor no ha alcanzado la temperatura completa en este periodo (máx. ${maxTemp} °C): normal en trayectos cortos, pero si nunca llega a unos 90 °C en trayectos largos, el termostato podría estar atascado abierto.`,
-      coolingOverheating: (maxTemp) => `El refrigerante alcanzó ${maxTemp} °C: más caliente de lo que debería llegar nunca. Revisa el nivel de refrigerante.`,
+        `El refrigerante no ha alcanzado la temperatura de funcionamiento en este periodo (máx. ${maxTemp} °C). Normal en trayectos cortos. Si se mantiene por debajo de unos 90 °C en trayectos largos, el termostato podría estar atascado abierto.`,
+      coolingOverheating: (maxTemp) => `El refrigerante alcanzó ${maxTemp} °C, por encima del rango normal de funcionamiento. Revisa el nivel de refrigerante.`,
       coolingGood: (maxTemp) =>
-        `Alcanza la temperatura de funcionamiento adecuada y nunca se sobrecalienta (máx. ${maxTemp} °C). El termostato y el sistema de refrigeración funcionan como deben.`,
+        `El refrigerante alcanza la temperatura de funcionamiento y se mantiene dentro del rango (máx. ${maxTemp} °C).`,
       batteryTitle: "Batería y carga",
       batteryLow: (minVoltage) =>
-        `El voltaje bajó a ${minVoltage} V: las caídas pronunciadas pueden ser normales en los reinicios stop-start, pero si la tendencia baja durante semanas, la batería se está agotando.`,
+        `El voltaje bajó a ${minVoltage} V. Las caídas breves son normales en los reinicios stop-start. Una tendencia a la baja durante semanas indica desgaste de la batería.`,
       batteryGood: (minVoltage, avgVoltage) =>
-        `Sistema de carga saludable. Voltaje mínimo registrado: ${minVoltage} V (comportamiento normal en stop-start), media de ${avgVoltage} V.`,
+        `El voltaje se mantuvo dentro del rango normal: mínimo ${minVoltage} V, media ${avgVoltage} V.`,
       turboTitle: "Turbo",
-      turboFull: (bar) => `El turbo alcanzó ${bar} bar de presión: entrega presión completa, sin señales de fugas ni problemas en la wastegate.`,
-      turboLight: (bar) => `El turbo produjo ${bar} bar de presión en este periodo: conducción suave, la salud a plena carga se desconoce hasta una prueba más exigente.`,
+      turboFull: (bar) => `El turbo alcanzó ${bar} bar de presión, la presión nominal completa. Sin indicios de fugas ni problemas en la wastegate.`,
+      turboLight: (bar) => `El turbo produjo ${bar} bar de presión en este periodo (conducción suave). Estado a plena carga aún no probado.`,
     },
     fuel: {
       cardTitle: "Combustible y autonomía",
@@ -487,7 +487,7 @@ export const es: Dictionary = {
       clearedVerified: (before) =>
         `Borrado y verificado: ${before === 0 ? "ninguna avería" : before === 1 ? "1 avería" : `${before} averías`} antes, ninguna queda.`,
       clearedButCameBack: (before, after) =>
-        `Se borraron ${before}, pero ${after} volvieron enseguida. Son averías activas, no residuos, y merece la pena investigarlas.`,
+        `Se borraron ${before}, pero ${after} volvieron enseguida: averías activas, no historial guardado.`,
       was: (codes) => `antes: ${codes}`,
       stillPresent: (codes) => `sigue: ${codes}`,
       dashboardLightNote:

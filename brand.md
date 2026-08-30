@@ -75,6 +75,21 @@ ground (login panel, favicon).
 
 ## Voice
 
+- **Neutral and informative, not reassuring.** State the fact, the number,
+  and the action if any — nothing else. Corrected 2026-08-30 after a first
+  copy pass read as editorializing rather than honest (owner feedback: "I
+  don't like them, doesn't feel natural, doesn't feel honest... use
+  neutral tone, informative"). Concretely, cut on sight:
+  - **Reassurance hedges** — "nothing urgent," "worth watching," "worth
+    investigating," "worth a look." If something needs attention, say what
+    and let the reader judge urgency; don't pre-narrate how worried to be.
+  - **Personification** — "the engine is breathing," a system "working as
+    it should." State the measurement and the range it falls in instead.
+  - **Rhetorical build-up** — "the picture builds itself as you drive."
+    Say what's actually happening: "data accumulates as you drive."
+  - Example, before → after: "Fuel trims are near zero (−1.2%) — the
+    engine is breathing and fueling exactly as designed." → "Fuel trims
+    are near zero (−1.2%), within the expected range."
 - Owner-facing surfaces: plain language, complete sentences, numbers explained.
 - Lab surfaces: terse, technical, hex-friendly.
 - Empty states teach the next action; errors say what happened and how to recover.
