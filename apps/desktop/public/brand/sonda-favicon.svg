@@ -1,5 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" stroke-linecap="round">
-  <rect width="80" height="80" rx="18" fill="#161826"></rect>
-  <path d="M18.8 63.2 A30 30 0 1 1 61.2 63.2" stroke="#9184d9" stroke-width="14"></path>
-  <path d="M61.2 63.2 A30 30 0 0 1 18.8 63.2" stroke="#423a6a" stroke-width="14"></path>
+  <!-- Light ground (was #161826, a near-black navy) for contrast against
+       the purple ring — the ring at full size read as filling almost the
+       entire frame; radius/stroke both scaled down (30→20, 14→10) for
+       real padding, and the shadow-arc color darkened slightly (#423a6a→
+       #352d59) to keep reading as "shadow", not "same tone", now that it
+       sits on light instead of dark (2026-08-30, live feedback: "too big
+       ... give it a light color ... more contrast"). -->
+  <rect width="80" height="80" rx="18" fill="#f4f1fd"></rect>
+  <path d="M25.86 54.14 A20 20 0 1 1 54.14 54.14" stroke="#9184d9" stroke-width="10"></path>
+  <path d="M54.14 54.14 A20 20 0 0 1 25.86 54.14" stroke="#352d59" stroke-width="10"></path>
 </svg>
