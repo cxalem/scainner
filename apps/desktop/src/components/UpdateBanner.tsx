@@ -14,7 +14,8 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import type { Update } from "@tauri-apps/plugin-updater";
-import { Button } from "@/components/ui";
+import { Banner, Button, IconButton } from "@/components/ui";
+import { Reveal } from "@/motion/components";
 import { MOCK_MODE } from "@/lib/tauri";
 import { useT } from "@/i18n";
 
@@ -55,25 +56,23 @@ export function UpdateBanner() {
     }
   };
 
-  if (!update || dismissed) return null;
-
   return (
-    <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2 text-sm">
-      <Download className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-      <span className="flex-1">{t.updater.available(update.version)}</span>
-      {failed && <span className="text-xs text-destructive">{t.updater.failed}</span>}
-      <Button variant="outline" onClick={install} disabled={installing}>
-        {installing ? t.updater.installing : t.updater.install}
-      </Button>
-      <button
-        type="button"
-        onClick={() => setDismissed(true)}
-        aria-label={t.common.close}
-        disabled={installing}
-        className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    <Reveal when={update != null && !dismissed} mode="fade">
+      <Banner
+        tone="info"
+        icon={Download}
+        action={
+          <span className="flex items-center gap-2">
+            {failed && <span className="text-[11.5px] text-stop">{t.updater.failed}</span>}
+            <Button variant="secondary" size="sm" onClick={install} busy={installing}>
+              {installing ? t.updater.installing : t.updater.install}
+            </Button>
+            <IconButton icon={X} label={t.common.close} onClick={() => setDismissed(true)} disabled={installing} />
+          </span>
+        }
       >
-        <X className="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
-    </div>
+        {update ? t.updater.available(update.version) : ""}
+      </Banner>
+    </Reveal>
   );
 }

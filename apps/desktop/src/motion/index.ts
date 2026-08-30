@@ -1,70 +1,101 @@
-// One motion vocabulary, reused everywhere something appears/changes,
-// instead of each component picking its own duration/easing by hand — the
-// gap named directly (docs/workflows/animation-system/plan.md): grepping
-// the app before this file, `transition-`/`animate-` usage was all
-// press-state work (active:scale) and skeleton pulses; zero enter/appear
-// animation anywhere, so a resolved field or a newly-mounted card just
-// hard-cut into place.
+// One motion vocabulary, reused everywhere something appears, changes or
+// leaves. Components never pick their own duration/easing — they use a
+// variant from here (or a component from ./components.tsx), so the whole
+// flow reads as one continuous motion rather than a set of unrelated cuts.
 //
-// framer-motion, not hand-rolled CSS: this app already had two working
-// CSS-only examples (ScanConsole's fade-slide-in, the scan-sweep bar) and
-// they're fine for a single isolated effect, but they don't compose — a
-// staggered field-by-field reveal (DiscoveryFlow) or a layout-shift that
-// should animate smoothly instead of jumping (a card mounting and pushing
-// a sibling down) need either real JS-driven sequencing or FLIP-style
-// layout animation, neither of which plain CSS transitions give you
-// without a lot of hand-built plumbing. Real cost accepted, same as the
-// Effect migration's own bundle tradeoff: framer-motion adds real bundle
-// weight for real capability, not free.
+// The numbers mirror theme/tokens.css (--dur-*, --ease-out). Keep both in
+// sync: CSS owns ambient/looping motion (spin, glow, sweep), framer-motion
+// owns discrete appear/leave and layout motion because that needs real
+// sequencing (stagger) and FLIP-style position tracking that CSS cannot do.
+//
+// Rules learned the hard way (docs/workflows/animation-system/plan.md):
+// - `layout="position"` on the things that need to slide, never bare
+//   `layout` on a container — bare `layout` interpolates the box SIZE too
+//   and visibly stretches everything inside it.
+// - Motion must never cause layout shift: things that appear push their
+//   siblings smoothly (siblings carry layout="position"), they never jump.
+// - `MotionConfig reducedMotion="user"` in main.tsx handles
+//   prefers-reduced-motion for every motion.* element from one place.
 import type { Transition, Variants } from "framer-motion";
 
 export const DURATION = {
   fast: 0.15,
   base: 0.22,
   slow: 0.32,
+  page: 0.36,
 } as const;
 
-// A gentle decelerate — content settles in rather than snapping to a stop,
-// which is most of what "continuity" actually means perceptually.
-const EASE_OUT: Transition["ease"] = [0.16, 1, 0.3, 1];
+/** The design's one easing: a soft decelerate. Content settles in. */
+export const EASE_OUT: Transition["ease"] = [0.2, 0.8, 0.2, 1];
 
 export const fadeTransition: Transition = { duration: DURATION.fast, ease: "easeOut" };
 export const settleTransition: Transition = { duration: DURATION.base, ease: EASE_OUT };
+export const riseTransition: Transition = { duration: DURATION.slow, ease: EASE_OUT };
+export const pageTransition: Transition = { duration: DURATION.page, ease: EASE_OUT };
+/** For `layout="position"` slides when a sibling mounts/unmounts. */
+export const layoutTransition: Transition = { duration: 0.34, ease: EASE_OUT };
 
-// Modal backdrop: fade only, no movement — the backdrop dimming is the
-// "something changed" cue, motion on it would just be noise.
+// --- Modals -----------------------------------------------------------------
+// Backdrop: fade only — the dimming is the cue, motion on it would be noise.
 export const backdropVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: fadeTransition },
   exit: { opacity: 0, transition: fadeTransition },
 };
-
-// Modal panel: the actual "when I open a modal everything happens
-// suddenly" fix (Alejandro, 2026-08-21) — a small scale + rise instead of
-// popping to 100% instantly.
+// Panel: a small rise instead of popping to 100% instantly.
 export const modalPanelVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.96, y: 8 },
-  visible: { opacity: 1, scale: 1, y: 0, transition: settleTransition },
-  exit: { opacity: 0, scale: 0.98, y: 4, transition: fadeTransition },
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.26, ease: EASE_OUT } },
+  exit: { opacity: 0, y: 4, transition: fadeTransition },
 };
 
-// Generic "this block of content just appeared" — a section resolving, a
-// card mounting once its data is ready. Used with `layout` on the parent
-// so siblings that get pushed around reposition smoothly instead of
-// jumping (the DiscoveryFlow "everything moves up suddenly" complaint).
+// --- Content appearing in place ---------------------------------------------
+/** A block of content that just became available (a section resolving, a
+ *  card mounting once its data is ready, an expander opening). Rise + fade
+ *  in; fade out. */
 export const appearVariants: Variants = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: settleTransition },
+  visible: { opacity: 1, y: 0, transition: riseTransition },
+  exit: { opacity: 0, y: 4, transition: fadeTransition },
 };
 
-// Sequential reveal (DiscoveryFlow's field-by-field resolution): wrap the
-// list in staggerContainer, each item in staggerItem.
+/** Fade only — for a line of text or a chip swapping in place. */
+export const fadeVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: settleTransition },
+  exit: { opacity: 0, transition: fadeTransition },
+};
+
+// --- Sequences ---------------------------------------------------------------
+/** Wrap a list in staggerContainer, each item in staggerItem: a field-by-
+ *  field reveal (discovery rows, scan steps, connection log lines). */
 export const staggerContainer: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.06 } },
 };
-
 export const staggerItem: Variants = {
   hidden: { opacity: 0, y: 6 },
   visible: { opacity: 1, y: 0, transition: fadeTransition },
+  exit: { opacity: 0, transition: fadeTransition },
+};
+
+// --- Page / screen changes ---------------------------------------------------
+/** A screen's top-level blocks rise in one after another when the screen
+ *  mounts (tab switch, gate → shell). 40 ms apart, 360 ms each. */
+export const pageContainer: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04 } },
+  exit: { transition: { staggerChildren: 0, when: "afterChildren" } },
+};
+export const pageBlock: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: pageTransition },
+  exit: { opacity: 0, transition: fadeTransition },
+};
+
+/** Full-screen gate ↔ gate ↔ shell handoff: cross-fade with a tiny rise. */
+export const screenVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE_OUT } },
+  exit: { opacity: 0, transition: { duration: 0.2, ease: "easeOut" } },
 };

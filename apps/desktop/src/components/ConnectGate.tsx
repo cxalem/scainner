@@ -1,136 +1,214 @@
-// The very first thing you see, before any sidebar/nav exists: a blank
-// screen with one button. Shown only until the first successful connect of
-// this app session (App.tsx tracks that with hasConnectedOnce, not with
-// conn.state directly) — once you've connected once, later disconnects fall
-// back to the normal Shell's own "Disconnected" treatment instead of kicking
-// you back out to this gate, so a brief signal drop while you're mid-review
-// doesn't yank you out of what you were looking at.
-import { useState } from "react";
-import { Gauge, PlugZap, UserRound } from "lucide-react";
+// A2 — the connect gate. One card: the scene (an empty plug until the VIN
+// resolves, then the brand's emblem), a title that changes as the car is
+// read, a log of what happened, and one button. Shown until the first
+// successful connect of this app session; later disconnects stay inside
+// the shell instead of kicking you back here.
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, Plug, PlugZap, ScanLine, Usb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
-import { useCyclingLabel } from "@/components/ui";
-import { useEmailOtp } from "@/features/account/useEmailOtp";
+import { BRAND } from "@/brand";
+import { Button, Pill } from "@/components/ui";
+import { brandFromVin } from "@/lib/brand";
+import { appearVariants, fadeVariants, screenVariants, staggerItem } from "@/motion";
 import type { ConnStatus } from "@scainner/core";
 import { useT } from "@/i18n";
 
-const gateInputCls =
-  "h-9 rounded-md border border-border bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+const VehicleScene = lazy(() => import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })));
 
-// Account access BEFORE any car is connected — the sign-in used to live
-// only in the Vehicle tab, which this gate makes unreachable until the
-// first connect: the owner literally could not find it (2026-08-21).
-// Deliberately quiet (a text affordance, not a second big button): sign-in
-// is an offer, never a requirement — connecting to the car stays the one
-// primary action, and the app works fully offline without an account.
-function GateAccount() {
-  const t = useT();
-  const [open, setOpen] = useState(false);
-  const { email, setEmail, code, setCode, step, busy, authError, userEmail, sendCode, verify } = useEmailOtp();
-
-  if (userEmail != null) {
-    return (
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
-        {t.vehicle.account.signedInAs(userEmail)}
-      </p>
-    );
-  }
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        {t.shell.cloudSignInPrompt}
-      </button>
-    );
-  }
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {step === "email" ? (
-        <div className="flex items-center gap-2">
-          <input
-            aria-label={t.vehicle.account.emailLabel}
-            type="email"
-            inputMode="email"
-            className={gateInputCls + " w-56"}
-            placeholder={t.vehicle.account.emailPlaceholder}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <button
-            onClick={() => void sendCode()}
-            disabled={busy || !email.includes("@")}
-            className="h-9 rounded-md border border-border px-3 text-sm hover:bg-muted disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            {busy ? t.vehicle.account.sendingCode : t.vehicle.account.sendCode}
-          </button>
-        </div>
-      ) : (
-        <>
-          <p className="text-xs text-muted-foreground">{t.vehicle.account.codeSentTo(email.trim())}</p>
-          <div className="flex items-center gap-2">
-            <input
-              aria-label={t.vehicle.account.codeLabel}
-              inputMode="numeric"
-              className={gateInputCls + " w-28 font-mono tracking-widest"}
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            />
-            <button
-              onClick={() => void verify()}
-              disabled={busy || code.length < 6}
-              className="h-9 rounded-md bg-primary px-3 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {busy ? t.vehicle.account.verifying : t.vehicle.account.verify}
-            </button>
-          </div>
-        </>
-      )}
-      {authError && <p className="max-w-xs text-xs text-destructive">{authError}</p>}
-    </div>
-  );
-}
-
-export function ConnectGate({ conn, onConnect }: { conn: ConnStatus; onConnect: () => void }) {
+export function ConnectGate({
+  conn,
+  onConnect,
+  onContinue,
+  canBrowse = false,
+  onBrowseOffline,
+}: {
+  conn: ConnStatus;
+  onConnect: () => void;
+  /** Called when the user clicks through to the dashboard once connected.
+   *  A KNOWN vehicle (not new — DiscoveryFlow owns that reveal instead)
+   *  waits here rather than auto-advancing: a timed reveal was tried and
+   *  reverted live (2026-08-30) — no fixed duration is right for every
+   *  reader, so this stays a deliberate click, same pattern as
+   *  DiscoveryFlow's own "Go to dashboard" button. Omit to auto-advance
+   *  (used for the brand-new-vehicle path, where this gate hands off
+   *  immediately and DiscoveryFlow's own button takes over). */
+  onContinue?: () => void;
+  /** The database already holds cars: offer to browse them without a cable. */
+  canBrowse?: boolean;
+  onBrowseOffline?: () => void;
+}) {
   const t = useT();
   const connecting = conn.state === "connecting";
-  const connectLabel = useCyclingLabel(t.shell.connectPhrases, connecting, 700);
+  const connected = conn.state === "connected";
+  const brand = brandFromVin(conn.vin);
+  const brandKnown = brand != null && (connecting || connected);
+
+  // Warm the emblem's GLB the moment the VIN resolves a brand — before the
+  // scene actually swaps to show it (brandKnown gates that below), so the
+  // real emblem is usually already parsed by the time it needs to render
+  // instead of EmblemFallback's loading plaque (2026-08-30). useLoader's
+  // cache is shared by URL, so this also warms Overview/Vehicle's later
+  // renders of the same brand for the rest of the session.
+  useEffect(() => {
+    if (!brand) return;
+    void import("@/components/VehicleScene").then((m) => m.preloadEmblem(brand.key));
+  }, [brand]);
+
+  // The connection log: one line per thing the backend told us, in order.
+  // Rebuilt from ConnStatus transitions, so it only ever says what happened.
+  const [lines, setLines] = useState<string[]>([]);
+  const seen = useRef({ adapter: false, vin: false });
+  useEffect(() => {
+    if (conn.state === "disconnected") {
+      setLines([]);
+      seen.current = { adapter: false, vin: false };
+      return;
+    }
+    if (conn.state === "connecting" && lines.length === 0) setLines([t.gate.lines.lookingForAdapter]);
+    if (conn.elm_version && !seen.current.adapter) {
+      seen.current.adapter = true;
+      setLines((l) => [...l, t.gate.lines.adapterFound(conn.elm_version!), t.gate.lines.wakingBus]);
+    }
+    if (conn.vin && !seen.current.vin) {
+      seen.current.vin = true;
+      const b = brandFromVin(conn.vin);
+      setLines((l) => [
+        ...l,
+        t.gate.lines.vinRead(conn.vin!),
+        ...(b ? [t.gate.lines.recognisedFrom(b.name, conn.vin!.slice(0, 3).toUpperCase())] : []),
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conn.state, conn.elm_version, conn.vin]);
+
+  const title = connecting || connected
+    ? brandKnown
+      ? t.gate.recognised(brand!.name)
+      : t.gate.reading
+    : t.gate.plugIn;
+  const body = connecting || connected
+    ? brandKnown
+      ? t.gate.recognisedBody(brand!.name)
+      : t.gate.readingBody
+    : t.gate.plugInBody(BRAND.name);
 
   return (
-    <div className="flex h-screen items-center justify-center bg-background text-foreground">
+    <motion.div
+      // fixed inset-0, not h-screen: see Login.tsx's own comment on the
+      // same fix — an h-screen sibling stacks in document flow instead of
+      // overlaying Shell during the exit fade, which showed up as a blank
+      // flash right at the connect→dashboard handoff (2026-08-30).
+      className="fixed inset-0 flex items-center justify-center bg-bg text-text"
+      style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={screenVariants}
+    >
       {MOCK_MODE && (
-        <span className="absolute right-4 top-4 rounded-full bg-warn/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warn">
+        <Pill variant="warn" className="absolute right-4 top-4" title={t.shell.demoDataTooltip}>
           {t.shell.demoData}
-        </span>
+        </Pill>
       )}
-      <div className="flex flex-col items-center gap-6 text-center">
-        <div className="flex items-center gap-2">
-          <Gauge className="h-6 w-6 text-primary" aria-hidden="true" />
-          <span className="text-lg font-semibold tracking-tight">{t.shell.appName}</span>
+      <div className="flex w-full max-w-[620px] flex-col items-center gap-5 p-8">
+        {/* the scene box holds its size in every state — no jump when the emblem lands */}
+        <div className="relative flex h-[230px] w-full items-center justify-center overflow-hidden rounded-md border border-divider bg-surface shadow-md">
+          <AnimatePresence mode="wait" initial={false}>
+            {brandKnown ? (
+              <motion.div key="scene" className="absolute inset-0" initial="hidden" animate="visible" exit="exit" variants={fadeVariants}>
+                <Suspense fallback={null}>
+                  <VehicleScene status={connected ? "connected" : "connecting"} vin={conn.vin} className="h-full rounded-none" />
+                </Suspense>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="plug"
+                className="flex flex-col items-center gap-[15px] text-neutral-500"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={fadeVariants}
+              >
+                <div className="relative flex h-24 w-24 items-center justify-center">
+                  <span className={cn("absolute inset-0 rounded-full border border-divider", connecting && "animate-glow")} aria-hidden="true" />
+                  <span
+                    className={cn("absolute inset-3.5 rounded-full border border-divider", connecting && "animate-glow [animation-delay:.4s]")}
+                    aria-hidden="true"
+                  />
+                  {connecting ? (
+                    <ScanLine className="relative h-8 w-8 animate-pulse text-accent-400" aria-hidden="true" />
+                  ) : (
+                    <Plug className="relative h-8 w-8 text-neutral-600" aria-hidden="true" />
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[12.5px] text-neutral-400">{connecting ? t.gate.readingVin : t.gate.noAdapter}</span>
+                  <span className="text-[11px] uppercase tracking-[0.1em] text-neutral-600">
+                    {connecting ? t.gate.brandUnknownYet : t.gate.plugToBegin}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <button
-          onClick={onConnect}
-          disabled={connecting}
-          className={cn(
-            "flex h-12 items-center gap-2 rounded-full bg-primary px-8 text-sm font-medium text-primary-foreground",
-            "transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]",
-            "disabled:opacity-50 disabled:pointer-events-none",
-            "motion-reduce:transition-none motion-reduce:active:scale-100",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+
+        <div className="flex max-w-[44ch] flex-col items-center gap-[7px] text-center">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={title} initial="hidden" animate="visible" exit="exit" variants={appearVariants} className="flex flex-col gap-[7px]">
+              <h1 className="text-[26px]">{title}</h1>
+              <p className="text-[13.5px] leading-[1.6] text-neutral-500">{body}</p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="num flex min-h-[18px] flex-col items-center gap-1 text-[12.5px] text-neutral-500" aria-live="polite">
+          <AnimatePresence initial={false}>
+            {lines.map((l) => (
+              <motion.span key={l} initial="hidden" animate="visible" exit="exit" variants={staggerItem}>
+                {l}
+              </motion.span>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {connected && onContinue ? (
+            <Button variant="primary" size="lg" onClick={onContinue}>
+              {t.discoveryFlow.goToDashboard} <ArrowRight aria-hidden="true" />
+            </Button>
+          ) : (
+            <Button variant="primary" size="lg" icon={PlugZap} busy={connecting} onClick={onConnect} disabled={connected}>
+              {connecting ? t.gate.connecting : t.gate.connect}
+            </Button>
           )}
-        >
-          <PlugZap className="h-4 w-4" aria-hidden="true" />
-          {connecting ? connectLabel : t.shell.connect}
-        </button>
-        <p className="text-xs text-muted-foreground">{t.shell.status.ignitionThenConnect}</p>
-        {conn.detail && conn.state === "disconnected" && (
-          <p className="max-w-xs text-xs leading-snug text-destructive">{conn.detail}</p>
+          <span className="inline-flex items-center gap-[7px] text-[12px] text-neutral-500">
+            <Usb className="h-[15px] w-[15px]" aria-hidden="true" />
+            {conn.elm_version ?? t.shell.adapterFallback}
+          </span>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {conn.detail && conn.state === "disconnected" && (
+            <motion.p
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={appearVariants}
+              className="max-w-[46ch] text-center text-[12px] leading-snug text-stop"
+            >
+              {conn.detail}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {canBrowse && onBrowseOffline && conn.state === "disconnected" && (
+          <Button variant="ghost" size="sm" onClick={onBrowseOffline}>
+            {t.gate.browseOffline}
+          </Button>
         )}
-        <GateAccount />
       </div>
-    </div>
+    </motion.div>
   );
 }

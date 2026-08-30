@@ -1,15 +1,12 @@
+// Read one identifier (service 22) on the selected module by hand.
 import { useState } from "react";
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
 import { DeviceService } from "@scainner/core";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { Button, Card, Input, Mono } from "@/components/ui";
 import type { UdsHit } from "@scainner/core";
 import { useT } from "@/i18n";
 
-const inputCls =
-  "h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-
-/// Reads a single UDS data identifier (service 22) on the selected module.
 export function DidReader({ module, connected }: { module: string; connected: boolean }) {
   const t = useT();
   const [did, setDid] = useState("F190");
@@ -31,32 +28,24 @@ export function DidReader({ module, connected }: { module: string; connected: bo
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.lab.didReader.cardTitle}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm">22</span>
-          <input
-            aria-label={t.lab.didReader.didAriaLabel}
-            className={inputCls + " w-24"}
-            value={did}
-            onChange={(e) => setDid(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
-          />
-          <Button onClick={read} disabled={!connected || busy}>
-            {busy ? t.lab.didReader.reading : t.lab.didReader.read}
-          </Button>
-        </div>
-        {result === "nothing" && <p className="text-sm text-muted-foreground">{t.lab.didReader.noAnswer}</p>}
-        {result && result !== "nothing" && (
-          <div className="rounded bg-muted p-2 font-mono text-xs">
-            <div>{result.hex}</div>
-            <div className="text-muted-foreground">|{result.ascii}|</div>
-          </div>
-        )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </CardContent>
+    <Card className="gap-[9px] px-4 py-3.5">
+      <span className="text-[13px]">{t.lab.drawer.readOne}</span>
+      <div className="flex items-center gap-2">
+        <Mono className="text-[12.5px] text-neutral-500">22</Mono>
+        <Input
+          aria-label={t.lab.didReader.didAriaLabel}
+          className="num text-[12.5px]"
+          value={did}
+          onChange={(e) => setDid(e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 4))}
+        />
+        <Button size="sm" onClick={read} busy={busy} disabled={!connected}>
+          {busy ? t.lab.didReader.reading : t.lab.didReader.read}
+        </Button>
+      </div>
+      <Mono className="min-h-[15px] break-all text-[12px] text-neutral-400">
+        {result === "nothing" ? t.lab.didReader.noAnswer : result ? `${result.hex} |${result.ascii}|` : ""}
+      </Mono>
+      {error && <p className="text-[12px] text-stop">{error}</p>}
     </Card>
   );
 }

@@ -1,20 +1,15 @@
 import { useState } from "react";
-import { Copy, Info, Sparkles } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, useCyclingLabel, useTransientLabel } from "@/components/ui";
-import {
-  AI_PHASES,
-  generateDiagnosisReport,
-  getApiKey,
-  getLastReport,
-  setApiKey,
-  type SavedReport,
-} from "@/lib/ai";
+import { Sparkles } from "lucide-react";
+import { Button, Card, CardHead, Field, Input, Mono, Note, SweepBar, useTransientLabel } from "@/components/ui";
+import { Swap } from "@/motion/components";
+import { generateDiagnosisReport, getApiKey, getLastReport, setApiKey, type SavedReport } from "@/lib/ai";
 import { useLocale, useT } from "@/i18n";
 
-// AI diagnosis card: sends the backend's `ai_context` briefing (car
-// identity, DTC scan history with freeze frames, sensor stats) to the
-// Anthropic API with the user's own key and renders the returned report.
-// The key lives in localStorage only — see src/lib/ai.ts for why not the DB.
+// The written report: sends the backend's briefing (identity, scan history
+// with freeze frames, sensor stats) to the model with the user's own key
+// and renders what comes back. The key lives in localStorage only — see
+// lib/ai.ts. One version today; the "for me / for the workshop" split waits
+// on the server-side report.
 export function AiReportCard({ hasAnyData, vehicleId }: { hasAnyData: boolean; vehicleId: number | null }) {
   const t = useT();
   const { locale } = useLocale();
@@ -24,16 +19,8 @@ export function AiReportCard({ hasAnyData, vehicleId }: { hasAnyData: boolean; v
   const [report, setReport] = useState<SavedReport | null>(() => getLastReport());
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // A cached report from before a locale switch is stale, not wrong — show
-  // the "not generated yet" state and let the user regenerate, rather than
-  // silently displaying an English report under a Spanish-language app
-  // (or vice versa). See lib/ai.ts's SavedReport.lang comment.
   const validReport = report && report.lang === locale && report.vehicleId === vehicleId ? report : null;
-  // Same transient success idiom as Overview's fuel save and Vehicle's
-  // exports — plan.md rule 10 extracted it into ui.tsx once, so this card
-  // uses the shared helper too instead of its own useState+setTimeout.
   const [copyLabel, flashCopy] = useTransientLabel(1500);
-  const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const saveKey = () => {
     setApiKey(keyDraft);
@@ -60,73 +47,81 @@ export function AiReportCard({ hasAnyData, vehicleId }: { hasAnyData: boolean; v
     flashCopy("copied");
   };
 
+  const state = !hasKey || editingKey ? "key" : generating ? "generating" : validReport ? "done" : "idle";
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-1.5">
-          <Sparkles className="h-4 w-4" aria-hidden="true" /> {t.diagnose.aiReport.cardTitle}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {!hasKey || editingKey ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground">{t.diagnose.aiReport.needsKeyExplainer}</p>
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                value={keyDraft}
-                onChange={(e) => setKeyDraft(e.target.value)}
-                placeholder={t.diagnose.aiReport.apiKeyPlaceholder}
-                className="w-64 rounded-md border border-border bg-background px-2 py-1.5 font-mono text-sm"
-                aria-label={t.diagnose.aiReport.apiKeyAriaLabel}
-              />
-              <Button onClick={saveKey} disabled={!keyDraft.trim() && !editingKey}>
-                {t.diagnose.aiReport.saveKey}
+    <Card className="gap-3">
+      <CardHead
+        icon={Sparkles}
+        title={t.diagnose.v2.report.title}
+        aside={
+          state === "idle" ? (
+            <Button variant="secondary" size="sm" onClick={doGenerate} disabled={!hasAnyData}>
+              {t.diagnose.v2.report.writeUp}
+            </Button>
+          ) : undefined
+        }
+      />
+      <Swap k={state} className="flex flex-col gap-3">
+        {state === "key" && (
+          <div className="flex flex-col gap-2.5">
+            <Note className="max-w-[60ch]">{t.diagnose.v2.report.needsKey}</Note>
+            <div className="flex items-end gap-2">
+              <Field label={t.diagnose.v2.report.keyLabel} htmlFor="ai-key" className="w-72">
+                <Input
+                  id="ai-key"
+                  type="password"
+                  className="num"
+                  value={keyDraft}
+                  onChange={(e) => setKeyDraft(e.target.value)}
+                  placeholder={t.diagnose.aiReport.apiKeyPlaceholder}
+                  aria-label={t.diagnose.aiReport.apiKeyAriaLabel}
+                />
+              </Field>
+              <Button variant="primary" size="md" onClick={saveKey} disabled={!keyDraft.trim()}>
+                {t.diagnose.v2.report.saveKey}
               </Button>
               {editingKey && (
-                <Button variant="ghost" onClick={() => { setEditingKey(false); setKeyDraft(""); }}>
+                <Button variant="ghost" size="md" onClick={() => { setEditingKey(false); setKeyDraft(""); }}>
                   {t.common.cancel}
                 </Button>
               )}
             </div>
           </div>
-        ) : (
-          <>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={doGenerate} disabled={generating || !hasAnyData}>
-                <Sparkles className={"h-4 w-4" + (generating ? " animate-pulse" : "")} aria-hidden="true" />
-                {generating ? generatingLabel : validReport ? t.diagnose.aiReport.regenerateReport : t.diagnose.aiReport.generateReport}
+        )}
+        {state === "idle" && (
+          <Note className="max-w-[60ch]">{hasAnyData ? t.diagnose.v2.report.explainer : t.diagnose.aiReport.runScanFirst}</Note>
+        )}
+        {state === "generating" && (
+          <div className="flex flex-col gap-[7px]">
+            <Mono className="text-[12.5px] text-neutral-500">{t.diagnose.v2.report.generating}</Mono>
+            <SweepBar />
+          </div>
+        )}
+        {state === "done" && validReport && (
+          <div className="flex flex-col gap-3">
+            <Mono className="text-[11.5px] text-neutral-500">{t.diagnose.v2.report.generated(validReport.ts)}</Mono>
+            <div className="max-w-[64ch] whitespace-pre-wrap text-[13.5px] leading-[1.6] text-neutral-200">{validReport.md}</div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={doCopy}>
+                {copyLabel === "copied" ? t.diagnose.v2.report.copied : t.diagnose.v2.report.copy}
               </Button>
-              {validReport && (
-                <Button variant="outline" onClick={doCopy}>
-                  <Copy className="h-4 w-4" aria-hidden="true" /> {copyLabel === "copied" ? t.common.copied : t.common.copy}
-                </Button>
-              )}
-              <Button variant="ghost" onClick={() => setEditingKey(true)}>
-                {t.diagnose.aiReport.changeKey}
+              <Button variant="ghost" size="sm" onClick={doGenerate}>
+                {t.diagnose.v2.report.writeAgain}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setEditingKey(true)}>
+                {t.diagnose.v2.report.changeKey}
               </Button>
             </div>
-            {!hasAnyData && <p className="text-sm text-muted-foreground">{t.diagnose.aiReport.runScanFirst}</p>}
-            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              {t.diagnose.aiReport.sendsDataNote}
-            </p>
-          </>
-        )}
-
-        {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
           </div>
         )}
-
-        {validReport && !editingKey && (
-          <div className="rounded-md border border-border bg-muted/30 p-3">
-            <p className="mb-2 font-mono text-xs text-muted-foreground">{t.diagnose.detailModal.generated(validReport.ts)}</p>
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">{validReport.md}</div>
-          </div>
-        )}
-      </CardContent>
+      </Swap>
+      {error && <p className="text-[12px] text-stop">{error}</p>}
+      {state === "idle" && (
+        <Button variant="ghost" size="sm" className="self-start" onClick={() => setEditingKey(true)}>
+          {t.diagnose.v2.report.changeKey}
+        </Button>
+      )}
     </Card>
   );
 }

@@ -36,6 +36,17 @@ export type Dictionary = {
     demoData: string;
     cloudSignInPrompt: string;
     demoDataTooltip: string;
+    // Sidebar nav group labels and the vehicle switcher's status lines.
+    navGroups: { primary: string; advanced: string };
+    switcher: {
+      onCable: string;
+      fromDatabase: string;
+      notConnected: string;
+      connectedNote: string;
+      storedNote: string;
+    };
+    signOut: string;
+    adapterFallback: string;
     nav: {
       workshop: string;
       overview: string;
@@ -94,6 +105,16 @@ export type Dictionary = {
     emptyTitle: string;
     emptyBody: string;
     unknownVehicle: (id: number) => string;
+    // Hi-Fi v2 workshop screen
+    closeForm: string;
+    filterOpen: string;
+    filterClosed: string;
+    newCaseFor: (vehicle: string) => string;
+    complaintPrompt: string;
+    complaintPlaceholderV2: string;
+    openTheCase: string;
+    noCasesInFilter: string;
+    status: { open: string; closed: string };
   };
   diagnose: {
     title: string;
@@ -189,6 +210,68 @@ export type Dictionary = {
       codesBeforeUnread: (before: number) => string;
       codesBeforeAfter: (before: number, after: number) => string;
     };
+    // Hi-Fi v2 surface (one console, expandable rows, written report).
+    v2: {
+      scanForFaults: string;
+      scanning: string;
+      scanAgain: string;
+      sublineIdle: string;
+      sublineArchive: string;
+      sublineDone: (time: string) => string;
+      noScanTitle: string;
+      noScanBody: string;
+      steps: { standard: string; modules: string; freeze: string; readiness: string };
+      stepDetail: { standard: string; modules: string; freeze: string; readiness: string };
+      working: string;
+      milOff: (n: number) => string;
+      milOn: (n: number) => string;
+      nothingStored: string;
+      allClearTitle: string;
+      allClearBody: string;
+      source: { standard: string; module: string };
+      seen: (n: number) => string;
+      severity: { watch: string; info: string; stop: string };
+      whatItMeans: string;
+      causes: string;
+      symptoms: string;
+      evidence: string;
+      evidenceStatus: (status: string) => string;
+      evidenceFreeze: (summary: string) => string;
+      evidenceFirst: (first: string, last: string) => string;
+      evidenceOnce: (ts: string) => string;
+      monitorsTitle: string;
+      monitorsNote: (incomplete: number) => string;
+      monitorsAllNote: string;
+      voltageTitle: string;
+      voltageHint: string;
+      report: {
+        title: string;
+        writeUp: string;
+        explainer: string;
+        generating: string;
+        copy: string;
+        copied: string;
+        writeAgain: string;
+        needsKey: string;
+        keyLabel: string;
+        saveKey: string;
+        changeKey: string;
+        generated: (ts: string) => string;
+      };
+      clear: {
+        title: string;
+        body: string;
+        now: string;
+        after: string;
+        nowLine: (stored: number, monitorsDone: number, monitorsTotal: number) => string;
+        afterLine: string;
+        note: string;
+        keep: string;
+        confirm: string;
+        confirming: string;
+      };
+      history: { title: string; when: string; codes: string; voltage: string; empty: string };
+    };
     confirmClear: {
       title: string;
       module: string;
@@ -204,8 +287,6 @@ export type Dictionary = {
   };
   overview: {
     title: string;
-    carAriaLabel: string;
-    carOption: (vin: string, sessions: number) => string;
     couldNotLoadCars: string;
     noDataYet: string;
     noDataYetExplainer: string;
@@ -219,13 +300,36 @@ export type Dictionary = {
     namingVehicle: string;
     nameVehicleFailed: string;
     couldNotLoadReport: string;
-    stats: { sessions: string; engineTime: string; readings: string; scansClean: string };
+    stats: {
+      sessions: string;
+      firstSeen: (when: string) => string;
+      noSessions: string;
+      engineTime: string;
+      engineTimeNote: (app: string) => string;
+      readings: string;
+      readingsNote: string;
+      scansClean: string;
+      scansCleanValue: (clean: number, total: number) => string;
+      scansCleanNote: string;
+    };
+    // The verdict card: one chip, one headline, then the health lines.
+    verdict: {
+      chipGood: string;
+      chipWatch: string;
+      chipBad: string;
+      chipNone: string;
+      headGood: string;
+      headIssues: (n: number) => string;
+      headNoData: string;
+      headNoDataConnected: string;
+      scanNote: (total: number, last: string | null) => string;
+      noScanNote: string;
+      openFaults: string;
+      watchLive: string;
+    };
+    sessions: { cardTitle: string; none: string; row: (minutes: number, readings: number) => string };
     health: {
-      cardTitle: string;
-      statusGood: string;
-      statusWatch: string;
-      statusBad: string;
-      notEnoughData: string;
+      notEnoughData: (app: string) => string;
       faultRecordTitle: string;
       faultRecordClean: (total: number) => string;
       faultRecordSome: (withCodes: number, total: number) => string;
@@ -244,13 +348,12 @@ export type Dictionary = {
       turboFull: (bar: string) => string;
       turboLight: (bar: string) => string;
     };
-    battery: {
-      cardTitle: string;
-      noData: string;
-    };
     fuel: {
       cardTitle: string;
       cardTitleWithRange: (range: string) => string;
+      sourceLive: string;
+      sourceLast: string;
+      perHundred: (l: string) => string;
       allTime: string;
       lastNDays: (n: number) => string;
       noData: string;
@@ -267,8 +370,6 @@ export type Dictionary = {
       saveFailed: string;
       invalidPrice: string;
       estimateNote: string;
-      tankAriaLabel: (pct: string, status: string) => string;
-      status: { reserve: string; low: string; full: string; good: string };
     };
   };
   lab: {
@@ -312,6 +413,50 @@ export type Dictionary = {
     advanced: {
       title: string;
       explainer: string;
+    };
+    // Hi-Fi v2 Lab surface: three ways to run one investigation.
+    modes: {
+      auto: { label: string; note: string };
+      plan: { label: string; note: string };
+      guided: { label: string; note: string };
+    };
+    run: {
+      run: string;
+      runAgain: string;
+      running: string;
+      startSteps: string;
+      stop: string;
+      noteParked: string;
+      noteGuided: string;
+      needsCable: string;
+      planTitleAuto: string;
+      planTitlePlan: string;
+      nothingDocumented: string;
+      noPlan: string;
+      whatChanged: string;
+      nextStep: string;
+      addToLive: string;
+      inLive: string;
+      promotedNote: string;
+      doneAuto: string;
+      donePlan: (answered: number, refused: number, silent: number) => string;
+      doneGuided: (confirmed: number) => string;
+      changedLine: (changed: number, total: number) => string;
+      nothingMoved: string;
+      showBytes: string;
+      hideBytes: string;
+      identifiers: (n: number) => string;
+      module: string;
+    };
+    drawer: {
+      show: string;
+      hide: string;
+      readOne: string;
+      sweepRange: string;
+      addRoute: string;
+      routeNote: string;
+      polledProbes: string;
+      moduleFor: string;
     };
     title: string;
     moduleAriaLabel: string;
@@ -460,6 +605,31 @@ export type Dictionary = {
       nothingReadYet: string;
       reading: string;
       readFromEcu: string;
+      editDetails: string;
+      done: string;
+      unnamed: string;
+      unknownYear: string;
+      firstConnected: (date: string) => string;
+    };
+    // The details form + the fact/source table. Only what the backend can
+    // persist is editable (the connected car's display name).
+    facts: {
+      formTitle: string;
+      nameLabel: string;
+      namePlaceholder: string;
+      nameHint: string;
+      nameNeedsConnection: string;
+      saveName: string;
+      savingName: string;
+      savedName: string;
+      tableTitle: string;
+      noGuess: string;
+      thFact: string;
+      thValue: string;
+      thSource: string;
+      fact: { vin: string; make: string; model: string; year: string; trim: string; name: string };
+      source: { ecu: string; vin: string; you: string; documented: string; unknown: string };
+      notKnown: string;
     };
     map: {
       cardTitle: string;
@@ -489,6 +659,7 @@ export type Dictionary = {
       copyRawJson24h: string;
       copyRawJson30d: string;
       briefingExplainer: string;
+      yourData: string;
     };
     account: {
       cardTitle: string;
@@ -508,6 +679,8 @@ export type Dictionary = {
       neverSynced: string;
       syncErrorLabel: string;
       signOut: string;
+      syncTitle: string;
+      syncedNote: string;
     };
   };
   discoveryFlow: {
@@ -534,16 +707,20 @@ export type Dictionary = {
     goToDashboard: string;
   };
   live: {
-    title: string;
-    modeGauges: string;
-    modeAllSensors: string;
-    notConnectedTitle: string;
-    notConnectedExplainer: string;
-    scanningTitle: string;
-    scanningExplainer: string;
-    recordingNote: string;
-    discoveredSensors: string;
+    modeNow: string;
+    modeTrend: string;
+    noteLive: string;
+    noteOffline: string;
+    noteScanning: string;
+    noteStored: string;
+    groupPinned: string;
+    groupStandard: string;
+    groupDiscovered: string;
+    pin: string;
+    unpin: string;
+    state: { standard: string; verified: string; inherited: string; candidate: string };
     allSensors: {
+      title: string;
       readButton: string;
       readingPhrases: [string, string];
       filterAriaLabel: string;
@@ -551,20 +728,23 @@ export type Dictionary = {
       readAt: (time: string, count: number) => string;
       emptyTitle: string;
       emptyExplainer: string;
+      noMatch: (q: string) => string;
       pid: string;
       sensor: string;
       value: string;
+      unit: string;
+      source: string;
+      sourceStandard: string;
     };
   };
   history: {
-    title: string;
     trend: {
-      sensorAriaLabel: string;
+      pointsNote: (n: number) => string;
       loading: string;
-      samples: (n: number) => string;
       couldNotLoad: string;
       noDataForRange: string;
       voltageReferenceNote: string;
+      ranges: Record<"1h" | "24h" | "7d" | "30d", string>;
     };
     sensorRanges: {
       cardTitle: string;
@@ -577,17 +757,47 @@ export type Dictionary = {
       max: string;
       samples: string;
     };
-    sessions: {
-      cardTitle: string;
-      cardTitleWithCount: (n: number) => string;
-      noSessionsYet: string;
-      startedUtc: string;
-      duration: string;
-      maxSpeed: string;
-      maxCoolant: string;
-      minVolts: string;
-      readings: string;
-    };
+  };
+  // Page heads: kicker / title / one-line lede per view.
+  pages: Record<"overview" | "diagnose" | "live" | "workshop" | "lab" | "vehicle", { kicker: string; title: string; lede: (app: string) => string }>;
+  // A1 — sign-in gate.
+  login: {
+    headline: string;
+    sub: (brands: number) => string;
+    signIn: string;
+    signInSub: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    sendLink: string;
+    sending: string;
+    codeLabel: string;
+    verify: string;
+    verifying: string;
+    checkInbox: string;
+    sentTo: (email: string) => string;
+    codeHint: string;
+    useAnother: string;
+    resend: string;
+    continueOffline: string;
+    localNote: (app: string) => string;
+    shareNote: string;
+  };
+  // A2 — connect gate.
+  gate: {
+    plugIn: string;
+    plugInBody: (app: string) => string;
+    reading: string;
+    readingBody: string;
+    recognised: (brand: string) => string;
+    recognisedBody: (brand: string) => string;
+    noAdapter: string;
+    plugToBegin: string;
+    readingVin: string;
+    brandUnknownYet: string;
+    connect: string;
+    connecting: string;
+    browseOffline: string;
+    lines: { lookingForAdapter: string; wakingBus: string; vinRead: (vin: string) => string; recognisedFrom: (brand: string, wmi: string) => string; adapterFound: (v: string) => string };
   };
   updater: {
     available: (version: string) => string;

@@ -28,6 +28,40 @@ export const EMBLEM_CHROME = CHROME_MATERIAL;
 // car-height one.)
 export const EMBLEM_Y = 0.32;
 
+// Preloads a modeled brand's GLB before its emblem actually needs to
+// render — see EMBLEMS below for the file path convention. Call this the
+// moment a brand becomes known (a VIN resolves, a carousel is about to
+// land on it) and BrandEmblemModel's later Suspense for that same brand
+// resolves instantly instead of showing EmblemFallback: useLoader caches
+// by URL, and useLoader.preload runs the exact same fetch+parse ahead of
+// time, off the render path. No-op for a key with no modeled emblem (the
+// nameplate path never suspends, nothing to preload).
+export function preloadEmblem(key: string | null | undefined): void {
+  if (!key || !(key in EMBLEMS)) return;
+  useLoader.preload(GLTFLoader, `/emblems/glb/${key}.glb`);
+}
+
+// The Suspense fallback while a modeled emblem's GLB is loading — nothing.
+// No mesh at all, not even a plain placeholder plaque: the first attempt
+// here (a flat chrome plaque, a step up from the old car-body-shaped
+// CarModelFallback it replaced) was STILL reported as "a brick" on a true
+// cold start (2026-08-30) — a large GLB (several are multi-MB; a genuinely
+// fresh app launch has nothing preloaded yet to race against) takes real,
+// visible time to parse no matter what shape stands in for it, and ANY
+// placeholder geometry risks reading as "the wrong logo" or "a loading
+// bug" the way the very first version did. Nothing can't look wrong: the
+// dust field (still rendered behind this) plus the caption text
+// ("Discovering modules…"/"Reading identity") already carry the loading
+// signal on their own, the same restrained pattern ConnectGate's own
+// pre-VIN idle state already uses (rings + text, no 3D object). In the
+// common case this doesn't matter anyway — preloadEmblem (called wherever
+// a brand becomes known) keeps the GLB warm ahead of need, and
+// MODELED_EMBLEM_KEYS leads with the smallest file so even the true
+// first-paint window is as short as it can be.
+export function EmblemFallback() {
+  return null;
+}
+
 // Shared extrude settings for every hand-authored emblem (per patterns/3d.md
 // rule 8 / the plan's shared-constraints block).
 export const EXTRUDE_SETTINGS = {
@@ -330,6 +364,19 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   chery: glbEmblem("chery.glb"),
   tesla: glbEmblem("tesla.glb"),
   seat: glbEmblem("seat.glb"),
+  // Added 2026-08-30: already had real WMI routing (brand.ts) and was
+  // rendering the plain nameplate fallback for lack of a modeled mark — no
+  // VIN-reachability question to resolve, unlike saic/vauxhall/cupra below.
+  // porsche, jaguar and suzuki were sourced in the same pass but visually
+  // rejected before shipping: porsche's badge text rendered mirrored/
+  // backward (the same defect volvo's bundled file already had — a real,
+  // pre-existing issue in this asset batch, not something introduced
+  // here), suzuki's geometry was outright broken (jagged, unrecognizable
+  // as the real mark), and jaguar rendered flat with no shading detail —
+  // uncertain enough to hold rather than guess. Their .glb files were
+  // removed, not just left unregistered. Follow-up: re-source from a
+  // batch that doesn't have this defect.
+  "land-rover": glbEmblem("land-rover.glb"),
   // saic, vauxhall, and cupra have no brand.ts WMI entry on purpose — see
   // brand.ts and decisions-build.md. SAIC Motor doesn't retail cars under
   // its own name (badges as MG/Roewe/Maxus instead). Vauxhall and Cupra

@@ -1,0 +1,9 @@
+{
+  "keys": [
+    "dacia", "volvo", "citroen", "audi", "bmw", "mercedes", "peugeot", "renault",
+    "skoda", "toyota", "volkswagen", "hyundai", "kia", "opel", "fiat", "ford",
+    "geely", "byd", "chery", "tesla", "seat", "land-rover",
+    "saic", "vauxhall", "cupra"
+  ],
+  "unroutedNames": { "saic": "SAIC", "vauxhall": "Vauxhall", "cupra": "Cupra" }
+}

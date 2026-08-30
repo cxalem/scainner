@@ -42,7 +42,16 @@ import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import { brandFromVin } from "@/lib/brand";
 import { STUDIO_LIGHTING, VEHICLE_MATERIALS } from "@/theme";
-import { EMBLEMS, NameplateEmblem } from "./emblems";
+import { EMBLEMS, EmblemFallback, NameplateEmblem, preloadEmblem } from "./emblems";
+
+// Re-exported so callers that already lazy-load this module (Login's
+// carousel, ConnectGate, DiscoveryFlow — see each file's own preload
+// effect) can warm a brand's GLB through the same dynamic-import chunk
+// boundary, instead of a second import("@/components/emblems") that risks
+// Vite splitting it into a separate chunk from the one this file's own
+// three.js imports already live in.
+export { preloadEmblem };
+import { cn } from "@/lib/utils";
 import { EmblemStarfield } from "./EmblemStarfield";
 
 export type SceneStatus = "disconnected" | "connecting" | "connected";
@@ -1202,14 +1211,6 @@ export function CarModel({ status, color, reduced }: { status: SceneStatus; colo
   );
 }
 
-function CarModelFallback() {
-  return (
-    <mesh>
-      <boxGeometry args={[2, 0.6, 1]} />
-      <meshStandardMaterial color={DEFAULT_TINT} />
-    </mesh>
-  );
-}
 
 // --- Brand emblem model — the scalable answer to "thousands of cars". ---
 // A per-car 3D body model can't be sourced/verified at fleet scale (see the
@@ -1254,7 +1255,43 @@ function BrandEmblemModel({
   );
 }
 
-export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: string | null }) {
+export function VehicleScene({
+  status,
+  vin,
+  brandKey,
+  caption,
+  className,
+  background = "dark",
+}: {
+  status: SceneStatus;
+  vin?: string | null;
+  /** Show a brand by its emblem-registry key instead of deriving it from
+   *  the VIN (the login screen cycles through recognised marques). */
+  brandKey?: string | null;
+  /** Caption text bottom-left. Omit for the status default; null hides it. */
+  caption?: string | null;
+  /** Sizing/shape of the frame; defaults to the full-width card. */
+  className?: string;
+  /** The card behind the chrome:
+   *  - "dark" (default) — the warm dust field with its own filled ground,
+   *    the identity-moment look used on the connect gate and first-connect
+   *    discovery, where the frame IS the surface (nothing else behind it).
+   *  - "light" — the same dust field recolored into the accent ramp, for
+   *    the emblem's appearances on recurring dashboard surfaces (Overview,
+   *    Vehicle) sitting in an otherwise paper-white layout, where the dark
+   *    ground reads as a jarring hole rather than a moment (2026-08-30).
+   *  - "dust" — dust dots only, transparent canvas, no ground fill. For a
+   *    frame that sits directly on a surface that already has its own
+   *    background (the login panel's purple + glow) — filling here too
+   *    painted a visibly different rectangle on top of it instead of one
+   *    continuous panel (2026-08-30).
+   *  - "none" — no particle layer at all; the emblem floats over whatever
+   *    sits behind the frame with nothing added.
+   *  Only the flat 2D backdrop changes — the chrome material's own
+   *  reflection environment (StudioEnvironment's offscreen PMREM bake) is
+   *  independent of this and looks the same in every case. */
+  background?: "dark" | "light" | "dust" | "none";
+}) {
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
   // Dev-only override so any brand's emblem can be previewed by URL without
   // a real connected VIN, e.g. ?vin=VF1AAAAA000000000 for Renault. Inert
@@ -1265,20 +1302,53 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
   // its EMBLEMS registry key, e.g. ?brand=vauxhall. The only way to preview
   // a brand with no WMI entry (saic, vauxhall) — there is no VIN prefix
   // that could reach either through vinOverride alone.
-  const brandKeyOverride = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("brand") : null;
+  const brandKeyOverride = brandKey ?? (import.meta.env.DEV ? new URLSearchParams(window.location.search).get("brand") : null);
+  const captionText = caption === undefined
+    ? status === "disconnected" ? "Idle" : status === "connecting" ? "Discovering modules…" : "Live"
+    : caption;
 
   return (
-    <div className="relative h-64 w-full overflow-hidden rounded-lg border border-border sm:h-72">
-      {/* Dark ambient-dust ground instead of the old flat light fill —
-          same starfield technique as the knowledge-base note
-          (3-Resources/starfield-header/technique.md), tuned far slower
-          (ambient dust, not a hyperspace field) and warm-toned per request.
-          Sits behind the WebGL canvas; the canvas below has no opaque
-          background of its own (gl alpha:true, no <color attach>) so this
-          shows through. Does not touch the chrome material's reflection
-          environment at all — that comes from StudioEnvironment's own
-          offscreen PMREM bake, entirely separate from this visible layer. */}
-      <EmblemStarfield />
+    <div className={cn("relative h-64 w-full overflow-hidden rounded-md", className)}>
+      {/* Ambient-dust ground — same starfield technique as the
+          knowledge-base note (3-Resources/starfield-header/technique.md),
+          tuned far slower (ambient dust, not a hyperspace field). Two
+          tones, not just an on/off: "dark" is the warm-toned original
+          (the identity-moment screens), "light" recolors the same dust
+          into the accent ramp for a paper-white dashboard context
+          (2026-08-30) — see PARTICLE_PALETTE_LIGHT for why it's a second
+          named palette rather than one dust color swapped in place. Sits
+          behind the WebGL canvas; the canvas has no opaque background of
+          its own (gl alpha:true, no <color attach>) so this shows through.
+          Does not touch the chrome material's reflection environment at
+          all — that comes from StudioEnvironment's own offscreen PMREM
+          bake, entirely separate from this visible layer. */}
+      {background !== "none" && (
+        <EmblemStarfield tone={background === "light" ? "light" : "dark"} fill={background !== "dust"} />
+      )}
+      {/* A plain CSS radial shadow, not just the WebGL ContactShadows
+          below — that one darkens its own catcher plane, which reads
+          clearly against Overview/Vehicle's light ground but has almost
+          no contrast against this dark panel (a dark shadow on an
+          already-dark surface is nearly invisible), reported live
+          (2026-08-30). Sits behind the transparent canvas, roughly under
+          where the emblem rests.
+          left-1/2 -translate-x-1/2, not inset-x-0 + mx-auto: a more
+          foolproof horizontal-centering technique against this container.
+          Wide and soft rather than tightly matched to any one emblem's
+          silhouette on purpose — the object keeps rotating and each GLB's
+          own modeled center varies slightly, so a precise per-brand
+          shadow isn't achievable with a static CSS layer; a generous,
+          low-opacity ambient "grounding" glow reads correctly regardless
+          (feedback: first pass was both too dark and looked off-center
+          for brands whose silhouette sits left/right of the object's
+          nominal center, 2026-08-30). */}
+      {background === "dust" && (
+        <div
+          aria-hidden="true"
+          className="absolute bottom-[16%] left-1/2 h-[16%] w-[56%] -translate-x-1/2"
+          style={{ background: "radial-gradient(ellipse, rgba(0,0,0,0.28), transparent 75%)" }}
+        />
+      )}
       <Canvas
         dpr={[1, 1.75]}
         camera={{ position: [4.4, 2.6, 4.4], fov: 30 }}
@@ -1307,14 +1377,27 @@ export function VehicleScene({ status, vin }: { status: SceneStatus; vin?: strin
         {/* Brand emblem is the active model (scalable to any connected
             car); GlbCarModel above is the bespoke C4 — swap back here if
             per-car models return. */}
-        <Suspense fallback={<CarModelFallback />}>
+        {/* EmblemFallback, not CarModelFallback: a car-body brick sitting
+            where a badge is about to appear read as a loading bug, not a
+            loading state (2026-08-30). preloadEmblem (called wherever a
+            brand becomes known — Login's carousel, ConnectGate,
+            DiscoveryFlow) keeps this from showing at all in the common
+            case; this is only the cold-paint fallback. */}
+        <Suspense fallback={<EmblemFallback />}>
           <BrandEmblemModel vin={vinOverride ?? vin} status={status} reduced={reduced} brandKeyOverride={brandKeyOverride} />
         </Suspense>
         <ContactShadows position={[0, 0.01, 0]} opacity={0.32} scale={7} blur={2.2} far={2} />
       </Canvas>
-      <p className="pointer-events-none absolute bottom-2 left-3 z-10 text-[10px] uppercase tracking-wide text-white/45">
-        {status === "disconnected" ? "Idle" : status === "connecting" ? "Discovering modules…" : "Live"}
-      </p>
+      {captionText && (
+        <p
+          className={cn(
+            "pointer-events-none absolute bottom-2 left-3 z-10 text-[10px] uppercase tracking-wide",
+            background === "light" ? "text-neutral-500" : "text-white/45",
+          )}
+        >
+          {captionText}
+        </p>
+      )}
     </div>
   );
 }

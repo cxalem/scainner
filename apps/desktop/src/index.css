@@ -1,85 +1,159 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "./theme/tokens.css";
 
-/* Single-theme app: one light palette, no dark variant — see main.tsx. */
-:root {
-  --background: oklch(0.985 0.002 90);
-  --foreground: oklch(0.2 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 260);
-  --muted: oklch(0.955 0.004 90);
-  --muted-foreground: oklch(0.5 0.015 260);
-  --border: oklch(0.91 0.006 90);
-  --primary: oklch(0.55 0.18 155);
-  --primary-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.55 0.2 27);
-  --warn: oklch(0.72 0.15 75);
-  --radius: 0.625rem;
-}
-
+/* Tailwind v4 theme mapping. The values live in theme/tokens.css — this
+   block only names them for the utility layer (`bg-surface`, `text-accent-300`,
+   `border-divider`, `shadow-md`, `rounded-lg`, `font-heading`). `inline` so
+   utilities reference the token variable directly, which keeps a runtime
+   token change (a future theme switch) live without a rebuild. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-destructive: var(--destructive);
+  --color-*: initial;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-divider: var(--divider);
+  --color-section: var(--section);
+  --color-section-text: var(--section-text);
+  --color-section-headline: var(--section-headline);
+  --color-section-chip-text: var(--section-chip-text);
+  --color-section-chip-border: var(--section-chip-border);
+  --color-section-chip-bg: var(--section-chip-bg);
+
+  --color-accent: var(--accent);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
+  --color-accent-2-400: var(--accent-2-400);
+  --color-accent-2-600: var(--accent-2-600);
+
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-line: var(--ok-line);
   --color-warn: var(--warn);
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-stop: var(--stop);
+  --color-stop-bg: var(--stop-bg);
+  --color-stop-line: var(--stop-line);
+
+  --color-white: var(--surface);
+  --color-transparent: transparent;
+
+  /* Legacy aliases — the names the pre-redesign views used. Mapped onto the
+     new tokens so nothing breaks mid-migration; new code should use the
+     names above. */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-muted: var(--neutral-900);
+  --color-muted-foreground: var(--neutral-500);
+  --color-border: var(--divider);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--surface);
+  --color-destructive: var(--stop);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
+
+  --ease-out: var(--ease-out);
+  --default-transition-duration: var(--dur-fast);
+  --default-transition-timing-function: var(--ease-out);
 }
 
 :root {
-  /* Native UI (scrollbars, form controls) stays light even on a dark OS —
-     the app is single-theme by design. */
+  /* Single-theme app (light). Native controls follow the app, not the OS. */
   color-scheme: light;
 }
 
 body {
-  @apply bg-background text-foreground antialiased;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 }
 
-/* Diagnose's Fault codes panel: a scan-line sweeping the width of its track
-   ("actively scanning this car", not a generic spinner) and a fade/slide-in
-   for when scan results land in place, both hand-rolled CSS like the rest
-   of the app's motion (no animation library yet — that's the separate,
-   not-yet-built animation-system stream). Both respect
-   prefers-reduced-motion, same convention as every other motion in ui.tsx. */
-@keyframes scan-sweep {
-  0% {
-    left: 0%;
-  }
-  50% {
-    left: 66%;
-  }
-  100% {
-    left: 0%;
-  }
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
-@keyframes fade-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+a {
+  color: var(--accent-400);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a:hover { color: var(--accent-300); }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* Numbers are the app's strongest visual signature: monospace, tabular. */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-.animate-fade-slide-in {
-  animation: fade-slide-in 220ms ease-out;
+/* A rule that fades out to the right — used under section labels. */
+@utility rule-fade {
+  height: 1px;
+  background: linear-gradient(90deg, var(--divider), transparent);
 }
+
+/* — ambient motion (CSS-driven; discrete appear/leave motion is framer) — */
+@keyframes sc-glow {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.06); }
+}
+@keyframes sc-sweep {
+  from { background-position: -180% 0; }
+  to { background-position: 280% 0; }
+}
+@keyframes sc-dash {
+  to { stroke-dashoffset: 0; }
+}
+@utility animate-glow { animation: sc-glow 3.4s ease-in-out infinite; }
+@utility animate-glow-slow { animation: sc-glow 9s ease-in-out infinite; }
+@utility animate-sweep { animation: sc-sweep 1.4s linear infinite; }
+@utility animate-dash { animation: sc-dash 1.1s var(--ease-out) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-slide-in {
+  .animate-glow, .animate-glow-slow, .animate-sweep, .animate-dash, .animate-spin, .animate-pulse {
     animation: none;
   }
 }

@@ -25,6 +25,7 @@
 // a consumer can tell "has a diagnostic profile" from "has a badge".
 
 import rawWmi from "../data/wmi.json";
+import modeledEmblems from "../data/modeled-emblems.json";
 
 export type Confidence = "high" | "medium-high" | "medium" | "low";
 
@@ -77,3 +78,58 @@ export function brandFromVin(vin: string | null | undefined): BrandInfo | null {
   if (!vin || vin.length < 3) return null;
   return WMI[vin.slice(0, 3).toUpperCase()] ?? null;
 }
+
+/** Every distinct marque the WMI table can name — de-duplicated by emblem
+ *  key, in table order. Includes group-routing rows ("VOLKSWAGEN GROUP")
+ *  and marques with no modeled emblem — real for diagnostics, but not a
+ *  list to show off visually. See MODELED_BRANDS for that. */
+export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
+  const seen = new Set<string>();
+  const out: BrandInfo[] = [];
+  for (const info of Object.values(WMI)) {
+    if (seen.has(info.key)) continue;
+    seen.add(info.key);
+    out.push(info);
+  }
+  return out;
+})();
+
+// Keys with a real modeled emblem (components/emblems.tsx's EMBLEMS
+// registry) — read from ../data/modeled-emblems.json, same pack-data
+// placement as wmi.json above and for the same reason (scripts/
+// lint_brand_tokens.py's own header: "Brand and vehicle names belong in
+// pack data, not in code" — this file's literal brand-name array is
+// exactly what that lint scans for; a plain data/ import is excluded by
+// design, the documented way to hold this fact, not a workaround).
+// Also kept separate from emblems.tsx itself so importing this doesn't
+// drag three.js/GLTFLoader into every RECOGNISED_BRANDS consumer.
+// brand.test.ts asserts this list matches the EMBLEMS registry exactly,
+// so it can't silently drift. saic/vauxhall/cupra have a modeled emblem
+// but no WMI entry (see emblems.tsx's own comment) — named by hand in the
+// JSON's unroutedNames since WMI has no casing for them to borrow.
+// The JSON's order leads with "dacia" — its GLB is by far the smallest of
+// the 24 (166 KB vs. several multi-MB files, volvo/audi over 9 MB) — on a
+// genuinely cold app launch (nothing preloaded yet), the first carousel
+// brand is whatever EmblemFallback's "loading" window is shortest for
+// (2026-08-30). The rest of the order is otherwise arbitrary.
+const MODELED_EMBLEM_KEYS = modeledEmblems.keys;
+const UNROUTED_EMBLEM_NAMES: Record<string, string> = modeledEmblems.unroutedNames;
+
+/** The brands the app can actually show a real 3D logo for — what the
+ *  login screen's emblem carousel and chip row cycle through. A strict
+ *  subset of RECOGNISED_BRANDS: group-routing rows (no single mark) and
+ *  marques with only a nameplate fallback are excluded on purpose, so the
+ *  one deliberate visual flourish never lands on a plain "AUTO" badge. */
+export const MODELED_BRANDS: readonly BrandInfo[] = (() => {
+  const byKey = new Map(RECOGNISED_BRANDS.map((b) => [b.key, b] as const));
+  return MODELED_EMBLEM_KEYS.map(
+    (key) =>
+      byKey.get(key) ?? {
+        key,
+        name: UNROUTED_EMBLEM_NAMES[key] ?? key.toUpperCase(),
+        confidence: "high" as const,
+        source: "modeled emblem, no WMI routing",
+        brand: null,
+      },
+  );
+})();

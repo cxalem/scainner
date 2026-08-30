@@ -1,211 +1,201 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+// Overview — what the app knows about this car right now, and what it
+// thinks you should do about it. Scene + verdict up top, four stat tiles,
+// fuel and recent sessions below. Every section is a <Block> so the page
+// stagger and sibling reflow come from the shared motion vocabulary.
+import { Suspense, lazy, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
-  BatteryCharging,
-  ClipboardList,
+  Cable,
   Database,
-  HeartPulse,
   History,
+  ShieldCheck,
   ShieldQuestion,
   Timer,
+  Waves,
+  type LucideIcon,
 } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, CardSkeleton, Skeleton } from "@/components/ui";
+import { Button, Card, CardHead, CardSkeleton, EmptyState, Field, Input, Mono, Pill, Skeleton } from "@/components/ui";
+import { Block } from "@/motion/components";
 import type { SceneStatus } from "@/components/VehicleScene";
-import { decodeModelYear } from "@/lib/vin";
 import { useNameCurrentVehicle, useVehicleReport, useVehicles } from "@/features/vehicle/queries";
 import { buildVerdicts } from "@/views/overview/buildVerdicts";
 import { FuelCard } from "@/views/overview/FuelCard";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
-// Code-split: pulls in three.js/@react-three (~450KB gzip) only once
-// Overview actually mounts the scene, not on initial app load — Overview is
-// the default view, unlike Vehicle/DiscoveryFlow which are already lazy at
-// the App.tsx level, so this needs its own lazy boundary.
+// Code-split: three.js only loads once the scene actually mounts.
 const VehicleScene = lazy(() =>
   import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })),
 );
-// Same reasoning, for recharts (see src/components/charts.tsx).
-const BatteryChart = lazy(() => import("@/components/charts").then((m) => ({ default: m.BatteryChart })));
 
-/** The vehicle picker label: name first (the identity for VIN-less cars),
- * VIN as the fallback for unnamed-but-VIN'd ones. */
-function vehicleLabel(v: { vin: string | null; display_name: string | null }): string {
-  return v.display_name ?? v.vin ?? "—";
+// Fixed, not h-full: with the grid no longer stretching this cell to match
+// its sibling (see hero() below), the frame needs its own definite height
+// for the WebGL canvas to size against — h-full has nothing to resolve
+// against once the parent's height is content-driven instead of stretched.
+const SCENE_CLASS = "h-[190px] rounded-none";
+
+function SceneCard({ status, vin }: { status: SceneStatus; vin: string | null }) {
+  return (
+    <div className="flex h-[190px] overflow-hidden rounded-md border border-divider bg-surface shadow-sm">
+      <Suspense fallback={<Skeleton className="h-[190px] w-full rounded-none" />}>
+        <VehicleScene status={status} vin={vin} className={SCENE_CLASS} background="light" />
+      </Suspense>
+    </div>
+  );
+}
+
+function formatWhen(iso: string, locale: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 export function Overview({
   connState = "disconnected",
-  vehicleId: connectedVehicleId = null,
-  vin: connectedVin = null,
+  vehicleId = null,
+  vin = null,
+  onNavigate,
 }: {
   connState?: string;
-  /** The currently-connected vehicle's id, straight from ConnStatus (schema
-   * v2) — the backend resolved it in the connect handshake, or reports null
-   * for a genuinely unidentified vehicle. Never derived from a cache. */
+  /** The vehicle every view shows — resolved once in App.tsx. */
   vehicleId?: number | null;
-  /** Same source, for the brand emblem (VehicleScene decodes make from it). */
+  /** VIN for the brand emblem (VehicleScene decodes make from it). */
   vin?: string | null;
+  onNavigate?: (view: "diagnose" | "live") => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const vehiclesQuery = useVehicles();
-  const vehicles = vehiclesQuery.data ?? [];
-  const [vehicleId, setVehicleId] = useState<number | null>(connectedVehicleId);
   const [draftName, setDraftName] = useState("");
   const nameVehicle = useNameCurrentVehicle();
   const sceneStatus: SceneStatus =
     connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
-
-  // Adopt the connected vehicle the moment the backend resolves it; while
-  // connected with an UNIDENTIFIED vehicle, force null so the honest
-  // unknown-vehicle state renders instead of a previously-viewed car (the
-  // live bug from 2026-08-21, now enforced at the id level).
-  useEffect(() => {
-    if (connState === "connected") setVehicleId(connectedVehicleId);
-  }, [connState, connectedVehicleId]);
-
-  // Browsing while disconnected: default to the most-connected vehicle.
-  useEffect(() => {
-    if (vehicles.length > 0 && connState !== "connected" && vehicleId == null) setVehicleId(vehicles[0].id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehiclesQuery.data, connState, vehicleId]);
-
   const reportQuery = useVehicleReport(vehicleId);
-  const selected = vehicles.find((v) => v.id === vehicleId);
-  // Emblem source: live connection's VIN wins; a picked vehicle's stored VIN
-  // otherwise. Both real, neither a guess — null renders the generic badge.
-  const sceneVin = connState === "connected" ? connectedVin : (selected?.vin ?? null);
 
-  const scene = (
-    <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-lg bg-muted sm:h-72" />}>
-      <VehicleScene status={sceneStatus} vin={sceneVin} />
-    </Suspense>
+  const hero = (right: ReactNode) => (
+    // items-start, not items-stretch: the verdict card's line count varies
+    // (1 sentence to 5 bullets), and stretching the scene card to match
+    // turns its 300×190 landscape frame into a near-square or portrait
+    // box — the emblem's camera is tuned for landscape, so a stretched
+    // frame renders it as a thin vertical sliver instead of the full mark.
+    // Left top-aligned at its own min-height; the right card grows freely.
+    <Block className="grid items-start gap-4" style={{ gridTemplateColumns: "300px 1fr" }}>
+      <SceneCard status={sceneStatus} vin={vin} />
+      {right}
+    </Block>
   );
 
-  // Still discovering whether any vehicle exists at all — distinct from "no
-  // car found" (research.md section 2: these two used to render identically).
+  const tilesSkeleton = (
+    <Block className="grid grid-cols-4 gap-2.5">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <CardSkeleton key={i} rows={1} />
+      ))}
+    </Block>
+  );
+
+  // Still discovering whether any vehicle exists at all.
   if (vehiclesQuery.isPending) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {scene}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <CardSkeleton key={i} rows={1} />
-          ))}
-        </div>
-        <CardSkeleton rows={4} />
-      </div>
+      <>
+        {hero(<CardSkeleton rows={4} />)}
+        {tilesSkeleton}
+      </>
     );
   }
 
-  // The vehicles list itself failed. Without this branch a failed fetch
-  // would fall through to the "No data yet" copy below, which plan.md rule
-  // 6 reserves for a successful fetch that found nothing.
   if (vehiclesQuery.isError && vehicleId == null) {
-    return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {scene}
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
-            <p className="font-medium">{t.overview.couldNotLoadCars}</p>
-            <Button variant="outline" onClick={() => vehiclesQuery.refetch()}>
+    return hero(
+      <Card>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="muted"
+          title={t.overview.couldNotLoadCars}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => vehiclesQuery.refetch()}>
               {t.common.retry}
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          }
+        />
+      </Card>,
     );
   }
 
-  // Connected right now, but this vehicle couldn't be identified (no VIN —
-  // e.g. a pre-Mode-09 ECU, a real case, not hypothetical). Honest state
-  // plus the way out: name the car, which creates its vehicle row and
-  // claims everything this connection already recorded (schema v2's
-  // NameVehicle flow — the supervisor re-emits conn-status with the new
-  // identity, so this branch unmounts by itself once naming lands).
+  // Connected, but this car answered no VIN: name it to create its row.
   if (connState === "connected" && vehicleId == null) {
-    return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {scene}
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <ShieldQuestion className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-            <p className="font-medium">{t.overview.unknownVehicle}</p>
-            <p className="max-w-sm text-sm text-muted-foreground">{t.overview.unknownVehicleExplainer}</p>
-            <div className="flex items-center gap-2">
-              <input
-                aria-label={t.overview.nameVehicleLabel}
-                className="h-9 w-56 rounded-md border border-border bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                placeholder={t.overview.nameVehiclePlaceholder}
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-              />
+    return hero(
+      <Card className="justify-center">
+        <EmptyState
+          icon={ShieldQuestion}
+          tone="muted"
+          title={t.overview.unknownVehicle}
+          body={t.overview.unknownVehicleExplainer}
+          action={
+            <form
+              className="flex items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (draftName.trim()) nameVehicle.mutate({ name: draftName });
+              }}
+            >
+              <Field label={t.overview.nameVehicleLabel} htmlFor="ov-name" className="w-56 text-left">
+                <Input
+                  id="ov-name"
+                  placeholder={t.overview.nameVehiclePlaceholder}
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                />
+              </Field>
               <Button
-                onClick={() => nameVehicle.mutate({ name: draftName })}
-                disabled={draftName.trim().length === 0 || nameVehicle.isPending}
+                type="submit"
+                variant="primary"
+                busy={nameVehicle.isPending}
+                disabled={draftName.trim().length === 0}
               >
                 {nameVehicle.isPending ? t.overview.namingVehicle : t.overview.nameVehicleAction}
               </Button>
-            </div>
-            {nameVehicle.isError && <p className="text-sm text-destructive">{t.overview.nameVehicleFailed}</p>}
-          </CardContent>
-        </Card>
-      </div>
+            </form>
+          }
+        />
+        {nameVehicle.isError && <p className="text-center text-[12px] text-stop">{t.overview.nameVehicleFailed}</p>}
+      </Card>,
     );
   }
 
-  // Confirmed empty: the vehicles fetch succeeded and found none.
+  // Confirmed empty: the fetch succeeded and found nothing.
   if (vehicleId == null) {
-    return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {scene}
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <Database className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-            <p className="font-medium">{t.overview.noDataYet}</p>
-            <p className="max-w-sm text-sm text-muted-foreground">{t.overview.noDataYetExplainer}</p>
-          </CardContent>
-        </Card>
-      </div>
+    return hero(
+      <Card className="justify-center">
+        <EmptyState icon={Database} tone="muted" title={t.overview.noDataYet} body={t.overview.noDataYetExplainer} />
+      </Card>,
     );
   }
 
   if (reportQuery.isPending) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {scene}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <CardSkeleton key={i} rows={1} />
-          ))}
-        </div>
-        <CardSkeleton rows={4} />
-        <CardSkeleton rows={4} />
-        <CardSkeleton contentClassName="h-44" />
-      </div>
+      <>
+        {hero(<CardSkeleton rows={4} />)}
+        {tilesSkeleton}
+        <Block className="grid grid-cols-2 gap-3">
+          <CardSkeleton rows={3} />
+          <CardSkeleton rows={3} />
+        </Block>
+      </>
     );
   }
 
   if (reportQuery.isError || !reportQuery.data) {
-    return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {scene}
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
-            <p className="font-medium">{t.overview.couldNotLoadReport}</p>
-            <Button variant="outline" onClick={() => reportQuery.refetch()}>
+    return hero(
+      <Card>
+        <EmptyState
+          icon={AlertTriangle}
+          tone="muted"
+          title={t.overview.couldNotLoadReport}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => reportQuery.refetch()}>
               {t.common.retry}
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          }
+        />
+      </Card>,
     );
   }
 
@@ -213,109 +203,140 @@ export function Overview({
   const engineH = Math.floor(report.engine_minutes / 60);
   const engineM = Math.round(report.engine_minutes % 60);
   const verdicts = buildVerdicts(report, t);
-  // Model year only — see src/lib/vin.ts for why the full model/trim isn't
-  // here too, that needs a per-brand table this app doesn't have.
-  const modelYear = decodeModelYear(report.vin ?? undefined);
+  const worst = verdicts.some((v) => v.status === "bad")
+    ? "bad"
+    : verdicts.some((v) => v.status === "watch")
+      ? "watch"
+      : verdicts.length > 0
+        ? "good"
+        : "none";
+  const chip =
+    worst === "bad"
+      ? { variant: "stop" as const, text: t.overview.verdict.chipBad }
+      : worst === "watch"
+        ? { variant: "warn" as const, text: t.overview.verdict.chipWatch }
+        : worst === "good"
+          ? { variant: "ok" as const, text: t.overview.verdict.chipGood }
+          : { variant: "info" as const, text: t.overview.verdict.chipNone };
+  const headline =
+    worst === "none"
+      ? connState === "connected"
+        ? t.overview.verdict.headNoDataConnected
+        : t.overview.verdict.headNoData
+      : worst === "good"
+        ? t.overview.verdict.headGood
+        : t.overview.verdict.headIssues(verdicts.filter((v) => v.status !== "good").length);
+  const scanNote =
+    report.scans_total > 0 ? t.overview.verdict.scanNote(report.scans_total, report.last ? formatWhen(report.last, locale) : null) : t.overview.verdict.noScanNote;
+  // One compact line about the scan specifically (not the full per-check
+  // detail list, which Diagnose already owns) — the fault-record verdict
+  // buildVerdicts also computes, reused directly rather than duplicated.
+  const scanInfo =
+    report.scans_total > 0
+      ? {
+          clean: report.scans_clean === report.scans_total,
+          text:
+            report.scans_clean === report.scans_total
+              ? t.overview.health.faultRecordClean(report.scans_total)
+              : t.overview.health.faultRecordSome(report.scans_total - report.scans_clean, report.scans_total),
+        }
+      : null;
+
+  const tiles: { icon: LucideIcon; label: string; value: string; note: string }[] = [
+    {
+      icon: Cable,
+      label: t.overview.stats.sessions,
+      value: String(report.session_count),
+      note: report.first ? t.overview.stats.firstSeen(formatWhen(report.first, locale)) : t.overview.stats.noSessions,
+    },
+    { icon: Timer, label: t.overview.stats.engineTime, value: `${engineH} h ${engineM} m`, note: t.overview.stats.engineTimeNote(t.shell.appName) },
+    { icon: Waves, label: t.overview.stats.readings, value: report.total_readings.toLocaleString(locale), note: t.overview.stats.readingsNote },
+    {
+      icon: ShieldCheck,
+      label: t.overview.stats.scansClean,
+      value: t.overview.stats.scansCleanValue(report.scans_clean, report.scans_total),
+      note: t.overview.stats.scansCleanNote,
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold tracking-tight">{t.overview.title}</h1>
-        {vehicles.length > 1 ? (
-          <select
-            aria-label={t.overview.carAriaLabel}
-            className="h-9 rounded-md border border-border bg-card px-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            value={vehicleId}
-            onChange={(e) => setVehicleId(Number(e.target.value))}
-          >
-            {vehicles.map((v) => (
-              <option key={v.id} value={v.id}>
-                {t.overview.carOption(vehicleLabel(v), v.connections)}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="font-mono text-xs text-muted-foreground">
-            {modelYear ? `${modelYear} · ` : ""}
-            {report.display_name ?? (report.vin ? `VIN ${report.vin}` : "")}
-          </span>
-        )}
-      </div>
-
-      {scene}
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: t.overview.stats.sessions, value: String(report.session_count), icon: History },
-          { label: t.overview.stats.engineTime, value: `${engineH}h ${engineM}m`, icon: Timer },
-          { label: t.overview.stats.readings, value: report.total_readings.toLocaleString(), icon: Database },
-          { label: t.overview.stats.scansClean, value: `${report.scans_clean}/${report.scans_total}`, icon: ClipboardList },
-        ].map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-1.5">
-                <Icon className="h-3.5 w-3.5" aria-hidden="true" /> {label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-mono text-xl font-semibold tabular-nums">{value}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <HeartPulse className="h-4 w-4" aria-hidden="true" /> {t.overview.health.cardTitle}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {verdicts.map((v) => {
-            const Icon = v.icon;
-            return (
-              <div key={v.title} className="flex items-start gap-3">
-                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    {v.title}{" "}
-                    <Badge variant={v.status === "good" ? "ok" : v.status === "watch" ? "warn" : "error"}>
-                      {v.status === "good"
-                        ? t.overview.health.statusGood
-                        : v.status === "watch"
-                          ? t.overview.health.statusWatch
-                          : t.overview.health.statusBad}
-                    </Badge>
-                  </p>
-                  <p className="text-sm text-muted-foreground">{v.text}</p>
-                </div>
+    <>
+      {/* h-[190px], not h-full: matches SCENE_CLASS's own fixed height now
+          that the grid is items-start (each cell sizes to its own content,
+          see hero() below) — two independent-height cards side by side
+          need an explicit shared height, not mutual stretching, or one
+          crops the other's aspect (2026-08-30). justify-between spreads
+          the now-shorter content across that height instead of leaving it
+          bunched in the middle with dead space top and bottom. */}
+      {hero(
+        <Card className="h-[190px] justify-between gap-3 px-[18px] py-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <Pill variant={chip.variant} className="text-[11px]">{chip.text}</Pill>
+              <span className="text-[12px] text-neutral-500">{scanNote}</span>
+            </div>
+            {/* A quick overview, not a report: headline + one line about
+                the scan specifically. The full per-check detail list
+                (buildVerdicts' other lines: engine/cooling/battery/turbo)
+                stays out of this card — too much for a glanceable summary;
+                Diagnose already owns the itemized version (2026-08-30). */}
+            <div className="max-w-[38ch] text-[19px] leading-[1.35]">{headline}</div>
+            {scanInfo && (
+              <div className="flex items-start gap-2 text-[13px] leading-[1.5]">
+                {scanInfo.clean ? (
+                  <ShieldCheck className="mt-0.5 h-[15px] w-[15px] shrink-0 text-ok" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="mt-0.5 h-[15px] w-[15px] shrink-0 text-warn" aria-hidden="true" />
+                )}
+                <span className="text-neutral-300">{scanInfo.text}</span>
               </div>
-            );
-          })}
-          {verdicts.length === 0 && <p className="text-sm text-muted-foreground">{t.overview.health.notEnoughData}</p>}
-        </CardContent>
-      </Card>
-
-      <FuelCard vehicleId={report.vehicle_id} insights={report.insights} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-1.5">
-            <BatteryCharging className="h-4 w-4" aria-hidden="true" /> {t.overview.battery.cardTitle}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {report.daily_voltage.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t.overview.battery.noData}</p>
-          ) : (
-            <div className="h-44 w-full">
-              <Suspense fallback={<Skeleton className="h-full w-full" />}>
-                <BatteryChart data={report.daily_voltage} />
-              </Suspense>
+            )}
+          </div>
+          {onNavigate && (
+            <div className="flex gap-2">
+              <Button variant="primary" size="sm" onClick={() => onNavigate("diagnose")}>
+                {t.overview.verdict.openFaults}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("live")}>
+                {t.overview.verdict.watchLive}
+              </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </Card>,
+      )}
+
+      <Block className="grid grid-cols-4 gap-2.5">
+        {tiles.map(({ icon: Icon, label, value, note }) => (
+          <Card key={label} className="gap-[5px] px-[15px] py-[13px]">
+            <div className="flex items-center gap-[7px]">
+              <Icon className="h-3.5 w-3.5 text-accent-600" aria-hidden="true" />
+              <span className="text-[11px] uppercase tracking-[0.06em] text-neutral-500">{label}</span>
+            </div>
+            <Mono className="text-[23px] leading-tight text-neutral-100">{value}</Mono>
+            <span className="text-[11.5px] text-neutral-500">{note}</span>
+          </Card>
+        ))}
+      </Block>
+
+      <Block className="grid grid-cols-2 gap-3">
+        <FuelCard vehicleId={report.vehicle_id} insights={report.insights} live={connState === "connected"} />
+        <Card className="gap-[9px]">
+          <CardHead icon={History} title={t.overview.sessions.cardTitle} />
+          {report.sessions.length === 0 ? (
+            <span className="text-[12.5px] text-neutral-500">{t.overview.sessions.none}</span>
+          ) : (
+            report.sessions.slice(0, 5).map((s) => (
+              <div key={s.id} className="flex items-baseline gap-[11px] text-[12.5px]">
+                {/* min-w, not w: toLocaleString's real output ("Aug 25,
+                    6:31 PM") runs longer than the design's terse "14:02" —
+                    a fixed w would paint over the text beside it. */}
+                <Mono className="min-w-[74px] shrink-0 text-[11.5px] text-neutral-500">{formatWhen(s.started_at, locale)}</Mono>
+                <span className="text-neutral-300">{t.overview.sessions.row(s.minutes, s.readings)}</span>
+              </div>
+            ))
+          )}
+        </Card>
+      </Block>
+    </>
   );
 }

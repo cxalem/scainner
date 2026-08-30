@@ -1,136 +1,183 @@
-import { useState } from "react";
-import { Activity, Database, RefreshCw, Radar } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Segmented, useCyclingLabel } from "@/components/ui";
-import { GAUGES, gaugeLabel } from "@/shared/domain/gauges";
-import type { Live as LiveMap } from "@scainner/core";
-import { useAllSensors } from "@/features/live/queries";
-import { useLocale, useT } from "@/i18n";
+// Live — the same sensors on two time scales. "Now" is the standing gauge
+// set plus whatever this car's probes push, grouped and pinnable; "Over
+// time" is the stored history of the same keys (views/live/Trend.tsx).
+import { useMemo, useRef, useState } from "react";
+import { Activity, ChartLine, ListFilter, Pin, PinOff } from "lucide-react";
+import {
+  Button,
+  Card,
 
-function Gauges({ live }: { live: LiveMap }) {
-  const t = useT();
-  const { locale } = useLocale();
-  const knownKeys = new Set(GAUGES.map((gauge) => gauge.key));
-  const discovered = Object.entries(live).filter(([key]) => !knownKeys.has(key));
+  EmptyState,
+  IconButton,
+  Input,
+  Mono,
+  Note,
+  Pill,
+  ProgressBar,
+  Seg,
+  SectionLabel,
+  Table,
+  Td,
+  Th,
+  Tr,
+  useCyclingLabel,
+  type PillVariant,
+} from "@/components/ui";
+import { Block, Reveal, Swap } from "@/motion/components";
+import { GAUGES, gaugeLabel, hex4 } from "@/shared/domain/gauges";
+import type { Live as LiveMap, UdsProbe } from "@scainner/core";
+import { useAllSensors } from "@/features/live/queries";
+import { useListProbes } from "@/features/lab/queries";
+import { useLocale, useT } from "@/i18n";
+import { Trend } from "@/views/live/Trend";
+import { GAUGE_RANGES, percentOf } from "@/views/live/ranges";
+import { usePins } from "@/views/live/pins";
+
+type SensorState = "standard" | "verified" | "inherited" | "candidate";
+
+type SensorDef = {
+  key: string;
+  name: string;
+  unit: string;
+  state: SensorState;
+  fmt: (v: number) => string;
+  range: { lo: number; hi: number } | null;
+};
+
+// A probe's live key is not spelled out anywhere the frontend can read, so
+// match the two ways the backend has named them; anything unmatched is
+// shown as a plain standard reading rather than given a state it may not
+// have earned.
+function probeFor(key: string, probes: readonly UdsProbe[]): UdsProbe | null {
+  const k = key.toLowerCase();
   return (
-    <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {GAUGES.map((gauge) => {
-          const value = live[gauge.key];
-          return (
-            <Card key={gauge.key} className={value === undefined ? "opacity-50" : ""}>
-              <CardHeader>
-                <CardTitle>{gaugeLabel(gauge.key, locale)}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="font-mono text-2xl font-semibold tabular-nums">
-                  {value === undefined ? "—" : gauge.fmt ? gauge.fmt(value) : value}
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">{gauge.unit}</span>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-      {discovered.length > 0 && (
-        <div className="mt-4 flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t.live.discoveredSensors}</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {discovered.map(([key, value]) => (
-              <Card key={key}>
-                <CardHeader>
-                  <CardTitle className="break-words">
-                    {key.replace(/^uds_/, "").replace(/_/g, " ")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="font-mono text-2xl font-semibold tabular-nums">{value.toFixed(2)}</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+    probes.find((p) => k === `uds_${p.module}_${hex4(p.did)}`.toLowerCase()) ??
+    probes.find((p) => p.label && k.includes(p.label.toLowerCase().replace(/\s+/g, "_"))) ??
+    null
   );
 }
 
-function AllSensorsTable({ connected }: { connected: boolean }) {
+function stateOf(probe: UdsProbe | null): SensorState {
+  if (!probe) return "standard";
+  return probe.origin === "discovery" ? "inherited" : "verified";
+}
+
+function SensorCard({
+  def,
+  value,
+  live,
+  pinned,
+  onPin,
+  seen,
+}: {
+  def: SensorDef;
+  value: number | undefined;
+  live: boolean;
+  pinned: boolean;
+  onPin: () => void;
+  /** Running min/max for keys with no declared range. */
+  seen: Map<string, { lo: number; hi: number }>;
+}) {
+  const t = useT();
+  let pct = 0;
+  if (live && value !== undefined) {
+    if (def.range) pct = percentOf(value, def.range.lo, def.range.hi);
+    else {
+      const s = seen.get(def.key) ?? { lo: value, hi: value };
+      s.lo = Math.min(s.lo, value);
+      s.hi = Math.max(s.hi, value);
+      seen.set(def.key, s);
+      pct = s.hi > s.lo ? percentOf(value, s.lo, s.hi) : 50;
+    }
+  }
+  const pill: PillVariant = def.state;
+  return (
+    <Card className="gap-[7px] px-3.5 py-3">
+      <div className="flex items-baseline gap-2">
+        <span className="flex-1 truncate text-[12px] text-neutral-400">{def.name}</span>
+        <IconButton icon={pinned ? PinOff : Pin} label={pinned ? t.live.unpin : t.live.pin} active={pinned} onClick={onPin} className="p-0" />
+      </div>
+      <div className="text-[22px] leading-none text-neutral-100">
+        <Mono>{live && value !== undefined ? def.fmt(value) : "—"}</Mono>
+        {def.unit && <span className="text-[12px] text-neutral-500"> {def.unit}</span>}
+      </div>
+      <ProgressBar value={pct} height={3} tone={def.state === "candidate" ? "candidate" : "accent"} />
+      <Pill variant={pill} className="self-start">
+        {t.live.state[def.state]}
+      </Pill>
+    </Card>
+  );
+}
+
+function AllSensorsCard({ connected }: { connected: boolean }) {
   const t = useT();
   const sensorsQuery = useAllSensors();
   const rows = sensorsQuery.data ?? [];
   const reading = sensorsQuery.isFetching;
   const readingLabel = useCyclingLabel(t.live.allSensors.readingPhrases, reading, 3000);
   const [filter, setFilter] = useState("");
-
-  const shown = rows.filter(
-    (r) =>
-      !filter ||
-      r.label.toLowerCase().includes(filter.toLowerCase()) ||
-      r.pid.toLowerCase().includes(filter.toLowerCase())
-  );
+  const q = filter.trim().toLowerCase();
+  const shown = rows.filter((r) => !q || r.label.toLowerCase().includes(q) || r.pid.toLowerCase().includes(q));
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => sensorsQuery.refetch()} disabled={!connected || reading}>
-          <RefreshCw className={"h-4 w-4" + (reading ? " animate-spin" : "")} aria-hidden="true" />
-          {reading ? readingLabel : t.live.allSensors.readButton}
-        </Button>
-        <input
+    <Card flush>
+      <div className="flex items-center gap-2.5 border-b border-divider px-4 py-3">
+        <ListFilter className="h-4 w-4 shrink-0 text-accent-400" aria-hidden="true" />
+        <span className="text-[13.5px]">{t.live.allSensors.title}</span>
+        <span className="flex-1" />
+        {sensorsQuery.dataUpdatedAt > 0 && rows.length > 0 && (
+          <span className="text-[11.5px] text-neutral-500">
+            {t.live.allSensors.readAt(new Date(sensorsQuery.dataUpdatedAt).toLocaleTimeString(), rows.length)}
+          </span>
+        )}
+        <Input
           aria-label={t.live.allSensors.filterAriaLabel}
-          className="h-9 rounded-md border border-border bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="min-h-0 w-[210px] py-[5px] text-[12.5px]"
           placeholder={t.live.allSensors.filterPlaceholder}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-        {sensorsQuery.dataUpdatedAt > 0 && rows.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {t.live.allSensors.readAt(new Date(sensorsQuery.dataUpdatedAt).toLocaleTimeString(), rows.length)}
-          </span>
-        )}
+        <Button size="sm" busy={reading} disabled={!connected} onClick={() => sensorsQuery.refetch()}>
+          {reading ? readingLabel : t.live.allSensors.readButton}
+        </Button>
       </div>
-
-      {sensorsQuery.isError && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+      <Reveal when={sensorsQuery.isError} mode="fade">
+        <Note className="px-4 py-2 text-stop">
           {String(sensorsQuery.error instanceof Error ? sensorsQuery.error.message : sensorsQuery.error)}
-        </div>
-      )}
-
-      {rows.length === 0 && !reading ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-            <Activity className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-            <p className="font-medium">{t.live.allSensors.emptyTitle}</p>
-            <p className="max-w-sm text-sm text-muted-foreground">{t.live.allSensors.emptyExplainer}</p>
-          </CardContent>
-        </Card>
+        </Note>
+      </Reveal>
+      {rows.length === 0 ? (
+        <EmptyState icon={Activity} tone="muted" title={t.live.allSensors.emptyTitle} body={t.live.allSensors.emptyExplainer} />
       ) : (
-        <Card>
-          <CardContent className="pt-4">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="pb-2 font-medium">{t.live.allSensors.pid}</th>
-                  <th className="pb-2 font-medium">{t.live.allSensors.sensor}</th>
-                  <th className="pb-2 text-right font-medium">{t.live.allSensors.value}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((reading) => (
-                  <tr key={reading.pid} className="border-b border-border/50 last:border-0">
-                    <td className="py-1.5 font-mono text-xs text-muted-foreground">{reading.pid}</td>
-                    <td className="py-1.5">{reading.label}</td>
-                    <td className="py-1.5 text-right font-mono tabular-nums">
-                      {reading.value.toFixed(1)} <span className="text-xs text-muted-foreground">{reading.unit}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+        <>
+          <Table>
+            <thead>
+              <tr>
+                <Th>{t.live.allSensors.pid}</Th>
+                <Th>{t.live.allSensors.sensor}</Th>
+                <Th align="right">{t.live.allSensors.value}</Th>
+                <Th>{t.live.allSensors.unit}</Th>
+                <Th>{t.live.allSensors.source}</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => (
+                <Tr key={r.pid}>
+                  <Td><Mono>{r.pid}</Mono></Td>
+                  <Td>{r.label}</Td>
+                  <Td align="right"><Mono>{r.value.toFixed(1)}</Mono></Td>
+                  <Td className="text-neutral-500">{r.unit}</Td>
+                  <Td className="text-neutral-500">{t.live.allSensors.sourceStandard}</Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+          <Reveal when={shown.length === 0 && q.length > 0} mode="fade">
+            <Note className="px-4 py-[18px] text-center">{t.live.allSensors.noMatch(filter.trim())}</Note>
+          </Reveal>
+        </>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -138,66 +185,105 @@ export function Live({
   live,
   connected,
   scanning = false,
+  vehicleId = null,
 }: {
   live: LiveMap;
   connected: boolean;
-  /// A UDS scan (auto-discovery or the manual range scanner, either tab)
-  /// is running — standard PID polling is paused for its duration, so
-  /// nothing here would update anyway. Shown explicitly rather than
-  /// letting the gauges silently go stale, and this reads from the same
-  /// global conn-status every tab gets, so it's accurate even if the scan
-  /// was started from the Lab tab while the user is sitting here
-  /// (owner, 2026-08-24).
+  /** A UDS scan pauses standard polling; say so instead of going stale. */
   scanning?: boolean;
+  connState?: string;
+  vehicleId?: number | null;
 }) {
   const t = useT();
-  const [mode, setMode] = useState<"gauges" | "table">("gauges");
-  const hasData = Object.keys(live).length > 0;
+  const { locale } = useLocale();
+  const [mode, setMode] = useState<"now" | "trend">("now");
+  const { pins, toggle } = usePins(vehicleId);
+  const probesQuery = useListProbes(vehicleId);
+  const probes = probesQuery.data ?? [];
+  const seen = useRef(new Map<string, { lo: number; hi: number }>()).current;
+  const liveOk = connected && !scanning;
+
+  const defs = useMemo<SensorDef[]>(() => {
+    const standard: SensorDef[] = GAUGES.map((g) => ({
+      key: g.key,
+      name: gaugeLabel(g.key, locale),
+      unit: g.unit,
+      state: "standard",
+      fmt: g.fmt ?? ((v) => v.toFixed(1)),
+      range: GAUGE_RANGES[g.key] ?? null,
+    }));
+    const known = new Set(GAUGES.map((g) => g.key));
+    const discovered: SensorDef[] = Object.keys(live)
+      .filter((k) => !known.has(k))
+      .map((k) => {
+        const p = probeFor(k, probes);
+        return {
+          key: k,
+          name: p?.label ?? k.replace(/^uds_/, "").replace(/_/g, " "),
+          unit: p?.unit ?? "",
+          state: stateOf(p),
+          fmt: (v) => v.toFixed(2),
+          range: null,
+        };
+      });
+    return [...standard, ...discovered];
+  }, [live, probes, locale]);
+
+  const groups = useMemo(() => {
+    const pinned = defs.filter((d) => pins.includes(d.key));
+    const standard = defs.filter((d) => d.range !== null || GAUGES.some((g) => g.key === d.key));
+    const discovered = defs.filter((d) => !standard.includes(d));
+    const out: { name: string; rows: SensorDef[] }[] = [];
+    if (pinned.length) out.push({ name: t.live.groupPinned, rows: pinned });
+    out.push({ name: t.live.groupStandard, rows: standard });
+    if (discovered.length) out.push({ name: t.live.groupDiscovered, rows: discovered });
+    return out;
+  }, [defs, pins, t]);
+
+  const note = mode === "trend" ? t.live.noteStored : scanning ? t.live.noteScanning : connected ? t.live.noteLive : t.live.noteOffline;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-tight">{t.live.title}</h1>
-        <Segmented
+    <>
+      <Block className="flex items-center gap-3">
+        <Seg
+          size="md"
           value={mode}
           onChange={setMode}
           options={[
-            { value: "gauges", label: t.live.modeGauges },
-            { value: "table", label: t.live.modeAllSensors },
+            { value: "now", label: t.live.modeNow, icon: Activity },
+            { value: "trend", label: t.live.modeTrend, icon: ChartLine },
           ]}
         />
-      </div>
+        <span className="flex-1 text-[12px] text-neutral-500">{note}</span>
+      </Block>
 
-      {scanning ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-            <Radar className="h-8 w-8 animate-pulse text-muted-foreground" aria-hidden="true" />
-            <p className="font-medium">{t.live.scanningTitle}</p>
-            <p className="max-w-sm text-sm text-muted-foreground">{t.live.scanningExplainer}</p>
-          </CardContent>
-        </Card>
-      ) : mode === "gauges" ? (
-        <>
-          {!connected && !hasData && (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
-                <Activity className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-                <p className="font-medium">{t.live.notConnectedTitle}</p>
-                <p className="max-w-sm text-sm text-muted-foreground">{t.live.notConnectedExplainer}</p>
-              </CardContent>
-            </Card>
-          )}
-          <Gauges live={live} />
-          {hasData && (
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Database className="h-3 w-3" aria-hidden="true" />
-              {t.live.recordingNote}
-            </p>
-          )}
-        </>
-      ) : (
-        <AllSensorsTable connected={connected} />
-      )}
-    </div>
+      <Swap k={mode} className="flex flex-col gap-4">
+        {mode === "now" ? (
+          <>
+            {groups.map((g) => (
+              <div key={g.name} className="flex flex-col gap-[7px]">
+                <SectionLabel>{g.name}</SectionLabel>
+                <div className="grid grid-cols-3 gap-[9px]">
+                  {g.rows.map((d) => (
+                    <SensorCard
+                      key={d.key}
+                      def={d}
+                      value={live[d.key]}
+                      live={liveOk}
+                      pinned={pins.includes(d.key)}
+                      onPin={() => toggle(d.key)}
+                      seen={seen}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            <AllSensorsCard connected={liveOk} />
+          </>
+        ) : (
+          <Trend vehicleId={vehicleId} />
+        )}
+      </Swap>
+    </>
   );
 }

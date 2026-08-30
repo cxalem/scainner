@@ -1,235 +1,200 @@
-import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
-import { useState } from "react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, useCyclingLabel } from "@/components/ui";
-import type { DtcResult, ObdClearOutcome } from "@scainner/core";
+import { useEffect, useState } from "react";
+import { AlertTriangle, Check, CheckCircle2, Circle, Eraser, Loader2, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Banner, Button, Card, EmptyState, Mono } from "@/components/ui";
+import { Stagger, Row, Swap } from "@/motion/components";
+import type { DtcResult, DtcScanRow, ObdClearOutcome } from "@scainner/core";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
 import { useClearDtcs, useScanDtcs } from "@/features/diagnose/queries";
 import { detectVoltageCluster } from "@/lib/dtc-grouping";
-import { CodeStatusSection } from "@/views/diagnose/CodeStatusSection";
-import { VoltageClusterNote } from "@/views/diagnose/VoltageClusterNote";
-import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
-import { useLocale, useT } from "@/i18n";
-import { formatVoltage } from "@/lib/format";
+import { CodeRow, type CodeStatus } from "@/views/diagnose/CodeRow";
+import { useT } from "@/i18n";
 
-// A workspace box, not a card that grows: connect → scan → read the codes →
-// clear → rescan → drive → rescan is the app's core loop (Alejandro,
-// 2026-08-21 — "that's probably the main feature"), so it gets one
-// dedicated, fixed-footprint area instead of being one card among several
-// equal-weight ones. WORKSPACE_HEIGHT is fixed (min AND max) on purpose: a
-// 60-code group expanding, or a scan replacing an empty state, changes what
-// scrolls INSIDE this box, never how much the rest of the page moves — the
-// strongest version of engineering.md rule 5 ("no layout shifts"), since
-// there is nothing left to animate rather than something animated well.
-const WORKSPACE_HEIGHT = "26rem";
+// The four things one scan does, shown as a list of sentences rather than a
+// spinner. The backend runs them as one call, so progress here is paced on
+// a timer while the mutation is pending and settles to "all done" with it.
+const STEP_KEYS = ["standard", "modules", "freeze", "readiness"] as const;
+const STEP_MS = 800;
 
-// Owns the whole scan/clear interaction end to end (toolbar, confirm modal,
-// error/cleared banners, the results workspace) so it reads as one
-// self-contained console instead of a toolbar plus a separate results card
-// plus banners scattered above it. `scan` is still controlled by the parent
-// (Diagnose.tsx) — Readiness monitors and the AI report card need the same
-// value — this component only reports results upward via callbacks.
+type ScanState = "idle" | "running" | "done" | "clear";
+
 export function ScanConsole({
   connected,
   scan,
+  history,
+  readiness,
   onScanSuccess,
   onClearSuccess,
-  onSelect,
 }: {
   connected: boolean;
   scan: DtcResult | null;
+  history: DtcScanRow[];
+  readiness: Record<string, boolean> | null;
   onScanSuccess: (scan: DtcResult, readiness: Record<string, boolean> | null) => void;
   onClearSuccess: (outcome: ObdClearOutcome) => void;
-  onSelect: (code: string) => void;
 }) {
   const t = useT();
-  const { locale } = useLocale();
   const [confirmClear, setConfirmClear] = useState(false);
-  const [clearedBanner, setClearedBanner] = useState<{ before: number; after: number } | null>(null);
+  const [cleared, setCleared] = useState(false);
+  const [openCode, setOpenCode] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [scannedAt, setScannedAt] = useState<string | null>(null);
 
   const scanMutation = useScanDtcs();
   const clearMutation = useClearDtcs();
   const error = scanMutation.error ?? clearMutation.error;
-  const cyclingLabel = useCyclingLabel(t.diagnose.console.scanningPhrases, scanMutation.isPending);
+  const pending = scanMutation.isPending;
 
-  const totalCodes = scan ? scan.stored.length + scan.pending.length + scan.permanent.length : 0;
+  useEffect(() => {
+    if (!pending) return;
+    setStep(0);
+    const id = window.setInterval(() => setStep((s) => Math.min(s + 1, STEP_KEYS.length - 1)), STEP_MS);
+    return () => window.clearInterval(id);
+  }, [pending]);
+
+  const codes: { code: string; status: CodeStatus }[] = scan
+    ? [
+        ...scan.stored.map((code) => ({ code, status: "stored" as const })),
+        ...scan.permanent.filter((c) => !scan.stored.includes(c)).map((code) => ({ code, status: "permanent" as const })),
+        ...scan.pending.filter((c) => !scan.stored.includes(c)).map((code) => ({ code, status: "pending" as const })),
+      ]
+    : [];
+  const total = codes.length;
   const voltageAffected = new Set(scan ? (detectVoltageCluster(scan)?.affected ?? []) : []);
+  const state: ScanState = pending ? "running" : !scan ? "idle" : cleared && total === 0 ? "clear" : "done";
 
   const doScan = () => {
+    setCleared(false);
+    setOpenCode(null);
     scanMutation.mutate(undefined, {
-      onSuccess: ({ scan: scanResult, readiness: readinessResult }) => onScanSuccess(scanResult, readinessResult),
+      onSuccess: ({ scan: scanResult, readiness: readinessResult }) => {
+        setScannedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+        onScanSuccess(scanResult, readinessResult);
+      },
     });
   };
 
   const doClear = () => {
-    // The backend does the whole verified write (scan, clear, scan again)
-    // and logs it to the write history; useClearDtcs sends `confirmed:
-    // true` or the command refuses — part of the write safety rail.
     clearMutation.mutate(undefined, {
       onSuccess: (outcome) => {
         onClearSuccess(outcome);
-        setClearedBanner({
-          before: outcome.before.stored.length + outcome.before.pending.length,
-          after: outcome.after.stored.length + outcome.after.pending.length,
-        });
+        setCleared(true);
+        setOpenCode(null);
       },
-      // Modal closes only once the mutation settles (success or error), not
-      // on click — closing immediately would leave a destructive, chained
-      // slow-hardware action with no visible owner while it ran
-      // (interaction-audit.md worst offender #1).
       onSettled: () => setConfirmClear(false),
     });
   };
 
+  const monitorsDone = readiness ? Object.values(readiness).filter(Boolean).length : 0;
+  const monitorsTotal = readiness ? Object.keys(readiness).length : 0;
+  const subline = !connected
+    ? t.diagnose.v2.sublineArchive
+    : scan && scannedAt
+      ? t.diagnose.v2.sublineDone(scannedAt)
+      : t.diagnose.v2.sublineIdle;
+
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle>{t.diagnose.console.cardTitle}</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button onClick={doScan} disabled={!connected || scanMutation.isPending}>
-              <RefreshCw className={"h-4 w-4" + (scanMutation.isPending ? " animate-spin" : "")} aria-hidden="true" />
-              {scanMutation.isPending ? t.diagnose.console.scanning : t.diagnose.console.scan}
-            </Button>
-            {/* Stays mounted while ConfirmWrite is up — hiding it shifted
-                the toolbar behind the modal (no layout shifts). */}
-            {scan && totalCodes > 0 && (
-              <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={confirmClear}>
-                {t.diagnose.console.clearCodes}
-              </Button>
+    <Card flush>
+      <div className="flex items-center gap-3 border-b border-divider px-[17px] py-[13px]">
+        <Button variant="primary" icon={Search} busy={pending} onClick={doScan} disabled={!connected}>
+          {pending ? t.diagnose.v2.scanning : scan ? t.diagnose.v2.scanAgain : t.diagnose.v2.scanForFaults}
+        </Button>
+        <span className="flex-1 text-[12px] text-neutral-500">{subline}</span>
+        {scan && total > 0 && !pending && (
+          <Button variant="ghost" size="sm" icon={Eraser} onClick={() => setConfirmClear(true)} disabled={!connected}>
+            {t.diagnose.console.clearCodes}
+          </Button>
+        )}
+      </div>
+
+      {error && (
+        <Banner tone="stop" icon={AlertTriangle}>
+          {String(error instanceof Error ? error.message : error)}
+        </Banner>
+      )}
+
+      <Swap k={state}>
+        {state === "idle" && (
+          <EmptyState icon={Search} title={t.diagnose.v2.noScanTitle} body={t.diagnose.v2.noScanBody} />
+        )}
+        {state === "running" && (
+          <Stagger className="flex flex-col gap-[9px] px-[17px] py-[15px]">
+            {STEP_KEYS.map((k, i) => {
+              const done = i < step;
+              const active = i === step;
+              const Icon = done ? Check : active ? Loader2 : Circle;
+              return (
+                <Row key={k} className="flex items-center gap-2.5 text-[13px]">
+                  <Icon
+                    className={cn("h-[15px] w-[15px] shrink-0", done ? "text-ok" : active ? "animate-spin text-accent-400" : "text-neutral-700")}
+                    aria-hidden="true"
+                  />
+                  <span className={cn("flex-1", i <= step ? "text-neutral-200" : "text-neutral-600")}>{t.diagnose.v2.steps[k]}</span>
+                  <Mono className="text-[11.5px] text-neutral-500">{done ? t.diagnose.v2.stepDetail[k] : active ? t.diagnose.v2.working : ""}</Mono>
+                </Row>
+              );
+            })}
+          </Stagger>
+        )}
+        {state === "clear" && (
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3 border-b border-divider bg-ok-bg px-[17px] py-3 text-[13px] text-ok">
+              <CheckCircle2 className="h-[17px] w-[17px]" aria-hidden="true" />
+              <span className="flex-1">{t.diagnose.v2.nothingStored}</span>
+            </div>
+            <EmptyState icon={CheckCircle2} tone="ok" title={t.diagnose.v2.allClearTitle} body={t.diagnose.v2.allClearBody} />
+          </div>
+        )}
+        {state === "done" && scan && (
+          <div className="flex flex-col">
+            <div
+              className={cn(
+                "flex items-center gap-3 border-b border-divider px-[17px] py-3 text-[13px]",
+                scan.mil_on ? "bg-warn-bg text-warn" : total === 0 ? "bg-ok-bg text-ok" : "bg-warn-bg text-warn",
+              )}
+            >
+              {scan.mil_on || total > 0 ? (
+                <AlertTriangle className="h-[17px] w-[17px]" aria-hidden="true" />
+              ) : (
+                <CheckCircle2 className="h-[17px] w-[17px]" aria-hidden="true" />
+              )}
+              <span className="flex-1">{scan.mil_on ? t.diagnose.v2.milOn(total) : t.diagnose.v2.milOff(total)}</span>
+            </div>
+            {total === 0 ? (
+              <EmptyState icon={CheckCircle2} tone="ok" title={t.diagnose.console.noFaultCodesTitle} body={t.diagnose.console.noFaultCodesExplainer} />
+            ) : (
+              codes.map(({ code, status }) => (
+                <CodeRow
+                  key={code}
+                  code={code}
+                  status={status}
+                  open={openCode === code}
+                  onToggle={() => setOpenCode((c) => (c === code ? null : code))}
+                  history={history}
+                  freeze={(scan.freeze as Record<string, unknown> | null | undefined) ?? null}
+                  voltageLinked={voltageAffected.has(code)}
+                />
+              ))
             )}
           </div>
-        </div>
-
-        {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {/* Backend error text — untranslated in Phase 1, see plan.md's
-                Phase 5 (Rust/backend strings) */}
-            {String(error instanceof Error ? error.message : error)}
-          </div>
         )}
+      </Swap>
 
-        {clearedBanner && (
-          <div className="flex flex-col gap-1.5 rounded-md border border-border bg-muted/50 p-3 text-sm">
-            <p className="flex items-center gap-1.5 font-medium">
-              {clearedBanner.after === 0 ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                  {t.diagnose.console.clearedVerified(clearedBanner.before)}
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
-                  {t.diagnose.console.clearedButCameBack(clearedBanner.after)}
-                </>
-              )}
-            </p>
-            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              {t.diagnose.console.resetNote}
-            </p>
-          </div>
-        )}
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex flex-col" style={{ minHeight: WORKSPACE_HEIGHT, maxHeight: WORKSPACE_HEIGHT }}>
-          {scanMutation.isPending ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
-              <div className="relative h-1 w-48 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="absolute inset-y-0 left-0 w-1/3 animate-[scan-sweep_1.4s_ease-in-out_infinite] rounded-full bg-primary motion-reduce:animate-none"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">{cyclingLabel}</p>
-            </div>
-          ) : !scan ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center">
-              <p className="text-sm text-muted-foreground">{t.diagnose.console.noScanYet}</p>
-              <p className="text-sm text-muted-foreground">{t.diagnose.console.clickToScan}</p>
-            </div>
-          ) : (
-            <div className="animate-fade-slide-in flex flex-1 flex-col gap-3 overflow-hidden">
-              {/* Pinned, never scrolls away — freeze frame was landing at
-                  the bottom of the code list before this, invisible behind
-                  however many codes came before it (Alejandro, 2026-08-21:
-                  "that information remains hidden... important information
-                  should be visible"). Only the code groups below scroll;
-                  the state summary of the car at the moment of the scan
-                  never does. */}
-              <div className="flex items-center gap-2">
-                {scan.mil_on ? (
-                  <Badge variant="error">{t.diagnose.console.milOn(scan.dtc_count)}</Badge>
-                ) : (
-                  // Badge's own dot already carries the "ok" signal — no
-                  // need for a second checkmark icon on top of it.
-                  <Badge variant="ok">{t.diagnose.console.milOff}</Badge>
-                )}
-                {scan.voltage != null && <Badge variant="muted">{formatVoltage(scan.voltage, locale)}</Badge>}
-              </div>
-              <VoltageClusterNote scan={scan} />
-              {scan.freeze && <FreezeFrame data={scan.freeze as Record<string, unknown>} />}
-
-              {totalCodes === 0 ? (
-                // A real empty state, not a stray line of text inside an
-                // otherwise-empty 26rem box — this is what it looked like
-                // right after a successful clear (Alejandro, 2026-08-21:
-                // "the space looks empty, looks weird... we need
-                // information for the empty state"). Centered like the
-                // idle/scanning states above, and this is a GOOD outcome
-                // (a clean car), so it reads as confirmation, not as
-                // something broken.
-                <div className="flex flex-1 flex-col items-center justify-center gap-1 px-4 text-center">
-                  <CheckCircle2 className="mb-1 h-6 w-6 text-primary" aria-hidden="true" />
-                  <p className="text-sm font-medium">{t.diagnose.console.noFaultCodesTitle}</p>
-                  <p className="text-sm text-muted-foreground">{t.diagnose.console.noFaultCodesExplainer}</p>
-                </div>
-              ) : (
-                // overflow-y-scroll (not -auto): a small scan that fits
-                // without scrolling and a large one that needs to scroll
-                // would otherwise render at different widths — same
-                // gutter fix as Shell.tsx's outer scroll area, just local
-                // here.
-                <div className="flex flex-1 flex-col gap-3 overflow-y-scroll pr-1">
-                  <CodeStatusSection
-                    label={t.diagnose.statusLabels.stored}
-                    codes={scan.stored}
-                    affected={voltageAffected}
-                    onSelect={onSelect}
-                  />
-                  <CodeStatusSection
-                    label={t.diagnose.statusLabels.pending}
-                    codes={scan.pending}
-                    affected={voltageAffected}
-                    onSelect={onSelect}
-                  />
-                  <CodeStatusSection
-                    label={t.diagnose.statusLabels.permanent}
-                    codes={scan.permanent}
-                    affected={voltageAffected}
-                    onSelect={onSelect}
-                  />
-                  <p className="text-xs text-muted-foreground">{t.diagnose.console.clickCodeHint}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </CardContent>
-
-      {confirmClear && (
-        <ConfirmWrite
-          title={t.diagnose.confirmClear.title}
-          module={t.diagnose.confirmClear.module}
-          whatChanges={t.diagnose.confirmClear.whatChanges}
-          reversal={t.diagnose.confirmClear.reversal}
-          confirmLabel={t.diagnose.confirmClear.confirmLabel}
-          busyLabel={t.diagnose.confirmClear.busyLabel}
-          busy={clearMutation.isPending}
-          onConfirm={doClear}
-          onCancel={() => setConfirmClear(false)}
-        />
-      )}
+      <ConfirmWrite
+        open={confirmClear}
+        title={t.diagnose.v2.clear.title}
+        module={t.diagnose.confirmClear.module}
+        whatChanges={t.diagnose.v2.clear.body}
+        reversal={t.diagnose.confirmClear.reversal}
+        confirmLabel={t.diagnose.v2.clear.confirm}
+        busyLabel={t.diagnose.v2.clear.confirming}
+        cancelLabel={t.diagnose.v2.clear.keep}
+        nowLine={t.diagnose.v2.clear.nowLine(scan?.stored.length ?? 0, monitorsDone, monitorsTotal)}
+        afterLine={t.diagnose.v2.clear.afterLine}
+        busy={clearMutation.isPending}
+        onConfirm={doClear}
+        onCancel={() => setConfirmClear(false)}
+      />
     </Card>
   );
 }

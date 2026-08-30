@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" fill="none" stroke-linecap="round">
+  <path d="M18.8 63.2 A30 30 0 1 1 61.2 63.2" stroke="#9184d9" stroke-width="12"></path>
+  <path d="M61.2 63.2 A30 30 0 0 1 18.8 63.2" stroke="#423a6a" stroke-width="12"></path>
+  <circle cx="61.2" cy="63.2" r="8" fill="#e7e5fe"></circle>
+  <text x="94" y="63" font-family="Inter, system-ui, sans-serif" font-size="58" font-weight="500" letter-spacing="-1.5" fill="#e9e9ed">sonda</text>
+</svg>

@@ -6,7 +6,10 @@ import App from "./App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { queryClient } from "./lib/query";
 import { I18nProvider } from "./i18n";
+import { BRAND } from "./brand";
 import "./index.css";
+
+document.title = BRAND.name;
 
 // Deliberately NO dark-mode handling: the app is single-theme (light) by
 // design — the whole redesign (paper background, the 3D scene's studio

@@ -1,103 +1,104 @@
-// Account + cloud sync: sign in with an emailed one-time code (no password,
-// no browser redirect — the right OTP shape for a desktop app), then the
-// sync engine (lib/sync.ts) pushes the local record up under this user's
-// JWT with RLS deciding every row. Lives in the Vehicle tab next to the
-// other data/export concerns until a real Settings surface exists.
+// Account + cloud sync. Sign-in itself lives on the Login gate now; this
+// card shows who is signed in and the sync state, and still offers the
+// one-time-code form for someone who continued without an account.
 import { useSyncExternalStore } from "react";
-import { CloudUpload, LogOut, UserRound } from "lucide-react";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { CloudUpload } from "lucide-react";
+import { Button, Card, CardHead, Dot, Field, Input, Note } from "@/components/ui";
+import { Swap } from "@/motion/components";
 import { useEmailOtp } from "@/features/account/useEmailOtp";
 import { getSyncStatus, requestSync, subscribeSyncStatus } from "@/lib/sync";
 import { useT } from "@/i18n";
 
-const inputCls =
-  "h-9 rounded-md border border-border bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-
 export function AccountSyncCard() {
   const t = useT();
   const sync = useSyncExternalStore(subscribeSyncStatus, getSyncStatus);
-  const { email, setEmail, code, setCode, step, setStep, busy, authError, userEmail, sendCode, verify, signOut } =
-    useEmailOtp();
+  const { email, setEmail, code, setCode, step, setStep, busy, authError, userEmail, sendCode, verify, signOut } = useEmailOtp();
+  const a = t.vehicle.account;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-1.5">
-          <CloudUpload className="h-4 w-4" aria-hidden="true" /> {t.vehicle.account.cardTitle}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 text-sm">
+    <Card className="gap-[11px]">
+      <CardHead icon={CloudUpload} title={a.syncTitle} />
+      <Swap k={userEmail == null ? step : "in"} className="flex flex-col gap-[9px]">
         {userEmail == null ? (
-          <>
-            <p className="text-muted-foreground">{t.vehicle.account.explainer}</p>
-            {step === "email" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  aria-label={t.vehicle.account.emailLabel}
-                  type="email"
-                  inputMode="email"
-                  className={inputCls + " w-64"}
-                  placeholder={t.vehicle.account.emailPlaceholder}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <Button onClick={() => void sendCode()} disabled={busy || !email.includes("@")}>
-                  {busy ? t.vehicle.account.sendingCode : t.vehicle.account.sendCode}
+          step === "email" ? (
+            <form
+              className="flex flex-col gap-[9px]"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!busy && email.includes("@")) void sendCode();
+              }}
+            >
+              <Note className="text-[12px]">{a.explainer}</Note>
+              <Field label={a.emailLabel} htmlFor="acct-email">
+                <Input id="acct-email" type="email" inputMode="email" placeholder={a.emailPlaceholder} value={email} onChange={(e) => setEmail(e.target.value)} />
+              </Field>
+              <div>
+                <Button type="submit" size="sm" variant="primary" busy={busy} disabled={busy || !email.includes("@")}>
+                  {busy ? a.sendingCode : a.sendCode}
                 </Button>
               </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <p className="text-muted-foreground">{t.vehicle.account.codeSentTo(email.trim())}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    aria-label={t.vehicle.account.codeLabel}
-                    inputMode="numeric"
-                    className={inputCls + " w-32 font-mono tracking-widest"}
-                    placeholder="123456"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  />
-                  <Button onClick={() => void verify()} disabled={busy || code.length < 6}>
-                    {busy ? t.vehicle.account.verifying : t.vehicle.account.verify}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setStep("email")} disabled={busy}>
-                    {t.common.cancel}
-                  </Button>
-                </div>
+            </form>
+          ) : (
+            <form
+              className="flex flex-col gap-[9px]"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!busy && code.length >= 6) void verify();
+              }}
+            >
+              <Note className="text-[12px]">{a.codeSentTo(email.trim())}</Note>
+              <Field label={a.codeLabel} htmlFor="acct-code">
+                <Input
+                  id="acct-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="num tracking-[0.3em]"
+                  placeholder="123456"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                />
+              </Field>
+              <div className="flex gap-[7px]">
+                <Button type="submit" size="sm" variant="primary" busy={busy} disabled={busy || code.length < 6}>
+                  {busy ? a.verifying : a.verify}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setStep("email")} disabled={busy}>
+                  {t.common.cancel}
+                </Button>
               </div>
-            )}
-            {authError && <p className="text-destructive">{authError}</p>}
-          </>
+            </form>
+          )
         ) : (
           <>
-            <p className="flex items-center gap-1.5">
-              <UserRound className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              {t.vehicle.account.signedInAs(userEmail)}
-            </p>
-            <p className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-[9px] text-[12.5px]">
+              <Dot tone="ok" />
+              <span className="flex-1 text-neutral-300">{a.signedInAs(userEmail)}</span>
+            </div>
+            <Note className="text-[12px]">
               {sync.phase === "syncing"
-                ? t.vehicle.account.syncing
+                ? a.syncing
                 : sync.lastSyncAt != null
-                  ? t.vehicle.account.lastSync(new Date(sync.lastSyncAt).toLocaleTimeString())
-                  : t.vehicle.account.neverSynced}
-            </p>
+                  ? a.lastSync(new Date(sync.lastSyncAt).toLocaleTimeString())
+                  : a.neverSynced}{" "}
+              {a.syncedNote}
+            </Note>
             {sync.phase === "error" && sync.lastError && (
-              <p className="text-xs text-destructive">
-                {t.vehicle.account.syncErrorLabel} {sync.lastError}
-              </p>
+              <Note className="text-[12px] text-stop">
+                {a.syncErrorLabel} {sync.lastError}
+              </Note>
             )}
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={requestSync} disabled={sync.phase === "syncing"}>
-                <CloudUpload className="h-4 w-4" aria-hidden="true" />
-                {sync.phase === "syncing" ? t.vehicle.account.syncing : t.vehicle.account.syncNow}
+            <div className="flex gap-[7px]">
+              <Button size="sm" onClick={requestSync} busy={sync.phase === "syncing"}>
+                {sync.phase === "syncing" ? a.syncing : a.syncNow}
               </Button>
-              <Button variant="ghost" onClick={signOut}>
-                <LogOut className="h-4 w-4" aria-hidden="true" /> {t.vehicle.account.signOut}
+              <Button size="sm" variant="ghost" onClick={signOut}>
+                {a.signOut}
               </Button>
             </div>
           </>
         )}
-      </CardContent>
+      </Swap>
+      {authError && <Note className="text-[12px] text-stop">{authError}</Note>}
     </Card>
   );
 }
