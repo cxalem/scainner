@@ -100,9 +100,14 @@ export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
 // so it can't silently drift. saic/vauxhall/cupra have a modeled emblem
 // but no WMI entry (see emblems.tsx's own comment) — named by hand since
 // WMI has no casing for them to borrow.
+// Leads with "dacia" — its GLB is by far the smallest of the 24 (166 KB vs.
+// several multi-MB files, volvo/audi over 9 MB) — on a genuinely cold app
+// launch (nothing preloaded yet), the first carousel brand is whatever
+// EmblemFallback's "loading" window is shortest for (2026-08-30). The rest
+// of the order is otherwise arbitrary.
 const MODELED_EMBLEM_KEYS = [
-  "volvo", "citroen", "audi", "bmw", "mercedes", "peugeot", "renault", "skoda",
-  "toyota", "volkswagen", "dacia", "hyundai", "kia", "opel", "fiat", "ford",
+  "dacia", "volvo", "citroen", "audi", "bmw", "mercedes", "peugeot", "renault",
+  "skoda", "toyota", "volkswagen", "hyundai", "kia", "opel", "fiat", "ford",
   "geely", "byd", "chery", "tesla", "seat", "saic", "vauxhall", "cupra",
 ] as const;
 const UNROUTED_EMBLEM_NAMES: Record<string, string> = { saic: "SAIC", vauxhall: "Vauxhall", cupra: "Cupra" };

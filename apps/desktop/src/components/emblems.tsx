@@ -6,13 +6,13 @@
 // disposed on unmount. See docs/workflows/patterns/3d.md rules 7-9 for the
 // constraints this module is built against (camera framing, chrome
 // material behavior, per-emblem triangle budget).
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { useFrame, useLoader } from "@react-three/fiber";
+import { useLoader } from "@react-three/fiber";
 import { CHROME_MATERIAL, NAMEPLATE_TEXTURE } from "@/theme";
 
 // Re-exported under its original name — sourced from ../theme/rendering.ts
@@ -41,30 +41,25 @@ export function preloadEmblem(key: string | null | undefined): void {
   useLoader.preload(GLTFLoader, `/emblems/glb/${key}.glb`);
 }
 
-// The Suspense fallback while a modeled emblem's GLB is loading — a plain
-// chrome plaque (no face texture, no text) at NameplateEmblem's own
-// proportions, with a slow breathing pulse so it never reads as frozen or
-// broken. Deliberately NOT a car-silhouette placeholder (the old
-// CarModelFallback in VehicleScene.tsx, tuned for the retired per-car-body
-// system): a rectangular car-body brick sitting where a round/shield badge
-// is about to appear looked exactly like a loading bug, which is the
-// complaint this replaces (2026-08-30). In the common case this never
-// renders at all — preloadEmblem above keeps the GLB warm ahead of need —
-// this is the fallback for the first cold paint before that preload lands.
+// The Suspense fallback while a modeled emblem's GLB is loading — nothing.
+// No mesh at all, not even a plain placeholder plaque: the first attempt
+// here (a flat chrome plaque, a step up from the old car-body-shaped
+// CarModelFallback it replaced) was STILL reported as "a brick" on a true
+// cold start (2026-08-30) — a large GLB (several are multi-MB; a genuinely
+// fresh app launch has nothing preloaded yet to race against) takes real,
+// visible time to parse no matter what shape stands in for it, and ANY
+// placeholder geometry risks reading as "the wrong logo" or "a loading
+// bug" the way the very first version did. Nothing can't look wrong: the
+// dust field (still rendered behind this) plus the caption text
+// ("Discovering modules…"/"Reading identity") already carry the loading
+// signal on their own, the same restrained pattern ConnectGate's own
+// pre-VIN idle state already uses (rings + text, no 3D object). In the
+// common case this doesn't matter anyway — preloadEmblem (called wherever
+// a brand becomes known) keeps the GLB warm ahead of need, and
+// MODELED_EMBLEM_KEYS leads with the smallest file so even the true
+// first-paint window is as short as it can be.
 export function EmblemFallback() {
-  const mesh = useRef<THREE.Mesh>(null!);
-  useFrame(({ clock }) => {
-    if (!mesh.current) return;
-    const t = clock.getElapsedTime();
-    const pulse = 0.85 + 0.15 * Math.sin(t * 2.2);
-    mesh.current.scale.setScalar(pulse);
-  });
-  return (
-    <mesh ref={mesh} position={[0, EMBLEM_Y, 0]} castShadow>
-      <boxGeometry args={[2.6, 0.6, 0.16]} />
-      <meshPhysicalMaterial {...EMBLEM_CHROME} />
-    </mesh>
-  );
+  return null;
 }
 
 // Shared extrude settings for every hand-authored emblem (per patterns/3d.md
