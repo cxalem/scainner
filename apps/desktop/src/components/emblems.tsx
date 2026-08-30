@@ -364,6 +364,19 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   chery: glbEmblem("chery.glb"),
   tesla: glbEmblem("tesla.glb"),
   seat: glbEmblem("seat.glb"),
+  // Added 2026-08-30: already had real WMI routing (brand.ts) and was
+  // rendering the plain nameplate fallback for lack of a modeled mark — no
+  // VIN-reachability question to resolve, unlike saic/vauxhall/cupra below.
+  // porsche, jaguar and suzuki were sourced in the same pass but visually
+  // rejected before shipping: porsche's badge text rendered mirrored/
+  // backward (the same defect volvo's bundled file already had — a real,
+  // pre-existing issue in this asset batch, not something introduced
+  // here), suzuki's geometry was outright broken (jagged, unrecognizable
+  // as the real mark), and jaguar rendered flat with no shading detail —
+  // uncertain enough to hold rather than guess. Their .glb files were
+  // removed, not just left unregistered. Follow-up: re-source from a
+  // batch that doesn't have this defect.
+  "land-rover": glbEmblem("land-rover.glb"),
   // saic, vauxhall, and cupra have no brand.ts WMI entry on purpose — see
   // brand.ts and decisions-build.md. SAIC Motor doesn't retail cars under
   // its own name (badges as MG/Roewe/Maxus instead). Vauxhall and Cupra

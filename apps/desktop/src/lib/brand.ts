@@ -25,6 +25,7 @@
 // a consumer can tell "has a diagnostic profile" from "has a badge".
 
 import rawWmi from "../data/wmi.json";
+import modeledEmblems from "../data/modeled-emblems.json";
 
 export type Confidence = "high" | "medium-high" | "medium" | "low";
 
@@ -94,23 +95,25 @@ export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
 })();
 
 // Keys with a real modeled emblem (components/emblems.tsx's EMBLEMS
-// registry) — kept as plain data here, not imported from emblems.tsx,
-// which would drag three.js/GLTFLoader into every RECOGNISED_BRANDS
-// consumer. brand.test.ts asserts this list matches the registry exactly,
+// registry) — read from ../data/modeled-emblems.json, same pack-data
+// placement as wmi.json above and for the same reason (scripts/
+// lint_brand_tokens.py's own header: "Brand and vehicle names belong in
+// pack data, not in code" — this file's literal brand-name array is
+// exactly what that lint scans for; a plain data/ import is excluded by
+// design, the documented way to hold this fact, not a workaround).
+// Also kept separate from emblems.tsx itself so importing this doesn't
+// drag three.js/GLTFLoader into every RECOGNISED_BRANDS consumer.
+// brand.test.ts asserts this list matches the EMBLEMS registry exactly,
 // so it can't silently drift. saic/vauxhall/cupra have a modeled emblem
-// but no WMI entry (see emblems.tsx's own comment) — named by hand since
-// WMI has no casing for them to borrow.
-// Leads with "dacia" — its GLB is by far the smallest of the 24 (166 KB vs.
-// several multi-MB files, volvo/audi over 9 MB) — on a genuinely cold app
-// launch (nothing preloaded yet), the first carousel brand is whatever
-// EmblemFallback's "loading" window is shortest for (2026-08-30). The rest
-// of the order is otherwise arbitrary.
-const MODELED_EMBLEM_KEYS = [
-  "dacia", "volvo", "citroen", "audi", "bmw", "mercedes", "peugeot", "renault",
-  "skoda", "toyota", "volkswagen", "hyundai", "kia", "opel", "fiat", "ford",
-  "geely", "byd", "chery", "tesla", "seat", "saic", "vauxhall", "cupra",
-] as const;
-const UNROUTED_EMBLEM_NAMES: Record<string, string> = { saic: "SAIC", vauxhall: "Vauxhall", cupra: "Cupra" };
+// but no WMI entry (see emblems.tsx's own comment) — named by hand in the
+// JSON's unroutedNames since WMI has no casing for them to borrow.
+// The JSON's order leads with "dacia" — its GLB is by far the smallest of
+// the 24 (166 KB vs. several multi-MB files, volvo/audi over 9 MB) — on a
+// genuinely cold app launch (nothing preloaded yet), the first carousel
+// brand is whatever EmblemFallback's "loading" window is shortest for
+// (2026-08-30). The rest of the order is otherwise arbitrary.
+const MODELED_EMBLEM_KEYS = modeledEmblems.keys;
+const UNROUTED_EMBLEM_NAMES: Record<string, string> = modeledEmblems.unroutedNames;
 
 /** The brands the app can actually show a real 3D logo for — what the
  *  login screen's emblem carousel and chip row cycle through. A strict

@@ -205,7 +205,10 @@ describe("emblem keys are reachable", () => {
   it("every EMBLEMS key is a wmi.json key or an explicit preview-only emblem", async () => {
     const src = readFileSync(join(HERE, "../components/emblems.tsx"), "utf-8");
     const record = src.slice(src.indexOf("export const EMBLEMS"));
-    const keys = [...record.matchAll(/^  ([a-z][a-z0-9_-]*): (?:glb|stl)Emblem\(/gm)].map((m) => m[1]);
+    // "?...?": a key with a hyphen (e.g. "land-rover", not a valid bare JS
+    // identifier) is written quoted in the object literal — accept both
+    // forms so a real, functioning quoted key isn't invisible to this scrape.
+    const keys = [...record.matchAll(/^  "?([a-z][a-z0-9_-]*)"?: (?:glb|stl)Emblem\(/gm)].map((m) => m[1]);
     expect(keys.length).toBeGreaterThan(10);
     const previewMatch = src.match(/export const PREVIEW_ONLY_EMBLEMS = \[([^\]]*)\]/);
     expect(previewMatch).not.toBeNull();
@@ -221,7 +224,7 @@ describe("emblem keys are reachable", () => {
     const src = readFileSync(join(HERE, "../components/emblems.tsx"), "utf-8");
     const record = src.slice(src.indexOf("export const EMBLEMS"));
     const registryKeys = new Set(
-      [...record.matchAll(/^  ([a-z][a-z0-9_-]*): (?:glb|stl)Emblem\(/gm)].map((m) => m[1]),
+      [...record.matchAll(/^  "?([a-z][a-z0-9_-]*)"?: (?:glb|stl)Emblem\(/gm)].map((m) => m[1]),
     );
     const modeledKeys = new Set(MODELED_BRANDS.map((b) => b.key));
     expect(modeledKeys).toEqual(registryKeys);
