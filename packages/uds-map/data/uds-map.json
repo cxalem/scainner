@@ -5339,6 +5339,13 @@
           "date": "2026-08-23",
           "type": "open_implementation",
           "licence": "MIT"
+        },
+        {
+          "url": "packages/uds-map/RESEARCH.md",
+          "date": "2026-08-23",
+          "type": "community",
+          "licence": "MIT",
+          "note": "\u00a74 'VAG (VW, Audi) + \u0160koda, SEAT, Cupra': VSS is an unverified analogy from SEAT's confirmed VSS (same Martorell plant), not an independently confirmed Cupra code \u2014 the Born is built at VW Zwickau and may carry a different WMI. wmi-table.ts's shared-WMI tie-break (rows.has(code) => continue) routes VSS to `seat` because it is listed first in brands[] with the stronger claim; Cupra's badge is reachable today only via the ?brand= dev override. Get a real Cupra VIN (\u00a78 item 1) before changing this."
         }
       ]
     },

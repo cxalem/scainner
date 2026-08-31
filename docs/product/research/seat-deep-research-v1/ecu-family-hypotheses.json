@@ -1,0 +1,145 @@
+{
+  "research_date": "2026-08-30",
+  "families": [
+    {
+      "family_id": "vag_gateway_mqb_conti_nf",
+      "role": "gateway",
+      "platforms": [
+        "seat_mqb",
+        "seat_mqb_a0",
+        "seat_mqb_a_lwb"
+      ],
+      "identifiers": [
+        "EV_GatewConti",
+        "EV_GatewNF",
+        "GW MQB High"
+      ],
+      "part_prefix_examples": [
+        "5Q0",
+        "3Q0"
+      ],
+      "knowledge_state": "family_hypothesis",
+      "confidence": "high",
+      "source_refs": [
+        "S18",
+        "S19",
+        "S26"
+      ],
+      "reuse_rule": "Reuse route/identity behavior first. Promote DIDs only after matching ECU part/software or ASAM family."
+    },
+    {
+      "family_id": "vag_gateway_mqb2020",
+      "role": "gateway",
+      "platforms": [
+        "seat_mqb_evo"
+      ],
+      "identifiers": [
+        "GW2020 High",
+        "EV_GatewMQB2020"
+      ],
+      "part_prefix_examples": [
+        "5WA"
+      ],
+      "knowledge_state": "family_hypothesis",
+      "confidence": "high",
+      "source_refs": [
+        "S20",
+        "S21"
+      ],
+      "reuse_rule": "Strong MQB Evo classifier; SFD may be present, but basic reads remain permitted."
+    },
+    {
+      "family_id": "continental_mk100_ipb",
+      "role": "brakes_abs_esc",
+      "platforms": [
+        "seat_mqb",
+        "seat_mqb_a0",
+        "seat_mqb_a_lwb"
+      ],
+      "identifiers": [
+        "EV_Brake1UDSContiMK100IPB"
+      ],
+      "part_prefix_examples": [
+        "5Q0 614 517"
+      ],
+      "knowledge_state": "cross_model_family_candidate",
+      "confidence": "high",
+      "source_refs": [
+        "S25",
+        "S26"
+      ],
+      "reuse_rule": "Excellent candidate for cross-SEAT/VAG family reuse; decodes require software-family compatibility."
+    },
+    {
+      "family_id": "continental_mk100_esp",
+      "role": "brakes_abs_esc",
+      "platforms": [
+        "seat_mqb"
+      ],
+      "identifiers": [
+        "EV_Brake1UDSContiMK100ESP"
+      ],
+      "knowledge_state": "family_candidate",
+      "confidence": "medium_high",
+      "source_refs": [
+        "S01"
+      ],
+      "reuse_rule": "Keep separate from MK100IPB until route/DID compatibility is physically compared."
+    },
+    {
+      "family_id": "mqb_eps",
+      "role": "steering_assist",
+      "platforms": [
+        "seat_mqb",
+        "seat_mqb_a0",
+        "seat_mqb_a_lwb"
+      ],
+      "identifiers": [
+        "EV_SteerAssisMQB",
+        "EPS_MQB_ZFLS"
+      ],
+      "knowledge_state": "family_candidate",
+      "confidence": "medium_high",
+      "source_refs": [
+        "S18",
+        "S22",
+        "S23"
+      ],
+      "reuse_rule": "Route 712->77C is broad VAG candidate; Mii electric is a known exception at 712->71A."
+    },
+    {
+      "family_id": "mqb_kessy_hella",
+      "role": "access_start_authorization",
+      "platforms": [
+        "seat_mqb",
+        "seat_mqb_a0"
+      ],
+      "identifiers": [
+        "VWKESSYMQB",
+        "EV_KessyHellaMQBAB"
+      ],
+      "knowledge_state": "family_candidate",
+      "confidence": "high",
+      "source_refs": [
+        "S23"
+      ],
+      "reuse_rule": "Use ASAM identity to bind before importing any DIDs."
+    },
+    {
+      "family_id": "mqb_evo_brake_booster_bosch",
+      "role": "brake_booster",
+      "platforms": [
+        "seat_mqb_evo"
+      ],
+      "identifiers": [
+        "EV_BrakeBoostG2BoschVW37W"
+      ],
+      "knowledge_state": "family_candidate",
+      "confidence": "high",
+      "source_refs": [
+        "S21"
+      ],
+      "reuse_rule": "MQB Evo specific candidate; source scan shows SFD flag."
+    }
+  ]
+}

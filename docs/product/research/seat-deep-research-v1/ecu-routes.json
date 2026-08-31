@@ -1,0 +1,1760 @@
+{
+  "research_date": "2026-08-30",
+  "vag_group_route_candidates": [
+    {
+      "role": "park_assist",
+      "req": "0x70A",
+      "resp": "0x774",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "high_beam_assist",
+      "req": "0x730/0x748",
+      "resp": "0x79A/0x7B2",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "special_functions_2",
+      "req": "0x72B",
+      "resp": "0x795",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "engine_1",
+      "req": "0x7E0",
+      "resp": "0x7E8",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "engine_2",
+      "req": "0x7E2",
+      "resp": "0x7EA",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "transmission",
+      "req": "0x7E1",
+      "resp": "0x7E9",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "awd_control",
+      "req": "0x70F/0x71D",
+      "resp": "0x779/0x787",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "differential_lock_electronics",
+      "req": "0x71E",
+      "resp": "0x788",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "brakes_abs_esc",
+      "req": "0x713",
+      "resp": "0x77D",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "adaptive_cruise_1",
+      "req": "0x757",
+      "resp": "0x7C1",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "steering_angle_sensor",
+      "req": "0x751",
+      "resp": "0x7BB",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "adaptive_dampers",
+      "req": "0x772",
+      "resp": "0x7DC",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "ride_control",
+      "req": "0x755",
+      "resp": "0x7BF",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "kessy_access_start",
+      "req": "0x732",
+      "resp": "0x79C",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "airbag",
+      "req": "0x715",
+      "resp": "0x77F",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "immobilizer",
+      "req": "0x711",
+      "resp": "0x77B",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "passenger_seat_adjust",
+      "req": "0x74D",
+      "resp": "0x7B7",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "steering_column_electronics",
+      "req": "0x70C",
+      "resp": "0x776",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "roof_control",
+      "req": "0x72D",
+      "resp": "0x797",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "instrument_cluster",
+      "req": "0x714",
+      "resp": "0x77E",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "hvac",
+      "req": "0x746",
+      "resp": "0x7B0",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "auxiliary_heater",
+      "req": "0x76A",
+      "resp": "0x7D4",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "rear_climate",
+      "req": "0x71A",
+      "resp": "0x784",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "central_electronics",
+      "req": "0x70E",
+      "resp": "0x778",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "gateway",
+      "req": "0x710",
+      "resp": "0x77A",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "active_steering_or_display_alt",
+      "req": "0x716",
+      "resp": "0x780",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "steering_column_lock",
+      "req": "0x731",
+      "resp": "0x79B",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "vehicle_position_detection",
+      "req": "0x750",
+      "resp": "0x7BA",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "sliding_door_left",
+      "req": "0x733",
+      "resp": "0x79D",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "media_player_1",
+      "req": "0x770",
+      "resp": "0x7DA",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "media_player_3",
+      "req": "0x76E",
+      "resp": "0x7D8",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "air_conditioning_compressor",
+      "req": "0x719",
+      "resp": "0x783",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "tachograph",
+      "req": "0x771",
+      "resp": "0x7DB",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "drive_motor",
+      "req": "0x7E6",
+      "resp": "0x7EE",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "battery_regulation",
+      "req": "0x728",
+      "resp": "0x792",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "driver_door",
+      "req": "0x74A",
+      "resp": "0x7B4",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "passenger_door",
+      "req": "0x74B",
+      "resp": "0x7B5",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "parking_brake",
+      "req": "0x752",
+      "resp": "0x7BC",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "steering_assist",
+      "req": "0x712",
+      "resp": "0x77C",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "headlight_range",
+      "req": "0x754",
+      "resp": "0x7BE",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "tpms",
+      "req": "0x70B",
+      "resp": "0x775",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "driver_seat_adjust",
+      "req": "0x74C",
+      "resp": "0x7B6",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "comfort_module",
+      "req": "0x70D",
+      "resp": "0x777",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "radio",
+      "req": "0x718",
+      "resp": "0x782",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "navigation",
+      "req": "0x76C",
+      "resp": "0x7D6",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "sound_system",
+      "req": "0x76F",
+      "resp": "0x7D9",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "tv_tuner",
+      "req": "0x76D",
+      "resp": "0x7D7",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "trailer",
+      "req": "0x747",
+      "resp": "0x7B1",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "sensor_electronics",
+      "req": "0x721",
+      "resp": "0x78B",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "lane_change_assist",
+      "req": "0x74E",
+      "resp": "0x7B8",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "special_functions",
+      "req": "0x72C",
+      "resp": "0x796",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "information_electronics_1",
+      "req": "0x773",
+      "resp": "0x7DD",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "pretensioner_front_right",
+      "req": "0x75F",
+      "resp": "0x7C9",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "battery_charger_charge_management",
+      "req": "0x765",
+      "resp": "0x7CF",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "gearshift_controller",
+      "req": "0x753",
+      "resp": "0x7BD",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "head_up_display",
+      "req": "0x71B",
+      "resp": "0x785",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "night_vision",
+      "req": "0x727",
+      "resp": "0x791",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "armrest",
+      "req": "0x739",
+      "resp": "0x7A3",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "telematics",
+      "req": "0x767",
+      "resp": "0x7D1",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "onboard_camera",
+      "req": "0x726",
+      "resp": "0x790",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "telephone_external_communications",
+      "req": "0x76B",
+      "resp": "0x7D5",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "sliding_door_right",
+      "req": "0x734",
+      "resp": "0x79E",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "multicontour_driver_seat",
+      "req": "0x735",
+      "resp": "0x79F",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "multicontour_passenger_seat",
+      "req": "0x736",
+      "resp": "0x7A0",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "multicontour_rear_driver",
+      "req": "0x737",
+      "resp": "0x7A1",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "adaptive_cruise_2",
+      "req": "0x756",
+      "resp": "0x7C0",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "rear_view_camera",
+      "req": "0x769",
+      "resp": "0x7D3",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "hv_battery_energy_control",
+      "req": "0x7E5",
+      "resp": "0x7ED",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "deck_lid",
+      "req": "0x723",
+      "resp": "0x78D",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "multicontour_rear_passenger",
+      "req": "0x738",
+      "resp": "0x7A2",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "image_processing",
+      "req": "0x758",
+      "resp": "0x7C2",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "comfort_module_2",
+      "req": "0x745",
+      "resp": "0x7AF",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "pretensioner_front_left",
+      "req": "0x75E",
+      "resp": "0x7C8",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "front_driver_assist_sensor",
+      "req": "0x74F",
+      "resp": "0x7B9",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "high",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "micro_control_unit",
+      "req": "0x763",
+      "resp": "0x7CD",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "infotainment_interface",
+      "req": "0x749",
+      "resp": "0x7B3",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "roof_control_2",
+      "req": "0x73D",
+      "resp": "0x7A7",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "structure_borne_sound_actuator",
+      "req": "0x71C",
+      "resp": "0x786",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "auxiliary_display",
+      "req": "0x73C",
+      "resp": "0x7A6",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "rear_right_wheel_brake",
+      "req": "0x720",
+      "resp": "0x78A",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "assembly_mount",
+      "req": "0x72E",
+      "resp": "0x798",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "rear_left_wheel_brake",
+      "req": "0x71F",
+      "resp": "0x789",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "rear_driver_door",
+      "req": "0x73E",
+      "resp": "0x7A8",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "reducer_control",
+      "req": "0x72A",
+      "resp": "0x794",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "rear_passenger_door",
+      "req": "0x73F",
+      "resp": "0x7A9",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "role": "brake_system_sensor",
+      "req": "0x762",
+      "resp": "0x7CC",
+      "protocol": "can11_isotp_uds_candidate",
+      "seat_priority": "secondary",
+      "knowledge_state": "vag_group_route_candidate",
+      "confidence": "medium",
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "ODIS-derived community catalogue",
+        "independent_validation_status": "some routes independently observed in OBDb/OVMS/VCDS; not all individually checked",
+        "project_physical_validation_status": "not_tested"
+      },
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    }
+  ],
+  "seat_mii_electric_exact_routes": [
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "motor_electronics",
+      "req": "0x7E0",
+      "resp": "0x7E8",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "brakes",
+      "req": "0x713",
+      "resp": "0x77D",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "instrument_cluster_mfd",
+      "req": "0x714",
+      "resp": "0x77E",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "brake_booster",
+      "req": "0x73B",
+      "resp": "0x743",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "steering_assist",
+      "req": "0x712",
+      "resp": "0x71A",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "electric_drive",
+      "req": "0x7E6",
+      "resp": "0x7EE",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "information_electronics",
+      "req": "0x773",
+      "resp": "0x7DD",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "immobilizer",
+      "req": "0x711",
+      "resp": "0x77B",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "hv_battery_management",
+      "req": "0x7E5",
+      "resp": "0x7ED",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "brake_system_sensors",
+      "req": "0x762",
+      "resp": "0x76A",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "hv_charger",
+      "req": "0x744",
+      "resp": "0x7AE",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    },
+    {
+      "platform": "seat_mii_electric_shared_up",
+      "role": "hv_charge_management",
+      "req": "0x765",
+      "resp": "0x7CF",
+      "protocol": "can11_isotp_uds",
+      "knowledge_state": "source_confirmed_platform_route",
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "independent_validation_status": "shared sibling models in same implementation",
+        "project_physical_validation_status": "not_tested"
+      }
+    }
+  ],
+  "note": "VAG catalogue routes are presence hypotheses. Mii electric routes are exact platform-scoped implementation evidence."
+}

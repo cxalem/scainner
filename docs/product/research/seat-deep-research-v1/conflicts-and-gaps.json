@@ -1,0 +1,101 @@
+{
+  "research_date": "2026-08-30",
+  "conflicts": [
+    {
+      "id": "seat_eps_route_712",
+      "finding": "General VAG route catalogue maps steering assist 0x712->0x77C, while the Mii electric OVMS implementation uses 0x712->0x71A.",
+      "resolution": "Keep both. 0x712->0x71A is exact Mii-electric platform evidence; 0x712->0x77C is a broader VAG/MQB candidate.",
+      "automatic_merge": "forbidden",
+      "source_refs": [
+        "S04",
+        "S06"
+      ]
+    },
+    {
+      "id": "seat_obdb_model_empty_vs_make_data",
+      "finding": "Current model defaults for Ateca, Arona, Tarraco, Alhambra, Altea and Mii Electric are empty while the SEAT make-level fallback and other sources contain useful data.",
+      "resolution": "Empty model repository state is not negative vehicle evidence and must never delete local or make-level knowledge.",
+      "source_refs": [
+        "S01",
+        "S27"
+      ]
+    },
+    {
+      "id": "seat_make_level_mixed_decoders",
+      "finding": "SEAT make-level OBDb fallback mixes PQ/MQB/electrified commands and contains competing interpretations/formulas for some DIDs.",
+      "resolution": "Store decoder variants keyed by route+platform+ECU fingerprint; no brand-global decoder promotion.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "id": "seat_29bit_fc00_unresolved",
+      "finding": "Make-level OBDb contains commands with hdr=FC00, rax=FE0077, pri=17, tst=F1 for ATF-temperature variants.",
+      "resolution": "Treat as transport-normalization research only. It does not authorize generic 29-bit enumeration.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "id": "seat_legacy_silence",
+      "finding": "Ibiza 6J can mix K-line KWP2000, TP2.0, TP1.6 and UDS across ECUs.",
+      "resolution": "UDS silence can mean wrong transport rather than ECU absence.",
+      "source_refs": [
+        "S09",
+        "S10"
+      ]
+    }
+  ],
+  "research_gaps": [
+    {
+      "priority": "P0",
+      "topic": "Physical SEAT validation fleet",
+      "need": "At least one Leon 5F, Leon KL, Ibiza KJ, Arona, Ateca and Mii electric in Spain; capture route/identity/DID responses with project hardware."
+    },
+    {
+      "priority": "P0",
+      "topic": "Normalize OBDb unusual 29-bit-looking commands",
+      "need": "Reconstruct exact ELM/OBDb header semantics for FC00/FE0077 pri=17 tst=F1 and capture a real transaction before execution."
+    },
+    {
+      "priority": "P0",
+      "topic": "ECU identity fingerprint database",
+      "need": "Capture F187/F195/F182 plus F18A/F18C/F191/F197 on responsive modules and bind ASAM/part/software families."
+    },
+    {
+      "priority": "P1",
+      "topic": "Ibiza 6J transport support",
+      "need": "Decide whether product hardware/software will implement K-line, TP2.0 and TP1.6 or explicitly report unsupported alternate transport."
+    },
+    {
+      "priority": "P1",
+      "topic": "Exeo 3R",
+      "need": "Dedicated Audi-B7-derived diagnostic research; do not reuse MQB."
+    },
+    {
+      "priority": "P1",
+      "topic": "Toledo NH",
+      "need": "Resolve platform/transport and model-specific ECU inventory."
+    },
+    {
+      "priority": "P1",
+      "topic": "Mii ICE",
+      "need": "Separate from Mii electric; obtain exact ECU routes and transport behavior."
+    },
+    {
+      "priority": "P1",
+      "topic": "Alhambra 7N",
+      "need": "Extract exact Sharan/Alhambra routes and DIDs from current sources."
+    },
+    {
+      "priority": "P2",
+      "topic": "DID decoder verification",
+      "need": "For each high-value candidate, compare source formula against physical action/reference sensor and at least two compatible vehicles before family promotion."
+    },
+    {
+      "priority": "P2",
+      "topic": "SFD/SFD2 future behavior",
+      "need": "Continue to verify that read-only identification/measuring values remain accessible on newer SEAT models and document any diagnostic-filter exceptions."
+    }
+  ]
+}

@@ -123,3 +123,4 @@ Known DIDs whose module the research does not name (`modules: []`, `binding: "un
 | packages/uds-map/RESEARCH.md#psa--stellantis-europe--highest-confidence-in-the-file | community | MIT | psa |
 | packages/uds-map/RESEARCH.md#toyota--lexus | community | MIT | toyota |
 | packages/uds-map/RESEARCH.md#vag-vw-audi--škoda-seat-cupra | community | MIT | vag |
+| packages/uds-map/RESEARCH.md | community | MIT | cupra |

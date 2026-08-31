@@ -1,0 +1,53 @@
+{
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "schema_version": 1,
+  "research_date": "2026-08-30",
+  "brand": {
+    "id": "seat",
+    "name": "SEAT",
+    "wmis": [
+      "VSS"
+    ]
+  },
+  "baseline_reference": {
+    "map_version": 9,
+    "map_generated": "2026-08-28",
+    "brand_id": "seat",
+    "brand_name": "SEAT (VW Group platform, shared diagnostic stack)",
+    "wmis": [],
+    "existing_scan_policy": null,
+    "existing_profiled_level": "routes_sourced",
+    "known_module_count": 9,
+    "known_did_count": 4,
+    "platform_count": 0,
+    "merge_rule": "REFERENCE ONLY. This pack is an additive hypothesis overlay. Never replace locally_confirmed, vehicle_confirmed, family_confirmed, or newer project evidence with online research."
+  },
+  "merge_mode": "additive_only",
+  "knowledge_precedence": [
+    "family_confirmed",
+    "multi_vehicle_confirmed",
+    "vehicle_confirmed",
+    "locally_confirmed",
+    "source_confirmed_platform_scoped",
+    "source_confirmed_model_scoped",
+    "source_confirmed",
+    "research_candidate",
+    "research_gap"
+  ],
+  "runtime_recommendation": {
+    "default_branch": "identify platform before proprietary scanning",
+    "generic_11bit_policy": "allowed only after CAN11/UDS transport confirmation and VAG route allowlist",
+    "generic_29bit_policy": "deny",
+    "legacy_protocol_policy": "explicit terminal states if unsupported",
+    "sfd_policy": "read-only discovery continues; no automatic unlock"
+  },
+  "counts": {
+    "platform_branches": 10,
+    "vag_route_candidates": 86,
+    "mii_exact_routes": 12,
+    "did_records": 251,
+    "ecu_family_hypotheses": 7,
+    "physical_module_inventory_samples": 6,
+    "sources": 28
+  }
+}

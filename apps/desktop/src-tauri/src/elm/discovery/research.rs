@@ -354,4 +354,38 @@ mod tests {
         assert_eq!(claim.vehicle_applicability, "partially_project_confirmed");
         assert!(claim.action_if_connected.contains("never overwrite C4"));
     }
+
+    #[test]
+    fn seat_deep_research_delta_serves_make_wide_candidates_with_dids() {
+        // No platform match yet: SEAT has zero `platforms[]` entries in the
+        // trusted map (no confirmed `vds_pattern`), so only the `platform:
+        // "unknown"` (make-wide) candidates from the delta can apply today —
+        // the Mii Electric-specific routes stay inert until a real VIN
+        // confirms that platform. See docs/product/research/
+        // seat-deep-research-v1/ and packages/uds-map/scripts/
+        // ingest-seat-research.py for where this data came from.
+        let routes = routes_for_context(Some(&vin_for_brand("seat")), None);
+        assert!(!routes.is_empty(), "expected make-wide SEAT candidates");
+        assert!(
+            routes.iter().all(|r| r.platform == "unknown"),
+            "no platform resolved for this VIN, so only unknown-platform routes should surface"
+        );
+        assert!(
+            routes.iter().any(|r| !r.candidate_dids.is_empty()),
+            "expected at least one candidate route to carry candidate DIDs"
+        );
+        // The Mii Electric-scoped routes require an exact platform match and
+        // must not leak in without one.
+        assert!(routes.iter().all(|r| !r.route_id.starts_with("seat_mii_")));
+
+        // With an exact (hypothetical) platform match, the Mii-scoped routes
+        // become reachable too.
+        let mii_routes = routes_for_context(
+            Some(&vin_for_brand("seat")),
+            Some("seat_mii_electric_shared_up"),
+        );
+        assert!(mii_routes
+            .iter()
+            .any(|r| r.route_id.starts_with("seat_mii_")));
+    }
 }
