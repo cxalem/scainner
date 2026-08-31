@@ -1,0 +1,75 @@
+{
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "schema_version": 1,
+  "research_date": "2026-08-31",
+  "brand": {
+    "id": "vag",
+    "name": "Volkswagen Group (VW, Audi)",
+    "scope": [
+      "Volkswagen",
+      "Audi"
+    ],
+    "wmis": [
+      "WVW",
+      "WV1",
+      "WV2",
+      "WV3",
+      "WVG",
+      "1VW",
+      "3VW",
+      "9BW",
+      "AAV",
+      "WAU",
+      "WA1",
+      "WUA",
+      "WU1",
+      "TRU",
+      "93U"
+    ]
+  },
+  "baseline_reference": {
+    "map_version": 9,
+    "map_generated": "2026-08-28",
+    "brand_id": "vag",
+    "brand_name": "Volkswagen Group (VW, Audi)",
+    "wmis": [
+      "WVW",
+      "WV1",
+      "WV2",
+      "WV3",
+      "WVG",
+      "1VW",
+      "3VW",
+      "9BW",
+      "AAV",
+      "WAU",
+      "WA1",
+      "WUA",
+      "WU1",
+      "TRU",
+      "93U"
+    ],
+    "known_module_count": 20,
+    "known_did_count": 31,
+    "platform_count": 3,
+    "existing_profiled_level": "routes_sourced",
+    "merge_rule": "REFERENCE ONLY. Additive overlay; never overwrite project vehicle/family-confirmed knowledge."
+  },
+  "merge_mode": "additive_only",
+  "runtime_recommendation": {
+    "platform_first": true,
+    "known_routes_before_enumeration": true,
+    "identity_before_proprietary_decode": true,
+    "generic_11bit": "late bounded fallback",
+    "generic_29bit": "disabled",
+    "negative_evidence": "platform scoped"
+  },
+  "counts": {
+    "platform_branches": 14,
+    "vag_route_candidates": 86,
+    "did_records": 217,
+    "negative_support_records": 22,
+    "ecu_family_hypotheses": 6,
+    "sources": 13
+  }
+}

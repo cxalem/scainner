@@ -1,0 +1,40 @@
+{
+  "pack": "vag-deep-research-v1",
+  "research_date": "2026-08-31",
+  "brand": "Volkswagen/Audi - VAG",
+  "files": [
+    {
+      "file": "vag-profile-overlay.json"
+    },
+    {
+      "file": "platforms.json"
+    },
+    {
+      "file": "connection-playbook.json"
+    },
+    {
+      "file": "transport-session-safety-policy.json"
+    },
+    {
+      "file": "ecu-routes.json"
+    },
+    {
+      "file": "did-candidates.json"
+    },
+    {
+      "file": "command-support-evidence.json"
+    },
+    {
+      "file": "ecu-family-hypotheses.json"
+    },
+    {
+      "file": "validation-plan.json"
+    },
+    {
+      "file": "conflicts-and-gaps.json"
+    },
+    {
+      "file": "source-ledger.json"
+    }
+  ]
+}

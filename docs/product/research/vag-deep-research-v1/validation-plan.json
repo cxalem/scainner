@@ -1,0 +1,68 @@
+{
+  "priority_spain_fleet": [
+    {
+      "vehicle": "VW Golf Mk7",
+      "platform": "vw_mqb",
+      "reason": "Large parc; core transverse VAG reuse"
+    },
+    {
+      "vehicle": "VW Golf Mk8",
+      "platform": "vw_mqb_evo",
+      "reason": "Modern/SFD branch"
+    },
+    {
+      "vehicle": "VW Polo Mk6",
+      "platform": "vw_mqb_a0",
+      "reason": "High-volume Spain small-car platform"
+    },
+    {
+      "vehicle": "VW ID.4 or ID.3",
+      "platform": "vw_meb_gen1",
+      "reason": "MEB EV route/DID validation"
+    },
+    {
+      "vehicle": "Audi A3 8V/Q3 F3",
+      "platform": "audi_mqb",
+      "reason": "Audi transverse MQB reuse"
+    },
+    {
+      "vehicle": "Audi A4/Q5 longitudinal",
+      "platform": "audi_mlb",
+      "reason": "Longitudinal split and negative-evidence validation"
+    },
+    {
+      "vehicle": "Audi e-tron/Q8 e-tron",
+      "platform": "audi_mlb_evo_ev",
+      "reason": "First Audi EV architecture"
+    },
+    {
+      "vehicle": "Audi e-tron GT",
+      "platform": "audi_j1",
+      "reason": "J1 exact support matrix"
+    },
+    {
+      "vehicle": "Audi Q4 e-tron",
+      "platform": "audi_meb",
+      "reason": "Audi MEB cross-brand reuse"
+    },
+    {
+      "vehicle": "Audi Q6/A6 e-tron",
+      "platform": "audi_ppe",
+      "reason": "New architecture; route discovery from scratch"
+    }
+  ],
+  "promotion_rules": {
+    "vehicle_confirmed": "One physical vehicle reproduces route+DID+decode.",
+    "multi_vehicle_confirmed": "Two compatible vehicles reproduce it.",
+    "family_confirmed": "Same ECU identity/family and decode reproduced across vehicles/brands.",
+    "group_wide": "Requires multiple independent platform families; expected to be rare."
+  },
+  "human_tests": [
+    "wheel speed low-speed turn",
+    "steering center-left-right",
+    "brake pressure light/medium press",
+    "12V voltage cross-check",
+    "EV SOC/range progression",
+    "charger state during AC charging"
+  ]
+}

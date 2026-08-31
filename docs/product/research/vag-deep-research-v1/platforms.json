@@ -1,0 +1,258 @@
+{
+  "research_date": "2026-08-31",
+  "platforms": [
+    {
+      "id": "vw_pq",
+      "brand": "Volkswagen",
+      "examples": [
+        "Golf Mk5/Mk6",
+        "Jetta Mk6",
+        "Caddy Mk3",
+        "Sharan Mk2"
+      ],
+      "architecture": "PQ-family; CAN diagnostics with older VAG protocol/UDS mix depending ECU",
+      "transport": [
+        "can11",
+        "legacy_vag_transport_possible",
+        "uds_by_ecu"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "id": "vw_mqb",
+      "brand": "Volkswagen",
+      "examples": [
+        "Golf Mk7",
+        "Passat B8",
+        "Tiguan Mk2",
+        "T-Roc",
+        "Arteon"
+      ],
+      "architecture": "MQB; UDS/ODX/ASAM via J533 gateway",
+      "transport": [
+        "can11_uds",
+        "known_routes_first"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01",
+        "S02",
+        "S03"
+      ]
+    },
+    {
+      "id": "vw_mqb_a0",
+      "brand": "Volkswagen",
+      "examples": [
+        "Polo Mk6",
+        "T-Cross"
+      ],
+      "architecture": "MQB A0; UDS over CAN; some later cars combine gateway+BCM",
+      "transport": [
+        "can11_uds"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "id": "vw_mqb_evo",
+      "brand": "Volkswagen",
+      "examples": [
+        "Golf Mk8",
+        "newer MQB Evo derivatives"
+      ],
+      "architecture": "MQB Evo / GW2020 / SFD-capable",
+      "transport": [
+        "can11_uds",
+        "sfd_read_only"
+      ],
+      "confidence": "medium_high",
+      "source_refs": [
+        "S01",
+        "S12"
+      ]
+    },
+    {
+      "id": "vw_meb_gen1",
+      "brand": "Volkswagen",
+      "examples": [
+        "ID.3",
+        "ID.4 2021-23",
+        "ID.5"
+      ],
+      "architecture": "MEB generation 1",
+      "transport": [
+        "can11_uds",
+        "meb_known_routes"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01",
+        "S05"
+      ]
+    },
+    {
+      "id": "vw_meb_gen2",
+      "brand": "Volkswagen",
+      "examples": [
+        "ID.4 2024-25 and newer MEB gen2 examples"
+      ],
+      "architecture": "MEB generation 2; openDBC uses distinct generated DBC flag",
+      "transport": [
+        "can11_uds",
+        "gen2_fingerprint_required"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "id": "vw_commercial",
+      "brand": "Volkswagen",
+      "examples": [
+        "Crafter",
+        "Transporter/Caravelle/California"
+      ],
+      "architecture": "Commercial-vehicle branches; MQB/PQ-like families vary by model",
+      "transport": [
+        "platform_specific_can",
+        "do_not_assume_passenger_routes"
+      ],
+      "confidence": "medium",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "id": "audi_mqb",
+      "brand": "Audi",
+      "examples": [
+        "A3 8V",
+        "Q2",
+        "Q3 F3"
+      ],
+      "architecture": "Transverse MQB",
+      "transport": [
+        "can11_uds",
+        "vag_route_catalog"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01",
+        "S04"
+      ]
+    },
+    {
+      "id": "audi_mlb",
+      "brand": "Audi",
+      "examples": [
+        "Q5 8R",
+        "longitudinal Audi generations"
+      ],
+      "architecture": "MLB longitudinal; route/DID grammar differs materially from MQB/MEB",
+      "transport": [
+        "can11_uds",
+        "powertrain_first",
+        "negative_evidence_matters"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01",
+        "S06"
+      ]
+    },
+    {
+      "id": "audi_mlb_evo_ev",
+      "brand": "Audi",
+      "examples": [
+        "Audi e-tron SUV / Q8 e-tron first architecture"
+      ],
+      "architecture": "Adapted MLB evo battery-electric architecture",
+      "transport": [
+        "can11_uds",
+        "ev_routes",
+        "unresolved_extended_header_family"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S09",
+        "S04"
+      ]
+    },
+    {
+      "id": "audi_meb",
+      "brand": "Audi",
+      "examples": [
+        "Q4 e-tron"
+      ],
+      "architecture": "MEB",
+      "transport": [
+        "can11_uds",
+        "meb_routes",
+        "current_model_source_sparse"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S09",
+        "S08"
+      ]
+    },
+    {
+      "id": "audi_j1",
+      "brand": "Audi",
+      "examples": [
+        "e-tron GT",
+        "RS e-tron GT"
+      ],
+      "architecture": "J1 performance EV platform",
+      "transport": [
+        "can11_uds",
+        "platform_support_matrix",
+        "unresolved_extended_header_family"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S09",
+        "S07"
+      ]
+    },
+    {
+      "id": "audi_ppe",
+      "brand": "Audi",
+      "examples": [
+        "Q6 e-tron",
+        "A6 e-tron"
+      ],
+      "architecture": "PPE + E3 1.2 electronics",
+      "transport": [
+        "platform_known_routes_unknown"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S10"
+      ]
+    },
+    {
+      "id": "audi_ppc",
+      "brand": "Audi",
+      "examples": [
+        "new A5",
+        "new Q5 family"
+      ],
+      "architecture": "PPC + E3 electronics",
+      "transport": [
+        "platform_known_routes_unknown"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S11"
+      ]
+    }
+  ]
+}

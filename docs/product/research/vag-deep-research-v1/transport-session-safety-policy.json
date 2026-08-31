@@ -1,0 +1,94 @@
+{
+  "policy_id": "vag_discovery_policy_v1",
+  "knowledge_state": "project_proposed_policy",
+  "note": "Numeric budgets are conservative project policy, not VW/Audi OEM specifications.",
+  "request_budgets": {
+    "known_route_phase": {
+      "max_requests": 80,
+      "rate_requests_per_second": 4,
+      "burst_max": 4,
+      "max_outstanding": 1,
+      "retry_on_timeout": 0
+    },
+    "identity_per_ecu": {
+      "max_requests": 7,
+      "rate_requests_per_second": 2,
+      "retry_on_timeout": 1,
+      "retry_backoff_ms": 250
+    },
+    "remaining_vag_catalog": {
+      "max_requests": 100,
+      "rate_requests_per_second": 4,
+      "max_outstanding": 1
+    },
+    "generic_can11": {
+      "authorized_only_after_transport_detection": true,
+      "from": "0x700",
+      "to": "0x7F6",
+      "exclude": [
+        "0x7DF"
+      ],
+      "max_requests": 247,
+      "rate_requests_per_second": 4
+    },
+    "global": {
+      "max_requests": 650,
+      "max_wallclock_ms": 180000,
+      "phase_cooldown_ms": 500
+    }
+  },
+  "timeouts": {
+    "presence_first_response_ms": 250,
+    "identity_first_response_ms": 500,
+    "isotp_multiframe_completion_ms": 3000,
+    "response_pending_max_ms": 3000
+  },
+  "abort": {
+    "immediate": [
+      "CAN bus-off",
+      "user cancel",
+      "adapter unsafe state"
+    ],
+    "phase_thresholds": {
+      "protocol_errors": 8,
+      "malformed_isotp": 5,
+      "bus_error_escalations": 3
+    }
+  },
+  "29bit": {
+    "generic_authorized": false,
+    "authorize_only_if": [
+      "exact normalized platform route is sourced and physically reproduced",
+      "passive capture proves the exact request/response pattern"
+    ]
+  },
+  "sessions": {
+    "default_only_in_product_mode": true,
+    "service_0x10_nondefault": "deny",
+    "tester_present": "only after identified profile requires it",
+    "sfd_unlock": "deny"
+  },
+  "negative_responses": {
+    "0x21": "retry twice with 500ms backoff",
+    "0x22": "conditions_not_correct terminal",
+    "0x25": "gateway/subnet unreachable",
+    "0x31": "DID out of range on this ECU",
+    "0x33/35/36/37": "protected; no SecurityAccess",
+    "0x78": "wait up to 3000ms without resend",
+    "0x7E/7F": "record session mismatch; no generic session change"
+  },
+  "always_denied_automatic_services": [
+    "0x11",
+    "0x14",
+    "0x27",
+    "0x28",
+    "0x2E",
+    "0x2F",
+    "0x31",
+    "0x34",
+    "0x35",
+    "0x36",
+    "0x37",
+    "0x3D"
+  ]
+}

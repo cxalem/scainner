@@ -1,0 +1,116 @@
+{
+  "research_date": "2026-08-31",
+  "families": [
+    {
+      "family_id": "vag_j533_mqb_gateway",
+      "role": "gateway",
+      "platforms": [
+        "vw_mqb",
+        "vw_mqb_a0",
+        "audi_mqb"
+      ],
+      "route_candidate": "0x710->0x77A",
+      "identity_strategy": [
+        "F187",
+        "F195",
+        "F182"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S01",
+        "S02"
+      ],
+      "reuse_rule": "Gateway route/identity reusable only after part/software/chassis family match."
+    },
+    {
+      "family_id": "vag_gw2020_mqb_evo",
+      "role": "gateway",
+      "platforms": [
+        "vw_mqb_evo"
+      ],
+      "confidence": "medium_high",
+      "source_refs": [
+        "S12"
+      ],
+      "reuse_rule": "SFD-capable branch; read-only measuring values should remain accessible without unlock."
+    },
+    {
+      "family_id": "vag_meb_gateway_energy",
+      "role": "gateway_energy_management",
+      "platforms": [
+        "vw_meb_gen1",
+        "audi_meb"
+      ],
+      "route_candidate": "0x710->0x77A",
+      "did_neighborhoods": [
+        "0x15xx",
+        "0x2Axx"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S05",
+        "S07"
+      ],
+      "reuse_rule": "Strong cross-MEB candidate; require ECU fingerprint before sharing decoders."
+    },
+    {
+      "family_id": "vag_meb_obc",
+      "role": "onboard_charger",
+      "platforms": [
+        "vw_meb_gen1",
+        "audi_meb",
+        "audi_j1"
+      ],
+      "route_candidate": "0x744->0x7AE",
+      "did_neighborhoods": [
+        "0x10xx",
+        "0x15xx",
+        "0x1Dxx"
+      ],
+      "confidence": "medium_high",
+      "source_refs": [
+        "S05",
+        "S07"
+      ],
+      "reuse_rule": "Route recurs across EV datasets; formulas remain platform/ECU scoped."
+    },
+    {
+      "family_id": "audi_j1_bms",
+      "role": "hv_battery",
+      "platforms": [
+        "audi_j1"
+      ],
+      "route_candidate": "0x7E5->0x7ED",
+      "did_neighborhoods": [
+        "0x18xx",
+        "0x1Exx",
+        "0x51xx",
+        "0xF4xx"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "reuse_rule": "J1-specific until compared against another J1 car and exact part/software match."
+    },
+    {
+      "family_id": "audi_mlb_powertrain",
+      "role": "engine_transmission",
+      "platforms": [
+        "audi_mlb"
+      ],
+      "route_candidate": "0x7E0/0x7E1",
+      "did_neighborhoods": [
+        "0x10xx",
+        "0x11xx",
+        "0x16xx",
+        "0x17xx"
+      ],
+      "confidence": "high",
+      "source_refs": [
+        "S06"
+      ],
+      "reuse_rule": "Good longitudinal Audi starting point; do not import MQB/MEB body routes by default."
+    }
+  ]
+}

@@ -170,6 +170,36 @@ type ResearchClaim = {
   source?: { url?: string; revision?: string; retrieved_at?: string; license?: string };
 };
 
+// Mirrors research.rs's CandidateDid: either a bare hex string, or an
+// object carrying an untrusted hypothesis (semantic/decode/validation) plus
+// execution gating (automatic_execution_authorized, support_status). Keep
+// this in sync with apps/desktop/src-tauri/src/elm/discovery/research.rs -
+// this is the second of the "same file, two consumers" pair for research
+// packs, same principle as uds-map.json's TS/Rust pair.
+type ResearchCandidateDid =
+  | string
+  | {
+      did?: string;
+      semantic?: string;
+      decode?: unknown;
+      validation?: { kind?: string; instructions?: string[]; expected_behavior?: string[] };
+      automatic_execution_authorized?: boolean;
+      support_status?: string;
+    };
+
+// docs/uds/brand-research-pack-specification.md §12: "the required pack
+// vocabulary for support_status is closed... The pack validator and
+// projector must reject unknown authoring values rather than silently
+// broadening execution."
+const SUPPORT_STATUS_VALUES = new Set([
+  "candidate",
+  "source_observed",
+  "supported",
+  "physically_supported_on_test_vehicle",
+  "unsupported",
+  "explicitly_unsupported_on_test_vehicle",
+]);
+
 type ResearchRoute = {
   route_id?: string;
   platform?: string;
@@ -179,7 +209,7 @@ type ResearchRoute = {
   service?: string;
   session?: string;
   claim_ids?: string[];
-  candidate_dids?: string[];
+  candidate_dids?: ResearchCandidateDid[];
   decodes?: unknown;
 };
 
@@ -254,7 +284,18 @@ function lintResearchPacks(problems: string[]): void {
         if (route.decodes !== undefined) problems.push(`${where}: trusted decodes are forbidden in research routes`);
         if (!(route.claim_ids?.length)) problems.push(`${where}: route has no evidence claims`);
         for (const id of route.claim_ids ?? []) if (!claims.has(id)) problems.push(`${where}: unknown claim ${id}`);
-        for (const did of route.candidate_dids ?? []) if (!/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${did}`);
+        for (const entry of route.candidate_dids ?? []) {
+          const did = typeof entry === "string" ? entry : entry.did;
+          if (!did || !/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${JSON.stringify(entry)}`);
+          if (typeof entry === "object") {
+            if (entry.automatic_execution_authorized !== undefined && typeof entry.automatic_execution_authorized !== "boolean") {
+              problems.push(`${where}: candidate DID ${did}: automatic_execution_authorized must be boolean`);
+            }
+            if (entry.support_status !== undefined && !SUPPORT_STATUS_VALUES.has(entry.support_status)) {
+              problems.push(`${where}: candidate DID ${did}: unknown support_status ${entry.support_status}`);
+            }
+          }
+        }
       }
     }
   }
