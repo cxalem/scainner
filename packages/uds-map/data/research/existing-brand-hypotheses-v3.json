@@ -1,60 +1,2178 @@
 {
   "schema_version": 1,
   "pack_id": "existing-brand-hypotheses-v3-delta",
-  "version": 3,
-  "research_date": "2026-08-29",
+  "version": 4,
+  "research_date": "2026-08-30",
   "mode": "candidate_discovery_only",
   "policy": {
     "read_only": true,
     "default_session_only": true,
     "max_outstanding_requests": 1,
-    "forbidden_services": ["10", "11", "14", "27", "28", "2E", "2F", "31", "34", "35", "36", "37", "3D"],
+    "forbidden_services": [
+      "10",
+      "11",
+      "14",
+      "27",
+      "28",
+      "2E",
+      "2F",
+      "31",
+      "34",
+      "35",
+      "36",
+      "37",
+      "3D"
+    ],
     "candidate_decodes_are_hypotheses": true
   },
   "profiles": [
-    {"brand_id":"bmw","brand_name":"BMW / Mini","status":"behavior_rules_only","wmis":[],"routes":[]},
-    {"brand_id":"gm","brand_name":"GM","status":"behavior_rules_only","wmis":[],"routes":[]},
-    {"brand_id":"honda","brand_name":"Honda / Acura","status":"transport_classification_required","wmis":[],"routes":[]},
-    {"brand_id":"hyundai_kia","brand_name":"Hyundai / Kia / Genesis","status":"platform_classification_required","wmis":[],"routes":[]},
     {
-      "brand_id":"mazda","brand_name":"Mazda","status":"make_level_route_candidates","wmis":[],
-      "routes":[
-        {"route_id":"mazda_hv_charger_6f5_6fd","platform":"unknown","protocol":"can11_500","req":"6F5","resp":"6FD","service":"22","session":"default_only","claim_ids":["mazda.make_routes.delta"],"candidate_dids":[]}
-      ]
-    },
-    {"brand_id":"mitsubishi","brand_name":"Mitsubishi","status":"product_non_sweepable","wmis":[],"routes":[]},
-    {"brand_id":"nissan","brand_name":"Nissan / Infiniti","status":"behavior_rules_only","wmis":[],"routes":[]},
-    {"brand_id":"psa","brand_name":"PSA / Stellantis Europe","status":"supporting_provenance_only","wmis":[],"routes":[]},
-    {
-      "brand_id":"skoda","brand_name":"Skoda","status":"make_level_route_candidates","wmis":[],
-      "routes":[
-        {"route_id":"skoda_tpms_70b_775","platform":"unknown","protocol":"can11_500","req":"70B","resp":"775","service":"22","session":"default_only","claim_ids":["skoda.make_routes.delta"],"candidate_dids":[]},
-        {"route_id":"skoda_central_electronics_70e_778","platform":"unknown","protocol":"can11_500","req":"70E","resp":"778","service":"22","session":"default_only","claim_ids":["skoda.make_routes.delta"],"candidate_dids":[]},
-        {"route_id":"skoda_awd_70f_779","platform":"unknown","protocol":"can11_500","req":"70F","resp":"779","service":"22","session":"default_only","claim_ids":["skoda.make_routes.delta"],"candidate_dids":[]}
-      ]
+      "brand_id": "bmw",
+      "brand_name": "BMW / Mini",
+      "status": "behavior_rules_only",
+      "wmis": [],
+      "routes": []
     },
     {
-      "brand_id":"subaru","brand_name":"Subaru","status":"make_level_route_candidates","wmis":[],
-      "routes":[
-        {"route_id":"subaru_tpms_753_75b","platform":"unknown","protocol":"can11_500","req":"753","resp":"75B","service":"22","session":"default_only","claim_ids":["subaru.make_routes.delta"],"candidate_dids":[]},
-        {"route_id":"subaru_engine_7a2_7aa","platform":"unknown","protocol":"can11_500","req":"7A2","resp":"7AA","service":"22","session":"default_only","claim_ids":["subaru.make_routes.delta"],"candidate_dids":[]}
+      "brand_id": "gm",
+      "brand_name": "GM",
+      "status": "behavior_rules_only",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "honda",
+      "brand_name": "Honda / Acura",
+      "status": "transport_classification_required",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "hyundai_kia",
+      "brand_name": "Hyundai / Kia / Genesis",
+      "status": "platform_classification_required",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "mazda",
+      "brand_name": "Mazda",
+      "status": "make_level_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "mazda_hv_charger_6f5_6fd",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "6F5",
+          "resp": "6FD",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "mazda.make_routes.delta"
+          ],
+          "candidate_dids": []
+        }
       ]
     },
-    {"brand_id":"tesla","brand_name":"Tesla","status":"adapter_path_limited","wmis":[],"routes":[]},
-    {"brand_id":"volvo","brand_name":"Volvo / Polestar","status":"platform_transport_candidate","wmis":[],"routes":[]}
+    {
+      "brand_id": "mitsubishi",
+      "brand_name": "Mitsubishi",
+      "status": "product_non_sweepable",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "nissan",
+      "brand_name": "Nissan / Infiniti",
+      "status": "behavior_rules_only",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "psa",
+      "brand_name": "PSA / Stellantis Europe",
+      "status": "supporting_provenance_only",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "skoda",
+      "brand_name": "Skoda",
+      "status": "make_level_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "skoda_tpms_70b_775",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70B",
+          "resp": "775",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "skoda.make_routes.delta"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "skoda_central_electronics_70e_778",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70E",
+          "resp": "778",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "skoda.make_routes.delta"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "skoda_awd_70f_779",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70F",
+          "resp": "779",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "skoda.make_routes.delta"
+          ],
+          "candidate_dids": []
+        }
+      ]
+    },
+    {
+      "brand_id": "subaru",
+      "brand_name": "Subaru",
+      "status": "make_level_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "subaru_tpms_753_75b",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "753",
+          "resp": "75B",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "subaru.make_routes.delta"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "subaru_engine_7a2_7aa",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "7A2",
+          "resp": "7AA",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "subaru.make_routes.delta"
+          ],
+          "candidate_dids": []
+        }
+      ]
+    },
+    {
+      "brand_id": "tesla",
+      "brand_name": "Tesla",
+      "status": "adapter_path_limited",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "volvo",
+      "brand_name": "Volvo / Polestar",
+      "status": "platform_transport_candidate",
+      "wmis": [],
+      "routes": []
+    },
+    {
+      "brand_id": "seat",
+      "brand_name": "SEAT",
+      "status": "platform_and_model_route_candidates",
+      "wmis": [],
+      "routes": [
+        {
+          "route_id": "seat_vag_park_assist_70a_774",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70A",
+          "resp": "774",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_high_beam_assist_730/0x748_79a/0x7b2",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "730/0X748",
+          "resp": "79A/0X7B2",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_special_functions_2_72b_795",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "72B",
+          "resp": "795",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_engine_1_7e0_7e8",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "7E0",
+          "resp": "7E8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "028D",
+            "08D2",
+            "1004",
+            "100D",
+            "1024",
+            "1026",
+            "103C",
+            "1044",
+            "1047",
+            "104B",
+            "1057",
+            "1069",
+            "106B",
+            "10C2",
+            "1628",
+            "162F",
+            "16A9",
+            "178C",
+            "269A",
+            "269B",
+            "295A",
+            "F42C",
+            "F469",
+            "14D9",
+            "14CB",
+            "1616",
+            "1164",
+            "F45B",
+            "F446",
+            "116F",
+            "1116",
+            "1611",
+            "1612",
+            "1613",
+            "1614",
+            "1615",
+            "1169",
+            "F802",
+            "F40D",
+            "147E",
+            "12B0"
+          ]
+        },
+        {
+          "route_id": "seat_vag_engine_2_7e2_7ea",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "7E2",
+          "resp": "7EA",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_transmission_7e1_7e9",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "7E1",
+          "resp": "7E9",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s02.leon_signalset",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "2104"
+          ]
+        },
+        {
+          "route_id": "seat_vag_awd_control_70f/0x71d_779/0x787",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70F/0X71D",
+          "resp": "779/0X787",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_differential_lock_electronics_71e_788",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "71E",
+          "resp": "788",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "F105"
+          ]
+        },
+        {
+          "route_id": "seat_vag_brakes_abs_esc_713_77d",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "713",
+          "resp": "77D",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1800",
+            "1801",
+            "1802",
+            "1803",
+            "1804",
+            "1808",
+            "180A",
+            "180C",
+            "180E",
+            "1810",
+            "1816",
+            "1821",
+            "18B6",
+            "2B1B",
+            "2B1C",
+            "2B1D",
+            "2B1E",
+            "2B29"
+          ]
+        },
+        {
+          "route_id": "seat_vag_adaptive_cruise_1_757_7c1",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "757",
+          "resp": "7C1",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_steering_angle_sensor_751_7bb",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "751",
+          "resp": "7BB",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_adaptive_dampers_772_7dc",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "772",
+          "resp": "7DC",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_ride_control_755_7bf",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "755",
+          "resp": "7BF",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_kessy_access_start_732_79c",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "732",
+          "resp": "79C",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_airbag_715_77f",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "715",
+          "resp": "77F",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "2353",
+            "2354",
+            "2355",
+            "2356",
+            "2357"
+          ]
+        },
+        {
+          "route_id": "seat_vag_immobilizer_711_77b",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "711",
+          "resp": "77B",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_passenger_seat_adjust_74d_7b7",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "74D",
+          "resp": "7B7",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_steering_column_electronics_70c_776",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70C",
+          "resp": "776",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_roof_control_72d_797",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "72D",
+          "resp": "797",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_instrument_cluster_714_77e",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "714",
+          "resp": "77E",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s02.leon_signalset",
+            "seat.s03.ibiza_signalset",
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1014",
+            "202F",
+            "2203",
+            "2206",
+            "2211",
+            "224B",
+            "2294",
+            "2299",
+            "229A",
+            "22B0",
+            "22E0",
+            "2613",
+            "2260",
+            "2261",
+            "22E4"
+          ]
+        },
+        {
+          "route_id": "seat_vag_hvac_746_7b0",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "746",
+          "resp": "7B0",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "0800",
+            "2603",
+            "2604",
+            "2605",
+            "2606",
+            "2607",
+            "2609",
+            "260A",
+            "260C",
+            "260D",
+            "2611",
+            "2612",
+            "2613",
+            "261E",
+            "261F",
+            "2620",
+            "2621",
+            "2622",
+            "2626",
+            "263D",
+            "26ED",
+            "27C3",
+            "27C4",
+            "27D6",
+            "42DB",
+            "482B",
+            "4EEF"
+          ]
+        },
+        {
+          "route_id": "seat_vag_auxiliary_heater_76a_7d4",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "76A",
+          "resp": "7D4",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_rear_climate_71a_784",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "71A",
+          "resp": "784",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_central_electronics_70e_778",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70E",
+          "resp": "778",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "1945"
+          ]
+        },
+        {
+          "route_id": "seat_vag_gateway_710_77a",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "710",
+          "resp": "77A",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "15D1",
+            "2A00",
+            "2A07",
+            "2A09",
+            "2A0A",
+            "2A0B",
+            "2A0C",
+            "2A0E",
+            "2A0F",
+            "2A10",
+            "2A53",
+            "2A61",
+            "2AB2",
+            "2AB4",
+            "2AB5",
+            "2AB6",
+            "2AB7",
+            "2AB8",
+            "2AF7"
+          ]
+        },
+        {
+          "route_id": "seat_vag_active_steering_or_display_alt_716_780",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "716",
+          "resp": "780",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_steering_column_lock_731_79b",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "731",
+          "resp": "79B",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_vehicle_position_detection_750_7ba",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "750",
+          "resp": "7BA",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_sliding_door_left_733_79d",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "733",
+          "resp": "79D",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_media_player_1_770_7da",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "770",
+          "resp": "7DA",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_media_player_3_76e_7d8",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "76E",
+          "resp": "7D8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_air_conditioning_compressor_719_783",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "719",
+          "resp": "783",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_tachograph_771_7db",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "771",
+          "resp": "7DB",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_drive_motor_7e6_7ee",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "7E6",
+          "resp": "7EE",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "F405",
+            "3E94",
+            "3EB5",
+            "464E",
+            "464F",
+            "4662",
+            "4663",
+            "4664",
+            "4672",
+            "465C",
+            "465B"
+          ]
+        },
+        {
+          "route_id": "seat_vag_battery_regulation_728_792",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "728",
+          "resp": "792",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_driver_door_74a_7b4",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "74A",
+          "resp": "7B4",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_passenger_door_74b_7b5",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "74B",
+          "resp": "7B5",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_parking_brake_752_7bc",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "752",
+          "resp": "7BC",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_steering_assist_712_77c",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "712",
+          "resp": "77C",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "1812"
+          ]
+        },
+        {
+          "route_id": "seat_vag_headlight_range_754_7be",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "754",
+          "resp": "7BE",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_tpms_70b_775",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70B",
+          "resp": "775",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "18A0",
+            "18A1",
+            "18A2",
+            "18A3"
+          ]
+        },
+        {
+          "route_id": "seat_vag_driver_seat_adjust_74c_7b6",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "74C",
+          "resp": "7B6",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_comfort_module_70d_777",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "70D",
+          "resp": "777",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_radio_718_782",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "718",
+          "resp": "782",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_navigation_76c_7d6",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "76C",
+          "resp": "7D6",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_sound_system_76f_7d9",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "76F",
+          "resp": "7D9",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_tv_tuner_76d_7d7",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "76D",
+          "resp": "7D7",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_trailer_747_7b1",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "747",
+          "resp": "7B1",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_sensor_electronics_721_78b",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "721",
+          "resp": "78B",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_lane_change_assist_74e_7b8",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "74E",
+          "resp": "7B8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_special_functions_72c_796",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "72C",
+          "resp": "796",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_information_electronics_1_773_7dd",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "773",
+          "resp": "7DD",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1863",
+            "1866"
+          ]
+        },
+        {
+          "route_id": "seat_vag_pretensioner_front_right_75f_7c9",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "75F",
+          "resp": "7C9",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_battery_charger_charge_management_765_7cf",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "765",
+          "resp": "7CF",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1DD0",
+            "1DD1",
+            "1DD4",
+            "1DD6",
+            "1DE4",
+            "1DEC",
+            "1DED",
+            "1DEF"
+          ]
+        },
+        {
+          "route_id": "seat_vag_gearshift_controller_753_7bd",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "753",
+          "resp": "7BD",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_head_up_display_71b_785",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "71B",
+          "resp": "785",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_night_vision_727_791",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "727",
+          "resp": "791",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_armrest_739_7a3",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "739",
+          "resp": "7A3",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_telematics_767_7d1",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "767",
+          "resp": "7D1",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": [
+            "0838",
+            "2431"
+          ]
+        },
+        {
+          "route_id": "seat_vag_onboard_camera_726_790",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "726",
+          "resp": "790",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_telephone_external_communications_76b_7d5",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "76B",
+          "resp": "7D5",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_sliding_door_right_734_79e",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "734",
+          "resp": "79E",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_multicontour_driver_seat_735_79f",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "735",
+          "resp": "79F",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_multicontour_passenger_seat_736_7a0",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "736",
+          "resp": "7A0",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_multicontour_rear_driver_737_7a1",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "737",
+          "resp": "7A1",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_adaptive_cruise_2_756_7c0",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "756",
+          "resp": "7C0",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_rear_view_camera_769_7d3",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "769",
+          "resp": "7D3",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_hv_battery_energy_control_7e5_7ed",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "7E5",
+          "resp": "7ED",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1E3B",
+            "1E3D",
+            "028C",
+            "02BD",
+            "1E32",
+            "1E33",
+            "1E34",
+            "2A0B",
+            "1E0E",
+            "1E0F",
+            "7425",
+            "74CF",
+            "74CB",
+            "74CC",
+            "74BE",
+            "74D0"
+          ]
+        },
+        {
+          "route_id": "seat_vag_deck_lid_723_78d",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "723",
+          "resp": "78D",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_multicontour_rear_passenger_738_7a2",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "738",
+          "resp": "7A2",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_image_processing_758_7c2",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "758",
+          "resp": "7C2",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_comfort_module_2_745_7af",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "745",
+          "resp": "7AF",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_pretensioner_front_left_75e_7c8",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "75E",
+          "resp": "7C8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_front_driver_assist_sensor_74f_7b9",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "74F",
+          "resp": "7B9",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_micro_control_unit_763_7cd",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "763",
+          "resp": "7CD",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_infotainment_interface_749_7b3",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "749",
+          "resp": "7B3",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_roof_control_2_73d_7a7",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "73D",
+          "resp": "7A7",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_structure_borne_sound_actuator_71c_786",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "71C",
+          "resp": "786",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_auxiliary_display_73c_7a6",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "73C",
+          "resp": "7A6",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_rear_right_wheel_brake_720_78a",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "720",
+          "resp": "78A",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_assembly_mount_72e_798",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "72E",
+          "resp": "798",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_rear_left_wheel_brake_71f_789",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "71F",
+          "resp": "789",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_rear_driver_door_73e_7a8",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "73E",
+          "resp": "7A8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_reducer_control_72a_794",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "72A",
+          "resp": "794",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_rear_passenger_door_73f_7a9",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "73F",
+          "resp": "7A9",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_brake_system_sensor_762_7cc",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "762",
+          "resp": "7CC",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_mii_motor_electronics_7e0_7e8",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "7E0",
+          "resp": "7E8",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "028D",
+            "08D2",
+            "1004",
+            "100D",
+            "1024",
+            "1026",
+            "103C",
+            "1044",
+            "1047",
+            "104B",
+            "1057",
+            "1069",
+            "106B",
+            "10C2",
+            "1628",
+            "162F",
+            "16A9",
+            "178C",
+            "269A",
+            "269B",
+            "295A",
+            "F42C",
+            "F469",
+            "14D9",
+            "14CB",
+            "1616",
+            "1164",
+            "F45B",
+            "F446",
+            "116F",
+            "1116",
+            "1611",
+            "1612",
+            "1613",
+            "1614",
+            "1615",
+            "1169",
+            "F802",
+            "F40D",
+            "147E",
+            "12B0"
+          ]
+        },
+        {
+          "route_id": "seat_mii_brakes_713_77d",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "713",
+          "resp": "77D",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1800",
+            "1801",
+            "1802",
+            "1803",
+            "1804",
+            "1808",
+            "180A",
+            "180C",
+            "180E",
+            "1810",
+            "1816",
+            "1821",
+            "18B6",
+            "2B1B",
+            "2B1C",
+            "2B1D",
+            "2B1E",
+            "2B29"
+          ]
+        },
+        {
+          "route_id": "seat_mii_instrument_cluster_mfd_714_77e",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "714",
+          "resp": "77E",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s02.leon_signalset",
+            "seat.s03.ibiza_signalset",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1014",
+            "202F",
+            "2203",
+            "2206",
+            "2211",
+            "224B",
+            "2294",
+            "2299",
+            "229A",
+            "22B0",
+            "22E0",
+            "2613",
+            "2260",
+            "2261",
+            "22E4"
+          ]
+        },
+        {
+          "route_id": "seat_mii_brake_booster_73b_743",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "73B",
+          "resp": "743",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "028D",
+            "4E06"
+          ]
+        },
+        {
+          "route_id": "seat_mii_steering_assist_712_71a",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "712",
+          "resp": "71A",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "0295"
+          ]
+        },
+        {
+          "route_id": "seat_mii_electric_drive_7e6_7ee",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "7E6",
+          "resp": "7EE",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "F405",
+            "3E94",
+            "3EB5",
+            "464E",
+            "464F",
+            "4662",
+            "4663",
+            "4664",
+            "4672",
+            "465C",
+            "465B"
+          ]
+        },
+        {
+          "route_id": "seat_mii_information_electronics_773_7dd",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "773",
+          "resp": "7DD",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1863",
+            "1866"
+          ]
+        },
+        {
+          "route_id": "seat_mii_immobilizer_711_77b",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "711",
+          "resp": "77B",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_mii_hv_battery_management_7e5_7ed",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "7E5",
+          "resp": "7ED",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1E3B",
+            "1E3D",
+            "028C",
+            "02BD",
+            "1E32",
+            "1E33",
+            "1E34",
+            "2A0B",
+            "1E0E",
+            "1E0F",
+            "7425",
+            "74CF",
+            "74CB",
+            "74CC",
+            "74BE",
+            "74D0"
+          ]
+        },
+        {
+          "route_id": "seat_mii_brake_system_sensors_762_76a",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "762",
+          "resp": "76A",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1024"
+          ]
+        },
+        {
+          "route_id": "seat_mii_hv_charger_744_7ae",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "744",
+          "resp": "7AE",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s01.make_level_obdb_fallback",
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "103D",
+            "103E",
+            "1507",
+            "1525",
+            "1529",
+            "1553",
+            "1554",
+            "1557",
+            "1558",
+            "1559",
+            "155A",
+            "15D5",
+            "15D6",
+            "15E1",
+            "15E2",
+            "15EE",
+            "15EF",
+            "15F7",
+            "1DA7",
+            "1DD0",
+            "1DD3",
+            "1DDA",
+            "4965",
+            "150B",
+            "15D8",
+            "15D9",
+            "15DA",
+            "15EC",
+            "1DE8",
+            "1DA9",
+            "1DA8",
+            "4237",
+            "41FC",
+            "41FB",
+            "41F8",
+            "41F9"
+          ]
+        },
+        {
+          "route_id": "seat_mii_hv_charge_management_765_7cf",
+          "platform": "seat_mii_electric_shared_up",
+          "protocol": "can11_500",
+          "req": "765",
+          "resp": "7CF",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s06.mii_electric_ovms_header",
+            "seat.s07.mii_electric_ovms_decoder"
+          ],
+          "candidate_dids": [
+            "1DD0",
+            "1DD1",
+            "1DD4",
+            "1DD6",
+            "1DE4",
+            "1DEC",
+            "1DED",
+            "1DEF"
+          ]
+        }
+      ]
+    }
   ],
   "claims": [
-    {"claim_id":"bmw.i3.sleep_state","exact_claim":"The source stops BMW i3 polling when D-CAN is shut down, so silence can represent an asleep bus rather than an absent route.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"BMW i3-like platforms only","action_if_connected":"Record asleep/state-limited separately from route absent.","promotion_test":"Reproduce the awake-to-asleep transition with timestamped bus and diagnostic evidence.","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/8926e885c48cabeef259903c12e6499f00f496d4/vehicle/OVMS.V3/components/vehicle_bmwi3/src/vehicle_bmwi3.cpp","revision":"8926e885c48cabeef259903c12e6499f00f496d4","retrieved_at":"2026-08-29","license":"MIT"}},
-    {"claim_id":"gm.volt.silent_charging","exact_claim":"The source models a Volt/Ampera silent-charging state where selected diagnostic routes can remain useful.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Chevrolet Volt / Opel Ampera implementation only","action_if_connected":"Preserve silent charging as a vehicle state instead of treating partial silence as absence.","promotion_test":"Capture the same routes in off, awake and silent-charging states on a compatible vehicle.","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/dfb4141f6e41d35f2c0f6ac8f81cba23b97a94f8/vehicle/OVMS.V3/components/vehicle_voltampera/src/vehicle_voltampera.cpp","revision":"dfb4141f6e41d35f2c0f6ac8f81cba23b97a94f8","retrieved_at":"2026-08-29","license":"MIT"}},
-    {"claim_id":"honda.platform_diversity","exact_claim":"The source distinguishes Bosch, Nidec and Bosch CAN-FD Honda platform families.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Honda/Acura platforms represented by openDBC","action_if_connected":"Classify transport and platform before applying a Honda route grammar.","promotion_test":"Match VIN/platform and at least one ECU fingerprint before activating platform routes.","source":{"url":"https://github.com/commaai/opendbc/blob/7ed9ff88375cc066d6f48cc7b93dd244bf6b904b/opendbc/car/honda/values.py","revision":"7ed9ff88375cc066d6f48cc7b93dd244bf6b904b","retrieved_at":"2026-08-29","license":"MIT"}},
-    {"claim_id":"hyundai.egmp.platform_split","exact_claim":"The source uses a distinct multi-route polling layout for Ioniq 5 / EV6 E-GMP vehicles.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Ioniq 5 / Kia EV6 E-GMP only; not automatically the Kona","action_if_connected":"Classify E-GMP versus older Kona/Soul architecture before selecting routes or read semantics.","promotion_test":"Fingerprint responsive ECUs on the project Kona and compare them with a source-supported platform tuple.","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/68ea7d58a4fac0eef20d738e5b8b6901b868d534/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5/src/vehicle_hyundai_ioniq5.cpp","revision":"68ea7d58a4fac0eef20d738e5b8b6901b868d534","retrieved_at":"2026-08-29","license":"MIT"}},
-    {"claim_id":"mazda.make_routes.delta","exact_claim":"The Mazda make-level source contains service-22 route 0x6F5 to 0x6FD for HV charger data; existing 0x700/0x708 and 0x720 material is not duplicated here.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Mazda make-level dataset; platform applicability unknown","action_if_connected":"Try 0x6F5/0x6FD as a candidate before broad enumeration on an electrified Mazda.","promotion_test":"Read identity on the route and confirm it on a real Mazda platform before promotion.","source":{"url":"https://github.com/OBDb/Mazda/blob/02e84171601ce7d2b88f3716d03a1071aef14a86/signalsets/v3/default.json","revision":"02e84171601ce7d2b88f3716d03a1071aef14a86","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
-    {"claim_id":"mitsubishi.product_non_sweepable","exact_claim":"Public Outlander research uses non-default sessions and broad experimental probing, which is evidence of proprietary research complexity rather than a safe product scan.","knowledge_state":"source_observed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Experimental Outlander PHEV research only","action_if_connected":"Keep automatic Mitsubishi enumeration disabled; allow passive and standard identity paths only.","promotion_test":"Require an independently validated read-only allowlist with default-session behavior before enabling any route.","source":{"url":"https://github.com/projectgus/car_hacking/blob/fc292017c2bb7315ea966de6b54a7f6a1ee1cbc0/mitsubishi_outlander_phev/outlander_dtc.py","revision":"fc292017c2bb7315ea966de6b54a7f6a1ee1cbc0","retrieved_at":"2026-08-29","license":"MIT OR Apache-2.0"}},
-    {"claim_id":"nissan.leaf.off_state","exact_claim":"The source states that Nissan Leaf polling does not respond while the car is off.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Nissan Leaf / e-NV200 implementation only","action_if_connected":"Record vehicle-off silence as conditions/state limited before concluding route absence.","promotion_test":"Repeat an exact route while off and awake on a project vehicle.","source":{"url":"https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/8702bc8ea8770693b612da3fe9685ad9b2062ff1/vehicle/OVMS.V3/components/vehicle_nissanleaf/src/vehicle_nissanleaf.cpp","revision":"8702bc8ea8770693b612da3fe9685ad9b2062ff1","retrieved_at":"2026-08-29","license":"MIT"}},
-    {"claim_id":"psa.route_grammar.supporting","exact_claim":"The source catalogue documents recurring PSA ECU routes across powertrain, chassis, body and comfort modules.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"partially_project_confirmed","scope":"Supporting provenance only; individual routes retain their existing project evidence states","action_if_connected":"Use existing map ordering and never overwrite C4 route outcomes or adapter-path limitations.","promotion_test":"Confirm each previously untested route on a compatible vehicle and fingerprint the responding ECU.","source":{"url":"https://github.com/ludwig-v/arduino-psa-diag/blob/d46afcf5a28dbbb6df82855f526c6166f9d66ba7/ECU_LIST.md","revision":"d46afcf5a28dbbb6df82855f526c6166f9d66ba7","retrieved_at":"2026-08-29","license":"GPL-3.0"}},
-    {"claim_id":"skoda.make_routes.delta","exact_claim":"The Skoda make-level source contains service-22 routes 0x70B/0x775, 0x70E/0x778 and 0x70F/0x779.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Skoda make-level dataset; model applicability unknown","action_if_connected":"Prioritize these candidates before generic enumeration while preserving model uncertainty.","promotion_test":"Confirm route identity and model/year applicability on a real Skoda.","source":{"url":"https://github.com/OBDb/Skoda/blob/c1a106db5ec3ae8f3e2fcc8fcff959792766c8f5/signalsets/v3/default.json","revision":"c1a106db5ec3ae8f3e2fcc8fcff959792766c8f5","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
-    {"claim_id":"subaru.make_routes.delta","exact_claim":"The Subaru make-level source contains service-22 routes 0x753/0x75B for TPMS and 0x7A2/0x7AA for engine data; the unpaired 0x746 command is not imported as a route.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Native Subaru make-level dataset; Solterra excluded","action_if_connected":"Try the two explicit pairs before generic enumeration on a native Subaru platform.","promotion_test":"Confirm module identity and route response on a non-Solterra Subaru.","source":{"url":"https://github.com/OBDb/Subaru/blob/7a1f74c79ca770cbf58331d3aa120808e7a29450/signalsets/v3/default.json","revision":"7a1f74c79ca770cbf58331d3aa120808e7a29450","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}},
-    {"claim_id":"tesla.adapter_path","exact_claim":"The source defines Tesla-specific harnesses and buses for firmware queries, so standard OBD-path silence is not proof of vehicle incompatibility.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Tesla platforms represented by openDBC","action_if_connected":"Require an identified supported harness/bus path before active Tesla-specific queries.","promotion_test":"Validate the exact harness, bus and firmware-query response on supported hardware.","source":{"url":"https://github.com/commaai/opendbc/blob/cceac33bab0ae9cf4015834d27cee7c9d0cb0eb8/opendbc/car/tesla/values.py","revision":"cceac33bab0ae9cf4015834d27cee7c9d0cb0eb8","retrieved_at":"2026-08-29","license":"MIT"}},
-    {"claim_id":"volvo.polestar2.d0xx","exact_claim":"The Polestar 2 source uses D016 and D01A proprietary headers with explicit priority/tester metadata for service-22 signals.","knowledge_state":"source_confirmed","source_fidelity":"high","vehicle_applicability":"untested_by_project","scope":"Polestar 2 / matching CMA-SPA2 only","action_if_connected":"Preserve priority and tester metadata; do not collapse these into normal-fixed symmetric addressing.","promotion_test":"Reproduce the request and response addressing with a raw project capture before runtime activation.","source":{"url":"https://github.com/OBDb/Polestar-2/blob/95f4503b373c0fc78894f867f8a8c0fe8523ed34/signalsets/v3/default.json","revision":"95f4503b373c0fc78894f867f8a8c0fe8523ed34","retrieved_at":"2026-08-29","license":"CC-BY-SA-4.0"}}
+    {
+      "claim_id": "bmw.i3.sleep_state",
+      "exact_claim": "The source stops BMW i3 polling when D-CAN is shut down, so silence can represent an asleep bus rather than an absent route.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "BMW i3-like platforms only",
+      "action_if_connected": "Record asleep/state-limited separately from route absent.",
+      "promotion_test": "Reproduce the awake-to-asleep transition with timestamped bus and diagnostic evidence.",
+      "source": {
+        "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/8926e885c48cabeef259903c12e6499f00f496d4/vehicle/OVMS.V3/components/vehicle_bmwi3/src/vehicle_bmwi3.cpp",
+        "revision": "8926e885c48cabeef259903c12e6499f00f496d4",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "gm.volt.silent_charging",
+      "exact_claim": "The source models a Volt/Ampera silent-charging state where selected diagnostic routes can remain useful.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Chevrolet Volt / Opel Ampera implementation only",
+      "action_if_connected": "Preserve silent charging as a vehicle state instead of treating partial silence as absence.",
+      "promotion_test": "Capture the same routes in off, awake and silent-charging states on a compatible vehicle.",
+      "source": {
+        "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/dfb4141f6e41d35f2c0f6ac8f81cba23b97a94f8/vehicle/OVMS.V3/components/vehicle_voltampera/src/vehicle_voltampera.cpp",
+        "revision": "dfb4141f6e41d35f2c0f6ac8f81cba23b97a94f8",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "honda.platform_diversity",
+      "exact_claim": "The source distinguishes Bosch, Nidec and Bosch CAN-FD Honda platform families.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Honda/Acura platforms represented by openDBC",
+      "action_if_connected": "Classify transport and platform before applying a Honda route grammar.",
+      "promotion_test": "Match VIN/platform and at least one ECU fingerprint before activating platform routes.",
+      "source": {
+        "url": "https://github.com/commaai/opendbc/blob/7ed9ff88375cc066d6f48cc7b93dd244bf6b904b/opendbc/car/honda/values.py",
+        "revision": "7ed9ff88375cc066d6f48cc7b93dd244bf6b904b",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "hyundai.egmp.platform_split",
+      "exact_claim": "The source uses a distinct multi-route polling layout for Ioniq 5 / EV6 E-GMP vehicles.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Ioniq 5 / Kia EV6 E-GMP only; not automatically the Kona",
+      "action_if_connected": "Classify E-GMP versus older Kona/Soul architecture before selecting routes or read semantics.",
+      "promotion_test": "Fingerprint responsive ECUs on the project Kona and compare them with a source-supported platform tuple.",
+      "source": {
+        "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/68ea7d58a4fac0eef20d738e5b8b6901b868d534/vehicle/OVMS.V3/components/vehicle_hyundai_ioniq5/src/vehicle_hyundai_ioniq5.cpp",
+        "revision": "68ea7d58a4fac0eef20d738e5b8b6901b868d534",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "mazda.make_routes.delta",
+      "exact_claim": "The Mazda make-level source contains service-22 route 0x6F5 to 0x6FD for HV charger data; existing 0x700/0x708 and 0x720 material is not duplicated here.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Mazda make-level dataset; platform applicability unknown",
+      "action_if_connected": "Try 0x6F5/0x6FD as a candidate before broad enumeration on an electrified Mazda.",
+      "promotion_test": "Read identity on the route and confirm it on a real Mazda platform before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Mazda/blob/02e84171601ce7d2b88f3716d03a1071aef14a86/signalsets/v3/default.json",
+        "revision": "02e84171601ce7d2b88f3716d03a1071aef14a86",
+        "retrieved_at": "2026-08-29",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "mitsubishi.product_non_sweepable",
+      "exact_claim": "Public Outlander research uses non-default sessions and broad experimental probing, which is evidence of proprietary research complexity rather than a safe product scan.",
+      "knowledge_state": "source_observed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Experimental Outlander PHEV research only",
+      "action_if_connected": "Keep automatic Mitsubishi enumeration disabled; allow passive and standard identity paths only.",
+      "promotion_test": "Require an independently validated read-only allowlist with default-session behavior before enabling any route.",
+      "source": {
+        "url": "https://github.com/projectgus/car_hacking/blob/fc292017c2bb7315ea966de6b54a7f6a1ee1cbc0/mitsubishi_outlander_phev/outlander_dtc.py",
+        "revision": "fc292017c2bb7315ea966de6b54a7f6a1ee1cbc0",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT OR Apache-2.0"
+      }
+    },
+    {
+      "claim_id": "nissan.leaf.off_state",
+      "exact_claim": "The source states that Nissan Leaf polling does not respond while the car is off.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Nissan Leaf / e-NV200 implementation only",
+      "action_if_connected": "Record vehicle-off silence as conditions/state limited before concluding route absence.",
+      "promotion_test": "Repeat an exact route while off and awake on a project vehicle.",
+      "source": {
+        "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/8702bc8ea8770693b612da3fe9685ad9b2062ff1/vehicle/OVMS.V3/components/vehicle_nissanleaf/src/vehicle_nissanleaf.cpp",
+        "revision": "8702bc8ea8770693b612da3fe9685ad9b2062ff1",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "psa.route_grammar.supporting",
+      "exact_claim": "The source catalogue documents recurring PSA ECU routes across powertrain, chassis, body and comfort modules.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "partially_project_confirmed",
+      "scope": "Supporting provenance only; individual routes retain their existing project evidence states",
+      "action_if_connected": "Use existing map ordering and never overwrite C4 route outcomes or adapter-path limitations.",
+      "promotion_test": "Confirm each previously untested route on a compatible vehicle and fingerprint the responding ECU.",
+      "source": {
+        "url": "https://github.com/ludwig-v/arduino-psa-diag/blob/d46afcf5a28dbbb6df82855f526c6166f9d66ba7/ECU_LIST.md",
+        "revision": "d46afcf5a28dbbb6df82855f526c6166f9d66ba7",
+        "retrieved_at": "2026-08-29",
+        "license": "GPL-3.0"
+      }
+    },
+    {
+      "claim_id": "skoda.make_routes.delta",
+      "exact_claim": "The Skoda make-level source contains service-22 routes 0x70B/0x775, 0x70E/0x778 and 0x70F/0x779.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Skoda make-level dataset; model applicability unknown",
+      "action_if_connected": "Prioritize these candidates before generic enumeration while preserving model uncertainty.",
+      "promotion_test": "Confirm route identity and model/year applicability on a real Skoda.",
+      "source": {
+        "url": "https://github.com/OBDb/Skoda/blob/c1a106db5ec3ae8f3e2fcc8fcff959792766c8f5/signalsets/v3/default.json",
+        "revision": "c1a106db5ec3ae8f3e2fcc8fcff959792766c8f5",
+        "retrieved_at": "2026-08-29",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "subaru.make_routes.delta",
+      "exact_claim": "The Subaru make-level source contains service-22 routes 0x753/0x75B for TPMS and 0x7A2/0x7AA for engine data; the unpaired 0x746 command is not imported as a route.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Native Subaru make-level dataset; Solterra excluded",
+      "action_if_connected": "Try the two explicit pairs before generic enumeration on a native Subaru platform.",
+      "promotion_test": "Confirm module identity and route response on a non-Solterra Subaru.",
+      "source": {
+        "url": "https://github.com/OBDb/Subaru/blob/7a1f74c79ca770cbf58331d3aa120808e7a29450/signalsets/v3/default.json",
+        "revision": "7a1f74c79ca770cbf58331d3aa120808e7a29450",
+        "retrieved_at": "2026-08-29",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "tesla.adapter_path",
+      "exact_claim": "The source defines Tesla-specific harnesses and buses for firmware queries, so standard OBD-path silence is not proof of vehicle incompatibility.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Tesla platforms represented by openDBC",
+      "action_if_connected": "Require an identified supported harness/bus path before active Tesla-specific queries.",
+      "promotion_test": "Validate the exact harness, bus and firmware-query response on supported hardware.",
+      "source": {
+        "url": "https://github.com/commaai/opendbc/blob/cceac33bab0ae9cf4015834d27cee7c9d0cb0eb8/opendbc/car/tesla/values.py",
+        "revision": "cceac33bab0ae9cf4015834d27cee7c9d0cb0eb8",
+        "retrieved_at": "2026-08-29",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "volvo.polestar2.d0xx",
+      "exact_claim": "The Polestar 2 source uses D016 and D01A proprietary headers with explicit priority/tester metadata for service-22 signals.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Polestar 2 / matching CMA-SPA2 only",
+      "action_if_connected": "Preserve priority and tester metadata; do not collapse these into normal-fixed symmetric addressing.",
+      "promotion_test": "Reproduce the request and response addressing with a raw project capture before runtime activation.",
+      "source": {
+        "url": "https://github.com/OBDb/Polestar-2/blob/95f4503b373c0fc78894f867f8a8c0fe8523ed34/signalsets/v3/default.json",
+        "revision": "95f4503b373c0fc78894f867f8a8c0fe8523ed34",
+        "retrieved_at": "2026-08-29",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "seat.s01.make_level_obdb_fallback",
+      "exact_claim": "OBDb's SEAT make-level fallback (default.json) aggregates PQ/MQB/electrified command definitions across SEAT models into one make-wide UDS reference, and itself documents competing interpretations for some DIDs across those platforms.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "medium_high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "SEAT make-level fallback; mixes PQ/MQB/electrified platform decoders, not one universal SEAT truth.",
+      "action_if_connected": "Use only as a last-resort candidate after platform-specific and model-specific routes are exhausted; never let a make-level guess overwrite a platform-scoped or project-confirmed finding.",
+      "promotion_test": "Fingerprint the responding ECU (F187/F191/F195) and reproduce the same route+DID+decoder on a second SEAT of the same platform before promoting to uds-map.json.",
+      "source": {
+        "url": "https://github.com/OBDb/SEAT/blob/3e42a533fb22273ebcc09e03d0769c7bfeeef5a9/default.json",
+        "revision": "3e42a533fb22273ebcc09e03d0769c7bfeeef5a9",
+        "retrieved_at": "2026-08-30",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "seat.s02.leon_signalset",
+      "exact_claim": "OBDb's SEAT-Leon default signalset documents model-specific UDS routes and DIDs for the Leon.",
+      "knowledge_state": "source_confirmed_model_scoped",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "SEAT Leon only; OBDb source year filters apply.",
+      "action_if_connected": "Prioritize over make-level candidates on a confirmed Leon; still treat DIDs as unverified until read on project hardware.",
+      "promotion_test": "Read each candidate DID on a physical Leon in the default session, record the raw payload, and confirm the OBDb decode formula against a reference measurement before promoting.",
+      "source": {
+        "url": "https://github.com/OBDb/Seat-Leon/blob/86a877653b8090eb0a25b20f53283a8d5cd4b5c7/signalsets/v3/default.json",
+        "revision": "86a877653b8090eb0a25b20f53283a8d5cd4b5c7",
+        "retrieved_at": "2026-08-30",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "seat.s03.ibiza_signalset",
+      "exact_claim": "OBDb's SEAT-Ibiza default signalset documents model-specific UDS routes and DIDs for the Ibiza.",
+      "knowledge_state": "source_confirmed_model_scoped",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "SEAT Ibiza only; OBDb source year filters apply.",
+      "action_if_connected": "Prioritize over make-level candidates on a confirmed Ibiza; still treat DIDs as unverified until read on project hardware.",
+      "promotion_test": "Read each candidate DID on a physical Ibiza in the default session, record the raw payload, and confirm the OBDb decode formula against a reference measurement before promoting.",
+      "source": {
+        "url": "https://github.com/OBDb/Seat-Ibiza/blob/7f98a5d6ec28897258644a6909c22b83fd299d09/signalsets/v3/default.json",
+        "revision": "7f98a5d6ec28897258644a6909c22b83fd299d09",
+        "retrieved_at": "2026-08-30",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "seat.s04.vag_uds_route_catalogue",
+      "exact_claim": "A community extraction of VAG's ODIS diagnostic database catalogues UDS module request/response CAN ID pairs shared across the VW/Audi/SEAT/Skoda/Cupra platform family.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "medium",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "VAG group route catalogue; not SEAT-specific. A route existing in this catalogue is not proof a given SEAT carries that ECU.",
+      "action_if_connected": "Treat as a presence probe only: attempt the route, and if it answers, fingerprint before trusting any associated DID.",
+      "promotion_test": "Confirm the route answers on a physical SEAT, fingerprint the responding ECU, and cross-check against a second VAG-family vehicle before treating it as SEAT-confirmed rather than VAG-inherited.",
+      "source": {
+        "url": "https://github.com/ConnorHowell/vag-uds-ids/blob/27b5431ed22a10a41095517b88dc95b3ae212441/readme.md",
+        "revision": "27b5431ed22a10a41095517b88dc95b3ae212441",
+        "retrieved_at": "2026-08-30",
+        "license": "NOASSERTION"
+      }
+    },
+    {
+      "claim_id": "seat.s05.opendbc_vw_platform",
+      "exact_claim": "opendbc's Volkswagen platform module classifies VW-group platform generations and firmware-query behavior, useful for fingerprinting which platform branch a connected SEAT is on.",
+      "knowledge_state": "source_confirmed",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "VW Group platform classification and firmware query logic; supporting context, not a SEAT-specific route or DID source.",
+      "action_if_connected": "Use only to help classify which platform branch a connected SEAT is on; never as a route or DID source directly.",
+      "promotion_test": "n/a - supporting classification context only, not itself promotable to a route or DID.",
+      "source": {
+        "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+        "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+        "retrieved_at": "2026-08-30",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "seat.s06.mii_electric_ovms_header",
+      "exact_claim": "OVMS's VW e-Up/SEAT Mii Electric/Skoda Citigo-e iV module defines exact UDS module routes and DIDs for the shared e-Up-platform EV, in production use in a real vehicle telemetry project.",
+      "knowledge_state": "source_confirmed_platform_scoped",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "SEAT Mii Electric (shared VW e-Up / Skoda Citigo-e iV platform) only.",
+      "action_if_connected": "High-fidelity for this exact platform; still unread on project hardware, so treat as a strong candidate, not a confirmed sensor, until a physical Mii Electric is available.",
+      "promotion_test": "Read the candidate DIDs on a physical Mii Electric in the default session and compare against OVMS's own decode behavior before promoting to a trusted decode.",
+      "source": {
+        "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/1a79c553654b4b981c162b6cbb740c9784408d96/vehicle/OVMS.V3/components/vehicle_vweup/src/vweup_obd.h",
+        "revision": "1a79c553654b4b981c162b6cbb740c9784408d96",
+        "retrieved_at": "2026-08-30",
+        "license": "MIT"
+      }
+    },
+    {
+      "claim_id": "seat.s07.mii_electric_ovms_decoder",
+      "exact_claim": "OVMS's VW e-Up/SEAT Mii Electric decoder implementation shows the same shared-platform DIDs in live polling use, corroborating the header's route/DID list.",
+      "knowledge_state": "source_confirmed_platform_scoped",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "SEAT Mii Electric (shared VW e-Up / Skoda Citigo-e iV platform) only.",
+      "action_if_connected": "High-fidelity for this exact platform; still unread on project hardware, so treat as a strong candidate, not a confirmed sensor, until a physical Mii Electric is available.",
+      "promotion_test": "Read the candidate DIDs on a physical Mii Electric in the default session and compare against OVMS's own decode behavior before promoting to a trusted decode.",
+      "source": {
+        "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/e0f36c1f02067ce022c7d65fdd9689b009f32f28/vehicle/OVMS.V3/components/vehicle_vweup/src/vweup_obd.cpp",
+        "revision": "e0f36c1f02067ce022c7d65fdd9689b009f32f28",
+        "retrieved_at": "2026-08-30",
+        "license": "MIT"
+      }
+    }
   ]
 }
