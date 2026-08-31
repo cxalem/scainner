@@ -6,6 +6,7 @@
 //! suitable for observations/hypotheses.
 
 use serde::Deserialize;
+use serde_json::Value;
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
@@ -61,7 +62,7 @@ pub struct CandidateProfile {
     pub routes: Vec<CandidateRoute>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct CandidateRoute {
     pub route_id: String,
     pub platform: String,
@@ -72,7 +73,121 @@ pub struct CandidateRoute {
     pub service: String,
     pub session: String,
     pub claim_ids: Vec<String>,
-    pub candidate_dids: Vec<String>,
+    #[serde(default)]
+    pub module_role: Option<String>,
+    #[serde(default = "default_true")]
+    pub requires_identity: bool,
+    #[serde(default)]
+    pub candidate_dids: Vec<CandidateDid>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+/// A research DID may remain a bare identifier, or carry enough hypothesis
+/// metadata to tell the verifier what the source claims and how to test it.
+/// None of these fields enter the trusted decode path.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(untagged)]
+pub enum CandidateDid {
+    Id(String),
+    Detailed(CandidateDidHypothesis),
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct CandidateDidHypothesis {
+    pub did: String,
+    #[serde(default)]
+    pub semantic: Option<String>,
+    #[serde(default)]
+    pub decode: Option<Value>,
+    #[serde(default)]
+    pub validation: Option<ValidationRecipe>,
+    #[serde(default = "default_true")]
+    pub automatic_execution_authorized: bool,
+    #[serde(default)]
+    pub support_status: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct ValidationRecipe {
+    pub kind: String,
+    #[serde(default)]
+    pub instructions: Vec<String>,
+    #[serde(default)]
+    pub expected_behavior: Vec<String>,
+}
+
+impl CandidateDid {
+    const SUPPORT_STATUSES: [&'static str; 6] = [
+        "candidate",
+        "source_observed",
+        "supported",
+        "physically_supported_on_test_vehicle",
+        "unsupported",
+        "explicitly_unsupported_on_test_vehicle",
+    ];
+
+    pub fn did(&self) -> &str {
+        match self {
+            Self::Id(did) => did,
+            Self::Detailed(candidate) => &candidate.did,
+        }
+    }
+
+    /// Unsupported and explicitly non-executable records remain available as
+    /// evidence, but never become vehicle-facing requests.
+    pub fn executable(&self) -> bool {
+        match self {
+            Self::Id(_) => true,
+            Self::Detailed(candidate) => {
+                candidate.automatic_execution_authorized
+                    && matches!(
+                        candidate.support_status.as_deref(),
+                        None | Some(
+                            "candidate"
+                                | "source_observed"
+                                | "supported"
+                                | "physically_supported_on_test_vehicle"
+                        )
+                    )
+            }
+        }
+    }
+
+    fn support_status_valid(&self) -> bool {
+        match self {
+            Self::Id(_) => true,
+            Self::Detailed(candidate) => candidate
+                .support_status
+                .as_deref()
+                .is_none_or(|status| Self::SUPPORT_STATUSES.contains(&status)),
+        }
+    }
+
+    pub fn purpose(&self, claim_ids: &[String]) -> String {
+        let claims = claim_ids.join(", ");
+        match self {
+            Self::Id(_) => format!("research candidate only; claims {claims}"),
+            Self::Detailed(candidate) => {
+                let semantic = candidate.semantic.as_deref().unwrap_or("meaning unknown");
+                let validation = candidate
+                    .validation
+                    .as_ref()
+                    .map(|recipe| format!("; validate with {}", recipe.kind))
+                    .unwrap_or_default();
+                let proposed_decode = candidate
+                    .decode
+                    .as_ref()
+                    .map(|_| "; proposed decode retained as an untrusted hypothesis")
+                    .unwrap_or_default();
+                format!(
+                    "research candidate: {semantic}{proposed_decode}{validation}; claims {claims}"
+                )
+            }
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -153,10 +268,44 @@ pub fn packs() -> &'static [ResearchPack] {
                     assert!(!profile.brand_name.is_empty());
                     assert!(!profile.status.is_empty());
                     for route in &profile.routes {
+                        assert!(
+                            matches!(
+                                route.protocol.as_str(),
+                                "can11_500"
+                                    | "can11_250"
+                                    | "can29_normal_fixed"
+                                    | "can29_target_byte"
+                                    | "can29_custom"
+                            ),
+                            "unsupported protocol {} on {}",
+                            route.protocol,
+                            route.route_id
+                        );
+                        assert!(
+                            u32::from_str_radix(&route.req, 16).is_ok()
+                                && u32::from_str_radix(&route.resp, 16).is_ok(),
+                            "non-hex route address on {}: {}/{}",
+                            route.route_id,
+                            route.req,
+                            route.resp
+                        );
                         assert!(route
                             .claim_ids
                             .iter()
                             .all(|id| claims.contains(id.as_str())));
+                        assert!(route.candidate_dids.iter().all(|did| u16::from_str_radix(
+                            did.did(),
+                            16
+                        )
+                        .is_ok()));
+                        assert!(
+                            route
+                                .candidate_dids
+                                .iter()
+                                .all(CandidateDid::support_status_valid),
+                            "unknown candidate support_status on {}",
+                            route.route_id
+                        );
                     }
                 }
                 for evidence in &pack.claims {
@@ -310,7 +459,7 @@ mod tests {
     #[test]
     fn candidates_do_not_enter_the_trusted_decode_path() {
         let route = &routes_for_context(Some("WP0EXAMPLE00000000"), Some("Taycan"))[0];
-        assert!(route.candidate_dids.contains(&"2A53".to_string()));
+        assert!(route.candidate_dids.iter().any(|did| did.did() == "2A53"));
         let req = u32::from_str_radix(&route.req, 16).unwrap();
         let resp = u32::from_str_radix(&route.resp, 16).unwrap();
         let did = u16::from_str_radix("2A53", 16).unwrap();
@@ -321,6 +470,43 @@ mod tests {
             super::super::packs::overlay_known_did(Some("WP0EXAMPLE00000000"), req, resp, did)
                 .is_none()
         );
+    }
+
+    #[test]
+    fn detailed_candidates_retain_decode_and_validation_without_authorizing_every_read() {
+        let candidate: CandidateDid = serde_json::from_value(serde_json::json!({
+            "did": "18A0",
+            "semantic": "HV battery temperature",
+            "decode": {"encoding": "be", "len": 2, "scale": 0.1, "unit": "degC"},
+            "validation": {
+                "kind": "temperature_cross_check",
+                "instructions": ["allow the parked vehicle to equilibrate"],
+                "expected_behavior": ["changes slowly"]
+            },
+            "automatic_execution_authorized": false
+        }))
+        .unwrap();
+        assert_eq!(candidate.did(), "18A0");
+        assert!(!candidate.executable());
+        let purpose = candidate.purpose(&["S07".into()]);
+        assert!(purpose.contains("HV battery temperature"));
+        assert!(purpose.contains("untrusted hypothesis"));
+        assert!(purpose.contains("temperature_cross_check"));
+
+        let unsupported: CandidateDid = serde_json::from_value(serde_json::json!({
+            "did": "18A1",
+            "support_status": "explicitly_unsupported_on_test_vehicle"
+        }))
+        .unwrap();
+        assert!(!unsupported.executable());
+
+        let misspelled: CandidateDid = serde_json::from_value(serde_json::json!({
+            "did": "18A2",
+            "support_status": "unsuported"
+        }))
+        .unwrap();
+        assert!(!misspelled.support_status_valid());
+        assert!(!misspelled.executable());
     }
 
     #[test]

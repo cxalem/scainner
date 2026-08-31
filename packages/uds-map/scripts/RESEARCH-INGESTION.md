@@ -60,13 +60,17 @@ route silently vanishes with no error):
    `"unknown"` just to make them fire) — see the test
    `seat_deep_research_delta_serves_make_wide_candidates_with_dids` for how
    to assert both halves of this.
-9. **Decode formulas do not belong in this schema at all.** `candidate_dids`
-   is just a list of DIDs to probe; the pipeline never trusts a decode from
-   here (`candidates_do_not_enter_the_trusted_decode_path`). Keep the richer
-   per-DID decode/confidence data in the source research package (e.g.
-   `docs/product/research/<brand>/`) for the later, manually-gated step of
-   promoting a specific DID into `uds-map.json`'s `known_dids[]` once
-   physically validated.
+9. **Decode formulas remain untrusted hypotheses.** `candidate_dids` accepts
+   the legacy hex string or a detailed object with `did`, optional `semantic`,
+   `decode`, `validation`, `automatic_execution_authorized` and
+   `support_status`. The planner may retain this metadata in its evidence
+   purpose, but it never enters `known_did` or the trusted decode path
+   (`candidates_do_not_enter_the_trusted_decode_path`). A formula becomes a
+   trusted map decode only after physical validation and review.
+10. **One address per route.** Source shorthand such as
+    `730/748 -> 79A/7B2` must become two candidate routes. Runtime validation
+    rejects non-hexadecimal addresses and DIDs so malformed records cannot
+    silently vanish from the plan.
 
 ## After ingesting
 

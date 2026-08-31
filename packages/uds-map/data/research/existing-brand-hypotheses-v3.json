@@ -211,11 +211,24 @@
           "candidate_dids": []
         },
         {
-          "route_id": "seat_vag_high_beam_assist_730/0x748_79a/0x7b2",
+          "route_id": "seat_vag_high_beam_assist_730_79a",
           "platform": "unknown",
           "protocol": "can11_500",
-          "req": "730/0X748",
-          "resp": "79A/0X7B2",
+          "req": "730",
+          "resp": "79A",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_high_beam_assist_748_7b2",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "748",
+          "resp": "7B2",
           "service": "22",
           "session": "default_only",
           "claim_ids": [
@@ -324,11 +337,24 @@
           ]
         },
         {
-          "route_id": "seat_vag_awd_control_70f/0x71d_779/0x787",
+          "route_id": "seat_vag_awd_control_70f_779",
           "platform": "unknown",
           "protocol": "can11_500",
-          "req": "70F/0X71D",
-          "resp": "779/0X787",
+          "req": "70F",
+          "resp": "779",
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "seat.s04.vag_uds_route_catalogue"
+          ],
+          "candidate_dids": []
+        },
+        {
+          "route_id": "seat_vag_awd_control_71d_787",
+          "platform": "unknown",
+          "protocol": "can11_500",
+          "req": "71D",
+          "resp": "787",
           "service": "22",
           "session": "default_only",
           "claim_ids": [
