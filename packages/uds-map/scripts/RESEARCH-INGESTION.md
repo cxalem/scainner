@@ -1,5 +1,9 @@
 # Turning a brand deep-research package into a live research-candidate delta
 
+The normative authoring, safety and runtime-projection contract is
+[`docs/uds/brand-research-pack-specification.md`](../../../docs/uds/brand-research-pack-specification.md).
+This file is the practical procedure for the current v1 projection format.
+
 The discovery engine already has a safety-gated pipeline for exactly this
 (`apps/desktop/src-tauri/src/elm/discovery/research.rs`), used today by
 Porsche, BYD, Subaru, PSA, Mazda, Škoda and others. Getting a new brand's
