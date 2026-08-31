@@ -8,7 +8,7 @@ export const en: Dictionary = {
   hero: {
     eyebrow: "Talk to your car. Your car talks back.",
     heading: "Diagnostics you can actually read.",
-    body: "Read every fault your car throws, clear it, and find out what's actually wrong — not just the code.",
+    body: "Read every fault your car throws, clear it, and find out what's actually wrong.",
     downloadMac: "Download for macOS",
     worksWithAdapter: "Works with the OBD-II adapter you already own",
     comingSoon: "{platform} is coming soon.",
