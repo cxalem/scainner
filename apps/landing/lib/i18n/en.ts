@@ -8,13 +8,13 @@ export const en: Dictionary = {
   hero: {
     eyebrow: "Talk to your car. Your car talks back.",
     heading: "Diagnostics you can actually read.",
-    body: "Read every fault your car reports, clear it, and understand what it actually means.",
+    body: "Read every fault your car throws, clear it, and find out what's actually wrong — not just the code.",
     downloadMac: "Download for macOS",
     worksWithAdapter: "Works with the OBD-II adapter you already own",
     comingSoon: "{platform} is coming soon.",
     emailPlaceholder: "you@email.com",
     notifyMe: "Notify me",
-    onTheList: "You are on the list. We will write once.",
+    onTheList: "You're on the list. We'll email you once.",
     oneEmail: "One email when the {platform} build ships. Nothing else.",
     orDownloadMac: "Or download the macOS build →",
   },
@@ -33,7 +33,7 @@ export const en: Dictionary = {
     kicker: "How it works",
     heading: "Three steps, no shop appointment.",
     steps: [
-      { title: "Plug in the connector", body: "Any OBD-II adapter under your dashboard. Bluetooth, Wi-Fi or USB. You do not buy hardware from us." },
+      { title: "Plug in the connector", body: "Any OBD-II adapter under your dashboard — Bluetooth, Wi-Fi, or USB. We don't sell hardware." },
       { title: "Sonda reads the car", body: "VIN, brand, every module on the bus. Stored and pending fault codes, live sensor values, freeze frames." },
       { title: "Ask what it means", body: "Click a code and get the report: the fault in plain words, ranked causes, the fix and the cost." },
     ],
@@ -54,7 +54,7 @@ export const en: Dictionary = {
       code: "P0301",
       title: "Cylinder 1 misfire detected",
       rows: ["Why it happened", "What it affects", "How to fix it", "What it costs"],
-      footer: "You are left googling the number.",
+      footer: "You're left Googling the number.",
     },
     sonda: {
       confirmed: "Confirmed",
