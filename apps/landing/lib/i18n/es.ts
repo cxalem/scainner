@@ -13,13 +13,13 @@ export const es: Dictionary = {
   hero: {
     eyebrow: "Habla con tu coche. Tu coche te responde.",
     heading: "Diagnósticos que se entienden de verdad.",
-    body: "Lee cada avería que reporta tu coche, bórrala y entiende qué significa realmente.",
+    body: "Lee cada avería que reporta tu coche, bórrala y entiende qué le pasa de verdad, no solo el código.",
     downloadMac: "Descargar para macOS",
     worksWithAdapter: "Funciona con el adaptador OBD-II que ya tienes",
     comingSoon: "{platform} llega pronto.",
     emailPlaceholder: "tucorreo@email.com",
     notifyMe: "Avísame",
-    onTheList: "Ya estás en la lista. Te escribiremos una sola vez.",
+    onTheList: "Ya estás en la lista. Te escribimos una sola vez.",
     oneEmail: "Un correo cuando salga la versión para {platform}. Nada más.",
     orDownloadMac: "O descarga la versión para macOS →",
   },
@@ -38,7 +38,7 @@ export const es: Dictionary = {
     kicker: "Cómo funciona",
     heading: "Tres pasos, sin cita en el taller.",
     steps: [
-      { title: "Conecta el adaptador", body: "Cualquier adaptador OBD-II bajo el salpicadero. Bluetooth, Wi-Fi o USB. No nos compras el hardware." },
+      { title: "Conecta el adaptador", body: "Cualquier adaptador OBD-II bajo el salpicadero: Bluetooth, Wi-Fi o USB. No vendemos hardware." },
       { title: "Sonda lee el coche", body: "VIN, marca, cada módulo del bus. Códigos de avería almacenados y pendientes, valores de sensores en directo, fotogramas de congelación." },
       { title: "Pregunta qué significa", body: "Pulsa un código y recibe el informe: la avería en palabras claras, causas ordenadas, la solución y el coste." },
     ],
@@ -59,7 +59,7 @@ export const es: Dictionary = {
       code: "P0301",
       title: "Fallo de encendido detectado en el cilindro 1",
       rows: ["Por qué ha pasado", "A qué afecta", "Cómo arreglarlo", "Qué cuesta"],
-      footer: "Te quedas buscando el código en Google.",
+      footer: "Te quedas buscando el código en Google, como siempre.",
     },
     sonda: {
       confirmed: "Confirmado",
