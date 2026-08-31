@@ -25,7 +25,7 @@ export const en: Dictionary = {
     features: [
       { title: "Read every code", body: "Stored, pending and permanent, from every module on the bus — not just the engine." },
       { title: "Clear codes", body: "Reset the check-engine light once the fault is fixed, and see if it comes back." },
-      { title: "Watch it live", body: "Fuel trim, coolant, RPM, misfire counters — graphed while the engine runs." },
+      { title: "Watch it live", body: "Fuel trim, coolant, RPM, misfire counters." },
       { title: "Export a PDF", body: "One code or the whole scan, as a document you can hand to a mechanic." },
     ],
   },
@@ -48,7 +48,7 @@ export const en: Dictionary = {
   comparison: {
     kicker: "How your car talks to you",
     heading: "Same fault. Two answers.",
-    body: "A code reader repeats the code. Sonda reads every sensor the car will give up, then tells you what the code means for this car, today.",
+    body: "A code reader repeats the code. Sonda reads every sensor the car will give up, then tells you what the code means for this car.",
     genericReader: {
       label: "Any code reader",
       code: "P0301",

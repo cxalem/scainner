@@ -53,7 +53,7 @@ export const es: Dictionary = {
   comparison: {
     kicker: "Cómo te habla tu coche",
     heading: "La misma avería. Dos respuestas.",
-    body: "Un lector de códigos repite el código. Sonda lee cada sensor que el coche esté dispuesto a dar, y te dice qué significa ese código para este coche, hoy.",
+    body: "Un lector de códigos repite el código. Sonda lee cada sensor que el coche esté dispuesto a dar, y te dice qué significa ese código para este coche.",
     genericReader: {
       label: "Cualquier lector de códigos",
       code: "P0301",

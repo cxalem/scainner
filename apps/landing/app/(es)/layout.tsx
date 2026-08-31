@@ -16,7 +16,7 @@ const inter = Inter({
 
 const title = "Sonda — Diagnósticos que se entienden de verdad";
 const description =
-  "Lee cada avería que reporta tu coche, bórrala y entiende qué le pasa de verdad, no solo el código. Diagnóstico OBD-II y UDS para quien es dueño de su coche.";
+  "Lee cada avería que reporta tu coche, bórrala y entiende qué le pasa de verdad. Diagnóstico OBD-II y UDS para quien es dueño de su coche.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sondeo-landing.vercel.app"),
