@@ -136,8 +136,10 @@ pub struct CandidateInterpretation {
     pub value: f64,
     pub unit: String,
     pub quantity: String,
+    pub variant_id: String,
     pub status: &'static str,
     pub claim_ids: Vec<String>,
+    pub source_refs: Vec<String>,
     pub decode: uds_map::Decode,
 }
 
@@ -156,8 +158,10 @@ fn candidate_interpretations(
                 value: uds_map::decode_value(&hypothesis.decode, data)?,
                 unit: hypothesis.decode.unit.clone(),
                 quantity: hypothesis.decode.quantity.clone(),
+                variant_id: hypothesis.variant_id.clone(),
                 status: hypothesis.status,
                 claim_ids: hypothesis.claim_ids.clone(),
+                source_refs: hypothesis.source_refs.clone(),
                 decode: hypothesis.decode.clone(),
             })
         })
@@ -558,9 +562,10 @@ pub fn reached_routes(db: &Db, vehicle_id: i64) -> Vec<(u32, u32)> {
 pub fn parked_verification(
     drv: &mut ElmDriver,
     vin: Option<&str>,
+    model: Option<&str>,
     reached: &[(u32, u32)],
 ) -> ParkedVerificationReport {
-    let plan = plan::generate(vin, reached, uds_map::map());
+    let plan = plan::generate_for_vehicle(vin, model, reached, uds_map::map());
     execute_plan(drv, &plan)
 }
 
@@ -2496,7 +2501,9 @@ mod tests {
                     quantity: "temperature".into(),
                     label: "Ambient air temperature".into(),
                 },
+                variant_id: "S02-a".into(),
                 claim_ids: vec!["S02".into()],
+                source_refs: vec!["S02".into()],
                 status: "research_hypothesis",
             }],
         };

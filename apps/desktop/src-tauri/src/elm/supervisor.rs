@@ -1011,10 +1011,12 @@ fn handle_request(
                         .into(),
                 ),
                 Some(vehicle_id) => {
-                    let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
+                    let vehicle = db.vehicle(vehicle_id);
+                    let vin = vehicle.as_ref().and_then(|value| value.vin.as_deref());
+                    let model = vehicle.as_ref().and_then(|value| value.model.as_deref());
                     let reached = uds::reached_routes(db, vehicle_id);
                     set_scanning(app, status, true);
-                    let mut report = uds::parked_verification(drv, vin.as_deref(), &reached);
+                    let mut report = uds::parked_verification(drv, vin, model, &reached);
                     set_scanning(app, status, false);
                     match serde_json::to_string(&report)
                         .map_err(|error| error.to_string())
@@ -1063,9 +1065,7 @@ fn handle_request(
                                 let module_id =
                                     db.upsert_discovered_module(vehicle_id, &address, label);
                                 db.set_module_route_state(module_id, "reached");
-                                if let Some(fingerprint) =
-                                    uds::target_fingerprint(vin.as_deref(), target)
-                                {
+                                if let Some(fingerprint) = uds::target_fingerprint(vin, target) {
                                     db.update_ecu_fingerprint(module_id, &fingerprint);
                                     discovery::identity::record_identity(
                                         db,

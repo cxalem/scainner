@@ -1,0 +1,2442 @@
+{
+  "schema_version": 1,
+  "pack_id": "renault-deep-research-runtime-v1",
+  "version": 1,
+  "research_date": "2026-08-31",
+  "mode": "candidate_discovery_only",
+  "policy": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "forbidden_services": [
+      "10",
+      "11",
+      "14",
+      "27",
+      "28",
+      "2E",
+      "2F",
+      "31",
+      "34",
+      "35",
+      "36",
+      "37",
+      "3D"
+    ],
+    "candidate_decodes_are_hypotheses": true
+  },
+  "profiles": [
+    {
+      "brand_id": "renault",
+      "brand_name": "Renault / Dacia",
+      "status": "research_candidate",
+      "wmis": [],
+      "platforms": [
+        {
+          "platform_id": "renault_zoe_ph1",
+          "models": [
+            "zoe"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "renault_zoe_ph2",
+          "models": [
+            "zoe"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "renault_twingo3_ph2",
+          "models": [
+            "twingo_3"
+          ],
+          "powertrains": [
+            "ice",
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "renault_twizy",
+          "models": [
+            "twizy"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "renault_cmf_b",
+          "models": [
+            "clio_5",
+            "captur_2"
+          ],
+          "powertrains": [
+            "ice",
+            "hev",
+            "phev"
+          ]
+        },
+        {
+          "platform_id": "dacia_cmf_b",
+          "models": [
+            "sandero_3",
+            "logan_3",
+            "jogger",
+            "duster_3",
+            "bigster"
+          ],
+          "powertrains": [
+            "ice",
+            "hev",
+            "lpg"
+          ]
+        },
+        {
+          "platform_id": "renault_cmf_cd",
+          "models": [
+            "megane"
+          ],
+          "powertrains": [
+            "ice",
+            "hev",
+            "phev"
+          ]
+        },
+        {
+          "platform_id": "renault_cmf_cd_gen3",
+          "models": [
+            "austral"
+          ],
+          "powertrains": [
+            "hev",
+            "mhev"
+          ]
+        },
+        {
+          "platform_id": "dacia_cmf_a_ev",
+          "models": [
+            "spring"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "renault_ampr_medium",
+          "models": [
+            "megane_e_tech",
+            "scenic_e_tech"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "renault_ampr_small",
+          "models": [
+            "renault_5",
+            "renault_4"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "route_id": "renault_zoe_ph1_evc_7e4_7ec",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "7E4",
+          "resp": "7EC",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "evc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_dcm_7ca_7da",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "7CA",
+          "resp": "7DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "dcm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_lbc_79b_7bb",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "79B",
+          "resp": "7BB",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "lbc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_peb_75a_77e",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "75A",
+          "resp": "77E",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "peb",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_airbag_752_772",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "752",
+          "resp": "772",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "airbag",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_usm_74d_76d",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "74D",
+          "resp": "76D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "usm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_cluster_743_763",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "743",
+          "resp": "763",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "cluster",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_eps_742_762",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "742",
+          "resp": "762",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "eps",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_abs_esc_740_760",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "740",
+          "resp": "760",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_brake_pedal_79c_7bc",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "79C",
+          "resp": "7BC",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "brake_pedal",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_uch_745_765",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "745",
+          "resp": "765",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "uch",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_hvac_744_764",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "744",
+          "resp": "764",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "hvac",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_park_assist_74e_76e",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "74E",
+          "resp": "76E",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "park_assist",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_bcb_obc_792_793",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "792",
+          "resp": "793",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "bcb_obc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph1_lbc2_796_7b6",
+          "platform": "renault_zoe_ph1",
+          "protocol": "can11_500",
+          "req": "796",
+          "resp": "7B6",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s01"
+          ],
+          "module_role": "lbc2",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_airbag_752_772",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "752",
+          "resp": "772",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "airbag",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_audio_amplifier_782_7a2",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "782",
+          "resp": "7A2",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "audio_amplifier",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_parking_brake_755_775",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "755",
+          "resp": "775",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "parking_brake",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_uch_745_765",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "745",
+          "resp": "765",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "uch",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_hvac_744_764",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "744",
+          "resp": "764",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "hvac",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_dcm_7ca_7da",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "7CA",
+          "resp": "7DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "dcm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_eps_742_762",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "742",
+          "resp": "762",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "eps",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_front_camera_7dc_7dd",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "7DC",
+          "resp": "7DD",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "front_camera",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_hands_free_799_7b9",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "799",
+          "resp": "7B9",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "hands_free",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_integrated_dynamics_70c_700",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "70C",
+          "resp": "700",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "integrated_dynamics",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_front_radar_723_735",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "723",
+          "resp": "735",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "front_radar",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_cluster_743_763",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "743",
+          "resp": "763",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "cluster",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_multimedia_714_734",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "714",
+          "resp": "734",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "multimedia",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_navigation_747_767",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "747",
+          "resp": "767",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "navigation",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_park_assist_74e_76e",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "74E",
+          "resp": "76E",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "park_assist",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_plc_gateway_7d8_7c8",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "7D8",
+          "resp": "7C8",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "plc_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_usm_74d_76d",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "74D",
+          "resp": "76D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "usm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_pedestrian_sound_73f_761",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "73F",
+          "resp": "761",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "pedestrian_sound",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_wireless_charger_7aa_7ad",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can11_500",
+          "req": "7AA",
+          "resp": "7AD",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "wireless_charger",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_abs_esc_18da2df1_18daf12d",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DA2DF1",
+          "resp": "18DAF12D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_bcb_obc_18dadef1_18daf1de",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DADEF1",
+          "resp": "18DAF1DE",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "bcb_obc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_e_act_eba_18dae2f1_18daf1e2",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DAE2F1",
+          "resp": "18DAF1E2",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "e_act_eba",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_inverter_18dadff1_18daf1df",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DADFF1",
+          "resp": "18DAF1DF",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "inverter",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DADBF1",
+          "resp": "18DAF1DB",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "lbc",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "9001",
+              "semantic": "HV battery state of charge",
+              "validation": {
+                "kind": "time_series",
+                "instructions": [
+                  "record dashboard SOC",
+                  "record candidate SOC",
+                  "observe over charge/discharge interval"
+                ],
+                "expected_behavior": [
+                  "direction agrees with dashboard/reference",
+                  "scale remains plausible",
+                  "no discontinuities unsupported by vehicle state"
+                ]
+              },
+              "validation_recipe_id": "soc_progression",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "unknown"
+            },
+            {
+              "did": "9002",
+              "semantic": "HV battery usable state of charge",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S04-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.01,
+                      "bias": 0,
+                      "unit": "percent",
+                      "quantity": "state_of_charge",
+                      "label": "Usable SOC"
+                    }
+                  ],
+                  "source_refs": [
+                    "S04"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "time_series",
+                "instructions": [
+                  "record dashboard SOC",
+                  "record candidate SOC",
+                  "observe over charge/discharge interval"
+                ],
+                "expected_behavior": [
+                  "direction agrees with dashboard/reference",
+                  "scale remains plausible",
+                  "no discontinuities unsupported by vehicle state"
+                ]
+              },
+              "validation_recipe_id": "soc_progression",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "9003",
+              "semantic": "HV battery state of health",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S04-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.01,
+                      "bias": 0,
+                      "unit": "percent",
+                      "quantity": "state_of_health",
+                      "label": "Battery SOH"
+                    }
+                  ],
+                  "source_refs": [
+                    "S04"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "time_series",
+                "instructions": [
+                  "record dashboard SOC",
+                  "record candidate SOC",
+                  "observe over charge/discharge interval"
+                ],
+                "expected_behavior": [
+                  "direction agrees with dashboard/reference",
+                  "scale remains plausible",
+                  "no discontinuities unsupported by vehicle state"
+                ]
+              },
+              "validation_recipe_id": "soc_progression",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "9005",
+              "semantic": "HV battery pack voltage",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S04-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "Pack voltage"
+                    }
+                  ],
+                  "source_refs": [
+                    "S04"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "record DID voltage",
+                  "compare with trusted external or verified vehicle voltage reference"
+                ],
+                "expected_behavior": [
+                  "difference remains within project-defined measurement tolerance"
+                ]
+              },
+              "validation_recipe_id": "voltage_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "9006",
+              "semantic": "Sum of measured cell voltages",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S04-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 4,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.0009765625,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "Sum cell voltage"
+                    }
+                  ],
+                  "source_refs": [
+                    "S04"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "record DID voltage",
+                  "compare with trusted external or verified vehicle voltage reference"
+                ],
+                "expected_behavior": [
+                  "difference remains within project-defined measurement tolerance"
+                ]
+              },
+              "validation_recipe_id": "voltage_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "9007",
+              "semantic": "Maximum cell voltage",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S04-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.000976563,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "Maximum cell voltage"
+                    }
+                  ],
+                  "source_refs": [
+                    "S04"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "record DID voltage",
+                  "compare with trusted external or verified vehicle voltage reference"
+                ],
+                "expected_behavior": [
+                  "difference remains within project-defined measurement tolerance"
+                ]
+              },
+              "validation_recipe_id": "voltage_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "9008",
+              "semantic": "Index of maximum-voltage cell",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "unknown"
+            }
+          ],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_lbc2_18dadcf1_18daf1dc",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DADCF1",
+          "resp": "18DAF1DC",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "lbc2",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_security_gateway_18dad2f1_18daf1d2",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DAD2F1",
+          "resp": "18DAF1D2",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "security_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_zoe_ph2_vehicle_control_18dadaf1_18daf1da",
+          "platform": "renault_zoe_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DADAF1",
+          "resp": "18DAF1DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s03"
+          ],
+          "module_role": "vehicle_control",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_navigation_747_767",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "747",
+          "resp": "767",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "navigation",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_can_gateway_785_7a5",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "785",
+          "resp": "7A5",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "can_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_uch_745_765",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "745",
+          "resp": "765",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "uch",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_multimedia_714_734",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "714",
+          "resp": "734",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "multimedia",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_lbc_79b_7bb",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "79B",
+          "resp": "7BB",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "lbc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_hvac_744_764",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "744",
+          "resp": "764",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "hvac",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_cluster_743_763",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "743",
+          "resp": "763",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "cluster",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_automatic_transmission_7e1_7e9",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7E1",
+          "resp": "7E9",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "automatic_transmission",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_usm_74d_76d",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "74D",
+          "resp": "76D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "usm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_engine_7e0_7e8",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7E0",
+          "resp": "7E8",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "engine",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_evc_7e4_7ec",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7E4",
+          "resp": "7EC",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "evc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_bcb_obc_792_793",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "792",
+          "resp": "793",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "bcb_obc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_front_camera_7dc_7dd",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7DC",
+          "resp": "7DD",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "front_camera",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_audio_712_732",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "712",
+          "resp": "732",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "audio",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_airbag_752_772",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "752",
+          "resp": "772",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "airbag",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_cshv_78a_7d7",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "78A",
+          "resp": "7D7",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "cshv",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_vehicle_charger_controller_719_739",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "719",
+          "resp": "739",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "vehicle_charger_controller",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_dcm_7ca_7da",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7CA",
+          "resp": "7DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "dcm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_abs_esc_740_760",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "740",
+          "resp": "760",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_pedestrian_sound_73f_761",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "73F",
+          "resp": "761",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "pedestrian_sound",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_wireless_charger_7aa_7ad",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7AA",
+          "resp": "7AD",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "wireless_charger",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_eps_742_762",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "742",
+          "resp": "762",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "eps",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_acc_75d_77d",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "75D",
+          "resp": "77D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "acc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_top_control_74b_76b",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "74B",
+          "resp": "76B",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "top_control",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_peb_75a_77e",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "75A",
+          "resp": "77E",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "peb",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_plc_gateway_7d8_7c8",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "7D8",
+          "resp": "7C8",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "plc_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_shift_by_wire_79d_7bd",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "79D",
+          "resp": "7BD",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "shift_by_wire",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_audio_amplifier_782_7a2",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can11_500",
+          "req": "782",
+          "resp": "7A2",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "audio_amplifier",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twingo3_ph2_security_gateway_18dad2f1_18daf1d2",
+          "platform": "renault_twingo3_ph2",
+          "protocol": "can29_normal_fixed",
+          "req": "18DAD2F1",
+          "resp": "18DAF1D2",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s05"
+          ],
+          "module_role": "security_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twizy_cluster_743_763",
+          "platform": "renault_twizy",
+          "protocol": "can11_500",
+          "req": "743",
+          "resp": "763",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s06"
+          ],
+          "module_role": "cluster",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twizy_lbc_79b_7bb",
+          "platform": "renault_twizy",
+          "protocol": "can11_500",
+          "req": "79B",
+          "resp": "7BB",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s06"
+          ],
+          "module_role": "lbc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_twizy_bcb_obc_792_793",
+          "platform": "renault_twizy",
+          "protocol": "can11_500",
+          "req": "792",
+          "resp": "793",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s06"
+          ],
+          "module_role": "bcb_obc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "renault_megane_abs_740_760",
+          "platform": "renault_cmf_cd",
+          "protocol": "can11_500",
+          "req": "740",
+          "resp": "760",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s07"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "0100",
+              "semantic": "steering wheel angle",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "hold center",
+                  "turn left",
+                  "return center",
+                  "turn right",
+                  "return center"
+                ],
+                "expected_behavior": [
+                  "changes sign",
+                  "returns near zero",
+                  "moves monotonically",
+                  "stays within plausible range"
+                ]
+              },
+              "validation_recipe_id": "steering_center_left_right",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "012F",
+              "semantic": "ECU supply voltage",
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "record DID voltage",
+                  "compare with trusted external or verified vehicle voltage reference"
+                ],
+                "expected_behavior": [
+                  "difference remains within project-defined measurement tolerance"
+                ]
+              },
+              "validation_recipe_id": "voltage_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B00",
+              "semantic": "front-left wheel speed",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "drive straight at walking speed",
+                  "perform gentle left turn",
+                  "perform gentle right turn",
+                  "stop"
+                ],
+                "expected_behavior": [
+                  "all wheel channels increase from zero",
+                  "outer wheels differ plausibly during turns",
+                  "all return near zero at stop"
+                ]
+              },
+              "validation_recipe_id": "wheel_speed_low_speed_turn",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B01",
+              "semantic": "front-right wheel speed",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "drive straight at walking speed",
+                  "perform gentle left turn",
+                  "perform gentle right turn",
+                  "stop"
+                ],
+                "expected_behavior": [
+                  "all wheel channels increase from zero",
+                  "outer wheels differ plausibly during turns",
+                  "all return near zero at stop"
+                ]
+              },
+              "validation_recipe_id": "wheel_speed_low_speed_turn",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B02",
+              "semantic": "rear-left wheel speed",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "drive straight at walking speed",
+                  "perform gentle left turn",
+                  "perform gentle right turn",
+                  "stop"
+                ],
+                "expected_behavior": [
+                  "all wheel channels increase from zero",
+                  "outer wheels differ plausibly during turns",
+                  "all return near zero at stop"
+                ]
+              },
+              "validation_recipe_id": "wheel_speed_low_speed_turn",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B03",
+              "semantic": "rear-right wheel speed",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "drive straight at walking speed",
+                  "perform gentle left turn",
+                  "perform gentle right turn",
+                  "stop"
+                ],
+                "expected_behavior": [
+                  "all wheel channels increase from zero",
+                  "outer wheels differ plausibly during turns",
+                  "all return near zero at stop"
+                ]
+              },
+              "validation_recipe_id": "wheel_speed_low_speed_turn",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B04",
+              "semantic": "vehicle speed",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "drive straight at walking speed",
+                  "perform gentle left turn",
+                  "perform gentle right turn",
+                  "stop"
+                ],
+                "expected_behavior": [
+                  "all wheel channels increase from zero",
+                  "outer wheels differ plausibly during turns",
+                  "all return near zero at stop"
+                ]
+              },
+              "validation_recipe_id": "wheel_speed_low_speed_turn",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B06",
+              "semantic": "odometer",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B07",
+              "semantic": "longitudinal acceleration",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B0B",
+              "semantic": "lateral acceleration",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B0C",
+              "semantic": "yaw angle/rate source quantity",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B0E",
+              "semantic": "master-cylinder brake pressure",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "release brake",
+                  "light press",
+                  "release",
+                  "medium press",
+                  "release"
+                ],
+                "expected_behavior": [
+                  "pressure rises with pedal effort",
+                  "returns toward baseline after release"
+                ]
+              },
+              "validation_recipe_id": "brake_pressure_stationary",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B11",
+              "semantic": "brake pedal state",
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "release brake",
+                  "light press",
+                  "release",
+                  "medium press",
+                  "release"
+                ],
+                "expected_behavior": [
+                  "pressure rises with pedal effort",
+                  "returns toward baseline after release"
+                ]
+              },
+              "validation_recipe_id": "brake_pressure_stationary",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B17",
+              "semantic": "hydraulic unit temperature",
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "allow temperature to stabilize when applicable",
+                  "compare with trusted reference or related verified channel"
+                ],
+                "expected_behavior": [
+                  "plausible absolute value",
+                  "plausible thermal trend"
+                ]
+              },
+              "validation_recipe_id": "temperature_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B27",
+              "semantic": "parking brake state",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "4B35",
+              "semantic": "ABS / traction / stability status bitfield",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "dacia_duster_engine_7e0_7e8",
+          "platform": "dacia_cmf_b",
+          "protocol": "can11_500",
+          "req": "7E0",
+          "resp": "7E8",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "renault-deep-research.source.s09"
+          ],
+          "module_role": "engine",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "renault-deep-research.source.s01",
+      "exact_claim": "CanZE ZOE Phase 1 ECU catalog supplies research evidence scoped to Renault Zoe Phase 1 ECU routes.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Zoe Phase 1 ECU routes",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE/_Ecus.csv",
+        "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0-or-later"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s02",
+      "exact_claim": "CanZE ZOE Phase 1 EVC fields supplies research evidence scoped to Renault Zoe Phase 1 EVC diagnostic fields.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Zoe Phase 1 EVC diagnostic fields",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE/EVC_Fields.csv",
+        "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0-or-later"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s03",
+      "exact_claim": "CanZE ZOE Phase 2 ECU catalog supplies research evidence scoped to Renault Zoe Phase 2 11-bit and exact 29-bit ECU routes.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Zoe Phase 2 11-bit and exact 29-bit ECU routes",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE_Ph2/_Ecus.csv",
+        "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0-or-later"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s04",
+      "exact_claim": "CanZE ZOE Phase 2 LBC fields supplies research evidence scoped to Renault Zoe Phase 2 HV battery controller.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Zoe Phase 2 HV battery controller",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE_Ph2/LBC_Fields.csv",
+        "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0-or-later"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s05",
+      "exact_claim": "CanZE Twingo III Phase 2 ECU catalog supplies research evidence scoped to Renault Twingo III Phase 2 ECU routes.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Twingo III Phase 2 ECU routes",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/fesch/CanZE/blob/8c516e6af39206a14a51770a2a9c8293e1bb66ca/app/src/main/assets/Twingo_3_Ph2/_Ecus.csv",
+        "revision": "8c516e6af39206a14a51770a2a9c8293e1bb66ca",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0-or-later"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s06",
+      "exact_claim": "CanZE Twizy ECU catalog supplies research evidence scoped to Renault Twizy ECU routes.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Twizy ECU routes",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/fesch/CanZE/blob/710add8d4fca5aaf4720ca6a429b1fdc712649bf/app/src/main/assets/Twizy/_Ecus.csv",
+        "revision": "710add8d4fca5aaf4720ca6a429b1fdc712649bf",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0-or-later"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s07",
+      "exact_claim": "OBDb Renault Megane signal set supplies research evidence scoped to Renault Megane model family; source filters apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium_high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Renault Megane model family; source filters apply",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Renault-Megane/blob/dc9a1616841979e9bd1acf27c617e77eee695e13/signalsets/v3/default.json",
+        "revision": "dc9a1616841979e9bd1acf27c617e77eee695e13",
+        "retrieved_at": "2026-08-31",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "renault-deep-research.source.s09",
+      "exact_claim": "OBDb Dacia Duster 2017 command-support matrix supplies research evidence scoped to Dacia Duster 2017 standard OBD support.",
+      "knowledge_state": "community_verified",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Dacia Duster 2017 standard OBD support",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Dacia-Duster/blob/478a35df4f6986f41fa34a7a0c4d5d45dd0427e7/tests/test_cases/2017/command_support.yaml",
+        "revision": "478a35df4f6986f41fa34a7a0c4d5d45dd0427e7",
+        "retrieved_at": "2026-08-31",
+        "license": "CC-BY-SA-4.0"
+      }
+    }
+  ]
+}

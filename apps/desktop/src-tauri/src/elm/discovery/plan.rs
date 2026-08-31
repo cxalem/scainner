@@ -70,6 +70,17 @@ pub fn plan_version(vin: Option<&str>) -> String {
     format!("{brand}-{platform}-v{}", pack_ext::plan_revision())
 }
 
+fn plan_version_for(vin: Option<&str>, platform: Option<&str>) -> String {
+    let brand = uds_map::brand_for_vin(vin)
+        .map(|brand| brand.id.clone())
+        .unwrap_or_else(|| "unknown".into());
+    format!(
+        "{brand}-{}-v{}",
+        platform.unwrap_or("unknown"),
+        pack_ext::plan_revision()
+    )
+}
+
 fn address(value: u32) -> String {
     if value <= 0x7FF {
         format!("{value:03X}")
@@ -186,7 +197,17 @@ fn confidence_rank(c: Option<&str>) -> u8 {
 
 /// Generate the plan for `vin` given the routes the vehicle has reached
 /// (`(req, resp)` pairs from `discovered_modules`).
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> ParkedPlan {
+    generate_for_vehicle(vin, None, reached, map)
+}
+
+pub fn generate_for_vehicle(
+    vin: Option<&str>,
+    model: Option<&str>,
+    reached: &[(u32, u32)],
+    map: &UdsMap,
+) -> ParkedPlan {
     let profile = pack_ext::profile_modules_for_vin(map, vin);
     let brand_id = uds_map::brand_for_vin_in(map, vin).map(|b| b.id.clone());
     let mut modules: Vec<ProfileModule> = if reached.is_empty() {
@@ -239,7 +260,9 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
     // Research routes are a separate, lower-trust input. They are added only
     // after an exact platform match and carry candidate DIDs as hypothesis
     // probes. They never flow through `known_did` or receive trusted decodes.
-    let platform_key = uds_map::platform_for_vin(vin).map(|platform| platform.key);
+    let platform_key = uds_map::platform_for_vin(vin)
+        .map(|platform| platform.key)
+        .or_else(|| research::platform_for_vehicle_facts(vin, model));
     for candidate in research::routes_for_context(vin, platform_key.as_deref()) {
         let (Some(protocol), Some(req), Some(resp)) = (
             candidate_protocol(&candidate.protocol),
@@ -248,12 +271,6 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
         ) else {
             continue;
         };
-        if targets
-            .iter()
-            .any(|target| target.req == address(req) && target.resp == address(resp))
-        {
-            continue;
-        }
         let mut dids = if candidate.requires_identity {
             identity_reads(vin)
         } else {
@@ -274,13 +291,28 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
                         did: hex16(did.did())?,
                         purpose: did.purpose(&candidate.claim_ids),
                         stage: ReadStage::Candidate,
-                        candidate_decodes: did
-                            .decode_hypothesis(&candidate.claim_ids)
-                            .into_iter()
-                            .collect(),
+                        candidate_decodes: did.decode_hypotheses(&candidate.claim_ids),
                     })
                 }),
         );
+        if let Some(target) = targets
+            .iter_mut()
+            .find(|target| target.req == address(req) && target.resp == address(resp))
+        {
+            for read in dids
+                .into_iter()
+                .filter(|read| read.stage == ReadStage::Candidate)
+            {
+                if !target
+                    .dids
+                    .iter()
+                    .any(|existing| existing.did == read.did && existing.stage == read.stage)
+                {
+                    target.dids.push(read);
+                }
+            }
+            continue;
+        }
         targets.push(PlanTarget {
             key: format!("research_{}", candidate.route_id),
             label: candidate
@@ -338,9 +370,9 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
         }
     }
     ParkedPlan {
-        plan_version: plan_version(vin),
+        plan_version: plan_version_for(vin, platform_key.as_deref()),
         brand_id,
-        platform: uds_map::platform_for_vin(vin).map(|p| p.key),
+        platform: platform_key,
         targets,
         sweep_budget_secs: SWEEP_BUDGET_SECS,
     }
@@ -518,5 +550,31 @@ mod tests {
                     .all(|read| read.stage == ReadStage::Candidate));
             }
         }
+    }
+
+    #[test]
+    fn research_model_selection_never_guesses_an_ambiguous_platform() {
+        let vin = vin_for_brand("renault");
+        let unknown = generate_for_vehicle(Some(&vin), None, &[], map());
+        assert!(unknown
+            .targets
+            .iter()
+            .all(|target| !target.key.starts_with("research_renault_")));
+
+        let ambiguous = generate_for_vehicle(Some(&vin), Some("Zoe"), &[], map());
+        assert_eq!(ambiguous.platform, None);
+        assert!(ambiguous
+            .targets
+            .iter()
+            .all(|target| !target.key.starts_with("research_renault_")));
+
+        let exact = generate_for_vehicle(Some(&vin), Some("Megane"), &[], map());
+        assert_eq!(exact.platform.as_deref(), Some("renault_cmf_cd"));
+        assert!(exact
+            .targets
+            .iter()
+            .any(|target| target.dids.iter().any(|read| {
+                read.stage == ReadStage::Candidate && read.purpose.contains("research candidate")
+            })));
     }
 }

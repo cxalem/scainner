@@ -24,6 +24,12 @@ const EMBEDDED: &[(&str, &str)] = &[
             "../../../../../../packages/uds-map/data/research/existing-brand-hypotheses-v3.json"
         ),
     ),
+    (
+        "research/renault-deep-research-v1.json",
+        include_str!(
+            "../../../../../../packages/uds-map/data/research/renault-deep-research-v1.json"
+        ),
+    ),
 ];
 
 #[derive(Debug, Deserialize)]
@@ -59,7 +65,19 @@ pub struct CandidateProfile {
     pub brand_name: String,
     pub status: String,
     pub wmis: Vec<String>,
+    #[serde(default)]
+    pub platforms: Vec<CandidatePlatform>,
     pub routes: Vec<CandidateRoute>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CandidatePlatform {
+    pub platform_id: String,
+    #[serde(default)]
+    pub models: Vec<String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    pub powertrains: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -79,6 +97,14 @@ pub struct CandidateRoute {
     pub requires_identity: bool,
     #[serde(default)]
     pub candidate_dids: Vec<CandidateDid>,
+    #[serde(default)]
+    pub knowledge_state: Option<super::state::KnowledgeState>,
+    #[serde(default)]
+    pub vehicle_fit: Option<super::state::VehicleFit>,
+    #[serde(default)]
+    pub identity_fit: Option<super::state::IdentityFit>,
+    #[serde(default)]
+    pub activation: Option<super::state::Activation>,
 }
 
 fn default_true() -> bool {
@@ -90,6 +116,7 @@ fn default_true() -> bool {
 /// None of these fields enter the trusted decode path.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum CandidateDid {
     Id(String),
     Detailed(CandidateDidHypothesis),
@@ -107,11 +134,38 @@ pub struct CandidateDidHypothesis {
     #[serde(default)]
     pub decode_format: Option<String>,
     #[serde(default)]
+    pub decoder_variants: Vec<CandidateDecoderVariant>,
+    #[serde(default)]
     pub validation: Option<ValidationRecipe>,
     #[serde(default = "default_true")]
     pub automatic_execution_authorized: bool,
     #[serde(default)]
     pub support_status: Option<String>,
+    #[serde(default)]
+    pub knowledge_state: Option<super::state::KnowledgeState>,
+    #[serde(default)]
+    pub vehicle_fit: Option<super::state::VehicleFit>,
+    #[serde(default)]
+    pub identity_fit: Option<super::state::IdentityFit>,
+    #[serde(default)]
+    pub activation: Option<super::state::Activation>,
+    #[serde(default)]
+    pub route_status: Option<String>,
+    #[serde(default)]
+    pub did_status: Option<String>,
+    #[serde(default)]
+    pub decode_status: Option<String>,
+    #[serde(default)]
+    pub validation_recipe_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct CandidateDecoderVariant {
+    pub variant_id: String,
+    #[serde(default)]
+    pub signals: Vec<Value>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -129,7 +183,9 @@ pub struct ValidationRecipe {
 pub struct CandidateDecodeHypothesis {
     pub semantic: Option<String>,
     pub decode: crate::elm::uds_map::Decode,
+    pub variant_id: String,
     pub claim_ids: Vec<String>,
+    pub source_refs: Vec<String>,
     pub status: &'static str,
 }
 
@@ -180,20 +236,43 @@ impl CandidateDid {
         }
     }
 
-    pub fn decode_hypothesis(&self, claim_ids: &[String]) -> Option<CandidateDecodeHypothesis> {
+    pub fn decode_hypotheses(&self, claim_ids: &[String]) -> Vec<CandidateDecodeHypothesis> {
         let Self::Detailed(candidate) = self else {
-            return None;
+            return Vec::new();
         };
         if candidate.decode_format.as_deref() != Some("uds_map_v9") {
-            return None;
+            return Vec::new();
         }
-        let decode = canonical_decode(candidate.decode.as_ref()?).ok()?;
-        Some(CandidateDecodeHypothesis {
-            semantic: candidate.semantic.clone(),
-            decode,
-            claim_ids: claim_ids.to_vec(),
-            status: "research_hypothesis",
-        })
+        let mut hypotheses = Vec::new();
+        if let Some(decode) = candidate
+            .decode
+            .as_ref()
+            .and_then(|value| canonical_decode(value).ok())
+        {
+            hypotheses.push(CandidateDecodeHypothesis {
+                semantic: candidate.semantic.clone(),
+                decode,
+                variant_id: "default".into(),
+                claim_ids: claim_ids.to_vec(),
+                source_refs: Vec::new(),
+                status: "research_hypothesis",
+            });
+        }
+        for variant in &candidate.decoder_variants {
+            for signal in &variant.signals {
+                if let Ok(decode) = canonical_decode(signal) {
+                    hypotheses.push(CandidateDecodeHypothesis {
+                        semantic: candidate.semantic.clone(),
+                        decode,
+                        variant_id: variant.variant_id.clone(),
+                        claim_ids: claim_ids.to_vec(),
+                        source_refs: variant.source_refs.clone(),
+                        status: "research_hypothesis",
+                    });
+                }
+            }
+        }
+        hypotheses
     }
 
     pub fn purpose(&self, claim_ids: &[String]) -> String {
@@ -367,18 +446,37 @@ pub fn packs() -> &'static [ResearchPack] {
                         for candidate in &route.candidate_dids {
                             if let CandidateDid::Detailed(candidate) = candidate {
                                 if candidate.decode_format.as_deref() == Some("uds_map_v9") {
-                                    let decode = candidate.decode.as_ref().unwrap_or_else(|| {
-                                        panic!(
-                                            "candidate decode format without formula on {} DID {}",
-                                            route.route_id, candidate.did
-                                        )
-                                    });
-                                    canonical_decode(decode).unwrap_or_else(|error| {
-                                        panic!(
-                                            "invalid candidate decode on {} DID {}: {}",
-                                            route.route_id, candidate.did, error
-                                        )
-                                    });
+                                    assert!(
+                                        candidate.decode.is_some()
+                                            || !candidate.decoder_variants.is_empty(),
+                                        "candidate decode format without formula on {} DID {}",
+                                        route.route_id,
+                                        candidate.did
+                                    );
+                                    if let Some(decode) = &candidate.decode {
+                                        canonical_decode(decode).unwrap_or_else(|error| {
+                                            panic!(
+                                                "invalid candidate decode on {} DID {}: {}",
+                                                route.route_id, candidate.did, error
+                                            )
+                                        });
+                                    }
+                                    for variant in &candidate.decoder_variants {
+                                        assert!(
+                                            !variant.variant_id.is_empty() && !variant.signals.is_empty(),
+                                            "empty candidate decoder variant on {} DID {}",
+                                            route.route_id,
+                                            candidate.did
+                                        );
+                                        for signal in &variant.signals {
+                                            canonical_decode(signal).unwrap_or_else(|error| {
+                                                panic!(
+                                                    "invalid candidate decoder variant on {} DID {}: {}",
+                                                    route.route_id, candidate.did, error
+                                                )
+                                            });
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -424,6 +522,44 @@ pub fn profiles_for_vin(vin: Option<&str>) -> Vec<&'static CandidateProfile> {
                 || profile.wmis.iter().any(|known| known == &wmi)
         })
         .collect()
+}
+
+fn normalized_vehicle_fact(value: &str) -> String {
+    value
+        .trim()
+        .to_ascii_lowercase()
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+        .split('_')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("_")
+}
+
+/// Resolve a research platform from recorded vehicle facts only when the
+/// evidence identifies exactly one platform. Ambiguous matches deliberately
+/// return `None`, keeping every platform-scoped route inert.
+pub fn platform_for_vehicle_facts(vin: Option<&str>, model: Option<&str>) -> Option<String> {
+    let model = normalized_vehicle_fact(model?);
+    let matches: BTreeSet<&str> = profiles_for_vin(vin)
+        .into_iter()
+        .flat_map(|profile| &profile.platforms)
+        .filter(|platform| {
+            platform
+                .models
+                .iter()
+                .any(|known| normalized_vehicle_fact(known) == model)
+        })
+        .map(|platform| platform.platform_id.as_str())
+        .collect();
+    (matches.len() == 1).then(|| (*matches.first().unwrap()).to_string())
 }
 
 /// Routes safe to prioritize for this exact context.
@@ -569,7 +705,7 @@ mod tests {
         assert!(purpose.contains("HV battery temperature"));
         assert!(purpose.contains("untrusted hypothesis"));
         assert!(purpose.contains("temperature_cross_check"));
-        let hypothesis = candidate.decode_hypothesis(&["S07".into()]).unwrap();
+        let hypothesis = candidate.decode_hypotheses(&["S07".into()]).remove(0);
         assert_eq!(hypothesis.status, "research_hypothesis");
         assert_eq!(hypothesis.claim_ids, ["S07"]);
         assert_eq!(hypothesis.decode.len, 2);
@@ -580,7 +716,7 @@ mod tests {
             "decode": {"len": 1, "div": 10}
         }))
         .unwrap();
-        assert!(unknown_formula_field.decode_hypothesis(&[]).is_none());
+        assert!(unknown_formula_field.decode_hypotheses(&[]).is_empty());
 
         let unsupported: CandidateDid = serde_json::from_value(serde_json::json!({
             "did": "18A1",
@@ -596,6 +732,79 @@ mod tests {
         .unwrap();
         assert!(!misspelled.support_status_valid());
         assert!(!misspelled.executable());
+    }
+
+    #[test]
+    fn plural_decoder_variants_remain_separate_hypotheses() {
+        let candidate: CandidateDid = serde_json::from_value(serde_json::json!({
+            "did": "9005",
+            "semantic": "pack voltage",
+            "decode_format": "uds_map_v9",
+            "decoder_variants": [
+                {
+                    "variant_id": "source-a",
+                    "signals": [{"offset": 0, "len": 2, "encoding": "be", "scale": 0.1, "unit": "V"}],
+                    "source_refs": ["S01"]
+                },
+                {
+                    "variant_id": "source-b",
+                    "signals": [{"offset": 1, "len": 2, "encoding": "be", "scale": 0.01, "unit": "V"}],
+                    "source_refs": ["S02"]
+                }
+            ]
+        }))
+        .unwrap();
+        let hypotheses = candidate.decode_hypotheses(&["claim-a".into()]);
+        assert_eq!(hypotheses.len(), 2);
+        assert_eq!(hypotheses[0].variant_id, "source-a");
+        assert_eq!(hypotheses[0].source_refs, ["S01"]);
+        assert_eq!(hypotheses[1].variant_id, "source-b");
+        assert_eq!(hypotheses[1].decode.scale, 0.01);
+    }
+
+    #[test]
+    fn renault_vehicle_facts_select_only_unambiguous_platforms() {
+        let vin = vin_for_brand("renault");
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("Twizy")),
+            Some("renault_twizy".into())
+        );
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("Twingo 3")),
+            Some("renault_twingo3_ph2".into())
+        );
+        assert_eq!(platform_for_vehicle_facts(Some(&vin), Some("Zoe")), None);
+        assert_eq!(platform_for_vehicle_facts(Some(&vin), None), None);
+    }
+
+    #[test]
+    fn renault_pack_preserves_safe_routes_and_only_supported_decodes() {
+        let vin = vin_for_brand("renault");
+        assert!(routes_for_context(Some(&vin), None).is_empty());
+
+        let routes = routes_for_context(Some(&vin), Some("renault_zoe_ph2"));
+        let lbc = routes
+            .iter()
+            .find(|route| route.route_id == "renault_zoe_ph2_lbc_18dadbf1_18daf1db")
+            .unwrap();
+        let voltage = lbc
+            .candidate_dids
+            .iter()
+            .find(|candidate| candidate.did() == "9005")
+            .unwrap();
+        let hypotheses = voltage.decode_hypotheses(&lbc.claim_ids);
+        assert_eq!(hypotheses.len(), 1);
+        assert_eq!(hypotheses[0].variant_id, "S04-a");
+        assert_eq!(hypotheses[0].decode.scale, 0.1);
+        assert_eq!(hypotheses[0].decode.unit, "V");
+
+        let megane = routes_for_context(Some(&vin), Some("renault_cmf_cd"));
+        let did = megane
+            .iter()
+            .flat_map(|route| &route.candidate_dids)
+            .find(|candidate| candidate.did() == "4B00")
+            .unwrap();
+        assert!(did.decode_hypotheses(&[]).is_empty());
     }
 
     #[test]
@@ -671,8 +880,8 @@ mod tests {
             .iter()
             .find(|candidate| candidate.did() == "1E3B")
             .unwrap()
-            .decode_hypothesis(&mii_battery.claim_ids)
-            .unwrap();
+            .decode_hypotheses(&mii_battery.claim_ids)
+            .remove(0);
         assert_eq!(voltage.decode.scale, 0.25);
         assert_eq!(voltage.decode.unit, "V");
         assert_eq!(
@@ -691,8 +900,8 @@ mod tests {
             .candidate_dids
             .iter()
             .all(|candidate| candidate
-                .decode_hypothesis(&make_wide_battery.claim_ids)
-                .is_none()));
+                .decode_hypotheses(&make_wide_battery.claim_ids)
+                .is_empty()));
     }
 
     #[test]

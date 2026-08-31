@@ -183,9 +183,18 @@ type ResearchCandidateDid =
       semantic?: string;
       decode?: Record<string, unknown>;
       decode_format?: string;
+      decoder_variants?: Array<{ variant_id?: string; signals?: Array<Record<string, unknown>>; source_refs?: string[] }>;
       validation?: { kind?: string; instructions?: string[]; expected_behavior?: string[] };
+      validation_recipe_id?: string | null;
       automatic_execution_authorized?: boolean;
       support_status?: string;
+      knowledge_state?: string;
+      vehicle_fit?: string;
+      identity_fit?: string;
+      activation?: string;
+      route_status?: string;
+      did_status?: string;
+      decode_status?: string;
     };
 
 // docs/uds/brand-research-pack-specification.md §12: "the required pack
@@ -218,6 +227,18 @@ const RESEARCH_DECODE_KEYS = new Set([
   "scale", "bias", "unit", "quantity", "label",
 ]);
 
+function lintResearchDecode(decode: Record<string, unknown>, where: string, problems: string[]): void {
+  for (const key of Object.keys(decode)) {
+    if (!RESEARCH_DECODE_KEYS.has(key)) problems.push(`${where}: unknown candidate decode field ${key}`);
+  }
+  const len = decode.len ?? 1;
+  if (!Number.isInteger(len) || (len as number) < 1 || (len as number) > 8) problems.push(`${where}: candidate decode len must be 1..8`);
+  if (decode.offset !== undefined && (!Number.isInteger(decode.offset) || (decode.offset as number) < 0)) problems.push(`${where}: candidate decode offset must be a non-negative integer`);
+  if (decode.scale !== undefined && (typeof decode.scale !== "number" || !Number.isFinite(decode.scale))) problems.push(`${where}: candidate decode scale must be finite`);
+  if (decode.bias !== undefined && (typeof decode.bias !== "number" || !Number.isFinite(decode.bias))) problems.push(`${where}: candidate decode bias must be finite`);
+  if (decode.encoding !== undefined && !new Set(["be", "le", "bcd", "ascii", "bitfield"]).has(String(decode.encoding))) problems.push(`${where}: invalid candidate decode encoding`);
+}
+
 function lintResearchCandidate(candidate: ResearchCandidateDid, where: string, problems: string[]): void {
   const did = typeof candidate === "string" ? candidate : candidate.did;
   if (!did || !/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${String(did)}`);
@@ -233,20 +254,16 @@ function lintResearchCandidate(candidate: ResearchCandidateDid, where: string, p
     problems.push(`${where}: unknown candidate decode_format ${candidate.decode_format}`);
   }
   if (candidate.decode_format !== "uds_map_v9") return;
-  if (decode === undefined) {
+  const variants = candidate.decoder_variants ?? [];
+  if (decode === undefined && variants.length === 0) {
     problems.push(`${where}: canonical candidate decode is missing its formula`);
     return;
   }
-  for (const key of Object.keys(decode)) {
-    if (!RESEARCH_DECODE_KEYS.has(key)) problems.push(`${where}: unknown candidate decode field ${key}`);
+  if (decode !== undefined) lintResearchDecode(decode, where, problems);
+  for (const variant of variants) {
+    if (!variant.variant_id || !variant.signals?.length) problems.push(`${where}: empty candidate decoder variant`);
+    for (const signal of variant.signals ?? []) lintResearchDecode(signal, `${where} variant ${variant.variant_id ?? "?"}`, problems);
   }
-  const len = decode.len ?? 1;
-  if (!Number.isInteger(len) || (len as number) < 1 || (len as number) > 8) problems.push(`${where}: candidate decode len must be 1..8`);
-  if (decode.offset !== undefined && (!Number.isInteger(decode.offset) || (decode.offset as number) < 0)) problems.push(`${where}: candidate decode offset must be a non-negative integer`);
-  if (decode.scale !== undefined && (typeof decode.scale !== "number" || !Number.isFinite(decode.scale))) problems.push(`${where}: candidate decode scale must be finite`);
-  if (decode.bias !== undefined && (typeof decode.bias !== "number" || !Number.isFinite(decode.bias))) problems.push(`${where}: candidate decode bias must be finite`);
-  if (decode.encoding !== undefined && !new Set(["be", "le", "bcd", "ascii", "bitfield"]).has(String(decode.encoding))) problems.push(`${where}: invalid candidate decode encoding`);
-
 }
 
 type ResearchPack = {
