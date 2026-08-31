@@ -1,0 +1,85 @@
+{
+  "brand_profile": "vag",
+  "scope": [
+    "Volkswagen",
+    "Audi"
+  ],
+  "version": 1,
+  "steps": [
+    {
+      "step": 1,
+      "name": "identify_brand_and_platform",
+      "actions": [
+        "Use WMI + VDS/chassis code. openDBC explicitly uses both WMI and chassis code for VW/Audi platform matching.",
+        "Classify at minimum PQ/MQB/MEB/MLB/J1/PPE/PPC before proprietary scanning."
+      ]
+    },
+    {
+      "step": 2,
+      "name": "passive_transport_detection",
+      "actions": [
+        "Listen before transmitting; record 11-bit/29-bit and adapter multiplexing path.",
+        "Do not infer 29-bit support from FC00 OBDb syntax until normalized."
+      ]
+    },
+    {
+      "step": 3,
+      "name": "known_route_inventory",
+      "modern_priority": [
+        "0x710->0x77A gateway",
+        "0x7E0->0x7E8 engine",
+        "0x7E1->0x7E9 transmission when present",
+        "0x713->0x77D brakes",
+        "0x714->0x77E cluster",
+        "0x712->0x77C steering candidate",
+        "0x744->0x7AE charger on electrified platforms",
+        "0x7E5->0x7ED HV battery on electrified platforms"
+      ]
+    },
+    {
+      "step": 4,
+      "name": "firmware_identity",
+      "actions": [
+        "Preferred VAG multi-DID request: ReadDataByIdentifier F187 + F195 + F182.",
+        "openDBC uses RX offset 0x6A for selected SRS/EPS/radar/camera queries and regular addressing for engine/transmission.",
+        "Fallback to individual identity DIDs if multi-DID is rejected."
+      ]
+    },
+    {
+      "step": 5,
+      "name": "platform_specific_dids",
+      "actions": [
+        "Use exact physical/model support evidence before make-level candidates.",
+        "Preserve explicit unsupported-command evidence as platform-scoped negative evidence."
+      ]
+    },
+    {
+      "step": 6,
+      "name": "bounded_fallback",
+      "actions": [
+        "Run remaining VAG route catalogue before generic 11-bit enumeration.",
+        "Generic 11-bit: 0x700-0x7F6 excluding 0x7DF, only when CAN11/UDS is confirmed.",
+        "29-bit generic enumeration disabled in this profile."
+      ]
+    },
+    {
+      "step": 7,
+      "name": "terminal_state",
+      "states": [
+        "platform_known_route_knowledge_incomplete",
+        "transport_detected_no_diagnostic_response",
+        "known_routes_silent",
+        "gateway_blocked_or_unreachable",
+        "protected_sfd_write_function",
+        "unresolved_transport_encoding",
+        "ecu_identified_no_known_signals",
+        "route_responding",
+        "signals_observed",
+        "candidate_decode",
+        "vehicle_confirmed",
+        "family_confirmed",
+        "aborted_budget"
+      ]
+    }
+  ]
+}

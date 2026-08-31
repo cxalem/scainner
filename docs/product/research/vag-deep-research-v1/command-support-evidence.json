@@ -1,0 +1,481 @@
+{
+  "positive_examples": {
+    "audi_q5_2015": {
+      "source_refs": [
+        "S06"
+      ],
+      "interpretation": "Longitudinal Audi supports dense engine/transmission UDS/OBD; do not assume MQB/MEB body/EV routes.",
+      "supported_route_families": [
+        "0x7E0->0x7E8",
+        "0x7E1->0x7E9"
+      ]
+    },
+    "audi_rs_etron_gt_2022": {
+      "source_refs": [
+        "S07"
+      ],
+      "interpretation": "J1 supports gateway, charger, HVAC, BMS and selected brakes/cluster data, while many generic VAG candidates are explicitly rejected.",
+      "supported_route_families": [
+        "0x710->0x77A",
+        "0x713->0x77D",
+        "0x714->0x77E",
+        "0x71E->0x788",
+        "0x742->0x7AC",
+        "0x744->0x7AE",
+        "0x746->0x7B0",
+        "0x767->0x7D1",
+        "0x7E0",
+        "0x7E1",
+        "0x7E5->0x7ED"
+      ]
+    },
+    "vw_id4": {
+      "source_refs": [
+        "S05"
+      ],
+      "interpretation": "MEB has rich 0x710/0x77A energy-management and 0x744/0x7AE charging data."
+    }
+  },
+  "negative_records": [
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "tpms",
+      "route": {
+        "req": "0x70B",
+        "resp": null
+      },
+      "service": "0x22",
+      "did": "0x18A0",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "tpms",
+      "route": {
+        "req": "0x70B",
+        "resp": null
+      },
+      "service": "0x22",
+      "did": "0x18A1",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "tpms",
+      "route": {
+        "req": "0x70B",
+        "resp": null
+      },
+      "service": "0x22",
+      "did": "0x18A2",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "tpms",
+      "route": {
+        "req": "0x70B",
+        "resp": null
+      },
+      "service": "0x22",
+      "did": "0x18A3",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "central_electronics",
+      "route": {
+        "req": "0x70E",
+        "resp": "0x778"
+      },
+      "service": "0x22",
+      "did": "0x1945",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "awd_control",
+      "route": {
+        "req": "0x70F",
+        "resp": "0x779"
+      },
+      "service": "0x22",
+      "did": "0x08A7",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "awd_control",
+      "route": {
+        "req": "0x70F",
+        "resp": "0x779"
+      },
+      "service": "0x22",
+      "did": "0x0C0A",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "awd_control",
+      "route": {
+        "req": "0x70F",
+        "resp": "0x779"
+      },
+      "service": "0x22",
+      "did": "0x2B1B",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "awd_control",
+      "route": {
+        "req": "0x70F",
+        "resp": "0x779"
+      },
+      "service": "0x22",
+      "did": "0x2B1C",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "awd_control",
+      "route": {
+        "req": "0x70F",
+        "resp": "0x779"
+      },
+      "service": "0x22",
+      "did": "0x2B1D",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "awd_control",
+      "route": {
+        "req": "0x70F",
+        "resp": "0x779"
+      },
+      "service": "0x22",
+      "did": "0x2B1E",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "steering_assist",
+      "route": {
+        "req": "0x712",
+        "resp": "0x77C"
+      },
+      "service": "0x22",
+      "did": "0x1812",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "req": "0x713",
+        "resp": "0x77D"
+      },
+      "service": "0x22",
+      "did": "0x1800",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "req": "0x713",
+        "resp": "0x77D"
+      },
+      "service": "0x22",
+      "did": "0x1801",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "req": "0x713",
+        "resp": "0x77D"
+      },
+      "service": "0x22",
+      "did": "0x1802",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "req": "0x713",
+        "resp": "0x77D"
+      },
+      "service": "0x22",
+      "did": "0x1803",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "req": "0x713",
+        "resp": "0x77D"
+      },
+      "service": "0x22",
+      "did": "0x1816",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "req": "0x713",
+        "resp": "0x77D"
+      },
+      "service": "0x22",
+      "did": "0x1821",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "instrument_cluster",
+      "route": {
+        "req": "0x714",
+        "resp": "0x77E"
+      },
+      "service": "0x22",
+      "did": "0x202F",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "instrument_cluster",
+      "route": {
+        "req": "0x714",
+        "resp": "0x77E"
+      },
+      "service": "0x22",
+      "did": "0x2203",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "instrument_cluster",
+      "route": {
+        "req": "0x714",
+        "resp": "0x77E"
+      },
+      "service": "0x22",
+      "did": "0x2294",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "platform_scope": "audi_j1",
+      "brand_scope": [
+        "Audi"
+      ],
+      "module_role": "instrument_cluster",
+      "route": {
+        "req": "0x714",
+        "resp": "0x77E"
+      },
+      "service": "0x22",
+      "did": "0x229A",
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "knowledge_state": "negative_physical_evidence_model_scoped",
+      "confidence": "high",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "research_date": "2026-08-31",
+  "conflicts": [
+    {
+      "id": "vag_one_profile_many_architectures",
+      "finding": "VW/Audi spans PQ, MQB, MEB, MLB, J1, PPE and PPC.",
+      "resolution": "Platform classification precedes proprietary scanning."
+    },
+    {
+      "id": "fc00_transport_unresolved",
+      "finding": "Audi/VAG OBDb contains FC00/FE00xx targeted command syntax.",
+      "resolution": "Keep non-executable until exact raw transport is normalized and physically captured.",
+      "source_refs": [
+        "S04",
+        "S07",
+        "S08"
+      ]
+    },
+    {
+      "id": "j1_negative_evidence",
+      "finding": "2022 RS e-tron GT explicitly rejects many VAG make-level MQB/PQ candidates.",
+      "resolution": "Store rejection as model/platform-scoped negative evidence; reduce scan budget on J1 without affecting MQB/MEB.",
+      "source_refs": [
+        "S07"
+      ]
+    },
+    {
+      "id": "ppe_ppc_no_routes",
+      "finding": "OEM sources confirm PPE/PPC/E3 architectures, but this pass did not establish safe public diagnostic route sets.",
+      "resolution": "Terminal platform_known_route_knowledge_incomplete; do not inherit MQB/MLB routes.",
+      "source_refs": [
+        "S10",
+        "S11"
+      ]
+    },
+    {
+      "id": "sfd_readonly",
+      "finding": "SFD protects advanced changes, while read-only identification/measuring values are expected to remain available.",
+      "resolution": "No automatic unlock; continue read-only discovery.",
+      "source_refs": [
+        "S12"
+      ]
+    }
+  ]
+}

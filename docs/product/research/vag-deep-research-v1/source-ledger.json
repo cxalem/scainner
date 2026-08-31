@@ -1,0 +1,161 @@
+{
+  "research_date": "2026-08-31",
+  "sources": [
+    {
+      "ref": "S00",
+      "title": "Current project uds-map.json",
+      "url": "local:/mnt/data/uds-map.json",
+      "source_type": "project_knowledge_map",
+      "licence": "project_internal",
+      "revision": "map-v9",
+      "retrieved_at": "2026-08-31",
+      "scope": "Current VW/Audi VAG profile",
+      "reliability": "project_baseline",
+      "notes": null
+    },
+    {
+      "ref": "S01",
+      "title": "openDBC Volkswagen values.py",
+      "url": "https://github.com/commaai/opendbc/blob/master/opendbc/car/volkswagen/values.py",
+      "source_type": "open_source_platform_and_fw_query",
+      "licence": "MIT",
+      "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+      "retrieved_at": "2026-08-31",
+      "scope": "VW/Audi platform flags, WMIs, VIN/chassis classification and firmware query",
+      "reliability": "high",
+      "notes": null
+    },
+    {
+      "ref": "S02",
+      "title": "VAG UDS CAN IDs / ODIS extraction",
+      "url": "https://github.com/ConnorHowell/vag-uds-ids",
+      "source_type": "community_odis_extraction",
+      "licence": "NOASSERTION",
+      "revision": "27b5431ed22a10a41095517b88dc95b3ae212441",
+      "retrieved_at": "2026-08-31",
+      "scope": "VAG UDS route catalogue",
+      "reliability": "medium",
+      "notes": null
+    },
+    {
+      "ref": "S03",
+      "title": "OBDb Volkswagen make-level signalset",
+      "url": "https://github.com/OBDb/Volkswagen/blob/main/signalsets/v3/default.json",
+      "source_type": "open_diagnostic_database",
+      "licence": "CC-BY-SA-4.0",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "Volkswagen make-level mixed-platform commands",
+      "reliability": "medium_high",
+      "notes": null
+    },
+    {
+      "ref": "S04",
+      "title": "OBDb Audi make-level signalset",
+      "url": "https://github.com/OBDb/Audi/blob/main/signalsets/v3/default.json",
+      "source_type": "open_diagnostic_database",
+      "licence": "CC-BY-SA-4.0",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "Audi make-level mixed-platform commands",
+      "reliability": "medium_high",
+      "notes": null
+    },
+    {
+      "ref": "S05",
+      "title": "OBDb Volkswagen ID.4 signalset",
+      "url": "https://github.com/OBDb/Volkswagen-ID.4/blob/main/signalsets/v3/default.json",
+      "source_type": "open_diagnostic_database",
+      "licence": "CC-BY-SA-4.0",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "VW ID.4 / MEB model-scoped data",
+      "reliability": "high",
+      "notes": null
+    },
+    {
+      "ref": "S06",
+      "title": "OBDb Audi Q5 2015 command-support matrix",
+      "url": "https://github.com/OBDb/Audi-Q5/blob/main/tests/test_cases/2015/command_support.yaml",
+      "source_type": "physical_command_support_matrix",
+      "licence": "CC-BY-SA-4.0",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "Audi Q5 2015; MLB/PQ-style longitudinal platform",
+      "reliability": "high",
+      "notes": null
+    },
+    {
+      "ref": "S07",
+      "title": "OBDb Audi RS e-tron GT 2022 command-support matrix",
+      "url": "https://github.com/OBDb/Audi-RS-e-tron/blob/main/tests/test_cases/2022/command_support.yaml",
+      "source_type": "physical_command_support_matrix",
+      "licence": "CC-BY-SA-4.0",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "Audi RS e-tron GT 2022 / J1",
+      "reliability": "high",
+      "notes": null
+    },
+    {
+      "ref": "S08",
+      "title": "OBDb Audi Q4 e-tron signalset",
+      "url": "https://github.com/OBDb/Audi-Q4-e-tron/blob/main/signalsets/v3/default.json",
+      "source_type": "open_diagnostic_database",
+      "licence": "CC-BY-SA-4.0",
+      "revision": "ad37e0e5bed5520dd705b2eec65834419137edd1",
+      "retrieved_at": "2026-08-31",
+      "scope": "Audi Q4 e-tron / MEB; current sparse default",
+      "reliability": "medium",
+      "notes": null
+    },
+    {
+      "ref": "S09",
+      "title": "Audi: four electric platforms",
+      "url": "https://www.audi-mediacenter.com/system/production/uploaded_files/15615/file/0a6787a9d7a79661577444d90ce2a6692bf4cf84/EN_TD_Insight_e-mobility_Press_Kit_restricted.pdf",
+      "source_type": "manufacturer_platform_documentation",
+      "licence": "reference_only",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "Audi MLB evo EV, J1, MEB, PPE platform split",
+      "reliability": "oem_confirmed",
+      "notes": null
+    },
+    {
+      "ref": "S10",
+      "title": "Audi PPE + E3 1.2",
+      "url": "https://www.audi-mediacenter.com/en/press-releases/premium-platform-electric-ppe-a-technological-leap-for-the-next-generation-of-fully-electric-premium-mobility-from-audi-16021/download",
+      "source_type": "manufacturer_platform_documentation",
+      "licence": "reference_only",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "Audi Q6/A6 e-tron PPE electronics architecture",
+      "reliability": "oem_confirmed",
+      "notes": null
+    },
+    {
+      "ref": "S11",
+      "title": "Audi PPC + E3",
+      "url": "https://uploads.audi-mediacenter.com/system/production/uploaded_files/32928/file/fd0c62b07b4f549c21785229054292838e6076fd/20240930_A5_Basisinfo_short_EN.pdf",
+      "source_type": "manufacturer_platform_documentation",
+      "licence": "reference_only",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "New Audi A5/PPC platform",
+      "reliability": "oem_confirmed",
+      "notes": null
+    },
+    {
+      "ref": "S12",
+      "title": "Ross-Tech SFD Wiki",
+      "url": "https://wiki.ross-tech.com/wiki/index.php/SFD",
+      "source_type": "professional_diagnostic_documentation",
+      "licence": "reference_only",
+      "revision": null,
+      "retrieved_at": "2026-08-31",
+      "scope": "VAG SFD behavior",
+      "reliability": "high",
+      "notes": null
+    }
+  ]
+}

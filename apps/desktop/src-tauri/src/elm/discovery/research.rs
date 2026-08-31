@@ -574,4 +574,40 @@ mod tests {
             .iter()
             .any(|r| r.route_id.starts_with("seat_mii_")));
     }
+
+    #[test]
+    fn vag_deep_research_delta_marks_physically_disproven_dids_non_executable() {
+        // Same "no confirmed platform yet" situation as SEAT: vag has
+        // platforms[] in the trusted map (unlike SEAT's zero), but none of
+        // them carry a vds_pattern, so platform_for_vin can't resolve one
+        // and only make-wide (platform: "unknown") candidates apply today.
+        let routes = routes_for_context(Some(&vin_for_brand("vag")), None);
+        assert!(!routes.is_empty(), "expected make-wide VAG candidates");
+        assert!(routes.iter().all(|r| r.platform == "unknown"));
+        assert!(routes.iter().all(
+            |r| !r.route_id.starts_with("audi_j1_") && !r.route_id.starts_with("vw_meb_gen1_")
+        ));
+
+        // The genuinely new thing this brand's package contributes: real
+        // negative evidence from a physically tested 2022 Audi RS e-tron GT
+        // (docs/product/research/vag-deep-research-v1/command-support-
+        // evidence.json). Those DIDs must round-trip as present (so a
+        // reviewer can see they were tried) but never executable.
+        let j1_routes = routes_for_context(Some(&vin_for_brand("vag")), Some("audi_j1"));
+        assert!(
+            !j1_routes.is_empty(),
+            "expected audi_j1-scoped candidates with an exact platform match"
+        );
+        let disproven = j1_routes
+            .iter()
+            .flat_map(|r| &r.candidate_dids)
+            .find(|d| d.did() == "1812")
+            .expect(
+                "expected the physically-disproven steering DID 0x1812 to be present as evidence",
+            );
+        assert!(
+            !disproven.executable(),
+            "a DID explicitly disproven on a real test vehicle must never generate a request"
+        );
+    }
 }
