@@ -9,27 +9,22 @@ Bluetooth SPP. Prove each PR on Windows CI; preserve Unix termios and evidence-b
 
 ## Gate decisions and recommendations
 
-1. **Serial:** accept target-only `serialport = "=4.10.0"` plus its MPL notice. Recommended: yes; raw WinAPI is the fallback.
-2. **Bluetooth v1:** manual pairing plus COM selection; defer cycle/re-pair and direct RFCOMM. Recommended: yes.
-3. **Windows versions:** validate 11 first; treat 10 as best-effort until an owner supplies a test machine.
-4. **Milestone language:** backend transport is not "user-ready Windows" until the Choose
-   adapter UI exists. Confirm whether it is in this task or a separate stream.
-5. **Windows I/O fixture:** name an authorized Windows machine and verified virtual or
-   physical serial pair before stream 2. No third-party com0com signature patch is
-   approved. Without a named fixture, OS-I/O acceptance stays incomplete.
+1. **Serial:** accept Windows-only `serialport = "=4.10.0"` plus MPL notice. Recommended: yes; raw WinAPI is fallback.
+2. **Bluetooth v1:** manual pairing/COM selection; defer cycle/re-pair and RFCOMM. Recommended: yes.
+3. **Windows:** validate 11 first; treat 10 as best-effort until an owner supplies a test machine.
+4. **Claim:** not "user-ready Windows" until Choose adapter exists. Include it here or separately?
+5. **I/O fixture:** name an authorized Windows machine and verified serial pair before stream 2; no patched com0com. Without one, OS-I/O acceptance is incomplete.
 
 ## Non-goals
 
-- No BLE, automatic Windows Bluetooth pairing/re-pair, direct RFCOMM, ARM64 bundle,
-  protocol/UDS changes, installer review, or vehicle write expansion.
+- No BLE, automatic Windows pairing, direct RFCOMM, ARM64, protocol/UDS or writes.
+- No installer UX/signing/publication review; only notice-resource presence is checked.
 - No replacement of Unix termios and no changes to `tcp_elm.rs`.
-- Compilation or virtual I/O does not prove real ELM timing or pairing. SCAINNER-03
-  remains a separate release-workflow review and access-gated PR.
+- Virtual I/O does not prove ELM timing/pairing. SCAINNER-03 remains separate.
 
 ## Ordered streams
 
-Each item gets its own worktree, `ws/*` branch and PR. No file is shared by
-concurrent builders.
+Each item gets its own worktree, `ws/*` branch and PR; no concurrent file ownership.
 
 ### 1. `ws/windows-rust-ci` - establish the proof surface
 
@@ -58,11 +53,16 @@ Boundary: `apps/desktop/src-tauri/{Cargo.toml,Cargo.lock,tauri.conf.json}`,
   not create a fake test that bypasses the adapter.
 - Add a notice with version, MPL text/source links and the immutable crates.io source
   archive; bundle it as a Tauri resource and record it in the SBOM.
-- On the authorized fixture, run `pnpm tauri build --bundles nsis`, install the NSIS
-  artifact, then use PowerShell `Get-ChildItem` and `Select-String` in its installed
-  directory to prove the notice/source link shipped. No signing access means incomplete.
+- On the Windows fixture, run pinned `cargo-cyclonedx 0.5.9` via
+  `cargo cyclonedx -f json -a`; save `scainner-windows.cdx.json` as untracked evidence.
+  Require `pkg:cargo/serialport@4.10.0`, `MPL-2.0` and final dependency inspection due
+  to an upstream target limitation. José/Alejandro attaches it and records the link.
+- Build/install an internal NSIS test; PowerShell `Get-ChildItem`/`Select-String` proves
+  the notice/source link shipped. Updater artifacts may be disabled without signing
+  access; signing/publication remain SCAINNER-03 gates.
 - Acceptance: Windows/Ubuntu CI pass and the named fixture proves `ATZ`, `ATI`, prompt
-  reads, stale-input purge and timeout. Otherwise this stream remains incomplete.
+  reads, stale-input purge, timeout and the observed DTR requirement/behavior. The PR
+  records that result even when no DTR assertion is needed. Otherwise it is incomplete.
 - Risk fallback: if the fixture cannot reproduce the semantics, stop and re-plan
   raw `windows-sys` plus enumeration. Do not leave a hidden crate dependency.
 
@@ -93,19 +93,19 @@ Boundary: `apps/desktop/src-tauri/src/elm/transport/enumerate.rs`, its tests,
 - Put conversion and sorting behind a pure helper accepting synthetic port records;
   CI fixtures cover COM3, COM10+, USB, Bluetooth and unknown ports without assuming
   the hosted runner owns real devices.
-- Keep macOS/Linux `/dev` enumeration byte-for-byte unless a test requires a pure
-  helper extraction inside this file.
+- Preserve macOS/Linux discovery, filtering, ordering and path behavior while allowing
+  the candidate DTO migration required by `adapter-ui-spec.md`.
 - Correct docs: the HTTP API exists; the desktop Choose adapter UI does not yet.
 - Acceptance: fixtures cover metadata, stable ordering and zero/multiple candidates;
   a live enumeration smoke is separate and non-gating.
 
 ### 5. Adapter UI gate
 
-If gate 4 includes user-ready Windows, start a separate research/plan/build stream
-after enumeration. Add Tauri adapters over `api::ops`, shared schemas/DeviceService
-and mock parity, then the specified Connect -> Choose adapter interaction with brand
-tokens and i18n. Do not hand its boundary to a transport builder. If deferred, the
-Phase 2 handoff says "developer-configured Windows transport."
+If gate 4 includes user-ready Windows, follow `adapter-ui-spec.md` after enumeration:
+first the Tauri/schema/DeviceService/mock bridge, then the Connect -> Choose adapter
+interaction. They are separate reviewed PRs and neither belongs to a transport
+builder. If deferred, the Phase 2 handoff says "developer-configured Windows
+transport."
 
 ## Verification and demonstration
 

@@ -21,6 +21,11 @@ Microsoft documentation and the current Rust crate's own documentation/source.
   or current frontend consumes it. `docs/product/ui-flow-spec.md` specifies a future
   Connect -> Choose adapter control, but that UI is not built. Assessment: backend
   serial support alone is developer-usable, not a user-ready Windows port.
+- The reusable Rust operations already list, read and save adapters, but `lib.rs`
+  does not expose them as Tauri commands. `DeviceService`, its Live layer and
+  `mock.ts` have no adapter methods. The UI therefore needs a bridge/contracts PR
+  before a visual picker PR; HTTP calls from a React view would violate the existing
+  service boundary.
 - `elm_serial.rs` implements Unix raw termios only. Required parity is explicit:
   supported baud validation, 8 data bits, no parity/flow control, one stop bit,
   roughly 100 ms read waits, a 15 second bounded open, stale-input purge before
@@ -78,6 +83,9 @@ Microsoft documentation and the current Rust crate's own documentation/source.
 - MPL permits a larger proprietary work, but distributed executables must tell
   recipients where to obtain the MPL-covered source. The release notice/SBOM gate
   must cover the crate. [Mozilla MPL FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/)
+- `cargo-cyclonedx` 0.5.9 can generate a Cargo CycloneDX JSON inventory; target
+  handling still needs Windows artifact inspection.
+  [CycloneDX Rust Cargo](https://github.com/CycloneDX/cyclonedx-rust-cargo)
 - Tauri 2 can bundle a notice as an installer resource through `bundle.resources`.
   [Tauri configuration reference](https://v2.tauri.app/reference/config/#resources)
 
