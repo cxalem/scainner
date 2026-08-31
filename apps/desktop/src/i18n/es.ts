@@ -561,6 +561,9 @@ export const es: Dictionary = {
       thResult: "Resultado",
       thEvidence: "Evidencia",
       refused: (nrc) => `rechazado · NRC ${nrc}`,
+      candidate: "candidato",
+      unknownMeaning: "Significado desconocido",
+      claims: (ids) => `fuentes ${ids}`,
     },
     guidedCorrelation: {
       cardTitle: "Correlación guiada",

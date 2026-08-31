@@ -168,7 +168,7 @@ type ResearchClaim = {
   action_if_connected?: string;
   promotion_test?: string;
   source?: { url?: string; revision?: string; retrieved_at?: string; license?: string };
-};
+}
 
 // Mirrors research.rs's CandidateDid: either a bare hex string, or an
 // object carrying an untrusted hypothesis (semantic/decode/validation) plus
@@ -181,7 +181,8 @@ type ResearchCandidateDid =
   | {
       did?: string;
       semantic?: string;
-      decode?: unknown;
+      decode?: Record<string, unknown>;
+      decode_format?: string;
       validation?: { kind?: string; instructions?: string[]; expected_behavior?: string[] };
       automatic_execution_authorized?: boolean;
       support_status?: string;
@@ -212,6 +213,41 @@ type ResearchRoute = {
   candidate_dids?: ResearchCandidateDid[];
   decodes?: unknown;
 };
+const RESEARCH_DECODE_KEYS = new Set([
+  "offset", "len", "signed", "encoding", "bit_offset", "bit_len",
+  "scale", "bias", "unit", "quantity", "label",
+]);
+
+function lintResearchCandidate(candidate: ResearchCandidateDid, where: string, problems: string[]): void {
+  const did = typeof candidate === "string" ? candidate : candidate.did;
+  if (!did || !/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${String(did)}`);
+  if (typeof candidate === "string") return;
+  if (candidate.automatic_execution_authorized !== undefined && typeof candidate.automatic_execution_authorized !== "boolean") {
+    problems.push(`${where}: candidate DID ${did}: automatic_execution_authorized must be boolean`);
+  }
+  if (candidate.support_status !== undefined && !SUPPORT_STATUS_VALUES.has(candidate.support_status)) {
+    problems.push(`${where}: unknown candidate support_status ${candidate.support_status}`);
+  }
+  const decode = candidate.decode;
+  if (candidate.decode_format !== undefined && candidate.decode_format !== "uds_map_v9") {
+    problems.push(`${where}: unknown candidate decode_format ${candidate.decode_format}`);
+  }
+  if (candidate.decode_format !== "uds_map_v9") return;
+  if (decode === undefined) {
+    problems.push(`${where}: canonical candidate decode is missing its formula`);
+    return;
+  }
+  for (const key of Object.keys(decode)) {
+    if (!RESEARCH_DECODE_KEYS.has(key)) problems.push(`${where}: unknown candidate decode field ${key}`);
+  }
+  const len = decode.len ?? 1;
+  if (!Number.isInteger(len) || (len as number) < 1 || (len as number) > 8) problems.push(`${where}: candidate decode len must be 1..8`);
+  if (decode.offset !== undefined && (!Number.isInteger(decode.offset) || (decode.offset as number) < 0)) problems.push(`${where}: candidate decode offset must be a non-negative integer`);
+  if (decode.scale !== undefined && (typeof decode.scale !== "number" || !Number.isFinite(decode.scale))) problems.push(`${where}: candidate decode scale must be finite`);
+  if (decode.bias !== undefined && (typeof decode.bias !== "number" || !Number.isFinite(decode.bias))) problems.push(`${where}: candidate decode bias must be finite`);
+  if (decode.encoding !== undefined && !new Set(["be", "le", "bcd", "ascii", "bitfield"]).has(String(decode.encoding))) problems.push(`${where}: invalid candidate decode encoding`);
+
+}
 
 type ResearchPack = {
   schema_version?: number;
@@ -284,18 +320,7 @@ function lintResearchPacks(problems: string[]): void {
         if (route.decodes !== undefined) problems.push(`${where}: trusted decodes are forbidden in research routes`);
         if (!(route.claim_ids?.length)) problems.push(`${where}: route has no evidence claims`);
         for (const id of route.claim_ids ?? []) if (!claims.has(id)) problems.push(`${where}: unknown claim ${id}`);
-        for (const entry of route.candidate_dids ?? []) {
-          const did = typeof entry === "string" ? entry : entry.did;
-          if (!did || !/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${JSON.stringify(entry)}`);
-          if (typeof entry === "object") {
-            if (entry.automatic_execution_authorized !== undefined && typeof entry.automatic_execution_authorized !== "boolean") {
-              problems.push(`${where}: candidate DID ${did}: automatic_execution_authorized must be boolean`);
-            }
-            if (entry.support_status !== undefined && !SUPPORT_STATUS_VALUES.has(entry.support_status)) {
-              problems.push(`${where}: candidate DID ${did}: unknown support_status ${entry.support_status}`);
-            }
-          }
-        }
+        for (const candidate of route.candidate_dids ?? []) lintResearchCandidate(candidate, where, problems);
       }
     }
   }
