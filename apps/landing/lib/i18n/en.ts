@@ -1,0 +1,120 @@
+import type { Dictionary } from "./dictionary";
+
+export const en: Dictionary = {
+  nav: {
+    download: "Download",
+    getNotified: "Get notified",
+  },
+  hero: {
+    eyebrow: "Talk to your car. Your car talks back.",
+    heading: "Diagnostics you can actually read.",
+    body: "Read every fault your car reports, clear it, and understand what it actually means.",
+    downloadMac: "Download for macOS",
+    worksWithAdapter: "Works with the OBD-II adapter you already own",
+    comingSoon: "{platform} is coming soon.",
+    emailPlaceholder: "you@email.com",
+    notifyMe: "Notify me",
+    onTheList: "You are on the list. We will write once.",
+    oneEmail: "One email when the {platform} build ships. Nothing else.",
+    orDownloadMac: "Or download the macOS build →",
+  },
+  showcase: {
+    heading: "Everything the car knows, on one screen.",
+    body: "Codes, live sensors, modules and history. No menus to hunt through.",
+    screenshotAlt: "Sonda's Overview screen: vehicle status, session stats, fuel and range, and recent scan history.",
+    features: [
+      { title: "Read every code", body: "Stored, pending and permanent, from every module on the bus — not just the engine." },
+      { title: "Clear codes", body: "Reset the check-engine light once the fault is fixed, and see if it comes back." },
+      { title: "Watch it live", body: "Fuel trim, coolant, RPM, misfire counters — graphed while the engine runs." },
+      { title: "Export a PDF", body: "One code or the whole scan, as a document you can hand to a mechanic." },
+    ],
+  },
+  howItWorks: {
+    kicker: "How it works",
+    heading: "Three steps, no shop appointment.",
+    steps: [
+      { title: "Plug in the connector", body: "Any OBD-II adapter under your dashboard. Bluetooth, Wi-Fi or USB. You do not buy hardware from us." },
+      { title: "Sonda reads the car", body: "VIN, brand, every module on the bus. Stored and pending fault codes, live sensor values, freeze frames." },
+      { title: "Ask what it means", body: "Click a code and get the report: the fault in plain words, ranked causes, the fix and the cost." },
+    ],
+  },
+  connectors: {
+    kicker: "Any connector",
+    heading: "Whatever adapter is already in your glovebox.",
+    body: "Sonda speaks the standard protocols and the manufacturer ones on top: OBD-II for the engine, UDS for the modules the generic tools never reach.",
+    list: ["ELM327", "OBDLink MX+", "Veepeak", "Vgate iCar", "Bluetooth", "Wi-Fi", "USB"],
+    brandsRecognised: "24 brands recognised",
+  },
+  comparison: {
+    kicker: "How your car talks to you",
+    heading: "Same fault. Two answers.",
+    body: "A code reader repeats the code. Sonda reads every sensor the car will give up, then tells you what the code means for this car, today.",
+    genericReader: {
+      label: "Any code reader",
+      code: "P0301",
+      title: "Cylinder 1 misfire detected",
+      rows: ["Why it happened", "What it affects", "How to fix it", "What it costs"],
+      footer: "You are left googling the number.",
+    },
+    sonda: {
+      confirmed: "Confirmed",
+      code: "P0301",
+      title: "Cylinder 1 misfire detected",
+      whyHappened: "Why it happened",
+      causes: [
+        { label: "Ignition coil, cylinder 1", pct: 72 },
+        { label: "Spark plug worn", pct: 34 },
+        { label: "Injector clogged", pct: 15 },
+      ],
+      explanation:
+        "The misfire counter rose only on cylinder 1 while fuel trim stayed flat, so the mixture is fine and the spark is not. Battery voltage held at 14.1 V, which rules out the correlated low-voltage faults.",
+      affects: {
+        label: "What it affects if you leave it",
+        body: "Unburnt fuel reaches the catalytic converter. A few weeks of this is a P0420 and a far more expensive part.",
+      },
+      fix: {
+        label: "How to fix it",
+        body: "Swap the coil on cylinder 1 with the one on cylinder 2 and rescan. If the misfire moves with it, the coil is the fault and the plug can stay.",
+      },
+      cost: { label: "What it should cost", value: "€60 – €140" },
+      exportReport: "Export report",
+    },
+    readToAnswer: "Read to answer this one code",
+    readToAnswerTags: ["Live sensor stream", "Freeze frame", "Fuel trim", "Battery voltage", "Every module that answers", "Your previous scans"],
+    payPerReport: "Pay for the report you need. No subscription.",
+  },
+  pricing: {
+    kicker: "Price",
+    heading: "Free to scan. Reports you buy one at a time.",
+    body: "No subscription for individuals. You only pay when you want the AI to explain a specific code.",
+    individuals: {
+      title: "Individuals",
+      tag: "Free app, pay per report",
+      rows: ["Your car, unlimited scans", "Read and clear fault codes", "Live sensors and freeze frames", "Buy an AI report for the code you care about"],
+    },
+    shops: {
+      title: "Repair shops",
+      tag: "Subscription",
+      rows: ["As many cars as you work on", "Everything in the free app", "A monthly allowance of AI reports", "Extra reports beyond the allowance, paid per report"],
+    },
+    downloadMac: "Download for macOS",
+    notifyMe: "Notify me when {platform} ships",
+  },
+  footer: {
+    tagline: "Talk to your car. Your car talks back.",
+    platforms: "Platforms",
+    macAvailable: "macOS · available",
+    windowsSoon: "Windows · soon",
+    iphoneSoon: "iPhone · soon",
+    androidSoon: "Android · soon",
+    copyright: "© 2026 Sonda. OBD-II diagnostics for people who own the car.",
+    switchTo: "Español",
+  },
+  platforms: {
+    mac: "macOS",
+    windows: "Windows",
+    ios: "iPhone",
+    android: "Android",
+    other: "your platform",
+  },
+};
