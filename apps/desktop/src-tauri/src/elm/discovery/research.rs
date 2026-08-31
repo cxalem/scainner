@@ -75,8 +75,6 @@ pub struct CandidateRoute {
     pub claim_ids: Vec<String>,
     #[serde(default)]
     pub module_role: Option<String>,
-    #[serde(default)]
-    pub priority: Option<String>,
     #[serde(default = "default_true")]
     pub requires_identity: bool,
     #[serde(default)]
@@ -122,6 +120,15 @@ pub struct ValidationRecipe {
 }
 
 impl CandidateDid {
+    const SUPPORT_STATUSES: [&'static str; 6] = [
+        "candidate",
+        "source_observed",
+        "supported",
+        "physically_supported_on_test_vehicle",
+        "unsupported",
+        "explicitly_unsupported_on_test_vehicle",
+    ];
+
     pub fn did(&self) -> &str {
         match self {
             Self::Id(did) => did,
@@ -136,11 +143,26 @@ impl CandidateDid {
             Self::Id(_) => true,
             Self::Detailed(candidate) => {
                 candidate.automatic_execution_authorized
-                    && !matches!(
+                    && matches!(
                         candidate.support_status.as_deref(),
-                        Some("unsupported" | "explicitly_unsupported_on_test_vehicle")
+                        None | Some(
+                            "candidate"
+                                | "source_observed"
+                                | "supported"
+                                | "physically_supported_on_test_vehicle"
+                        )
                     )
             }
+        }
+    }
+
+    fn support_status_valid(&self) -> bool {
+        match self {
+            Self::Id(_) => true,
+            Self::Detailed(candidate) => candidate
+                .support_status
+                .as_deref()
+                .is_none_or(|status| Self::SUPPORT_STATUSES.contains(&status)),
         }
     }
 
@@ -276,6 +298,14 @@ pub fn packs() -> &'static [ResearchPack] {
                             16
                         )
                         .is_ok()));
+                        assert!(
+                            route
+                                .candidate_dids
+                                .iter()
+                                .all(CandidateDid::support_status_valid),
+                            "unknown candidate support_status on {}",
+                            route.route_id
+                        );
                     }
                 }
                 for evidence in &pack.claims {
@@ -469,6 +499,14 @@ mod tests {
         }))
         .unwrap();
         assert!(!unsupported.executable());
+
+        let misspelled: CandidateDid = serde_json::from_value(serde_json::json!({
+            "did": "18A2",
+            "support_status": "unsuported"
+        }))
+        .unwrap();
+        assert!(!misspelled.support_status_valid());
+        assert!(!misspelled.executable());
     }
 
     #[test]

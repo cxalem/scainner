@@ -48,8 +48,13 @@ late fallback.
 - Research plans run discovery reads before candidate reads.
 - Candidate reads are gated on an answered/refused discovery read.
 - Unsupported and non-authorized records remain evidence but do not execute.
+- `support_status` uses a closed vocabulary; unknown values fail pack loading
+  and also default to non-executable in the candidate helper.
 - Research routes and DIDs are validated as hexadecimal at startup; malformed
   routes fail loudly instead of silently disappearing.
+- Detailed decode JSON is retained in the research pack but is not yet copied
+  into parked observations; only its semantic and validation recipe are
+  surfaced. Persisting and pairing the full formula is Slice 5 work.
 
 ### Slice 2 — normalize and ingest VAG
 
