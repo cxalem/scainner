@@ -547,7 +547,24 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                 raw_response: None,
             });
         } else {
+            let mut discovery_reached = false;
             for read in &target.dids {
+                if read.stage == plan::ReadStage::Candidate && !discovery_reached {
+                    observations.push(VerificationObservation {
+                        did: format!("{:04X}", read.did),
+                        purpose: format!(
+                            "{}; skipped because presence/identity did not reach an ECU",
+                            read.purpose
+                        ),
+                        outcome: DiagnosticOutcome::skipped_for_safety(
+                            "presence and identity reads did not reach an ECU on this route",
+                        ),
+                        payload_hex: None,
+                        printable: None,
+                        raw_response: None,
+                    });
+                    continue;
+                }
                 let evidence = observe_did_evidence(
                     operation.driver(),
                     target.read_service,
@@ -562,6 +579,16 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                         None,
                     ),
                 };
+                if read.stage == plan::ReadStage::Discovery
+                    && matches!(
+                        outcome.status,
+                        DiagnosticStatus::Answered
+                            | DiagnosticStatus::Refused
+                            | DiagnosticStatus::Unsupported
+                    )
+                {
+                    discovery_reached = true;
+                }
                 observations.push(VerificationObservation {
                     did: format!("{:04X}", read.did),
                     purpose: read.purpose.clone(),
@@ -3027,6 +3054,7 @@ mod tests {
                     dids: vec![crate::elm::discovery::plan::PlannedRead {
                         did: 0xF187,
                         purpose: "identity: part (iso_ascii)".into(),
+                        stage: crate::elm::discovery::plan::ReadStage::Discovery,
                     }],
                     sweep: Vec::new(),
                     source: "test".into(),

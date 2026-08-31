@@ -13,11 +13,19 @@ use super::research;
 use crate::elm::uds_map::{self, hex16, ReadService, Route, RouteProtocol, UdsMap};
 use serde::Serialize;
 
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ReadStage {
+    Discovery,
+    Candidate,
+}
+
 /// One identity read of a plan target.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct PlannedRead {
     pub did: u16,
     pub purpose: String,
+    pub stage: ReadStage,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -83,6 +91,7 @@ fn identity_reads(vin: Option<&str>) -> Vec<PlannedRead> {
     let mut reads = vec![PlannedRead {
         did: uds_map::presence_probe_did(),
         purpose: "presence probe / active diagnostic session".into(),
+        stage: ReadStage::Discovery,
     }];
     let block = uds_map::identity_block_for_vin(vin);
     for entry in &block.dids {
@@ -111,7 +120,11 @@ fn identity_reads(vin: Option<&str>) -> Vec<PlannedRead> {
                         .push_str(purpose.trim_start_matches("identity: "));
                 }
             }
-            None => reads.push(PlannedRead { did, purpose }),
+            None => reads.push(PlannedRead {
+                did,
+                purpose,
+                stage: ReadStage::Discovery,
+            }),
         }
     }
     reads
@@ -237,22 +250,35 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
         {
             continue;
         }
-        let dids = candidate
-            .candidate_dids
-            .iter()
-            .filter_map(|did| {
-                Some(PlannedRead {
-                    did: hex16(did)?,
-                    purpose: format!(
-                        "research candidate only; claims {}",
-                        candidate.claim_ids.join(", ")
-                    ),
-                })
-            })
-            .collect();
+        let mut dids = if candidate.requires_identity {
+            identity_reads(vin)
+        } else {
+            vec![PlannedRead {
+                did: uds_map::presence_probe_did(),
+                purpose: "research route presence probe".into(),
+                stage: ReadStage::Discovery,
+            }]
+        };
+        dids.extend(
+            candidate
+                .candidate_dids
+                .iter()
+                .filter(|did| did.executable())
+                .filter_map(|did| {
+                    Some(PlannedRead {
+                        did: hex16(did.did())?,
+                        purpose: did.purpose(&candidate.claim_ids),
+                        stage: ReadStage::Candidate,
+                    })
+                }),
+        );
         targets.push(PlanTarget {
             key: format!("research_{}", candidate.route_id),
-            label: format!("Research candidate: {}", candidate.platform),
+            label: candidate
+                .module_role
+                .as_deref()
+                .map(|role| format!("Research candidate: {role} ({})", candidate.platform))
+                .unwrap_or_else(|| format!("Research candidate: {}", candidate.platform)),
             expected_family: "unknown".into(),
             req: address(req),
             resp: address(resp),
@@ -465,5 +491,23 @@ mod tests {
         assert!(candidates
             .iter()
             .all(|target| target.source.contains("vehicle applicability untested")));
+        for target in candidates {
+            let candidate_at = target
+                .dids
+                .iter()
+                .position(|read| read.stage == ReadStage::Candidate);
+            if let Some(candidate_at) = candidate_at {
+                assert!(
+                    candidate_at > 0,
+                    "candidate reads must follow discovery reads"
+                );
+                assert!(target.dids[..candidate_at]
+                    .iter()
+                    .all(|read| read.stage == ReadStage::Discovery));
+                assert!(target.dids[candidate_at..]
+                    .iter()
+                    .all(|read| read.stage == ReadStage::Candidate));
+            }
+        }
     }
 }

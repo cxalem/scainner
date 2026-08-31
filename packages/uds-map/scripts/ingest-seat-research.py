@@ -165,6 +165,25 @@ def slug(role: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", role.lower()).strip("_")
 
 
+def expand_route_alternatives(entries: list[dict]) -> list[dict]:
+    """Turn source shorthand `730/748 -> 79A/7B2` into two real routes.
+
+    A slash is never valid in the runtime's hexadecimal address field. The
+    old converter preserved it and the planner silently dropped the route.
+    """
+    expanded = []
+    for entry in entries:
+        requests = entry["req"].split("/")
+        responses = entry["resp"].split("/")
+        assert len(requests) == len(responses), f"unpaired route alternatives: {entry}"
+        for req, resp in zip(requests, responses):
+            route = dict(entry)
+            route["req"] = req
+            route["resp"] = resp
+            expanded.append(route)
+    return expanded
+
+
 def main() -> None:
     routes_data = json.loads((SRC / "ecu-routes.json").read_text())
     did_data = json.loads((SRC / "did-candidates.json").read_text())
@@ -226,11 +245,11 @@ def main() -> None:
 
     vag_routes = [
         build_route(r, "unknown", "seat_vag")
-        for r in routes_data["vag_group_route_candidates"]
+        for r in expand_route_alternatives(routes_data["vag_group_route_candidates"])
     ]
     mii_routes = [
         build_route(r, "seat_mii_electric_shared_up", "seat_mii")
-        for r in routes_data["seat_mii_electric_exact_routes"]
+        for r in expand_route_alternatives(routes_data["seat_mii_electric_exact_routes"])
     ]
     routes = vag_routes + mii_routes
 
