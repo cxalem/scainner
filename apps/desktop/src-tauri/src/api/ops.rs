@@ -527,8 +527,9 @@ pub fn coverage(state: &AppState, vehicle_id: i64) -> Option<discovery::coverage
 pub fn parked_plan(state: &AppState, vehicle_id: i64) -> Option<discovery::plan::ParkedPlan> {
     let vehicle = state.db.vehicle(vehicle_id)?;
     let reached = elm::uds::reached_routes(&state.db, vehicle_id);
-    Some(discovery::plan::generate(
+    Some(discovery::plan::generate_for_vehicle(
         vehicle.vin.as_deref(),
+        vehicle.model.as_deref(),
         &reached,
         elm::uds_map::map(),
     ))

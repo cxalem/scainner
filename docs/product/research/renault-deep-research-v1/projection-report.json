@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "compiler": "compile-research-pack.ts",
+  "input_pack": "renault-deep-research",
+  "input_version": 1,
+  "output_pack": "renault-deep-research-runtime-v1",
+  "counts": {
+    "input_routes": 76,
+    "projected_routes": 76,
+    "input_candidates": 23,
+    "projected_candidates": 23,
+    "projected_decoder_signals": 5,
+    "deferred": 16
+  },
+  "vin_selectable_platforms": [],
+  "vehicle_fact_selectable_platforms": [
+    "renault_twingo3_ph2",
+    "renault_twizy",
+    "renault_cmf_b",
+    "dacia_cmf_b",
+    "renault_cmf_cd",
+    "renault_cmf_cd_gen3",
+    "dacia_cmf_a_ev",
+    "renault_ampr_medium",
+    "renault_ampr_small"
+  ],
+  "warnings": [
+    "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
+  ],
+  "deferred": [
+    {
+      "id": "renault.megane.abs.0100:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.012f:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b00:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b01:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b02:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b03:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b04:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b06:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b07:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b0b:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b0c:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b0e:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b11:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b17:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b27:S07-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "renault.megane.abs.4b35:S07-a",
+      "reason": "decoder_missing_validation_range"
+    }
+  ]
+}

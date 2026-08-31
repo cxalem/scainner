@@ -23,8 +23,10 @@ type CandidateInterpretation = {
   value: number;
   unit: string;
   quantity: string;
+  variant_id: string;
   status: "research_hypothesis";
   claim_ids: string[];
+  source_refs: string[];
 };
 
 type Report = {
