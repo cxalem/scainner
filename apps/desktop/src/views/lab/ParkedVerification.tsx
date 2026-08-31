@@ -18,6 +18,15 @@ type Outcome = {
   detail: string | null;
 };
 
+type CandidateInterpretation = {
+  semantic: string | null;
+  value: number;
+  unit: string;
+  quantity: string;
+  status: "research_hypothesis";
+  claim_ids: string[];
+};
+
 type Report = {
   run_id: number | null;
   plan_version: string;
@@ -29,7 +38,15 @@ type Report = {
     route: string;
     evidence_source: string;
     summary: string | null;
-    observations: Array<{ did: string; purpose: string; outcome: Outcome; payload_hex: string | null; printable: string | null; raw_response: string | null }>;
+    observations: Array<{
+      did: string;
+      purpose: string;
+      outcome: Outcome;
+      payload_hex: string | null;
+      printable: string | null;
+      raw_response: string | null;
+      candidate_interpretations?: CandidateInterpretation[];
+    }>;
   }>;
 };
 
@@ -173,8 +190,24 @@ export function ParkedVerification({ connected, vehicleId }: { connected: boolea
                                 {outcomeLabel(item.outcome)}
                               </span>
                             </Td>
-                            <Td className="num max-w-80 break-all px-2 py-1.5 text-neutral-400" title={item.raw_response ?? item.payload_hex ?? item.outcome.detail ?? undefined}>
-                              {item.printable ?? item.payload_hex ?? item.raw_response?.trim() ?? item.outcome.detail ?? "—"}
+                            <Td className="max-w-80 break-all px-2 py-1.5 text-neutral-400" title={item.raw_response ?? item.payload_hex ?? item.outcome.detail ?? undefined}>
+                              {(item.candidate_interpretations?.length ?? 0) > 0 ? (
+                                <span className="flex flex-col gap-1">
+                                  {item.candidate_interpretations?.map((candidate, index) => (
+                                    <span key={`${candidate.claim_ids.join(":")}-${index}`} className="inline-flex flex-wrap items-center gap-1.5 text-neutral-200">
+                                      <Pill variant="candidate">{p.candidate}</Pill>
+                                      <span>{candidate.semantic ?? p.unknownMeaning}</span>
+                                      <span className="num text-accent-2-400">
+                                        {candidate.value.toLocaleString(undefined, { maximumFractionDigits: 3 })} {candidate.unit}
+                                      </span>
+                                      <span className="text-[10.5px] text-neutral-500">{p.claims(candidate.claim_ids.join(", "))}</span>
+                                    </span>
+                                  ))}
+                                  <span className="num text-[10.5px] text-neutral-600">{item.payload_hex ?? item.raw_response?.trim()}</span>
+                                </span>
+                              ) : (
+                                <span className="num">{item.printable ?? item.payload_hex ?? item.raw_response?.trim() ?? item.outcome.detail ?? "—"}</span>
+                              )}
                             </Td>
                           </Tr>
                         ))}

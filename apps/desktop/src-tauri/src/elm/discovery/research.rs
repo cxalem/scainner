@@ -5,7 +5,7 @@
 //! a matching platform for platform-scoped routes. Candidate DIDs are only
 //! suitable for observations/hypotheses.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
@@ -102,6 +102,10 @@ pub struct CandidateDidHypothesis {
     pub semantic: Option<String>,
     #[serde(default)]
     pub decode: Option<Value>,
+    /// Only this explicit format marker authorizes evaluation. Unmarked
+    /// legacy formulas remain preserved evidence until projected.
+    #[serde(default)]
+    pub decode_format: Option<String>,
     #[serde(default)]
     pub validation: Option<ValidationRecipe>,
     #[serde(default = "default_true")]
@@ -117,6 +121,16 @@ pub struct ValidationRecipe {
     pub instructions: Vec<String>,
     #[serde(default)]
     pub expected_behavior: Vec<String>,
+}
+
+/// A source-proposed decoder that may be evaluated for review but never enters
+/// the trusted decode lookup. Claim ids tie every displayed value to evidence.
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct CandidateDecodeHypothesis {
+    pub semantic: Option<String>,
+    pub decode: crate::elm::uds_map::Decode,
+    pub claim_ids: Vec<String>,
+    pub status: &'static str,
 }
 
 impl CandidateDid {
@@ -166,6 +180,22 @@ impl CandidateDid {
         }
     }
 
+    pub fn decode_hypothesis(&self, claim_ids: &[String]) -> Option<CandidateDecodeHypothesis> {
+        let Self::Detailed(candidate) = self else {
+            return None;
+        };
+        if candidate.decode_format.as_deref() != Some("uds_map_v9") {
+            return None;
+        }
+        let decode = canonical_decode(candidate.decode.as_ref()?).ok()?;
+        Some(CandidateDecodeHypothesis {
+            semantic: candidate.semantic.clone(),
+            decode,
+            claim_ids: claim_ids.to_vec(),
+            status: "research_hypothesis",
+        })
+    }
+
     pub fn purpose(&self, claim_ids: &[String]) -> String {
         let claims = claim_ids.join(", ");
         match self {
@@ -188,6 +218,34 @@ impl CandidateDid {
             }
         }
     }
+}
+
+fn canonical_decode(value: &Value) -> Result<crate::elm::uds_map::Decode, String> {
+    const KEYS: [&str; 11] = [
+        "offset",
+        "len",
+        "signed",
+        "encoding",
+        "bit_offset",
+        "bit_len",
+        "scale",
+        "bias",
+        "unit",
+        "quantity",
+        "label",
+    ];
+    let object = value
+        .as_object()
+        .ok_or_else(|| "candidate decode must be an object".to_string())?;
+    if let Some(key) = object.keys().find(|key| !KEYS.contains(&key.as_str())) {
+        return Err(format!("unknown candidate decode field {key}"));
+    }
+    let decode: crate::elm::uds_map::Decode = serde_json::from_value(value.clone())
+        .map_err(|error| format!("invalid candidate decode: {error}"))?;
+    if decode.len == 0 || decode.len > 8 || !decode.scale.is_finite() || !decode.bias.is_finite() {
+        return Err("candidate decode has invalid length or arithmetic".into());
+    }
+    Ok(decode)
 }
 
 #[derive(Debug, Deserialize)]
@@ -306,6 +364,24 @@ pub fn packs() -> &'static [ResearchPack] {
                             "unknown candidate support_status on {}",
                             route.route_id
                         );
+                        for candidate in &route.candidate_dids {
+                            if let CandidateDid::Detailed(candidate) = candidate {
+                                if candidate.decode_format.as_deref() == Some("uds_map_v9") {
+                                    let decode = candidate.decode.as_ref().unwrap_or_else(|| {
+                                        panic!(
+                                            "candidate decode format without formula on {} DID {}",
+                                            route.route_id, candidate.did
+                                        )
+                                    });
+                                    canonical_decode(decode).unwrap_or_else(|error| {
+                                        panic!(
+                                            "invalid candidate decode on {} DID {}: {}",
+                                            route.route_id, candidate.did, error
+                                        )
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
                 for evidence in &pack.claims {
@@ -477,6 +553,7 @@ mod tests {
         let candidate: CandidateDid = serde_json::from_value(serde_json::json!({
             "did": "18A0",
             "semantic": "HV battery temperature",
+            "decode_format": "uds_map_v9",
             "decode": {"encoding": "be", "len": 2, "scale": 0.1, "unit": "degC"},
             "validation": {
                 "kind": "temperature_cross_check",
@@ -492,6 +569,18 @@ mod tests {
         assert!(purpose.contains("HV battery temperature"));
         assert!(purpose.contains("untrusted hypothesis"));
         assert!(purpose.contains("temperature_cross_check"));
+        let hypothesis = candidate.decode_hypothesis(&["S07".into()]).unwrap();
+        assert_eq!(hypothesis.status, "research_hypothesis");
+        assert_eq!(hypothesis.claim_ids, ["S07"]);
+        assert_eq!(hypothesis.decode.len, 2);
+        assert_eq!(hypothesis.decode.scale, 0.1);
+
+        let unknown_formula_field: CandidateDid = serde_json::from_value(serde_json::json!({
+            "did": "18A3",
+            "decode": {"len": 1, "div": 10}
+        }))
+        .unwrap();
+        assert!(unknown_formula_field.decode_hypothesis(&[]).is_none());
 
         let unsupported: CandidateDid = serde_json::from_value(serde_json::json!({
             "did": "18A1",
@@ -573,6 +662,37 @@ mod tests {
         assert!(mii_routes
             .iter()
             .any(|r| r.route_id.starts_with("seat_mii_")));
+        let mii_battery = mii_routes
+            .iter()
+            .find(|route| route.route_id == "seat_mii_hv_battery_management_7e5_7ed")
+            .unwrap();
+        let voltage = mii_battery
+            .candidate_dids
+            .iter()
+            .find(|candidate| candidate.did() == "1E3B")
+            .unwrap()
+            .decode_hypothesis(&mii_battery.claim_ids)
+            .unwrap();
+        assert_eq!(voltage.decode.scale, 0.25);
+        assert_eq!(voltage.decode.unit, "V");
+        assert_eq!(
+            voltage.claim_ids,
+            [
+                "seat.s06.mii_electric_ovms_header",
+                "seat.s07.mii_electric_ovms_decoder"
+            ]
+        );
+
+        let make_wide_battery = routes
+            .iter()
+            .find(|route| route.route_id == "seat_vag_hv_battery_energy_control_7e5_7ed")
+            .unwrap();
+        assert!(make_wide_battery
+            .candidate_dids
+            .iter()
+            .all(|candidate| candidate
+                .decode_hypothesis(&make_wide_battery.claim_ids)
+                .is_none()));
     }
 
     #[test]

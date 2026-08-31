@@ -427,6 +427,7 @@ function buildParkedVerification(v: DemoVehicle) {
         purpose: d.purpose,
         ...outcomes[(ti + i) % outcomes.length],
         printable: null,
+        candidate_interpretations: [],
       })),
     })),
   };

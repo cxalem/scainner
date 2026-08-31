@@ -552,6 +552,9 @@ export const en: Dictionary = {
       thResult: "Result",
       thEvidence: "Evidence",
       refused: (nrc) => `refused · NRC ${nrc}`,
+      candidate: "candidate",
+      unknownMeaning: "Unknown meaning",
+      claims: (ids) => `source claims ${ids}`,
     },
     guidedCorrelation: {
       cardTitle: "Guided correlation",

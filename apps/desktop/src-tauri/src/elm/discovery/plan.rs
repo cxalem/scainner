@@ -9,7 +9,7 @@
 //! bands. The plan version is `{brand}-{platform|unknown}-v{plan_revision}`.
 
 use super::pack_ext::{self, BandClass, ProfileModule};
-use super::research;
+use super::research::{self, CandidateDecodeHypothesis};
 use crate::elm::uds_map::{self, hex16, ReadService, Route, RouteProtocol, UdsMap};
 use serde::Serialize;
 
@@ -21,11 +21,13 @@ pub enum ReadStage {
 }
 
 /// One identity read of a plan target.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct PlannedRead {
     pub did: u16,
     pub purpose: String,
     pub stage: ReadStage,
+    /// Source-proposed formulas, evaluated for review but never trusted lookup.
+    pub candidate_decodes: Vec<CandidateDecodeHypothesis>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -92,6 +94,7 @@ fn identity_reads(vin: Option<&str>) -> Vec<PlannedRead> {
         did: uds_map::presence_probe_did(),
         purpose: "presence probe / active diagnostic session".into(),
         stage: ReadStage::Discovery,
+        candidate_decodes: Vec::new(),
     }];
     let block = uds_map::identity_block_for_vin(vin);
     for entry in &block.dids {
@@ -124,6 +127,7 @@ fn identity_reads(vin: Option<&str>) -> Vec<PlannedRead> {
                 did,
                 purpose,
                 stage: ReadStage::Discovery,
+                candidate_decodes: Vec::new(),
             }),
         }
     }
@@ -257,6 +261,7 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
                 did: uds_map::presence_probe_did(),
                 purpose: "research route presence probe".into(),
                 stage: ReadStage::Discovery,
+                candidate_decodes: Vec::new(),
             }]
         };
         dids.extend(
@@ -269,6 +274,10 @@ pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> Park
                         did: hex16(did.did())?,
                         purpose: did.purpose(&candidate.claim_ids),
                         stage: ReadStage::Candidate,
+                        candidate_decodes: did
+                            .decode_hypothesis(&candidate.claim_ids)
+                            .into_iter()
+                            .collect(),
                     })
                 }),
         );

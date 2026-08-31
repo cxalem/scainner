@@ -553,6 +553,9 @@ export type Dictionary = {
       thResult: string;
       thEvidence: string;
       refused: (nrc: string) => string;
+      candidate: string;
+      unknownMeaning: string;
+      claims: (ids: string) => string;
     };
     guidedCorrelation: {
       cardTitle: string;

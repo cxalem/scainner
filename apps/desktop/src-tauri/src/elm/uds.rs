@@ -125,6 +125,43 @@ pub struct VerificationObservation {
     /// Exact adapter response, including `NO DATA`, headers and framing.
     /// Kept privately with the vehicle run so parser changes can be replayed.
     pub raw_response: Option<String>,
+    /// Values produced by source-proposed formulas. These remain explicitly
+    /// untrusted and retain the exact decoder and claims used to produce them.
+    pub candidate_interpretations: Vec<CandidateInterpretation>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct CandidateInterpretation {
+    pub semantic: Option<String>,
+    pub value: f64,
+    pub unit: String,
+    pub quantity: String,
+    pub status: &'static str,
+    pub claim_ids: Vec<String>,
+    pub decode: uds_map::Decode,
+}
+
+fn candidate_interpretations(
+    read: &plan::PlannedRead,
+    data: Option<&[u8]>,
+) -> Vec<CandidateInterpretation> {
+    let Some(data) = data else {
+        return Vec::new();
+    };
+    read.candidate_decodes
+        .iter()
+        .filter_map(|hypothesis| {
+            Some(CandidateInterpretation {
+                semantic: hypothesis.semantic.clone(),
+                value: uds_map::decode_value(&hypothesis.decode, data)?,
+                unit: hypothesis.decode.unit.clone(),
+                quantity: hypothesis.decode.quantity.clone(),
+                status: hypothesis.status,
+                claim_ids: hypothesis.claim_ids.clone(),
+                decode: hypothesis.decode.clone(),
+            })
+        })
+        .collect()
 }
 
 #[derive(Serialize, Clone)]
@@ -545,6 +582,7 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                 payload_hex: None,
                 printable: None,
                 raw_response: None,
+                candidate_interpretations: Vec::new(),
             });
         } else {
             let mut discovery_reached = false;
@@ -562,6 +600,7 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                         payload_hex: None,
                         printable: None,
                         raw_response: None,
+                        candidate_interpretations: Vec::new(),
                     });
                     continue;
                 }
@@ -594,6 +633,7 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                     purpose: read.purpose.clone(),
                     payload_hex: data.as_deref().map(hex_string),
                     printable: data.as_deref().and_then(printable),
+                    candidate_interpretations: candidate_interpretations(read, data.as_deref()),
                     raw_response,
                     outcome,
                 });
@@ -678,6 +718,7 @@ fn sweep_identifiers(
                             payload_hex: evidence.data.as_deref().map(hex_string),
                             printable: evidence.data.as_deref().and_then(printable),
                             raw_response: evidence.raw_response,
+                            candidate_interpretations: Vec::new(),
                             outcome: evidence.outcome,
                         });
                     }
@@ -2415,6 +2456,7 @@ fn fast_refresh(
 mod tests {
     use super::*;
     use crate::elm::discovery::pack_ext::tests::verified_brand_vin;
+    use crate::elm::discovery::research;
 
     #[test]
     fn extract_single_byte_percent() {
@@ -2431,6 +2473,39 @@ mod tests {
     #[test]
     fn extract_out_of_range() {
         assert_eq!(extract(&[0x01], 1, 1, 1.0, 0.0), None);
+    }
+
+    #[test]
+    fn evaluates_research_decoder_as_an_untrusted_interpretation() {
+        let read = plan::PlannedRead {
+            did: 0x1014,
+            purpose: "research candidate".into(),
+            stage: plan::ReadStage::Candidate,
+            candidate_decodes: vec![research::CandidateDecodeHypothesis {
+                semantic: Some("ambient air temperature".into()),
+                decode: uds_map::Decode {
+                    offset: 0,
+                    len: 1,
+                    signed: false,
+                    encoding: uds_map::DecodeEncoding::Be,
+                    bit_offset: None,
+                    bit_len: None,
+                    scale: 0.5,
+                    bias: -50.0,
+                    unit: "degC".into(),
+                    quantity: "temperature".into(),
+                    label: "Ambient air temperature".into(),
+                },
+                claim_ids: vec!["S02".into()],
+                status: "research_hypothesis",
+            }],
+        };
+        let values = candidate_interpretations(&read, Some(&[0x8C]));
+        assert_eq!(values.len(), 1);
+        assert_eq!(values[0].value, 20.0);
+        assert_eq!(values[0].unit, "degC");
+        assert_eq!(values[0].claim_ids, ["S02"]);
+        assert_eq!(values[0].status, "research_hypothesis");
     }
 
     #[test]
@@ -2981,6 +3056,7 @@ mod tests {
                 payload_hex: Some(payload.into()),
                 printable: printable.map(Into::into),
                 raw_response: None,
+                candidate_interpretations: Vec::new(),
             };
         // Payloads this project captured on its verified vehicle (test data).
         let target = VerificationTargetResult {
@@ -3022,6 +3098,7 @@ mod tests {
                 payload_hex: None,
                 printable: None,
                 raw_response: None,
+                candidate_interpretations: Vec::new(),
             }],
             ..target
         };
@@ -3055,6 +3132,7 @@ mod tests {
                         did: 0xF187,
                         purpose: "identity: part (iso_ascii)".into(),
                         stage: crate::elm::discovery::plan::ReadStage::Discovery,
+                        candidate_decodes: Vec::new(),
                     }],
                     sweep: Vec::new(),
                     source: "test".into(),

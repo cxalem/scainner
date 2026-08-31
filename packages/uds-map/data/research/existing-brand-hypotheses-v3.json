@@ -1783,9 +1783,57 @@
             "seat.s07.mii_electric_ovms_decoder"
           ],
           "candidate_dids": [
-            "1E3B",
-            "1E3D",
-            "028C",
+            {
+              "did": "1E3B",
+              "semantic": "HV battery voltage",
+              "decode_format": "uds_map_v9",
+              "decode": {
+                "offset": 0,
+                "len": 2,
+                "encoding": "be",
+                "signed": false,
+                "scale": 0.25,
+                "bias": 0.0,
+                "unit": "V",
+                "quantity": "voltage",
+                "label": "HV battery voltage"
+              },
+              "support_status": "source_observed"
+            },
+            {
+              "did": "1E3D",
+              "semantic": "HV battery current; positive means discharge in the source",
+              "decode_format": "uds_map_v9",
+              "decode": {
+                "offset": 0,
+                "len": 2,
+                "encoding": "be",
+                "signed": false,
+                "scale": -0.25,
+                "bias": 511.0,
+                "unit": "A",
+                "quantity": "current",
+                "label": "HV battery current"
+              },
+              "support_status": "source_observed"
+            },
+            {
+              "did": "028C",
+              "semantic": "HV battery absolute state of charge",
+              "decode_format": "uds_map_v9",
+              "decode": {
+                "offset": 0,
+                "len": 1,
+                "encoding": "be",
+                "signed": false,
+                "scale": 0.4,
+                "bias": 0.0,
+                "unit": "%",
+                "quantity": "state_of_charge",
+                "label": "HV battery absolute state of charge"
+              },
+              "support_status": "source_observed"
+            },
             "02BD",
             "1E32",
             "1E33",
