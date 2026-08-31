@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "evidence_id": "project-c41-engine-route",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "models": [
+          "c4_iii"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "psa_c41_engine_6a8_688",
+      "service": "22",
+      "session": "default_only",
+      "did": null,
+      "adapter": {
+        "model": "project_hardware",
+        "firmware": null
+      },
+      "vehicle_state": "project_capture",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S00"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S00"
+      ],
+      "non_generalization_boundary": "One project-observed C41."
+    },
+    {
+      "evidence_id": "project-c41-abs-route",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "models": [
+          "c4_iii"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "psa_c41_abs_esc_6ad_68d",
+      "service": "22",
+      "session": "default_only",
+      "did": null,
+      "adapter": {
+        "model": "project_hardware",
+        "firmware": null
+      },
+      "vehicle_state": "project_capture",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S00"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S00"
+      ],
+      "non_generalization_boundary": "One project-observed C41."
+    },
+    {
+      "evidence_id": "project-c41-eps-route",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "models": [
+          "c4_iii"
+        ],
+        "ecu_roles": [
+          "eps"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "psa_c41_eps_6b5_695",
+      "service": "22",
+      "session": "default_only",
+      "did": null,
+      "adapter": {
+        "model": "project_hardware",
+        "firmware": null
+      },
+      "vehicle_state": "project_capture",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S00"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S00"
+      ],
+      "non_generalization_boundary": "One project-observed C41."
+    }
+  ],
+  "declared_count": 3
+}

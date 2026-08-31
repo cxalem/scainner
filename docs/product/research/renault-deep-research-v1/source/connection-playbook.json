@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "brand_ids": [
+    "renault"
+  ],
+  "planner_contract": "evidence_aware_candidate_planner",
+  "projection_rules": [
+    {
+      "research_fact": "exact-platform immutable sourced route",
+      "runtime_projection": "presence_and_identity_candidate"
+    },
+    {
+      "research_fact": "broad/model route",
+      "runtime_projection": "late_lower_priority_presence_candidate"
+    },
+    {
+      "research_fact": "candidate DID",
+      "runtime_projection": "read only after its route is reached"
+    },
+    {
+      "research_fact": "proposed decoder",
+      "runtime_projection": "disabled hypothesis metadata until vehicle_fit=matched"
+    },
+    {
+      "research_fact": "unsupported command",
+      "runtime_projection": "negative planning evidence; no request"
+    },
+    {
+      "research_fact": "unresolved transport/address",
+      "runtime_projection": "terminal/gap; no request"
+    },
+    {
+      "research_fact": "non-default session requirement",
+      "runtime_projection": "Lab-only candidate; never automatic product traffic"
+    },
+    {
+      "research_fact": "mutable Git source",
+      "runtime_projection": "documentation/validation lead only"
+    }
+  ],
+  "planning_phases": [
+    {
+      "phase": "brand_and_platform_selection",
+      "actions": [
+        "Select Renault/Dacia from WMI when available.",
+        "Build platform candidates from model/year/powertrain and explicit vehicle facts.",
+        "Ambiguity is allowed; use only intersection-safe candidates until stronger evidence arrives."
+      ]
+    },
+    {
+      "phase": "transport_detection",
+      "actions": [
+        "Attempt passive capture only if adapter/pins/protocol support reliable monitoring.",
+        "Otherwise record passive_capture_unavailable.",
+        "Do not coerce legacy KWP/ISO, DoIP or CAN-FD research leads into classic CAN routes."
+      ]
+    },
+    {
+      "phase": "route_census",
+      "actions": [
+        "Add trusted-map routes first.",
+        "Add exact-platform immutable research routes.",
+        "Add broader research routes only as bounded late candidates.",
+        "For Zoe Phase 2/Twingo Phase 2, only exact sourced 29-bit tuples are eligible; generic 29-bit enumeration is denied."
+      ]
+    },
+    {
+      "phase": "identity",
+      "actions": [
+        "Read presence and identity before proprietary candidate DIDs.",
+        "Preferred identity records: F187, F18A, F18C, F190, F191, F195, F197.",
+        "Read identity twice; stability requires an independent connection before family promotion."
+      ]
+    },
+    {
+      "phase": "candidate_reads",
+      "actions": [
+        "Only if a route answers or refuses, mark route reached and consider its executable scoped candidate DIDs.",
+        "Keep every decoder activation=disabled until vehicle_fit=matched.",
+        "If all discovery reads are silent or transport_failed, skip candidate DIDs on that route."
+      ]
+    },
+    {
+      "phase": "replan",
+      "actions": [
+        "Reclassify platform and ECU family after route/identity evidence.",
+        "Remove incompatible pending actions.",
+        "Add newly applicable exact-platform/family candidates.",
+        "Do not repeat reached actions unnecessarily."
+      ]
+    },
+    {
+      "phase": "stop",
+      "actions": [
+        "Stop on safety threshold, central/brand-reduced budget, user cancellation or informative terminal state.",
+        "Stop when expected information gain no longer justifies traffic cost."
+      ]
+    }
+  ],
+  "priority_model": "specificity + source quality + platform fit + ECU-family fit + expected information gain + user value - traffic cost - prior scoped silence - transport uncertainty",
+  "brand_specific_priority": [
+    "exact Zoe/Twingo/Twizy routes after exact platform match",
+    "Megane 740/760 after model/platform match",
+    "Duster standard OBD physical evidence",
+    "broad Renault routes only after exact candidates",
+    "no automatic enhanced Duster headers until response addressing is resolved"
+  ],
+  "projection_preview": [
+    {
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "platform": "renault_zoe_ph2",
+      "protocol": "can29_normal_fixed",
+      "req": "18DADBF1",
+      "resp": "18DAF1DB",
+      "service": "22",
+      "session": "default_only",
+      "claim_ids": [
+        "renault.canze.zoe_ph2_mixed_11_29"
+      ],
+      "module_role": "lbc",
+      "requires_identity": true,
+      "candidate_dids": [
+        {
+          "did": "9005",
+          "semantic": "HV battery pack voltage",
+          "decode": {
+            "variants_retained": true
+          },
+          "validation": {
+            "kind": "voltage_cross_check",
+            "instructions": [],
+            "expected_behavior": []
+          },
+          "automatic_execution_authorized": true,
+          "support_status": "source_observed"
+        }
+      ]
+    }
+  ]
+}

@@ -591,7 +591,29 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
             });
         } else {
             let mut discovery_reached = false;
+            let has_presence_gate = target
+                .dids
+                .iter()
+                .any(|read| read.stage == plan::ReadStage::Presence);
+            let mut presence_reached = !has_presence_gate;
             for read in &target.dids {
+                if read.stage == plan::ReadStage::Discovery && !presence_reached {
+                    observations.push(VerificationObservation {
+                        did: format!("{:04X}", read.did),
+                        purpose: format!(
+                            "{}; skipped because route presence was not established",
+                            read.purpose
+                        ),
+                        outcome: DiagnosticOutcome::skipped_for_safety(
+                            "route presence probe did not reach an ECU",
+                        ),
+                        payload_hex: None,
+                        printable: None,
+                        raw_response: None,
+                        candidate_interpretations: Vec::new(),
+                    });
+                    continue;
+                }
                 if read.stage == plan::ReadStage::Candidate && !discovery_reached {
                     observations.push(VerificationObservation {
                         did: format!("{:04X}", read.did),
@@ -623,6 +645,17 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                         None,
                     ),
                 };
+                if read.stage == plan::ReadStage::Presence
+                    && matches!(
+                        outcome.status,
+                        DiagnosticStatus::Answered
+                            | DiagnosticStatus::Refused
+                            | DiagnosticStatus::Unsupported
+                    )
+                {
+                    presence_reached = true;
+                    discovery_reached = true;
+                }
                 if read.stage == plan::ReadStage::Discovery
                     && matches!(
                         outcome.status,
@@ -643,7 +676,7 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
                     outcome,
                 });
             }
-            if !target.sweep.is_empty() {
+            if !target.sweep.is_empty() && (!has_presence_gate || discovery_reached) {
                 let remaining = sweep_budget.saturating_sub(sweep_spent);
                 let sweep_started = Instant::now();
                 summary = Some(sweep_identifiers(
@@ -3215,5 +3248,80 @@ mod tests {
             .contains("2 identifiers tried, 1 answered, 1 refused"));
         let fp = target_fingerprint(Some("ZZZ00000000000000"), &report.targets[0]).unwrap();
         assert_eq!(fp.spare_part_number.as_deref(), Some("1K09"));
+    }
+
+    #[test]
+    fn silent_presence_gate_skips_identity_and_candidate_reads() {
+        let _guard = crate::elm::operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::elm::operation::set_link_state(None);
+        let target = crate::elm::discovery::plan::PlanTarget {
+            key: "research_absent".into(),
+            label: "catalogue candidate".into(),
+            expected_family: "unknown".into(),
+            req: "744".into(),
+            resp: "644".into(),
+            route: uds_map::derive_route(0x744, 0x644),
+            read_service: ReadService::DataByIdentifier,
+            dids: vec![
+                crate::elm::discovery::plan::PlannedRead {
+                    did: 0xF186,
+                    purpose: "presence".into(),
+                    stage: crate::elm::discovery::plan::ReadStage::Presence,
+                    candidate_decodes: Vec::new(),
+                },
+                crate::elm::discovery::plan::PlannedRead {
+                    did: 0xF187,
+                    purpose: "identity".into(),
+                    stage: crate::elm::discovery::plan::ReadStage::Discovery,
+                    candidate_decodes: Vec::new(),
+                },
+                crate::elm::discovery::plan::PlannedRead {
+                    did: 0xD400,
+                    purpose: "candidate".into(),
+                    stage: crate::elm::discovery::plan::ReadStage::Candidate,
+                    candidate_decodes: Vec::new(),
+                },
+            ],
+            sweep: Vec::new(),
+            source: "test".into(),
+        };
+        let plan = crate::elm::discovery::plan::ParkedPlan {
+            plan_version: "test".into(),
+            brand_id: None,
+            platform: None,
+            targets: vec![target],
+            sweep_budget_secs: 0,
+        };
+        let replay = r#"{
+          "schema_version": 1,
+          "name": "presence gate silence (synthetic)",
+          "contains_vehicle_identifiers": false,
+          "steps": [
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP6", "response": "OK\r>" },
+            { "command": "ATCAF1", "response": "OK\r>" },
+            { "command": "ATH0", "response": "OK\r>" },
+            { "command": "ATSH 744", "response": "OK\r>" },
+            { "command": "ATCRA 644", "response": "OK\r>" },
+            { "command": "ATFCSH 744", "response": "OK\r>" },
+            { "command": "ATFCSD 300000", "response": "OK\r>" },
+            { "command": "ATFCSM 1", "response": "OK\r>" },
+            { "command": "22F186", "response": "NO DATA\r>" },
+            { "command": "ATCEA", "response": "OK\r>" },
+            { "command": "ATSP0", "response": "OK\r>" },
+            { "command": "ATSH 7DF", "response": "OK\r>" },
+            { "command": "ATAR", "response": "OK\r>" },
+            { "command": "ATFCSM 0", "response": "OK\r>" }
+          ]
+        }"#;
+        let mut driver = ElmDriver::from_replay_json(replay).unwrap();
+        let report = execute_plan(&mut driver, &plan);
+        driver.assert_replay_complete();
+        let observations = &report.targets[0].observations;
+        assert_eq!(observations.len(), 3);
+        assert!(observations[1].outcome.status == DiagnosticStatus::SkippedForSafety);
+        assert!(observations[2].outcome.status == DiagnosticStatus::SkippedForSafety);
     }
 }

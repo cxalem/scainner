@@ -1,0 +1,407 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "renault_legacy_project_code",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault",
+          "dacia"
+        ]
+      },
+      "architecture": "Pre-modern Renault project-code families with mixed ISO9141/KWP2000/CAN diagnostics.",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [
+        "iso9141",
+        "kwp2000"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [],
+      "non_generalization_boundary": "Do not coerce legacy ISO/KWP projects into CAN routes. Requires dedicated project-code evidence."
+    },
+    {
+      "platform_id": "renault_zoe_ph1",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Zoe Phase 1 ZE diagnostic architecture.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": "multiple explicit physical CAN diagnostic routes",
+      "security_behavior": [],
+      "classification_evidence": [
+        "CanZE dedicated ZOE asset set"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S01",
+        "S02"
+      ],
+      "non_generalization_boundary": "Do not apply Phase 1 routes to Zoe Phase 2 without classification evidence."
+    },
+    {
+      "platform_id": "renault_zoe_ph2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Zoe Phase 2 mixed 11-bit and exact normal-fixed 29-bit diagnostic architecture.",
+      "transport_candidates": [
+        "can11_500",
+        "can29_normal_fixed"
+      ],
+      "gateway_architecture": "S-GW3 present in sourced ECU catalog",
+      "security_behavior": [
+        "security_gateway_present"
+      ],
+      "classification_evidence": [
+        "CanZE dedicated ZOE_Ph2 asset set"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S03",
+        "S04"
+      ],
+      "non_generalization_boundary": "Exact sourced 29-bit routes are authorized as candidates; generic 29-bit enumeration is not."
+    },
+    {
+      "platform_id": "renault_twingo3_ph2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "twingo_3"
+        ],
+        "powertrains": [
+          "ice",
+          "bev"
+        ]
+      },
+      "architecture": "Twingo III Phase 2 mixed powertrain architecture with explicit CAN routes and S-GW3.",
+      "transport_candidates": [
+        "can11_500",
+        "can29_normal_fixed"
+      ],
+      "gateway_architecture": "CAN1-CAN2 gateway plus S-GW3",
+      "security_behavior": [
+        "security_gateway_present"
+      ],
+      "classification_evidence": [
+        "CanZE dedicated Twingo_3_Ph2 asset set"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S05"
+      ],
+      "non_generalization_boundary": "Do not assume Zoe Phase 2 29-bit ECU targets beyond the exact Twingo S-GW3 route."
+    },
+    {
+      "platform_id": "renault_twizy",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "twizy"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Twizy EV diagnostic subset.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "CanZE dedicated Twizy asset set"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S06"
+      ],
+      "non_generalization_boundary": "Only the three sourced routes are projected automatically."
+    },
+    {
+      "platform_id": "renault_cmf_b",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "clio_5",
+          "captur_2"
+        ],
+        "powertrains": [
+          "ice",
+          "hev",
+          "phev"
+        ]
+      },
+      "architecture": "CMF-B Renault B-segment architecture.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "OEM CMF-B model/platform statements"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "source_refs": [],
+      "non_generalization_boundary": "Platform identity is strong; this pack lacks a sufficiently validated proprietary route set for automatic projection."
+    },
+    {
+      "platform_id": "dacia_cmf_b",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "models": [
+          "sandero_3",
+          "logan_3",
+          "jogger",
+          "duster_3",
+          "bigster"
+        ],
+        "powertrains": [
+          "ice",
+          "hev",
+          "lpg"
+        ]
+      },
+      "architecture": "Dacia CMF-B family.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "OEM states Duster III uses CMF-B also used by Sandero, Logan and Jogger"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "source_refs": [
+        "S17"
+      ],
+      "non_generalization_boundary": "Duster enhanced-DID headers are not automatically generalized to other Dacia CMF-B vehicles."
+    },
+    {
+      "platform_id": "renault_cmf_cd",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "megane"
+        ],
+        "powertrains": [
+          "ice",
+          "hev",
+          "phev"
+        ]
+      },
+      "architecture": "Renault C/D family represented here by combustion/hybrid Megane diagnostic evidence.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Model-specific OBDb corpus"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "The 740/760 route is a Megane-scoped candidate, not a CMF-CD-wide rule."
+    },
+    {
+      "platform_id": "renault_cmf_cd_gen3",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "austral"
+        ],
+        "powertrains": [
+          "hev",
+          "mhev"
+        ]
+      },
+      "architecture": "Third-generation CMF-CD.",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "OEM platform statement"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "source_refs": [
+        "S18"
+      ],
+      "non_generalization_boundary": "Platform is known; safe diagnostic routes remain incomplete."
+    },
+    {
+      "platform_id": "dacia_cmf_a_ev",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "models": [
+          "spring"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "CMF-A-derived Dacia Spring EV branch.",
+      "transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Renault Group platform documentation; current OBDb model default empty"
+      ],
+      "confidence": "medium_high",
+      "knowledge_state": "oem_confirmed",
+      "source_refs": [
+        "S12"
+      ],
+      "non_generalization_boundary": "No executable proprietary route is created from the empty repository."
+    },
+    {
+      "platform_id": "renault_ampr_medium",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "megane_e_tech",
+          "scenic_e_tech"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "AmpR Medium, formerly CMF-EV.",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [
+        "doip",
+        "can_fd"
+      ],
+      "gateway_architecture": "modern connected EV architecture; exact vehicle-facing diagnostic transport not established here",
+      "security_behavior": [],
+      "classification_evidence": [
+        "OEM CMF-EV/AmpR Medium statements"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "source_refs": [
+        "S13",
+        "S14",
+        "S15",
+        "S11"
+      ],
+      "non_generalization_boundary": "Platform known; current public model-specific OBDb route corpus is empty for Megane E-Tech."
+    },
+    {
+      "platform_id": "renault_ampr_small",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "models": [
+          "renault_5",
+          "renault_4"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "AmpR Small with SWEET400 E/E architecture.",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [
+        "doip",
+        "can_fd"
+      ],
+      "gateway_architecture": "SWEET400 E/E architecture",
+      "security_behavior": [],
+      "classification_evidence": [
+        "OEM AmpR Small statement"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "source_refs": [
+        "S16"
+      ],
+      "non_generalization_boundary": "No legacy Zoe/CMF-B routes are inherited into AmpR Small without physical evidence."
+    }
+  ]
+}

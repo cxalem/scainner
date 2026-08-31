@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "pack_id": "psa-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-08-31",
+  "brand_ids": [
+    "psa"
+  ],
+  "marques": [
+    "peugeot",
+    "citroen",
+    "ds"
+  ],
+  "self_hash_policy": "index.json is self-excluded to avoid recursive hashing.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "9eb7f6912d3eaf2e2fbebe9aba4f702b38f16441dab498d0effd3fb043db89eb"
+    },
+    {
+      "path": "psa-profile-overlay.json",
+      "sha256": "e92c051b8c8a8b08408ebc393884b4e527c10c876855861dabf3f9da6599fba7"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "7207b8ffdfba4f0f17453888aaa8f1a87db883741fe60b3b0c8712d2ddd9009b"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "1e33a21bb7916516aea0660f0666b653f1659ba6cf440a6cc4975ed2a06e23cc"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "7a493399342c93ce309ff49924c63a24d52d74c73f96f413f4599ec45067e048"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "568053a7a617af7e17f52fc8587e04fa2383baa420a59f7c7b55b0f7f0510865"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "4d43e0d7f10823c1283e58de3306a6e0d98434cdd4fbbfe06a92102b9843a085"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "042fb877cdc79bdcb7beb17cff3ad15b082551d9b3e4d4afa05857929217ce69"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "c823ba3fc6c55a3016f1ef29e04222becc1a91cfa33e7f60342ae839e901732c"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "a16fcd74becbd316e555563f84bea31e7c9b6c7c296b4b7408291c11f325cd82"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "67722aa826f7720f7d7f7c8409b01213c9df4b3a42069f8a7c9e928bfe9bc88b"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "b3a58508b604c2845c39ecb654ce44df3c1ec0300289f026a9719e6813f8d127"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "6925b5dce471c64c431141cfcb8f47881a9332c992bd37cea331b44306c7fd64"
+    }
+  ],
+  "declared_counts": {
+    "sources": 7,
+    "platforms": 7,
+    "routes": 57,
+    "did_candidates": 7,
+    "command_evidence": 3,
+    "ecu_families": 3,
+    "module_inventories": 2,
+    "validation_recipes": 5,
+    "claims": 5,
+    "conflicts": 4,
+    "gaps": 5
+  },
+  "validation": {
+    "status": "valid",
+    "errors": [],
+    "warnings": []
+  }
+}

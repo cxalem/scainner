@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { copyFileSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 type Json = Record<string, any>;
 
@@ -8,15 +8,18 @@ const args = new Map<string, string>();
 for (let i = 2; i < process.argv.length; i += 2) {
   const value = process.argv[i + 1];
   if (!process.argv[i]?.startsWith("--") || value === undefined) {
-    throw new Error("usage: research:compile --input <dir> --output <json> --report <json>");
+    throw new Error("usage: research:compile --input <dir> --output <json> --report <json> --archive <dir>");
   }
   args.set(process.argv[i].slice(2), value);
 }
 
-const input = resolve(args.get("input") ?? "");
-const output = resolve(args.get("output") ?? "");
-const reportPath = resolve(args.get("report") ?? "");
-if (!input || !output || !reportPath) throw new Error("input, output and report are required");
+if (["input", "output", "report", "archive"].some((name) => !args.has(name))) {
+  throw new Error("input, output, report and archive are required");
+}
+const input = resolve(args.get("input")!);
+const output = resolve(args.get("output")!);
+const reportPath = resolve(args.get("report")!);
+const archive = resolve(args.get("archive")!);
 
 const load = (name: string): Json => JSON.parse(readFileSync(join(input, name), "utf8"));
 const sha256 = (name: string): string =>
@@ -25,8 +28,32 @@ const sha256 = (name: string): string =>
 const index = load("index.json");
 const failures: string[] = [];
 const warnings: string[] = [];
-for (const file of index.files ?? []) {
+const manifestFiles: Array<{ path: string; sha256: string }> = index.files ?? [];
+const manifestPaths = new Set<string>();
+for (const file of manifestFiles) {
+  if (typeof file.path !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file.path)) {
+    failures.push(`unsafe manifest path: ${String(file.path)}`);
+    continue;
+  }
+  if (manifestPaths.has(file.path)) {
+    failures.push(`duplicate manifest path: ${file.path}`);
+    continue;
+  }
+  manifestPaths.add(file.path);
+  const stat = lstatSync(join(input, file.path));
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    failures.push(`manifest entry is not a regular file: ${file.path}`);
+    continue;
+  }
+  if (!/^[0-9a-f]{64}$/.test(file.sha256 ?? "")) {
+    failures.push(`invalid manifest hash: ${file.path}`);
+    continue;
+  }
   if (sha256(file.path) !== file.sha256) failures.push(`hash mismatch: ${file.path}`);
+}
+const indexStat = lstatSync(join(input, "index.json"));
+if (!indexStat.isFile() || indexStat.isSymbolicLink()) {
+  failures.push("index.json is not a regular file");
 }
 
 const overlayName = (index.files ?? [])
@@ -40,6 +67,10 @@ const sourcesFile = load("source-ledger.json");
 const platformsFile = load("platforms.json");
 const validationFile = load("validation-plan.json");
 const safety = load("transport-session-safety-policy.json");
+const supportEvidence = load("command-support-evidence.json");
+const trustedMap: Json = JSON.parse(
+  readFileSync(join(dirname(import.meta.filename), "../data/uds-map.json"), "utf8"),
+);
 
 if (!(overlay.brand_ids ?? []).length) failures.push("profile overlay has no brand ids");
 if (safety.automatic_discovery?.read_only !== true || safety.automatic_discovery?.default_session_only !== true) {
@@ -56,7 +87,7 @@ for (const recipe of validationFile.recipes ?? validationFile.validation_recipes
 
 const exactHex = (value: unknown): value is string =>
   typeof value === "string" && (/^[0-9A-F]{3}$/.test(value) || /^[0-9A-F]{8}$/.test(value));
-const exactDid = (value: unknown): value is string => typeof value === "string" && /^[0-9A-F]{4}$/.test(value);
+const exactIdentifier = (value: unknown): value is string => typeof value === "string" && /^([0-9A-F]{2}|[0-9A-F]{4})$/.test(value);
 const immutableSource = (source: Json | undefined): boolean =>
   Boolean(
     source?.execution_eligible === true &&
@@ -72,7 +103,8 @@ for (const route of routes.values()) {
   for (const ref of route.source_refs ?? []) if (!sources.has(ref)) failures.push(`${route.route_id}: unknown source ${ref}`);
 }
 for (const candidate of candidatesFile.candidates ?? []) {
-  if (!candidate.candidate_id || !exactDid(candidate.did)) failures.push(`invalid candidate DID: ${candidate.candidate_id ?? "?"}`);
+  const identifier = candidate.did ?? candidate.local_identifier;
+  if (!candidate.candidate_id || !exactIdentifier(identifier)) failures.push(`invalid candidate identifier: ${candidate.candidate_id ?? "?"}`);
   if (!routes.has(candidate.route_id)) failures.push(`${candidate.candidate_id}: unknown route ${candidate.route_id}`);
   if (candidate.validation_recipe_id && !recipes.has(candidate.validation_recipe_id)) {
     failures.push(`${candidate.candidate_id}: unknown validation recipe ${candidate.validation_recipe_id}`);
@@ -145,7 +177,7 @@ function projectCandidate(candidate: Json): Json | null {
   const variants = projectDecoderVariants(candidate);
   const recipe = recipes.get(candidate.validation_recipe_id);
   return {
-    did: candidate.did,
+    did: candidate.did ?? candidate.local_identifier,
     semantic: candidate.semantic ?? null,
     ...(variants.length ? { decode_format: "uds_map_v9", decoder_variants: variants } : {}),
     ...(recipe
@@ -171,33 +203,63 @@ function projectCandidate(candidate: Json): Json | null {
 }
 
 const projectedRoutes: Json[] = [];
+const confirmedRoutes: Json[] = [];
+const trustedPairs = new Set<string>();
+for (const brand of trustedMap.brands ?? []) {
+  for (const module of brand.modules ?? []) trustedPairs.add(`${brand.id}:${module.req}:${module.resp}`);
+}
+for (const family of trustedMap.ecu_families ?? []) {
+  for (const seen of family.modules_seen_on ?? []) trustedPairs.add(`${seen.brand}:${seen.req}:${seen.resp}`);
+}
+const supportedRouteIds = new Set((supportEvidence.evidence ?? []).map((entry: Json) => entry.route_id));
 for (const route of routes.values()) {
   if (route.automatic_execution_authorized !== true) {
     deferred.push({ id: route.route_id, reason: "route_not_authorized" });
     continue;
   }
-  if (route.session !== "default_only" || !(route.read_services ?? []).includes("22")) {
+  const readServices = (route.read_services ?? []).filter((service: string) => service === "21" || service === "22");
+  if (route.session !== "default_only" || !readServices.length) {
     deferred.push({ id: route.route_id, reason: "unsupported_service_or_session" });
     continue;
   }
+  const readService = readServices.includes("22") ? "22" : "21";
   const eligibleRefs = (route.source_refs ?? []).filter((ref: string) => immutableSource(sources.get(ref)));
   if (!eligibleRefs.length) {
+    const brandIds = route.scope?.brand_ids ?? overlay.brand_ids ?? [];
+    const trusted = brandIds.some((brand: string) =>
+      trustedPairs.has(`${brand}:${route.route.req}:${route.route.resp}`),
+    );
+    if (trusted) {
+      confirmedRoutes.push({
+        route_id: route.route_id,
+        req: route.route.req,
+        resp: route.route.resp,
+        status: "confirmed_in_trusted_map",
+      });
+      if (!supportedRouteIds.has(route.route_id)) {
+        warnings.push(`${route.route_id} is locally confirmed but missing from command-support evidence`);
+      }
+      continue;
+    }
     deferred.push({ id: route.route_id, reason: "no_immutable_execution_source" });
     continue;
   }
   const platformIds = route.scope?.platform_ids ?? [];
-  if (platformIds.length !== 1) {
-    deferred.push({ id: route.route_id, reason: "route_requires_one_exact_platform" });
+  if (!platformIds.length) {
+    deferred.push({ id: route.route_id, reason: "route_has_no_platform_scope" });
     continue;
   }
   projectedRoutes.push({
     route_id: route.route_id,
-    platform: platformIds[0],
+    platform: platformIds.length === 1 ? platformIds[0] : "catalogue_exploration",
+    ...(platformIds.length > 1
+      ? { platform_alternatives: platformIds, exploration_only: true }
+      : {}),
     protocol: route.route.protocol,
     req: route.route.req,
     resp: route.route.resp,
     address_extension: route.route.address_extension ?? null,
-    service: "22",
+    service: readService,
     session: "default_only",
     claim_ids: eligibleRefs.map((ref: string) => claimForSource.get(ref)!).filter(Boolean),
     module_role: route.module_role ?? null,
@@ -268,13 +330,24 @@ const report = {
     projected_candidates: projectedRoutes.reduce((total, route) => total + route.candidate_dids.length, 0),
     projected_decoder_signals: projectedVariants,
     deferred: deferred.length,
+    confirmed_route_matches: confirmedRoutes.length,
   },
   vin_selectable_platforms: vinSelectablePlatforms,
   vehicle_fact_selectable_platforms: vehicleFactSelectablePlatforms,
   warnings,
+  confirmed_routes: confirmedRoutes,
+  archived_files: [
+    { path: "index.json", sha256: sha256("index.json") },
+    ...manifestFiles.map((file) => ({ path: file.path, sha256: file.sha256 })),
+  ],
   deferred,
 };
 
+mkdirSync(archive, { recursive: true });
+copyFileSync(join(input, "index.json"), join(archive, "index.json"));
+for (const file of manifestFiles) {
+  copyFileSync(join(input, file.path), join(archive, file.path));
+}
 writeFileSync(output, `${JSON.stringify(compiled, null, 2)}\n`);
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

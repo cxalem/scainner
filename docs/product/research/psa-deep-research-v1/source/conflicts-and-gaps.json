@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "conflict_id": "psa_mechanical_vs_diagnostic_architecture",
+      "finding": "Mechanical/platform labels such as eCMP/vehicle project code and diagnostic architectures AEE2001/AEE2004/AEE2010 describe different dimensions.",
+      "automatic_merge": "forbidden",
+      "resolution": "Store diagnostic generation and model/platform scope separately; neither silently implies the other.",
+      "source_refs": [
+        "S00",
+        "S02",
+        "S03"
+      ]
+    },
+    {
+      "conflict_id": "psa_shared_route_not_shared_family",
+      "finding": "Routes such as 6A8/688 and 6AD/68D cover many distinct ECU generations/suppliers.",
+      "automatic_merge": "forbidden",
+      "resolution": "Route reachability triggers identity; decoder reuse requires compatible ECU-family fingerprint.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "conflict_id": "psa_ev_dids_previous_stellantis_inheritance",
+      "finding": "Current project map had D410/D815/D860 from a Fiat 600e Stellantis source; immutable Peugeot e-208 evidence now independently supports the same route/DIDs/formulas.",
+      "automatic_merge": "review_required",
+      "resolution": "Add exact e-208 scoped evidence; do not widen to all PSA/Stellantis EVs solely from agreement between sibling platforms.",
+      "source_refs": [
+        "S00",
+        "S03"
+      ]
+    },
+    {
+      "conflict_id": "psa_ion_czero_not_mainstream_ev",
+      "finding": "Peugeot iOn/Citroën C-Zero use a Mitsubishi-derived 761/762 service-21 branch unlike mainstream PSA e-208 enhanced UDS routes.",
+      "automatic_merge": "forbidden",
+      "resolution": "Keep separate platform and local-identifier candidate.",
+      "source_refs": [
+        "S04",
+        "S05"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "psa_identity_f080_default_session",
+      "priority": "P0",
+      "required_evidence": "Physical read-only capture showing whether F080 recognition is available in default session and how its payload identifies BSI/ECU family.",
+      "safe_next_action": "Use standard identity records first; F080 stays research/Lab metadata.",
+      "retry_condition": "Project physical capture or immutable read-only source with session semantics.",
+      "source_refs": [
+        "S06"
+      ]
+    },
+    {
+      "gap_id": "psa_emp2_model_specific_dids",
+      "priority": "P0",
+      "required_evidence": "Immutable model-specific route/DID corpora for high-volume Peugeot 308/3008/508 and Citroën C5 Aircross families.",
+      "safe_next_action": "Use broad route catalogue + identity; avoid decoder inheritance.",
+      "retry_condition": "Model/ECU-specific source or physical capture."
+    },
+    {
+      "gap_id": "psa_cmp_non_ev_model_specific_dids",
+      "priority": "P0",
+      "required_evidence": "Model-specific 208/2008 ICE/HEV route+DID validation distinct from e-208 EV evidence.",
+      "safe_next_action": "Broad PSA route catalogue and standard OBD only.",
+      "retry_condition": "Immutable model-specific source or physical validation."
+    },
+    {
+      "gap_id": "psa_new_architecture_routes",
+      "priority": "P1",
+      "required_evidence": "Safe read-only route and identity captures for newest Stellantis electrical architectures / CAN-FD or DoIP paths.",
+      "safe_next_action": "Terminal platform_known_route_knowledge_incomplete when only new-architecture classification is known.",
+      "retry_condition": "Supported adapter transport + immutable route evidence."
+    },
+    {
+      "gap_id": "psa_ds_model_specific",
+      "priority": "P1",
+      "required_evidence": "DS-specific model route/DID corpora and ECU fingerprints.",
+      "safe_next_action": "Use PSA family routes only as late bounded candidates.",
+      "retry_condition": "DS-specific immutable or project physical evidence."
+    }
+  ],
+  "terminal_state_guidance": [
+    {
+      "state": "unsupported_transport",
+      "reason_examples": [
+        "AEE2001 vehicle requires VAN/K-line unsupported by adapter"
+      ],
+      "safe_next_action": "Report transport limitation without marking ECU absent.",
+      "retry_condition": "Compatible transport hardware."
+    },
+    {
+      "state": "platform_known_route_knowledge_incomplete",
+      "reason_examples": [
+        "new PSA/Stellantis architecture identified without safe route set"
+      ],
+      "safe_next_action": "Standard/trusted read-only discovery and passive capture when supported.",
+      "retry_condition": "New immutable route evidence."
+    },
+    {
+      "state": "ecu_identified_no_known_signals",
+      "reason_examples": [
+        "PSA route responds and identity is stable but no compatible DID family is validated"
+      ],
+      "safe_next_action": "Store fingerprint and queue bounded research candidates.",
+      "retry_condition": "New family/DID evidence."
+    }
+  ]
+}

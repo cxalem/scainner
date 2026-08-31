@@ -1,0 +1,3133 @@
+{
+  "schema_version": 1,
+  "routes": [
+    {
+      "route_id": "renault_zoe_ph1_evc_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "evc"
+        ]
+      },
+      "module_role": "evc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_dcm_7ca_7da",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "dcm"
+        ]
+      },
+      "module_role": "dcm",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7CA",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_lbc_79b_7bb",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "module_role": "lbc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "79B",
+        "resp": "7BB",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21",
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_peb_75a_77e",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "peb"
+        ]
+      },
+      "module_role": "peb",
+      "route": {
+        "protocol": "can11_500",
+        "req": "75A",
+        "resp": "77E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_airbag_752_772",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "airbag"
+        ]
+      },
+      "module_role": "airbag",
+      "route": {
+        "protocol": "can11_500",
+        "req": "752",
+        "resp": "772",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_usm_74d_76d",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "usm"
+        ]
+      },
+      "module_role": "usm",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74D",
+        "resp": "76D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_cluster_743_763",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "cluster"
+        ]
+      },
+      "module_role": "cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "743",
+        "resp": "763",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_eps_742_762",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "eps"
+        ]
+      },
+      "module_role": "eps",
+      "route": {
+        "protocol": "can11_500",
+        "req": "742",
+        "resp": "762",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_abs_esc_740_760",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "module_role": "abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "740",
+        "resp": "760",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_brake_pedal_79c_7bc",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "brake_pedal"
+        ]
+      },
+      "module_role": "brake_pedal",
+      "route": {
+        "protocol": "can11_500",
+        "req": "79C",
+        "resp": "7BC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_uch_745_765",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "uch"
+        ]
+      },
+      "module_role": "uch",
+      "route": {
+        "protocol": "can11_500",
+        "req": "745",
+        "resp": "765",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21",
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_hvac_744_764",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "hvac"
+        ]
+      },
+      "module_role": "hvac",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "764",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_park_assist_74e_76e",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "park_assist"
+        ]
+      },
+      "module_role": "park_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74E",
+        "resp": "76E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_bcb_obc_792_793",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "bcb_obc"
+        ]
+      },
+      "module_role": "bcb_obc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "792",
+        "resp": "793",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph1_lbc2_796_7b6",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "ecu_roles": [
+          "lbc2"
+        ]
+      },
+      "module_role": "lbc2",
+      "route": {
+        "protocol": "can11_500",
+        "req": "796",
+        "resp": "7B6",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 1 route from CanZE; do not promote to Phase 2 or other Renault platforms without matching evidence."
+    },
+    {
+      "route_id": "renault_zoe_ph2_airbag_752_772",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "airbag"
+        ]
+      },
+      "module_role": "airbag",
+      "route": {
+        "protocol": "can11_500",
+        "req": "752",
+        "resp": "772",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_audio_amplifier_782_7a2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "audio_amplifier"
+        ]
+      },
+      "module_role": "audio_amplifier",
+      "route": {
+        "protocol": "can11_500",
+        "req": "782",
+        "resp": "7A2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_parking_brake_755_775",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "parking_brake"
+        ]
+      },
+      "module_role": "parking_brake",
+      "route": {
+        "protocol": "can11_500",
+        "req": "755",
+        "resp": "775",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_uch_745_765",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "uch"
+        ]
+      },
+      "module_role": "uch",
+      "route": {
+        "protocol": "can11_500",
+        "req": "745",
+        "resp": "765",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_hvac_744_764",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "hvac"
+        ]
+      },
+      "module_role": "hvac",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "764",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_dcm_7ca_7da",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "dcm"
+        ]
+      },
+      "module_role": "dcm",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7CA",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_eps_742_762",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "eps"
+        ]
+      },
+      "module_role": "eps",
+      "route": {
+        "protocol": "can11_500",
+        "req": "742",
+        "resp": "762",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_front_camera_7dc_7dd",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "front_camera"
+        ]
+      },
+      "module_role": "front_camera",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7DC",
+        "resp": "7DD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_hands_free_799_7b9",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "hands_free"
+        ]
+      },
+      "module_role": "hands_free",
+      "route": {
+        "protocol": "can11_500",
+        "req": "799",
+        "resp": "7B9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_integrated_dynamics_70c_700",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "integrated_dynamics"
+        ]
+      },
+      "module_role": "integrated_dynamics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70C",
+        "resp": "700",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_front_radar_723_735",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "front_radar"
+        ]
+      },
+      "module_role": "front_radar",
+      "route": {
+        "protocol": "can11_500",
+        "req": "723",
+        "resp": "735",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_cluster_743_763",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "cluster"
+        ]
+      },
+      "module_role": "cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "743",
+        "resp": "763",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_multimedia_714_734",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "multimedia"
+        ]
+      },
+      "module_role": "multimedia",
+      "route": {
+        "protocol": "can11_500",
+        "req": "714",
+        "resp": "734",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_navigation_747_767",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "navigation"
+        ]
+      },
+      "module_role": "navigation",
+      "route": {
+        "protocol": "can11_500",
+        "req": "747",
+        "resp": "767",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_park_assist_74e_76e",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "park_assist"
+        ]
+      },
+      "module_role": "park_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74E",
+        "resp": "76E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_plc_gateway_7d8_7c8",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "plc_gateway"
+        ]
+      },
+      "module_role": "plc_gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7D8",
+        "resp": "7C8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_usm_74d_76d",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "usm"
+        ]
+      },
+      "module_role": "usm",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74D",
+        "resp": "76D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_pedestrian_sound_73f_761",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "pedestrian_sound"
+        ]
+      },
+      "module_role": "pedestrian_sound",
+      "route": {
+        "protocol": "can11_500",
+        "req": "73F",
+        "resp": "761",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_wireless_charger_7aa_7ad",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "wireless_charger"
+        ]
+      },
+      "module_role": "wireless_charger",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7AA",
+        "resp": "7AD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Zoe Phase 2 11-bit route from CanZE."
+    },
+    {
+      "route_id": "renault_zoe_ph2_abs_esc_18da2df1_18daf12d",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "module_role": "abs_esc",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DA2DF1",
+        "resp": "18DAF12D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_bcb_obc_18dadef1_18daf1de",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "bcb_obc"
+        ]
+      },
+      "module_role": "bcb_obc",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DADEF1",
+        "resp": "18DAF1DE",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_e_act_eba_18dae2f1_18daf1e2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "e_act_eba"
+        ]
+      },
+      "module_role": "e_act_eba",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DAE2F1",
+        "resp": "18DAF1E2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_inverter_18dadff1_18daf1df",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "inverter"
+        ]
+      },
+      "module_role": "inverter",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DADFF1",
+        "resp": "18DAF1DF",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "module_role": "lbc",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DADBF1",
+        "resp": "18DAF1DB",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_lbc2_18dadcf1_18daf1dc",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "lbc2"
+        ]
+      },
+      "module_role": "lbc2",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DADCF1",
+        "resp": "18DAF1DC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_security_gateway_18dad2f1_18daf1d2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "security_gateway"
+        ]
+      },
+      "module_role": "security_gateway",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DAD2F1",
+        "resp": "18DAF1D2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_zoe_ph2_vehicle_control_18dadaf1_18daf1da",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "ecu_roles": [
+          "vehicle_control"
+        ]
+      },
+      "module_role": "vehicle_control",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DADAF1",
+        "resp": "18DAF1DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact source-backed Zoe Phase 2 29-bit route only; does not authorize target-range enumeration."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_navigation_747_767",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "navigation"
+        ]
+      },
+      "module_role": "navigation",
+      "route": {
+        "protocol": "can11_500",
+        "req": "747",
+        "resp": "767",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_can_gateway_785_7a5",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "can_gateway"
+        ]
+      },
+      "module_role": "can_gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "785",
+        "resp": "7A5",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_uch_745_765",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "uch"
+        ]
+      },
+      "module_role": "uch",
+      "route": {
+        "protocol": "can11_500",
+        "req": "745",
+        "resp": "765",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_multimedia_714_734",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "multimedia"
+        ]
+      },
+      "module_role": "multimedia",
+      "route": {
+        "protocol": "can11_500",
+        "req": "714",
+        "resp": "734",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_lbc_79b_7bb",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "module_role": "lbc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "79B",
+        "resp": "7BB",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_hvac_744_764",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "hvac"
+        ]
+      },
+      "module_role": "hvac",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "764",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_cluster_743_763",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "cluster"
+        ]
+      },
+      "module_role": "cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "743",
+        "resp": "763",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_automatic_transmission_7e1_7e9",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "automatic_transmission"
+        ]
+      },
+      "module_role": "automatic_transmission",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E1",
+        "resp": "7E9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_usm_74d_76d",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "usm"
+        ]
+      },
+      "module_role": "usm",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74D",
+        "resp": "76D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_engine_7e0_7e8",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "module_role": "engine",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E0",
+        "resp": "7E8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_evc_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "evc"
+        ]
+      },
+      "module_role": "evc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_bcb_obc_792_793",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "bcb_obc"
+        ]
+      },
+      "module_role": "bcb_obc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "792",
+        "resp": "793",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_front_camera_7dc_7dd",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "front_camera"
+        ]
+      },
+      "module_role": "front_camera",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7DC",
+        "resp": "7DD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_audio_712_732",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "audio"
+        ]
+      },
+      "module_role": "audio",
+      "route": {
+        "protocol": "can11_500",
+        "req": "712",
+        "resp": "732",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_airbag_752_772",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "airbag"
+        ]
+      },
+      "module_role": "airbag",
+      "route": {
+        "protocol": "can11_500",
+        "req": "752",
+        "resp": "772",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_cshv_78a_7d7",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "cshv"
+        ]
+      },
+      "module_role": "cshv",
+      "route": {
+        "protocol": "can11_500",
+        "req": "78A",
+        "resp": "7D7",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_vehicle_charger_controller_719_739",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "vehicle_charger_controller"
+        ]
+      },
+      "module_role": "vehicle_charger_controller",
+      "route": {
+        "protocol": "can11_500",
+        "req": "719",
+        "resp": "739",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_dcm_7ca_7da",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "dcm"
+        ]
+      },
+      "module_role": "dcm",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7CA",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_abs_esc_740_760",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "module_role": "abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "740",
+        "resp": "760",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_pedestrian_sound_73f_761",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "pedestrian_sound"
+        ]
+      },
+      "module_role": "pedestrian_sound",
+      "route": {
+        "protocol": "can11_500",
+        "req": "73F",
+        "resp": "761",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_wireless_charger_7aa_7ad",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "wireless_charger"
+        ]
+      },
+      "module_role": "wireless_charger",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7AA",
+        "resp": "7AD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_eps_742_762",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "eps"
+        ]
+      },
+      "module_role": "eps",
+      "route": {
+        "protocol": "can11_500",
+        "req": "742",
+        "resp": "762",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_acc_75d_77d",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "acc"
+        ]
+      },
+      "module_role": "acc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "75D",
+        "resp": "77D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_top_control_74b_76b",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "top_control"
+        ]
+      },
+      "module_role": "top_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74B",
+        "resp": "76B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_peb_75a_77e",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "peb"
+        ]
+      },
+      "module_role": "peb",
+      "route": {
+        "protocol": "can11_500",
+        "req": "75A",
+        "resp": "77E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_plc_gateway_7d8_7c8",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "plc_gateway"
+        ]
+      },
+      "module_role": "plc_gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7D8",
+        "resp": "7C8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_shift_by_wire_79d_7bd",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "shift_by_wire"
+        ]
+      },
+      "module_role": "shift_by_wire",
+      "route": {
+        "protocol": "can11_500",
+        "req": "79D",
+        "resp": "7BD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_audio_amplifier_782_7a2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "audio_amplifier"
+        ]
+      },
+      "module_role": "audio_amplifier",
+      "route": {
+        "protocol": "can11_500",
+        "req": "782",
+        "resp": "7A2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twingo III Phase 2 source route; presence is not proof the ECU is fitted to every powertrain."
+    },
+    {
+      "route_id": "renault_twingo3_ph2_security_gateway_18dad2f1_18daf1d2",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "ecu_roles": [
+          "security_gateway"
+        ]
+      },
+      "module_role": "security_gateway",
+      "route": {
+        "protocol": "can29_normal_fixed",
+        "req": "18DAD2F1",
+        "resp": "18DAF1D2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact S-GW3 route only; generic Renault 29-bit enumeration remains denied."
+    },
+    {
+      "route_id": "renault_twizy_cluster_743_763",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twizy"
+        ],
+        "ecu_roles": [
+          "cluster"
+        ]
+      },
+      "module_role": "cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "743",
+        "resp": "763",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S06"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twizy route from current CanZE corpus."
+    },
+    {
+      "route_id": "renault_twizy_lbc_79b_7bb",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twizy"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "module_role": "lbc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "79B",
+        "resp": "7BB",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S06"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twizy route from current CanZE corpus."
+    },
+    {
+      "route_id": "renault_twizy_bcb_obc_792_793",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twizy"
+        ],
+        "ecu_roles": [
+          "bcb_obc"
+        ]
+      },
+      "module_role": "bcb_obc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "792",
+        "resp": "793",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S06"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Twizy route from current CanZE corpus."
+    },
+    {
+      "route_id": "renault_megane_abs_740_760",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "module_role": "abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "740",
+        "resp": "760",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "OBDb Megane route with source-specific year filters; resolve model/year and ECU identity before DID execution."
+    },
+    {
+      "route_id": "dacia_duster_engine_7e0_7e8",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "platform_ids": [
+          "dacia_cmf_b"
+        ],
+        "models": [
+          "duster_2",
+          "duster_3"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "module_role": "engine",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E0",
+        "resp": "7E8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "01",
+        "09",
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S09"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Standard 11-bit engine route physically represented in Duster 2017 support data; enhanced proprietary DIDs remain separately gated."
+    }
+  ],
+  "declared_count": 76
+}

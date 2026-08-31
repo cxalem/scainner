@@ -241,7 +241,7 @@ function lintResearchDecode(decode: Record<string, unknown>, where: string, prob
 
 function lintResearchCandidate(candidate: ResearchCandidateDid, where: string, problems: string[]): void {
   const did = typeof candidate === "string" ? candidate : candidate.did;
-  if (!did || !/^[0-9A-F]{4}$/.test(did)) problems.push(`${where}: malformed candidate DID ${String(did)}`);
+  if (!did || !/^([0-9A-F]{2}|[0-9A-F]{4})$/.test(did)) problems.push(`${where}: malformed candidate identifier ${String(did)}`);
   if (typeof candidate === "string") return;
   if (candidate.automatic_execution_authorized !== undefined && typeof candidate.automatic_execution_authorized !== "boolean") {
     problems.push(`${where}: candidate DID ${did}: automatic_execution_authorized must be boolean`);
@@ -333,7 +333,7 @@ function lintResearchPacks(problems: string[]): void {
         if (!route.route_id || routeIds.has(route.route_id)) problems.push(`${where}: missing or duplicate route id`);
         else routeIds.add(route.route_id);
         if (!route.platform || !route.protocol || !route.req || !route.resp) problems.push(`${where}: incomplete route`);
-        if (route.service !== "22" || route.session !== "default_only") problems.push(`${where}: candidates may only use service 22 in the default session`);
+        if (!new Set(["21", "22"]).has(route.service ?? "") || route.session !== "default_only") problems.push(`${where}: candidates may only use read services 21/22 in the default session`);
         if (route.decodes !== undefined) problems.push(`${where}: trusted decodes are forbidden in research routes`);
         if (!(route.claim_ids?.length)) problems.push(`${where}: route has no evidence claims`);
         for (const id of route.claim_ids ?? []) if (!claims.has(id)) problems.push(`${where}: unknown claim ${id}`);

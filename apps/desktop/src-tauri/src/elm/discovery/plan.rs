@@ -16,6 +16,7 @@ use serde::Serialize;
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ReadStage {
+    Presence,
     Discovery,
     Candidate,
 }
@@ -96,6 +97,14 @@ fn candidate_protocol(value: &str) -> Option<RouteProtocol> {
         "can29_normal_fixed" => Some(RouteProtocol::Can29NormalFixed),
         "can29_target_byte" => Some(RouteProtocol::Can29TargetByte),
         "can29_custom" => Some(RouteProtocol::Can29Custom),
+        _ => None,
+    }
+}
+
+fn candidate_read_service(value: &str) -> Option<ReadService> {
+    match value {
+        "21" => Some(ReadService::DataByLocalIdentifier),
+        "22" => Some(ReadService::DataByIdentifier),
         _ => None,
     }
 }
@@ -263,21 +272,29 @@ pub fn generate_for_vehicle(
     let platform_key = uds_map::platform_for_vin(vin)
         .map(|platform| platform.key)
         .or_else(|| research::platform_for_vehicle_facts(vin, model));
-    for candidate in research::routes_for_context(vin, platform_key.as_deref()) {
-        let (Some(protocol), Some(req), Some(resp)) = (
+    for candidate in research::routes_for_exploration(vin, platform_key.as_deref()) {
+        let (Some(protocol), Some(read_service), Some(req), Some(resp)) = (
             candidate_protocol(&candidate.protocol),
+            candidate_read_service(&candidate.service),
             u32::from_str_radix(&candidate.req, 16).ok(),
             u32::from_str_radix(&candidate.resp, 16).ok(),
         ) else {
             continue;
         };
-        let mut dids = if candidate.requires_identity {
-            identity_reads(vin)
+        let mut dids = if candidate.service == "21" {
+            Vec::new()
+        } else if candidate.requires_identity {
+            let mut reads = identity_reads(vin);
+            if let Some(presence) = reads.first_mut() {
+                presence.purpose = "research route presence gate".into();
+                presence.stage = ReadStage::Presence;
+            }
+            reads
         } else {
             vec![PlannedRead {
                 did: uds_map::presence_probe_did(),
                 purpose: "research route presence probe".into(),
-                stage: ReadStage::Discovery,
+                stage: ReadStage::Presence,
                 candidate_decodes: Vec::new(),
             }]
         };
@@ -290,7 +307,11 @@ pub fn generate_for_vehicle(
                     Some(PlannedRead {
                         did: hex16(did.did())?,
                         purpose: did.purpose(&candidate.claim_ids),
-                        stage: ReadStage::Candidate,
+                        stage: if candidate.service == "21" {
+                            ReadStage::Presence
+                        } else {
+                            ReadStage::Candidate
+                        },
                         candidate_decodes: did.decode_hypotheses(&candidate.claim_ids),
                     })
                 }),
@@ -332,9 +353,13 @@ pub fn generate_for_vehicle(
                 gateway: None,
                 source: None,
             },
-            read_service: ReadService::DataByIdentifier,
+            read_service,
             dids,
-            sweep: Vec::new(),
+            sweep: if candidate.exploration_only {
+                sweep_bands(map, vin, None)
+            } else {
+                Vec::new()
+            },
             source: format!(
                 "untrusted research candidate from {}; vehicle applicability untested",
                 candidate.claim_ids.join(", ")
@@ -407,8 +432,11 @@ mod tests {
             "no VDS pattern is confirmed for the platform, so it stays unknown"
         );
         // Three identity targets on exactly the reached routes, plus one sweep.
-        let identity: Vec<&PlanTarget> =
-            plan.targets.iter().filter(|t| t.sweep.is_empty()).collect();
+        let identity: Vec<&PlanTarget> = plan
+            .targets
+            .iter()
+            .filter(|target| target.sweep.is_empty() && !target.key.starts_with("research_"))
+            .collect();
         assert_eq!(
             identity.len(),
             3,
@@ -443,7 +471,7 @@ mod tests {
         let sweep = plan
             .targets
             .iter()
-            .find(|t| !t.sweep.is_empty())
+            .find(|target| target.key.ends_with("_sweep"))
             .expect("a sweep target");
         assert_eq!((sweep.req.as_str(), sweep.resp.as_str()), ("6AD", "68D"));
         assert!(sweep.sweep.contains(&(0xD400, 0xD4FF)), "{:?}", sweep.sweep);
@@ -471,7 +499,11 @@ mod tests {
         let vin = verified_brand_vin();
         let plan = generate(Some(&vin), &[], map());
         let profile = pack_ext::profile_modules_for_vin(map(), Some(&vin));
-        let identity = plan.targets.iter().filter(|t| t.sweep.is_empty()).count();
+        let identity = plan
+            .targets
+            .iter()
+            .filter(|target| target.sweep.is_empty() && !target.key.starts_with("research_"))
+            .count();
         assert_eq!(identity, profile.len());
         assert!(plan.targets.iter().any(|t| !t.sweep.is_empty()));
     }
@@ -544,7 +576,7 @@ mod tests {
                 );
                 assert!(target.dids[..candidate_at]
                     .iter()
-                    .all(|read| read.stage == ReadStage::Discovery));
+                    .all(|read| read.stage != ReadStage::Candidate));
                 assert!(target.dids[candidate_at..]
                     .iter()
                     .all(|read| read.stage == ReadStage::Candidate));
@@ -576,5 +608,36 @@ mod tests {
             .any(|target| target.dids.iter().any(|read| {
                 read.stage == ReadStage::Candidate && read.purpose.contains("research candidate")
             })));
+    }
+
+    #[test]
+    fn c4_catalogue_routes_are_presence_gated_without_replacing_confirmed_routes() {
+        let vin = vin_for_brand("psa");
+        let reached = [(0x74A, 0x64A), (0x6AD, 0x68D), (0x6B5, 0x695)];
+        let plan = generate_for_vehicle(Some(&vin), Some("C4 III"), &reached, map());
+        assert_eq!(plan.platform.as_deref(), Some("psa_c41_project_observed"));
+
+        let camera: Vec<&PlanTarget> = plan
+            .targets
+            .iter()
+            .filter(|target| target.req == "74A" && target.resp == "64A")
+            .collect();
+        assert_eq!(camera.len(), 1);
+        assert!(!camera[0].label.contains("rain_light_or_roof"));
+
+        let airbag = plan
+            .targets
+            .iter()
+            .find(|target| target.key == "research_psa_catalog_airbag_744_644")
+            .unwrap();
+        assert_eq!(airbag.dids[0].stage, ReadStage::Presence);
+        assert!(!airbag.sweep.is_empty());
+        assert!(airbag.dids[1..]
+            .iter()
+            .all(|read| read.stage == ReadStage::Discovery));
+        assert!(plan
+            .targets
+            .iter()
+            .all(|target| target.key != "research_psa_mmc_ev_bmu_761_762"));
     }
 }

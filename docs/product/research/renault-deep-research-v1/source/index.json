@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "pack_id": "renault-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-08-31",
+  "brand_ids": [
+    "renault"
+  ],
+  "marques": [
+    "renault",
+    "dacia"
+  ],
+  "self_hash_policy": "index.json is self-excluded to avoid recursive hashing.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "c6e962f4e4ce87722f5563760e4c40c13f35046da0e925a53b1f3059c65ea471"
+    },
+    {
+      "path": "renault-profile-overlay.json",
+      "sha256": "5f807ea911d810984111b0e719f3e89f02988ced4d9c3525aa9e6d1e5eff4dc8"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "69f632e2b2796683f1164fb2b17733f99e217c9b692d609bea8b8cb883044e2e"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "6ed2fb06c8d6e32276c77b29d062774b98f4653d4cb6b88fd21c8e967a8f593e"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "c6a94019e5bad4db4fa95729f4cd67bb2453e9e0f7eca6487781840da5ec2a23"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "e8112df3daeb95089c28b605d6dceab086edfdf715b18279006d2589c77a936c"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "2f9fd49a9047a42cf9798530fcec96e61964c75a8398d944d2d295f400c828d6"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "855df3886327cc66d8ff32b74d660b87c88b075d3b86c9ab2ece1faf43368289"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "9cf94e0b9d51a98252c8b4f5c0459483ff69a7da940c9d67724c315649e6c4c9"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "65768a9129f32193203b81e551444554fe078bb4ba2ef487e0d432a6cdbcab79"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "209b335034b03fe86367bdf57d244b90a91ef224fa51203c968e91bf03af947c"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "1b1cc3b27d28c83feb178ea92fc09e1cd203dd5730bf27eeeb04c97ce42e0bbe"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "c76eb6af9344ca689c8962e34f4c2092d6367f324e4cdc7f7f3f183d08527bd4"
+    }
+  ],
+  "declared_counts": {
+    "sources": 19,
+    "platforms": 12,
+    "routes": 76,
+    "did_candidates": 23,
+    "command_evidence": 1,
+    "ecu_families": 2,
+    "module_inventories": 3,
+    "validation_recipes": 7,
+    "claims": 9,
+    "conflicts": 3,
+    "gaps": 8
+  },
+  "validation": {
+    "status": "valid",
+    "errors": [],
+    "warnings": []
+  }
+}

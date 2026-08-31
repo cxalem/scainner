@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "brand_ids": [
+    "psa"
+  ],
+  "planner_contract": "evidence_aware_candidate_planner",
+  "projection_rules": [
+    {
+      "research_fact": "project/trusted route",
+      "runtime_projection": "highest-priority presence and identity candidate"
+    },
+    {
+      "research_fact": "exact-model immutable route",
+      "runtime_projection": "high-priority presence/identity candidate after model/platform match"
+    },
+    {
+      "research_fact": "broad PSA ECU catalogue route",
+      "runtime_projection": "bounded lower-priority presence candidate"
+    },
+    {
+      "research_fact": "candidate DID",
+      "runtime_projection": "read only after route reaches answered/refused"
+    },
+    {
+      "research_fact": "proposed decoder",
+      "runtime_projection": "disabled until vehicle_fit=matched"
+    },
+    {
+      "research_fact": "vendor identity lead such as F080",
+      "runtime_projection": "documentation/Lab candidate until default-session behavior is proven"
+    },
+    {
+      "research_fact": "write/routine/security capability",
+      "runtime_projection": "documentation only; never automatic"
+    },
+    {
+      "research_fact": "unsupported VAN/K-line/CAN-FD/DoIP branch",
+      "runtime_projection": "terminal/gap; do not coerce transport"
+    }
+  ],
+  "planning_phases": [
+    {
+      "phase": "classify_brand_architecture",
+      "actions": [
+        "Select PSA for Peugeot/Citroën/DS WMI/profile.",
+        "Classify diagnostic generation separately from model/mechanical platform.",
+        "Allow ambiguity; use the intersection of safe routes until stronger evidence arrives."
+      ]
+    },
+    {
+      "phase": "transport_detection",
+      "actions": [
+        "Attempt passive capture only when adapter/pin/protocol monitoring is reliable.",
+        "Modern AEE2004/AEE2010 branches prioritize CAN11 500 for main diagnostic routes.",
+        "Legacy AEE2001 VAN/K-line remains unsupported_transport unless the adapter explicitly supports the required transport."
+      ]
+    },
+    {
+      "phase": "route_census",
+      "actions": [
+        "Trusted/project routes first.",
+        "Exact e-208 or iOn/C-Zero routes after exact model/platform classification.",
+        "Then broad PSA route catalogue as bounded presence candidates.",
+        "Only afterward use central-policy generic CAN11 enumeration if still informative."
+      ]
+    },
+    {
+      "phase": "identity",
+      "actions": [
+        "Read standard identity DIDs first: F187/F18A/F18C/F190/F191/F195/F197 when supported.",
+        "Treat PSA F080 recognition as a research lead; do not require non-default session automatically.",
+        "Read identity twice and require independent connection for stability."
+      ]
+    },
+    {
+      "phase": "candidate_dids",
+      "actions": [
+        "Only query candidate DIDs after route reachability.",
+        "Exact-model candidates outrank inherited/broad candidates.",
+        "Activation remains disabled until vehicle_fit=matched."
+      ]
+    },
+    {
+      "phase": "replan",
+      "actions": [
+        "Use ECU part/software/system identity to split families sharing the same CAN route.",
+        "Remove incompatible candidates and add newly compatible family candidates."
+      ]
+    },
+    {
+      "phase": "stop",
+      "actions": [
+        "Stop on safety/budget/user cancellation or informative terminal state.",
+        "Stop when expected information gain no longer justifies traffic cost."
+      ]
+    }
+  ],
+  "priority_model": "specificity + project evidence + immutable source quality + platform fit + ECU-family fit + expected information gain + user value - traffic cost - scoped silence - transport uncertainty",
+  "projection_preview": [
+    {
+      "route_id": "psa_e208_battery_6b4_694",
+      "platform": "psa_ecmp_e208",
+      "protocol": "can11_500",
+      "req": "6B4",
+      "resp": "694",
+      "service": "22",
+      "session": "default_only",
+      "claim_ids": [
+        "psa.e208.ev_routes"
+      ],
+      "module_role": "traction_battery_msb",
+      "requires_identity": true,
+      "candidate_dids": [
+        {
+          "did": "D410",
+          "semantic": "HV battery state of charge",
+          "decode": {
+            "variants_retained": true
+          },
+          "validation": {
+            "kind": "soc_progression",
+            "instructions": [],
+            "expected_behavior": []
+          },
+          "automatic_execution_authorized": true,
+          "support_status": "source_observed"
+        }
+      ]
+    }
+  ]
+}

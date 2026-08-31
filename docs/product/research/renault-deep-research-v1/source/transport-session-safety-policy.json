@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "brand_ids": [
+    "renault"
+  ],
+  "central_policy_relationship": "Brand pack may only reduce central limits.",
+  "automatic_discovery": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "passive_capture": "attempt only if adapter reliably monitors active pins/protocol; otherwise passive_capture_unavailable"
+  },
+  "never_automatic_services": [
+    "10_non_default",
+    "11",
+    "14",
+    "27",
+    "28",
+    "2E",
+    "2F",
+    "31",
+    "34",
+    "35",
+    "36",
+    "37",
+    "3D"
+  ],
+  "brand_budget_reductions": {
+    "S0_standard_handshake_seconds": 30,
+    "S1_census_plus_S2_identity_seconds": 150,
+    "S4_bounded_parked_sweep_seconds": 180,
+    "whole_automatic_connection_seconds": 480,
+    "learning_drive_max_link_occupancy_percent": 15,
+    "candidate_caps": {
+      "exact_route_presence_candidates_per_replan": 64,
+      "identity_reads_per_reached_ecu": 7,
+      "initial_candidate_dids_per_reached_route": 24
+    }
+  },
+  "29bit_policy": {
+    "generic_enumeration_authorized": false,
+    "exact_platform_routes_authorized": [
+      "renault_zoe_ph2_abs_esc_18da2df1_18daf12d",
+      "renault_zoe_ph2_bcb_obc_18dadef1_18daf1de",
+      "renault_zoe_ph2_e_act_eba_18dae2f1_18daf1e2",
+      "renault_zoe_ph2_inverter_18dadff1_18daf1df",
+      "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "renault_zoe_ph2_lbc2_18dadcf1_18daf1dc",
+      "renault_zoe_ph2_security_gateway_18dad2f1_18daf1d2",
+      "renault_zoe_ph2_vehicle_control_18dadaf1_18daf1da",
+      "renault_twingo3_ph2_security_gateway_18dad2f1_18daf1d2"
+    ],
+    "conditions": [
+      "exact platform classification supports the route",
+      "route comes from immutable licensed source",
+      "full request/response pair is canonical",
+      "default-session read-only projection only"
+    ],
+    "not_authorized_by": [
+      "11-bit silence",
+      "unknown brand",
+      "unresolved source header notation"
+    ]
+  },
+  "session_policy": {
+    "product": "default_only",
+    "extended_session": "Lab only with exact route+DID+fingerprint+immutable source+stationary state+cleanup to default",
+    "security_access_after_extended_session": false
+  },
+  "nrc_policy": {
+    "78": "bounded wait without resend",
+    "security_related": "terminate path",
+    "all_nrcs": "persist as observations; a refusal can establish route reachability"
+  },
+  "abort_conditions": [
+    "user_cancel",
+    "unsafe_adapter_state",
+    "bus_health_failure"
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "psa_aee2001_legacy",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ]
+      },
+      "architecture": "AEE2001: first-generation VAN+CAN architecture; main nodes on CAN, comfort/body on VAN; K-line also part of the architecture.",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [
+        "iso9141",
+        "kwp2000"
+      ],
+      "gateway_architecture": "mixed VAN/CAN/K-line",
+      "security_behavior": [],
+      "classification_evidence": [
+        "source architecture generation"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S02"
+      ],
+      "non_generalization_boundary": "Unsupported VAN/K-line transports must not be coerced into classic CAN routes."
+    },
+    {
+      "platform_id": "psa_aee2004_fullcan",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ]
+      },
+      "architecture": "AEE2004: first full-CAN generation; 500 kbit/s HS inter-systems CAN, 125 kbit/s low-speed comfort/body CAN, LIN; source lists UDS/EOBD.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": "multi-bus full-CAN",
+      "security_behavior": [],
+      "classification_evidence": [
+        "source architecture generation"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S02"
+      ],
+      "non_generalization_boundary": "AEE2004 architecture does not imply every ECU is visible through the same DLC path."
+    },
+    {
+      "platform_id": "psa_aee2010_fullcan",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ]
+      },
+      "architecture": "AEE2010: second full-CAN generation with HS inter-systems/LAS, multiple low-speed domains and LIN; full/eco/EV variants documented at architecture level.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": "multi-domain full-CAN",
+      "security_behavior": [],
+      "classification_evidence": [
+        "source architecture generation"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S02"
+      ],
+      "non_generalization_boundary": "Mechanical platform name alone is insufficient; ECU identity and route evidence still gate DIDs."
+    },
+    {
+      "platform_id": "psa_c41_project_observed",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "models": [
+          "c4_iii"
+        ],
+        "years": {
+          "from": 2020,
+          "to": null
+        }
+      },
+      "architecture": "Citroën C4 III / project C41; project-observed modern PSA CAN diagnostic branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": "project observation; exact full architecture not promoted beyond C41",
+      "security_behavior": [],
+      "classification_evidence": [
+        "project vehicle capture in current uds-map"
+      ],
+      "confidence": "high",
+      "knowledge_state": "locally_confirmed",
+      "source_refs": [
+        "S00"
+      ],
+      "non_generalization_boundary": "One project-observed C41 vehicle; use to seed family comparison, not as all-Citroën truth."
+    },
+    {
+      "platform_id": "psa_ecmp_e208",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Peugeot e-208 modern Stellantis/PSA EV branch with exact source-backed CAN11 enhanced routes.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": "not established by this source",
+      "security_behavior": [],
+      "classification_evidence": [
+        "exact e-208 vehicle profile"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "e-208 evidence may be a useful eCMP-family lead, but this pack does not promote it to every eCMP vehicle."
+    },
+    {
+      "platform_id": "psa_mmc_ev_ion_czero",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_mmc_ev_ion_czero"
+        ],
+        "models": [
+          "ion",
+          "c_zero"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Mitsubishi-derived i-MiEV sibling EV branch used by Peugeot iOn and Citroën C-Zero.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": "separate from mainstream PSA eCMP/AEE route assumptions",
+      "security_behavior": [],
+      "classification_evidence": [
+        "two exact sibling vehicle profiles"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "source_refs": [
+        "S04",
+        "S05"
+      ],
+      "non_generalization_boundary": "Do not reuse iOn/C-Zero service-21 routes on mainstream PSA EVs."
+    },
+    {
+      "platform_id": "psa_new_architecture_route_incomplete",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ]
+      },
+      "architecture": "Placeholder for newer PSA/Stellantis electrical generations not safely normalized by this research pass.",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [
+        "can_fd",
+        "doip"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "confidence": "low",
+      "knowledge_state": "unknown",
+      "source_refs": [],
+      "non_generalization_boundary": "No traffic may be generated from this placeholder."
+    }
+  ],
+  "declared_count": 7
+}
