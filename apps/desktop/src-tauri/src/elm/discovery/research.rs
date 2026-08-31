@@ -30,6 +30,12 @@ const EMBEDDED: &[(&str, &str)] = &[
             "../../../../../../packages/uds-map/data/research/renault-deep-research-v1.json"
         ),
     ),
+    (
+        "research/manufacturer-group-deep-research-v1.json",
+        include_str!(
+            "../../../../../../packages/uds-map/data/research/manufacturer-group-deep-research-v1.json"
+        ),
+    ),
 ];
 
 #[derive(Debug, Deserialize)]
@@ -84,6 +90,10 @@ pub struct CandidatePlatform {
 pub struct CandidateRoute {
     pub route_id: String,
     pub platform: String,
+    #[serde(default)]
+    pub platform_alternatives: Vec<String>,
+    #[serde(default)]
+    pub exploration_only: bool,
     pub protocol: String,
     pub req: String,
     pub resp: String,
@@ -419,6 +429,12 @@ pub fn packs() -> &'static [ResearchPack] {
                             route.route_id
                         );
                         assert!(
+                            matches!(route.service.as_str(), "21" | "22"),
+                            "unsupported read service {} on {}",
+                            route.service,
+                            route.route_id
+                        );
+                        assert!(
                             u32::from_str_radix(&route.req, 16).is_ok()
                                 && u32::from_str_radix(&route.resp, 16).is_ok(),
                             "non-hex route address on {}: {}/{}",
@@ -572,8 +588,9 @@ pub fn routes_for_context(vin: Option<&str>, platform: Option<&str>) -> Vec<Cand
         .into_iter()
         .flat_map(|profile| &profile.routes)
         .filter(|route| {
-            route.platform == "unknown"
-                || platform.is_some_and(|actual| actual.eq_ignore_ascii_case(&route.platform))
+            !route.exploration_only
+                && (route.platform == "unknown"
+                    || platform.is_some_and(|actual| actual.eq_ignore_ascii_case(&route.platform)))
         })
         .cloned()
         .collect();
@@ -584,6 +601,27 @@ pub fn routes_for_context(vin: Option<&str>, platform: Option<&str>) -> Vec<Cand
             .then(a.route_id.cmp(&b.route_id))
     });
     routes.dedup_by(|a, b| a.route_id == b.route_id);
+    routes
+}
+
+/// Explicit parked exploration includes broad architecture catalogues after
+/// brand matching, but keeps them separate from automatic route selection.
+pub fn routes_for_exploration(vin: Option<&str>, platform: Option<&str>) -> Vec<CandidateRoute> {
+    let mut routes = routes_for_context(vin, platform);
+    routes.extend(
+        profiles_for_vin(vin)
+            .into_iter()
+            .flat_map(|profile| &profile.routes)
+            .filter(|route| route.exploration_only)
+            .cloned(),
+    );
+    routes.sort_by(|a, b| {
+        a.req
+            .cmp(&b.req)
+            .then(a.resp.cmp(&b.resp))
+            .then(a.route_id.cmp(&b.route_id))
+    });
+    routes.dedup_by(|a, b| a.req == b.req && a.resp == b.resp && a.service == b.service);
     routes
 }
 
@@ -620,7 +658,7 @@ mod tests {
     }
 
     #[test]
-    fn every_route_has_claims_and_only_read_service_22() {
+    fn every_route_has_claims_and_only_read_services() {
         let claims: BTreeSet<&str> = packs()
             .iter()
             .flat_map(|pack| &pack.claims)
@@ -628,7 +666,11 @@ mod tests {
             .collect();
         for profile in packs().iter().flat_map(|pack| &pack.profiles) {
             for route in &profile.routes {
-                assert_eq!(route.service, "22", "{}", route.route_id);
+                assert!(
+                    matches!(route.service.as_str(), "21" | "22"),
+                    "{}",
+                    route.route_id
+                );
                 assert_eq!(route.session, "default_only", "{}", route.route_id);
                 assert!(!route.claim_ids.is_empty(), "{}", route.route_id);
                 assert!(route
@@ -805,6 +847,38 @@ mod tests {
             .find(|candidate| candidate.did() == "4B00")
             .unwrap();
         assert!(did.decode_hypotheses(&[]).is_empty());
+    }
+
+    #[test]
+    fn psa_catalogue_is_exploration_only_and_model_branches_stay_isolated() {
+        let vin = vin_for_brand("psa");
+        let normal = routes_for_context(Some(&vin), Some("psa_c41_project_observed"));
+        assert!(normal.iter().all(|route| !route.exploration_only));
+
+        let exploration = routes_for_exploration(Some(&vin), Some("psa_c41_project_observed"));
+        assert!(exploration
+            .iter()
+            .any(|route| route.route_id == "psa_catalog_airbag_744_644"));
+        assert!(exploration
+            .iter()
+            .all(|route| route.route_id != "psa_mmc_ev_bmu_761_762"));
+
+        let c_zero = platform_for_vehicle_facts(Some(&vin), Some("C-Zero"));
+        assert_eq!(c_zero.as_deref(), Some("psa_mmc_ev_ion_czero"));
+        let routes = routes_for_exploration(Some(&vin), c_zero.as_deref());
+        let battery = routes
+            .iter()
+            .find(|route| route.route_id == "psa_mmc_ev_bmu_761_762")
+            .unwrap();
+        assert_eq!(battery.service, "21");
+        let soc = battery
+            .candidate_dids
+            .iter()
+            .find(|candidate| candidate.did() == "01")
+            .unwrap()
+            .decode_hypotheses(&battery.claim_ids);
+        assert_eq!(soc[0].decode.scale, 0.5);
+        assert_eq!(soc[0].decode.bias, -5.0);
     }
 
     #[test]

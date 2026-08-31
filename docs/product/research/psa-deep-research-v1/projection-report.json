@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "compiler": "compile-research-pack.ts",
+  "input_pack": "psa-deep-research",
+  "input_version": 1,
+  "output_pack": "psa-deep-research-runtime-v1",
+  "counts": {
+    "input_routes": 57,
+    "projected_routes": 53,
+    "input_candidates": 7,
+    "projected_candidates": 7,
+    "projected_decoder_signals": 4,
+    "deferred": 0,
+    "confirmed_route_matches": 4
+  },
+  "vin_selectable_platforms": [],
+  "vehicle_fact_selectable_platforms": [
+    "psa_c41_project_observed",
+    "psa_ecmp_e208",
+    "psa_mmc_ev_ion_czero"
+  ],
+  "warnings": [
+    "psa_c41_front_camera_or_cvm_74a_64a is locally confirmed but missing from command-support evidence",
+    "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
+  ],
+  "confirmed_routes": [
+    {
+      "route_id": "psa_c41_engine_6a8_688",
+      "req": "6A8",
+      "resp": "688",
+      "status": "confirmed_in_trusted_map"
+    },
+    {
+      "route_id": "psa_c41_abs_esc_6ad_68d",
+      "req": "6AD",
+      "resp": "68D",
+      "status": "confirmed_in_trusted_map"
+    },
+    {
+      "route_id": "psa_c41_eps_6b5_695",
+      "req": "6B5",
+      "resp": "695",
+      "status": "confirmed_in_trusted_map"
+    },
+    {
+      "route_id": "psa_c41_front_camera_or_cvm_74a_64a",
+      "req": "74A",
+      "resp": "64A",
+      "status": "confirmed_in_trusted_map"
+    }
+  ],
+  "archived_files": [
+    {
+      "path": "index.json",
+      "sha256": "1d2da5fcb094595dd8d62a9d288c619953082d9daf7e46d283ccde53d508e970"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9eb7f6912d3eaf2e2fbebe9aba4f702b38f16441dab498d0effd3fb043db89eb"
+    },
+    {
+      "path": "psa-profile-overlay.json",
+      "sha256": "e92c051b8c8a8b08408ebc393884b4e527c10c876855861dabf3f9da6599fba7"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "7207b8ffdfba4f0f17453888aaa8f1a87db883741fe60b3b0c8712d2ddd9009b"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "1e33a21bb7916516aea0660f0666b653f1659ba6cf440a6cc4975ed2a06e23cc"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "7a493399342c93ce309ff49924c63a24d52d74c73f96f413f4599ec45067e048"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "568053a7a617af7e17f52fc8587e04fa2383baa420a59f7c7b55b0f7f0510865"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "4d43e0d7f10823c1283e58de3306a6e0d98434cdd4fbbfe06a92102b9843a085"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "042fb877cdc79bdcb7beb17cff3ad15b082551d9b3e4d4afa05857929217ce69"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "c823ba3fc6c55a3016f1ef29e04222becc1a91cfa33e7f60342ae839e901732c"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "a16fcd74becbd316e555563f84bea31e7c9b6c7c296b4b7408291c11f325cd82"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "67722aa826f7720f7d7f7c8409b01213c9df4b3a42069f8a7c9e928bfe9bc88b"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "b3a58508b604c2845c39ecb654ce44df3c1ec0300289f026a9719e6813f8d127"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "6925b5dce471c64c431141cfcb8f47881a9332c992bd37cea331b44306c7fd64"
+    }
+  ],
+  "deferred": []
+}

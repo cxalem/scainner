@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "ecu_family_id": "psa_msb_tbmu_bmu_cte1",
+      "role": "traction_battery_msb",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2010_fullcan",
+          "psa_ecmp_e208"
+        ],
+        "ecu_roles": [
+          "traction_battery_msb"
+        ]
+      },
+      "observed_route_ids": [
+        "psa_catalog_traction_battery_msb_6b4_694",
+        "psa_e208_battery_6b4_694"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "proposed_candidate_ids": [
+        "psa.e208.battery.d410",
+        "psa.e208.battery.d860",
+        "psa.e208.battery.d815"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01",
+        "S03"
+      ],
+      "promotion_test": "Capture stable ECU identity on e-208 and another compatible PSA EV; reproduce D410/D815/D860 payload shape and physical behavior.",
+      "non_generalization_boundary": "Route family is broad; candidate DIDs remain e-208 scoped until family compatibility is demonstrated."
+    },
+    {
+      "ecu_family_id": "psa_abs_esp_mk100_route_family",
+      "role": "abs_esc",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan",
+          "psa_c41_project_observed"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "observed_route_ids": [
+        "psa_catalog_abs_esc_6ad_68d",
+        "psa_c41_abs_esc_6ad_68d"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S00",
+        "S01"
+      ],
+      "promotion_test": "Fingerprint MK100-compatible ECUs across C41 and additional Peugeot/Citroën models before importing decoders at family scope.",
+      "non_generalization_boundary": "The 6AD/68D route contains many ABS/ESP generations; exact ECU identity is mandatory for decoder reuse."
+    },
+    {
+      "ecu_family_id": "psa_engine_6a8_family",
+      "role": "engine",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan",
+          "psa_c41_project_observed"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "observed_route_ids": [
+        "psa_catalog_engine_6a8_688",
+        "psa_c41_engine_6a8_688"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S00",
+        "S01"
+      ],
+      "promotion_test": "Use part/software/system identity to split Bosch/Continental/Delphi/other engine ECU families before decoder reuse.",
+      "non_generalization_boundary": "Shared physical address is not a single engine ECU family."
+    }
+  ],
+  "declared_count": 3
+}

@@ -1,0 +1,156 @@
+{
+  "validation_recipes": [
+    {
+      "validation_recipe_id": "soc_progression",
+      "kind": "time_series",
+      "safe_vehicle_state": "parked_or_normal_driving",
+      "instructions": [
+        "record dashboard SOC",
+        "record candidate SOC",
+        "observe during normal charge/discharge"
+      ],
+      "expected_behavior": [
+        "direction agrees with reference",
+        "scale remains plausible",
+        "no impossible discontinuities"
+      ],
+      "reference_signals": [
+        "dashboard_soc_or_verified_soc"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "voltage_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "record candidate voltage",
+        "compare with trusted external or independently verified vehicle voltage"
+      ],
+      "expected_behavior": [
+        "difference within project-defined tolerance"
+      ],
+      "reference_signals": [
+        "trusted_voltage_reference"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "temperature_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "allow state to stabilize",
+        "compare with trusted related temperature/reference"
+      ],
+      "expected_behavior": [
+        "plausible absolute value and trend"
+      ],
+      "reference_signals": [
+        "trusted_temperature_reference"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "drive straight slowly",
+        "gentle left turn",
+        "gentle right turn",
+        "stop"
+      ],
+      "expected_behavior": [
+        "all wheel channels move",
+        "turning differential plausible",
+        "return near zero"
+      ],
+      "reference_signals": [
+        "verified_vehicle_speed_if_available"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "steering_center_left_right",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "center",
+        "left",
+        "center",
+        "right",
+        "center"
+      ],
+      "expected_behavior": [
+        "monotonic changes",
+        "consistent sign",
+        "returns near zero"
+      ],
+      "reference_signals": [
+        "verified_steering_angle_if_available"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    }
+  ],
+  "spain_priority_fleet": [
+    {
+      "vehicle": "Peugeot 208 II ICE/Hybrid",
+      "reason": "High Spanish volume; modern small PSA branch; non-EV gap"
+    },
+    {
+      "vehicle": "Peugeot e-208",
+      "reason": "Strong exact immutable EV route/DID evidence"
+    },
+    {
+      "vehicle": "Peugeot 2008 II/e-2008",
+      "reason": "High-volume sibling comparison for route/family reuse"
+    },
+    {
+      "vehicle": "Peugeot 308 III",
+      "reason": "High-volume modern C-segment / EMP2-generation gap"
+    },
+    {
+      "vehicle": "Peugeot 3008",
+      "reason": "Major Spanish SUV fleet; electrified and ICE variants"
+    },
+    {
+      "vehicle": "Citroën C4 III C41",
+      "reason": "Existing project physical baseline and reusable ECU-family validation"
+    },
+    {
+      "vehicle": "Citroën C3",
+      "reason": "Very common Spain fleet; needs model-specific branch validation"
+    },
+    {
+      "vehicle": "Citroën C5 Aircross",
+      "reason": "High-value EMP2 SUV family comparison"
+    },
+    {
+      "vehicle": "DS 7",
+      "reason": "DS-specific route/family gap"
+    },
+    {
+      "vehicle": "Peugeot iOn or Citroën C-Zero",
+      "reason": "Validate isolated Mitsubishi-derived service-21 branch"
+    }
+  ],
+  "per_vehicle": [
+    "Record VIN/model/year/powertrain and adapter/firmware.",
+    "Classify diagnostic generation independently from model/mechanical platform.",
+    "Passive capture only when adapter can monitor the active transport reliably.",
+    "Probe trusted/project and exact-model routes before broad route catalogue.",
+    "Persist every answered/refused/timed-out/transport-failed observation.",
+    "Read identity twice; require independent connection for stability.",
+    "Query scoped candidate DIDs only after route reachability.",
+    "Run one-variable validation recipes and preserve raw payloads.",
+    "Set vehicle_fit matched/conflicted/insufficient.",
+    "Require compatible fingerprint on a second vehicle before family promotion."
+  ],
+  "promotion_minimums": {
+    "vehicle_matched": "route + identifier/DID + payload shape + physical behavior on one vehicle",
+    "multi_vehicle": "same behavior on two compatible vehicles",
+    "family_confirmed": "compatible ECU fingerprint + same DID/decoder on at least two vehicles",
+    "brand_wide": "multiple diagnostic architectures; expected to be rare"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "ref": "S00",
+      "title": "Current project uds-map.json",
+      "url": "local:/mnt/data/uds-map.json",
+      "source_type": "project_baseline",
+      "licence": "project_internal",
+      "revision": "v9",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": "ae959c71344127cbc4c99e7ff49f579f3d18fbe548b6b971bd8f4dad2fb25244",
+      "scope": "Current Peugeot/Citroën/DS trusted-map baseline, including one project-observed C41 vehicle",
+      "reliability": "project_baseline",
+      "execution_eligible": false
+    },
+    {
+      "ref": "S01",
+      "title": "arduino-psa-diag ECU IDs list",
+      "url": "https://github.com/ludwig-v/arduino-psa-diag/blob/c1409e60798f66bb63149505826170b5eb3c163f/ECU_LIST.md",
+      "source_type": "open_source_ecu_catalogue",
+      "licence": "GPL-3.0",
+      "revision": "c1409e60798f66bb63149505826170b5eb3c163f",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": null,
+      "scope": "Large non-exhaustive PSA/Stellantis ECU-family request/response catalogue",
+      "reliability": "high_for_route_hypotheses",
+      "execution_eligible": true
+    },
+    {
+      "ref": "S02",
+      "title": "PSA-RE architecture definitions",
+      "url": "https://github.com/prototux/PSA-RE/blob/74294e99bd8f4decbfcdceabb11c7413dd977f4d/architectures.yml",
+      "source_type": "reverse_engineering_architecture_database",
+      "licence": "Apache-2.0",
+      "revision": "74294e99bd8f4decbfcdceabb11c7413dd977f4d",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": null,
+      "scope": "AEE2001, AEE2004 and AEE2010 network architecture generations",
+      "reliability": "high_for_architecture",
+      "execution_eligible": false
+    },
+    {
+      "ref": "S03",
+      "title": "WiCAN Peugeot e-208 vehicle profile",
+      "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/peugeot/e-208.json",
+      "source_type": "open_source_vehicle_profile",
+      "licence": "GPL-3.0",
+      "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": null,
+      "scope": "Peugeot e-208 exact enhanced routes and sensor formulas",
+      "reliability": "high_model_scoped",
+      "execution_eligible": true
+    },
+    {
+      "ref": "S04",
+      "title": "WiCAN Peugeot iOn vehicle profile",
+      "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/peugeot/ion.json",
+      "source_type": "open_source_vehicle_profile",
+      "licence": "GPL-3.0",
+      "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": null,
+      "scope": "Peugeot iOn Mitsubishi-derived EV diagnostic route",
+      "reliability": "high_model_scoped",
+      "execution_eligible": true
+    },
+    {
+      "ref": "S05",
+      "title": "WiCAN Citroën C-Zero vehicle profile",
+      "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/citroen/c-zero.json",
+      "source_type": "open_source_vehicle_profile",
+      "licence": "GPL-3.0",
+      "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": null,
+      "scope": "Citroën C-Zero Mitsubishi-derived EV diagnostic route",
+      "reliability": "high_model_scoped",
+      "execution_eligible": true
+    },
+    {
+      "ref": "S06",
+      "title": "PyPSADiag main implementation",
+      "url": "https://github.com/Barracuda09/PyPSADiag/blob/86680e870b8a6d0696fe60479c13cc5defda213a/main.py",
+      "source_type": "open_source_diagnostic_implementation",
+      "licence": "GPL-2.0-or-later",
+      "revision": "86680e870b8a6d0696fe60479c13cc5defda213a",
+      "retrieved_at": "2026-08-31",
+      "content_sha256": null,
+      "scope": "PSA diagnostic tooling; includes read, identity, write, routine, flash and security-related features",
+      "reliability": "high_for_tool_behavior",
+      "execution_eligible": false
+    }
+  ],
+  "declared_count": 7
+}

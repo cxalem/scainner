@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "ecu_family_id": "renault_zoe_ph2_lbc",
+      "role": "lbc",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "observed_route_ids": [
+        "renault_zoe_ph2_lbc_18dadbf1_18daf1db"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "proposed_candidate_ids": [
+        "renault.zoe_ph2.lbc.9001",
+        "renault.zoe_ph2.lbc.9002",
+        "renault.zoe_ph2.lbc.9003",
+        "renault.zoe_ph2.lbc.9005",
+        "renault.zoe_ph2.lbc.9006",
+        "renault.zoe_ph2.lbc.9007",
+        "renault.zoe_ph2.lbc.9008"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03",
+        "S04"
+      ],
+      "promotion_test": "Capture stable identity on two independent connections and reproduce candidate payload shape/decoder on at least two compatible vehicles.",
+      "non_generalization_boundary": "Zoe Phase 2 LBC only until compatible part/software fingerprints prove reuse."
+    },
+    {
+      "ecu_family_id": "renault_megane_abs_740",
+      "role": "abs_esc",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "observed_route_ids": [
+        "renault_megane_abs_740_760"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "proposed_candidate_ids": [
+        "renault.megane.abs.0100",
+        "renault.megane.abs.012f",
+        "renault.megane.abs.4b00",
+        "renault.megane.abs.4b01",
+        "renault.megane.abs.4b02",
+        "renault.megane.abs.4b03",
+        "renault.megane.abs.4b04",
+        "renault.megane.abs.4b06",
+        "renault.megane.abs.4b07",
+        "renault.megane.abs.4b0b",
+        "renault.megane.abs.4b0c",
+        "renault.megane.abs.4b0e",
+        "renault.megane.abs.4b11",
+        "renault.megane.abs.4b17",
+        "renault.megane.abs.4b27",
+        "renault.megane.abs.4b35"
+      ],
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "promotion_test": "Match ECU identity and validate wheel-speed, steering and brake channels on two compatible Megane-family vehicles.",
+      "non_generalization_boundary": "Do not promote 740/760 DIDs to all Renault ABS modules."
+    }
+  ],
+  "declared_count": 2
+}

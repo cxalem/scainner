@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "inventories": [
+    {
+      "inventory_id": "project_c41_core_modules",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "models": [
+          "c4_iii"
+        ]
+      },
+      "kind": "project_physical_module_inventory",
+      "route_ids": [
+        "psa_c41_engine_6a8_688",
+        "psa_c41_abs_esc_6ad_68d",
+        "psa_c41_eps_6b5_695",
+        "psa_c41_front_camera_or_cvm_74a_64a"
+      ],
+      "source_refs": [
+        "S00"
+      ],
+      "physical_project_observation": true
+    },
+    {
+      "inventory_id": "psa_open_route_catalogue",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [
+        "psa_catalog_parking_assist_75d_65d",
+        "psa_catalog_abs_esc_6ad_68d",
+        "psa_catalog_display_765_665",
+        "psa_catalog_airbag_744_644",
+        "psa_catalog_alarm_75c_65c",
+        "psa_catalog_radio_760_660",
+        "psa_catalog_body_gateway_752_652",
+        "psa_catalog_aux_heater_731_711",
+        "psa_catalog_hvac_76d_66d",
+        "psa_catalog_cluster_75f_65f",
+        "psa_catalog_rain_light_or_roof_74a_64a",
+        "psa_catalog_eps_6b5_695",
+        "psa_catalog_steering_column_742_642",
+        "psa_catalog_engine_6a8_688",
+        "psa_catalog_nomad_handsfree_773_673",
+        "psa_catalog_suspension_6b8_698",
+        "psa_catalog_rear_climate_778_678",
+        "psa_catalog_telematics_764_664",
+        "psa_catalog_tpms_or_dsg_6af_68f",
+        "psa_catalog_transmission_6a9_689",
+        "psa_catalog_hifi_amplifier_77d_67d",
+        "psa_catalog_front_radar_lidar_6b6_696",
+        "psa_catalog_headlamp_control_6b7_697",
+        "psa_catalog_wiper_motor_779_679",
+        "psa_catalog_additive_system_6c1_601",
+        "psa_catalog_driver_door_74b_64b",
+        "psa_catalog_sunroof_or_vth_770_670",
+        "psa_catalog_traction_battery_msb_6b4_694",
+        "psa_catalog_hybrid_control_2_or_mcu_6a6_686",
+        "psa_catalog_hybrid_control_1_or_rmcu_6a7_687",
+        "psa_catalog_leak_detection_6bc_69c",
+        "psa_catalog_dvr_763_663",
+        "psa_catalog_around_view_or_escl_74f_64f",
+        "psa_catalog_rumble_708_728",
+        "psa_catalog_lvds_display_743_643",
+        "psa_catalog_avas_5b0_5af",
+        "psa_catalog_tailgate_76b_66b",
+        "psa_catalog_gear_selector_6aa_68a",
+        "psa_catalog_css_6b0_690",
+        "psa_catalog_scr_6a1_681",
+        "psa_catalog_power_converter_6ba_69a",
+        "psa_catalog_power_converter_2_49b_49a",
+        "psa_catalog_vcu_6a2_682",
+        "psa_catalog_obc_dcdc_590_58f",
+        "psa_catalog_electric_brake_booster_5d0_5cf",
+        "psa_catalog_bml_sdcm_741_641",
+        "psa_catalog_electric_bsg_759_659",
+        "psa_catalog_immobilizer_703_70b",
+        "psa_catalog_bsp_gateway_720_728"
+      ],
+      "source_refs": [
+        "S01"
+      ],
+      "physical_project_observation": false
+    }
+  ],
+  "declared_count": 2
+}

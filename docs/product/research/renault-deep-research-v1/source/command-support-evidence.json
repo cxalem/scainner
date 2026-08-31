@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "evidence_id": "dacia-duster-2017-standard-obd-7e0",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "platform_ids": [
+          "dacia_cmf_b"
+        ],
+        "models": [
+          "duster_2"
+        ],
+        "years": {
+          "from": 2017,
+          "to": 2017
+        },
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "dacia_duster_engine_7e0_7e8",
+      "service": "01",
+      "session": "default",
+      "did": null,
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S09"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S09"
+      ],
+      "non_generalization_boundary": "One 2017 Duster test corpus; does not prove enhanced UDS route compatibility."
+    }
+  ],
+  "declared_count": 1
+}

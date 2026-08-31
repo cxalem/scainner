@@ -1,0 +1,1698 @@
+{
+  "schema_version": 1,
+  "pack_id": "psa-deep-research-runtime-v1",
+  "version": 1,
+  "research_date": "2026-08-31",
+  "mode": "candidate_discovery_only",
+  "policy": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "forbidden_services": [
+      "10",
+      "11",
+      "14",
+      "27",
+      "28",
+      "2E",
+      "2F",
+      "31",
+      "34",
+      "35",
+      "36",
+      "37",
+      "3D"
+    ],
+    "candidate_decodes_are_hypotheses": true
+  },
+  "profiles": [
+    {
+      "brand_id": "psa",
+      "brand_name": "Peugeot / Citroen / Ds",
+      "status": "research_candidate",
+      "wmis": [],
+      "platforms": [
+        {
+          "platform_id": "psa_c41_project_observed",
+          "models": [
+            "c4_iii"
+          ],
+          "powertrains": []
+        },
+        {
+          "platform_id": "psa_ecmp_e208",
+          "models": [
+            "e_208"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "psa_mmc_ev_ion_czero",
+          "models": [
+            "ion",
+            "c_zero"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "route_id": "psa_catalog_parking_assist_75d_65d",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "75D",
+          "resp": "65D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "parking_assist",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_abs_esc_6ad_68d",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6AD",
+          "resp": "68D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_display_765_665",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "765",
+          "resp": "665",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "display",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_airbag_744_644",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "744",
+          "resp": "644",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "airbag",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_alarm_75c_65c",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "75C",
+          "resp": "65C",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "alarm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_radio_760_660",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "760",
+          "resp": "660",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "radio",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_body_gateway_752_652",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "752",
+          "resp": "652",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "body_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_aux_heater_731_711",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "731",
+          "resp": "711",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "aux_heater",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_hvac_76d_66d",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "76D",
+          "resp": "66D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "hvac",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_cluster_75f_65f",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "75F",
+          "resp": "65F",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "cluster",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_rain_light_or_roof_74a_64a",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "74A",
+          "resp": "64A",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "rain_light_or_roof",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_eps_6b5_695",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6B5",
+          "resp": "695",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "eps",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_steering_column_742_642",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "742",
+          "resp": "642",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "steering_column",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_engine_6a8_688",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6A8",
+          "resp": "688",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "engine",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_nomad_handsfree_773_673",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "773",
+          "resp": "673",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "nomad_handsfree",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_suspension_6b8_698",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6B8",
+          "resp": "698",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "suspension",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_rear_climate_778_678",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "778",
+          "resp": "678",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "rear_climate",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_telematics_764_664",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "764",
+          "resp": "664",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "telematics",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_tpms_or_dsg_6af_68f",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6AF",
+          "resp": "68F",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "tpms_or_dsg",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_transmission_6a9_689",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6A9",
+          "resp": "689",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "transmission",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_hifi_amplifier_77d_67d",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "77D",
+          "resp": "67D",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "hifi_amplifier",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_front_radar_lidar_6b6_696",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6B6",
+          "resp": "696",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "front_radar_lidar",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_headlamp_control_6b7_697",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6B7",
+          "resp": "697",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "headlamp_control",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_wiper_motor_779_679",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "779",
+          "resp": "679",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "wiper_motor",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_additive_system_6c1_601",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6C1",
+          "resp": "601",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "additive_system",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_driver_door_74b_64b",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "74B",
+          "resp": "64B",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "driver_door",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_sunroof_or_vth_770_670",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "770",
+          "resp": "670",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "sunroof_or_vth",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_traction_battery_msb_6b4_694",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6B4",
+          "resp": "694",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "traction_battery_msb",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_hybrid_control_2_or_mcu_6a6_686",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6A6",
+          "resp": "686",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "hybrid_control_2_or_mcu",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_hybrid_control_1_or_rmcu_6a7_687",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6A7",
+          "resp": "687",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "hybrid_control_1_or_rmcu",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_leak_detection_6bc_69c",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6BC",
+          "resp": "69C",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "leak_detection",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_dvr_763_663",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "763",
+          "resp": "663",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "dvr",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_around_view_or_escl_74f_64f",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "74F",
+          "resp": "64F",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "around_view_or_escl",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_rumble_708_728",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "708",
+          "resp": "728",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "rumble",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_lvds_display_743_643",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "743",
+          "resp": "643",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "lvds_display",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_avas_5b0_5af",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "5B0",
+          "resp": "5AF",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "avas",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_tailgate_76b_66b",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "76B",
+          "resp": "66B",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "tailgate",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_gear_selector_6aa_68a",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6AA",
+          "resp": "68A",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "gear_selector",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_css_6b0_690",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6B0",
+          "resp": "690",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "css",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_scr_6a1_681",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6A1",
+          "resp": "681",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "scr",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_power_converter_6ba_69a",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6BA",
+          "resp": "69A",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "power_converter",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_power_converter_2_49b_49a",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "49B",
+          "resp": "49A",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "power_converter_2",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_vcu_6a2_682",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "6A2",
+          "resp": "682",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "vcu",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_obc_dcdc_590_58f",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "590",
+          "resp": "58F",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "obc_dcdc",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_electric_brake_booster_5d0_5cf",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "5D0",
+          "resp": "5CF",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "electric_brake_booster",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_bml_sdcm_741_641",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "741",
+          "resp": "641",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "bml_sdcm",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_electric_bsg_759_659",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "759",
+          "resp": "659",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "electric_bsg",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_immobilizer_703_70b",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "703",
+          "resp": "70B",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "immobilizer",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_catalog_bsp_gateway_720_728",
+          "platform": "catalogue_exploration",
+          "platform_alternatives": [
+            "psa_aee2004_fullcan",
+            "psa_aee2010_fullcan"
+          ],
+          "exploration_only": true,
+          "protocol": "can11_500",
+          "req": "720",
+          "resp": "728",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s01"
+          ],
+          "module_role": "bsp_gateway",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_e208_battery_6b4_694",
+          "platform": "psa_ecmp_e208",
+          "protocol": "can11_500",
+          "req": "6B4",
+          "resp": "694",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s03"
+          ],
+          "module_role": "traction_battery_msb",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "D410",
+              "semantic": "HV battery state of charge",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S03-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.001953125,
+                      "bias": 0,
+                      "unit": "%",
+                      "quantity": "state_of_charge",
+                      "label": "HV battery SOC"
+                    }
+                  ],
+                  "source_refs": [
+                    "S03"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "time_series",
+                "instructions": [
+                  "record dashboard SOC",
+                  "record candidate SOC",
+                  "observe during normal charge/discharge"
+                ],
+                "expected_behavior": [
+                  "direction agrees with reference",
+                  "scale remains plausible",
+                  "no impossible discontinuities"
+                ]
+              },
+              "validation_recipe_id": "soc_progression",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "D860",
+              "semantic": "HV battery state of health",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S03-a",
+                  "signals": [
+                    {
+                      "offset": 1,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.0625,
+                      "bias": 0,
+                      "unit": "%",
+                      "quantity": "state_of_health",
+                      "label": "HV battery SOH"
+                    }
+                  ],
+                  "source_refs": [
+                    "S03"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "time_series",
+                "instructions": [
+                  "record dashboard SOC",
+                  "record candidate SOC",
+                  "observe during normal charge/discharge"
+                ],
+                "expected_behavior": [
+                  "direction agrees with reference",
+                  "scale remains plausible",
+                  "no impossible discontinuities"
+                ]
+              },
+              "validation_recipe_id": "soc_progression",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "D815",
+              "semantic": "HV battery voltage",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S03-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.0625,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "HV battery voltage"
+                    }
+                  ],
+                  "source_refs": [
+                    "S03"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "record candidate voltage",
+                  "compare with trusted external or independently verified vehicle voltage"
+                ],
+                "expected_behavior": [
+                  "difference within project-defined tolerance"
+                ]
+              },
+              "validation_recipe_id": "voltage_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_e208_mcu_6a6_686",
+          "platform": "psa_ecmp_e208",
+          "protocol": "can11_500",
+          "req": "6A6",
+          "resp": "686",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s03"
+          ],
+          "module_role": "motor_control",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "D49C",
+              "semantic": "Odometer-related value",
+              "validation_recipe_id": null,
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "unknown"
+            }
+          ],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_e208_vcu_6a2_682",
+          "platform": "psa_ecmp_e208",
+          "protocol": "can11_500",
+          "req": "6A2",
+          "resp": "682",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s03"
+          ],
+          "module_role": "vehicle_control",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "D8EF",
+              "semantic": "Battery temperature-related value",
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "allow state to stabilize",
+                  "compare with trusted related temperature/reference"
+                ],
+                "expected_behavior": [
+                  "plausible absolute value and trend"
+                ]
+              },
+              "validation_recipe_id": "temperature_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "unknown"
+            },
+            {
+              "did": "D434",
+              "semantic": "Temperature A source value",
+              "validation": {
+                "kind": "cross_reference",
+                "instructions": [
+                  "allow state to stabilize",
+                  "compare with trusted related temperature/reference"
+                ],
+                "expected_behavior": [
+                  "plausible absolute value and trend"
+                ]
+              },
+              "validation_recipe_id": "temperature_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "unknown"
+            }
+          ],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "psa_mmc_ev_bmu_761_762",
+          "platform": "psa_mmc_ev_ion_czero",
+          "protocol": "can11_500",
+          "req": "761",
+          "resp": "762",
+          "address_extension": null,
+          "service": "21",
+          "session": "default_only",
+          "claim_ids": [
+            "psa-deep-research.source.s04",
+            "psa-deep-research.source.s05"
+          ],
+          "module_role": "battery_management",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "01",
+              "semantic": "HV battery state of charge",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S04-S05-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.5,
+                      "bias": -5,
+                      "unit": "%",
+                      "quantity": "state_of_charge",
+                      "label": "HV battery SOC"
+                    }
+                  ],
+                  "source_refs": [
+                    "S04",
+                    "S05"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "time_series",
+                "instructions": [
+                  "record dashboard SOC",
+                  "record candidate SOC",
+                  "observe during normal charge/discharge"
+                ],
+                "expected_behavior": [
+                  "direction agrees with reference",
+                  "scale remains plausible",
+                  "no impossible discontinuities"
+                ]
+              },
+              "validation_recipe_id": "soc_progression",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_verified",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "psa-deep-research.source.s01",
+      "exact_claim": "arduino-psa-diag ECU IDs list supplies research evidence scoped to Large non-exhaustive PSA/Stellantis ECU-family request/response catalogue.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high_for_route_hypotheses",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Large non-exhaustive PSA/Stellantis ECU-family request/response catalogue",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/ludwig-v/arduino-psa-diag/blob/c1409e60798f66bb63149505826170b5eb3c163f/ECU_LIST.md",
+        "revision": "c1409e60798f66bb63149505826170b5eb3c163f",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0"
+      }
+    },
+    {
+      "claim_id": "psa-deep-research.source.s03",
+      "exact_claim": "WiCAN Peugeot e-208 vehicle profile supplies research evidence scoped to Peugeot e-208 exact enhanced routes and sensor formulas.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high_model_scoped",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Peugeot e-208 exact enhanced routes and sensor formulas",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/peugeot/e-208.json",
+        "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0"
+      }
+    },
+    {
+      "claim_id": "psa-deep-research.source.s04",
+      "exact_claim": "WiCAN Peugeot iOn vehicle profile supplies research evidence scoped to Peugeot iOn Mitsubishi-derived EV diagnostic route.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high_model_scoped",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Peugeot iOn Mitsubishi-derived EV diagnostic route",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/peugeot/ion.json",
+        "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0"
+      }
+    },
+    {
+      "claim_id": "psa-deep-research.source.s05",
+      "exact_claim": "WiCAN Citroën C-Zero vehicle profile supplies research evidence scoped to Citroën C-Zero Mitsubishi-derived EV diagnostic route.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high_model_scoped",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Citroën C-Zero Mitsubishi-derived EV diagnostic route",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/citroen/c-zero.json",
+        "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+        "retrieved_at": "2026-08-31",
+        "license": "GPL-3.0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "candidates": [
+    {
+      "candidate_id": "psa.e208.battery.d410",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "ecu_roles": [
+          "traction_battery_msb"
+        ]
+      },
+      "route_id": "psa_e208_battery_6b4_694",
+      "service": "22",
+      "did": "D410",
+      "local_identifier": null,
+      "semantic": "HV battery state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S03-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.001953125,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "state_of_charge",
+              "label": "HV battery SOC"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 100
+          },
+          "source_refs": [
+            "S03"
+          ]
+        }
+      ],
+      "validation_recipe_id": "soc_progression",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "Exact e-208 source; do not promote to all PSA/Stellantis EVs without compatible ECU identity."
+    },
+    {
+      "candidate_id": "psa.e208.battery.d860",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "ecu_roles": [
+          "traction_battery_msb"
+        ]
+      },
+      "route_id": "psa_e208_battery_6b4_694",
+      "service": "22",
+      "did": "D860",
+      "local_identifier": null,
+      "semantic": "HV battery state of health",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S03-a",
+          "signals": [
+            {
+              "offset": 1,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.0625,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "state_of_health",
+              "label": "HV battery SOH"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 120
+          },
+          "source_refs": [
+            "S03"
+          ]
+        }
+      ],
+      "validation_recipe_id": "soc_progression",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "Exact e-208 source; byte offset follows the current normalized project interpretation of the immutable source formula."
+    },
+    {
+      "candidate_id": "psa.e208.battery.d815",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "ecu_roles": [
+          "traction_battery_msb"
+        ]
+      },
+      "route_id": "psa_e208_battery_6b4_694",
+      "service": "22",
+      "did": "D815",
+      "local_identifier": null,
+      "semantic": "HV battery voltage",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S03-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.0625,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "HV battery voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 500
+          },
+          "source_refs": [
+            "S03"
+          ]
+        }
+      ],
+      "validation_recipe_id": "voltage_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "Exact e-208 source; keep ECU/model scope until physically reproduced."
+    },
+    {
+      "candidate_id": "psa.e208.mcu.d49c",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "ecu_roles": [
+          "motor_control"
+        ]
+      },
+      "route_id": "psa_e208_mcu_6a6_686",
+      "service": "22",
+      "did": "D49C",
+      "local_identifier": null,
+      "semantic": "Odometer-related value",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "unknown",
+      "decoder_variants": [],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "Source identifies an ODOMETER parameter but the byte-index semantics are not normalized safely enough here to activate a decoder."
+    },
+    {
+      "candidate_id": "psa.e208.vcu.d8ef",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "ecu_roles": [
+          "vehicle_control"
+        ]
+      },
+      "route_id": "psa_e208_vcu_6a2_682",
+      "service": "22",
+      "did": "D8EF",
+      "local_identifier": null,
+      "semantic": "Battery temperature-related value",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "unknown",
+      "decoder_variants": [],
+      "validation_recipe_id": "temperature_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "Semantic comes from exact e-208 source; decoder intentionally withheld pending byte-index normalization/physical validation."
+    },
+    {
+      "candidate_id": "psa.e208.vcu.d434",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "ecu_roles": [
+          "vehicle_control"
+        ]
+      },
+      "route_id": "psa_e208_vcu_6a2_682",
+      "service": "22",
+      "did": "D434",
+      "local_identifier": null,
+      "semantic": "Temperature A source value",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "unknown",
+      "decoder_variants": [],
+      "validation_recipe_id": "temperature_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S03"
+      ],
+      "non_generalization_boundary": "Source label is TMP_A; physical meaning must be discriminated before semantic promotion."
+    },
+    {
+      "candidate_id": "psa.mmc_ev.bmu.01",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_mmc_ev_ion_czero"
+        ],
+        "models": [
+          "ion",
+          "c_zero"
+        ],
+        "ecu_roles": [
+          "battery_management"
+        ]
+      },
+      "route_id": "psa_mmc_ev_bmu_761_762",
+      "service": "21",
+      "did": null,
+      "local_identifier": "01",
+      "semantic": "HV battery state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S04-S05-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": -5,
+              "unit": "%",
+              "quantity": "state_of_charge",
+              "label": "HV battery SOC"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 100
+          },
+          "source_refs": [
+            "S04",
+            "S05"
+          ]
+        }
+      ],
+      "validation_recipe_id": "soc_progression",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04",
+        "S05"
+      ],
+      "non_generalization_boundary": "Exact Peugeot iOn/Citroën C-Zero sibling evidence; service 21 local identifier, not a UDS DID."
+    }
+  ],
+  "declared_count": 7
+}

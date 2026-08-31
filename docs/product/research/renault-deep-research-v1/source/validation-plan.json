@@ -1,0 +1,205 @@
+{
+  "validation_recipes": [
+    {
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "drive straight at walking speed",
+        "perform gentle left turn",
+        "perform gentle right turn",
+        "stop"
+      ],
+      "expected_behavior": [
+        "all wheel channels increase from zero",
+        "outer wheels differ plausibly during turns",
+        "all return near zero at stop"
+      ],
+      "reference_signals": [
+        "verified_vehicle_speed_if_available"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "steering_center_left_right",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "hold center",
+        "turn left",
+        "return center",
+        "turn right",
+        "return center"
+      ],
+      "expected_behavior": [
+        "changes sign",
+        "returns near zero",
+        "moves monotonically",
+        "stays within plausible range"
+      ],
+      "reference_signals": [
+        "steering_angle_standard_or_verified"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "brake_pressure_stationary",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "release brake",
+        "light press",
+        "release",
+        "medium press",
+        "release"
+      ],
+      "expected_behavior": [
+        "pressure rises with pedal effort",
+        "returns toward baseline after release"
+      ],
+      "reference_signals": [
+        "brake_pedal_switch_or_verified"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "voltage_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "record DID voltage",
+        "compare with trusted external or verified vehicle voltage reference"
+      ],
+      "expected_behavior": [
+        "difference remains within project-defined measurement tolerance"
+      ],
+      "reference_signals": [
+        "trusted_voltage_reference"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "soc_progression",
+      "kind": "time_series",
+      "safe_vehicle_state": "parked_or_normal_driving",
+      "instructions": [
+        "record dashboard SOC",
+        "record candidate SOC",
+        "observe over charge/discharge interval"
+      ],
+      "expected_behavior": [
+        "direction agrees with dashboard/reference",
+        "scale remains plausible",
+        "no discontinuities unsupported by vehicle state"
+      ],
+      "reference_signals": [
+        "dashboard_soc_or_verified_soc"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "charging_observation",
+      "kind": "time_series",
+      "safe_vehicle_state": "parked_charging",
+      "instructions": [
+        "begin normal charging",
+        "record voltage/current/power candidates",
+        "stop charging normally"
+      ],
+      "expected_behavior": [
+        "charging-related signals change with charge state",
+        "return to non-charging state after completion/disconnect"
+      ],
+      "reference_signals": [
+        "charger_state_or_evse_reference"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "temperature_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "allow temperature to stabilize when applicable",
+        "compare with trusted reference or related verified channel"
+      ],
+      "expected_behavior": [
+        "plausible absolute value",
+        "plausible thermal trend"
+      ],
+      "reference_signals": [
+        "trusted_temperature_reference"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    }
+  ],
+  "spain_priority_fleet": [
+    {
+      "vehicle": "Renault Clio V",
+      "platform_id": "renault_cmf_b",
+      "reason": "High-volume Spain fleet; modern Renault B-segment"
+    },
+    {
+      "vehicle": "Renault Captur II",
+      "platform_id": "renault_cmf_b",
+      "reason": "High-volume CMF-B and electrified variants"
+    },
+    {
+      "vehicle": "Renault Megane IV",
+      "platform_id": "renault_cmf_cd",
+      "reason": "Large existing fleet and strong 740/760 research candidates"
+    },
+    {
+      "vehicle": "Renault Zoe Phase 1",
+      "platform_id": "renault_zoe_ph1",
+      "reason": "Exact route corpus and existing trusted baseline"
+    },
+    {
+      "vehicle": "Renault Zoe Phase 2",
+      "platform_id": "renault_zoe_ph2",
+      "reason": "Exact 11/29-bit split plus rich LBC data"
+    },
+    {
+      "vehicle": "Dacia Sandero III",
+      "platform_id": "dacia_cmf_b",
+      "reason": "High-volume Spain Dacia platform"
+    },
+    {
+      "vehicle": "Dacia Duster III",
+      "platform_id": "dacia_cmf_b",
+      "reason": "Rich unresolved OBDb corpus + 2024 hybrid support evidence"
+    },
+    {
+      "vehicle": "Renault Megane E-Tech",
+      "platform_id": "renault_ampr_medium",
+      "reason": "New EV platform route gap"
+    },
+    {
+      "vehicle": "Renault 5 E-Tech",
+      "platform_id": "renault_ampr_small",
+      "reason": "New high-growth EV architecture"
+    },
+    {
+      "vehicle": "Dacia Spring",
+      "platform_id": "dacia_cmf_a_ev",
+      "reason": "EV source gap with Spain relevance"
+    }
+  ],
+  "per_vehicle": [
+    "Record VIN/model/year/powertrain and adapter/firmware.",
+    "Passive capture when the adapter can reliably monitor active pins/protocol.",
+    "Probe only trusted and scoped executable routes; save every outcome.",
+    "Read identity twice; require independent connection for identity stability.",
+    "Query scoped candidate DIDs only after route reachability.",
+    "Preserve complete raw payloads and NRCs.",
+    "Run one-variable read-only validation recipes.",
+    "Set vehicle_fit to matched, conflicted or insufficient.",
+    "Repeat compatible fingerprint on second vehicle before family promotion."
+  ],
+  "promotion_minimums": {
+    "vehicle_matched": "route + DID + payload shape + physical behavior on one vehicle",
+    "multi_vehicle": "same result on at least two compatible vehicles",
+    "family_confirmed": "compatible fingerprint + same DID/shape/decoder on at least two vehicles",
+    "brand_wide": "multiple independent platform families; expected to be rare"
+  }
+}

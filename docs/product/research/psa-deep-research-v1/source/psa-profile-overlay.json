@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "authoring_contract": {
+    "title": "UDS Brand Deep-Research Pack Specification - revised user version",
+    "version": "1.0",
+    "date": "2026-08-31",
+    "source_attachment": "Pasted markdown.md"
+  },
+  "brand_ids": [
+    "psa"
+  ],
+  "marques": [
+    "peugeot",
+    "citroen",
+    "ds"
+  ],
+  "research_date": "2026-08-31",
+  "baseline_reference": {
+    "uds_map_version": 9,
+    "uds_map_generated": "2026-08-28",
+    "wmis": [
+      "VF3",
+      "VF7",
+      "VR1",
+      "VR3",
+      "VR7",
+      "VS7",
+      "VS8",
+      "LPA"
+    ],
+    "existing_platform_count": 1,
+    "existing_module_count": 23,
+    "existing_known_did_count": 33,
+    "rule": "Reference only; research pack never silently replaces trusted/project/vehicle/family evidence."
+  },
+  "merge_mode": "additive_only",
+  "knowledge_dimensions": {
+    "knowledge_state": "research_candidate/community_reported/inherited/locally_confirmed/community_verified/oem_confirmed/unknown",
+    "vehicle_fit": "untested/matched/conflicted/insufficient",
+    "route_state": "reached/refused/silent/transport_failed/closed",
+    "identity_fit": "provisional/stable/conflicted",
+    "activation": "disabled/learning/enabled"
+  },
+  "claims": [
+    {
+      "claim_id": "psa.architecture.aee_generations",
+      "exact_claim": "PSA-RE distinguishes AEE2001 VAN+CAN/K-line, AEE2004 first full-CAN, and AEE2010 second full-CAN architectures; AEE2004 explicitly includes 500 kbit/s HS CAN, 125 kbit/s low-speed CAN, LIN, EOBD and UDS.",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ]
+      },
+      "source_refs": [
+        "S02"
+      ],
+      "validation": {
+        "source_validation_status": "immutable_reverse_engineering_architecture_database",
+        "project_physical_validation_status": "partial_project_evidence"
+      },
+      "action_if_connected": "Classify diagnostic generation independently from mechanical platform; unsupported VAN/K-line paths remain explicit transport states.",
+      "promotion_test": "Correlate generation with VIN/model facts and gateway/module inventory on physical vehicles.",
+      "non_generalization_boundary": "Architecture generation is not a DID decoder scope."
+    },
+    {
+      "claim_id": "psa.route.catalogue",
+      "exact_claim": "arduino-psa-diag provides a large non-exhaustive PSA ECU-family route catalogue including ABS/ESP 6AD/68D, BSI/body 752/652, EPS 6B5/695, engine 6A8/688, transmission 6A9/689, telematics 764/664, HVAC 76D/66D and traction-battery MSB 6B4/694.",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ]
+      },
+      "source_refs": [
+        "S01"
+      ],
+      "validation": {
+        "source_validation_status": "immutable_open_source_ecu_catalogue",
+        "project_physical_validation_status": "partial_project_evidence"
+      },
+      "action_if_connected": "Use the route catalogue as a bounded presence/identity candidate set before generic enumeration.",
+      "promotion_test": "Bind each reached route to ECU identity and platform/model evidence.",
+      "non_generalization_boundary": "Non-exhaustive family catalogue; route presence does not prove ECU fitment."
+    },
+    {
+      "claim_id": "psa.e208.ev_routes",
+      "exact_claim": "The immutable WiCAN Peugeot e-208 profile reads battery DIDs D410, D860 and D815 from 6B4/694, D49C from 6A6/686, and D8EF/D434 from 6A2/682.",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "source_refs": [
+        "S03"
+      ],
+      "validation": {
+        "source_validation_status": "immutable_operational_vehicle_profile",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "After exact e-208 classification, probe these routes, capture identity, then query scoped DIDs.",
+      "promotion_test": "Physically reproduce on e-208; compare ECU fingerprints with e-2008/Corsa-e/other related platforms before family widening.",
+      "non_generalization_boundary": "Exact e-208 evidence, not automatic Stellantis-wide truth."
+    },
+    {
+      "claim_id": "psa.ion_czero.service21",
+      "exact_claim": "Immutable WiCAN profiles for Peugeot iOn and Citroën C-Zero both use request 761, response 762, service 21 local identifier 01 for SOC with source formula (raw/2)-5.",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_mmc_ev_ion_czero"
+        ],
+        "models": [
+          "ion",
+          "c_zero"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "source_refs": [
+        "S04",
+        "S05"
+      ],
+      "validation": {
+        "source_validation_status": "two_sibling_immutable_vehicle_profiles",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use this exact branch only after iOn/C-Zero identification; do not apply mainstream PSA UDS assumptions.",
+      "promotion_test": "Physically validate one iOn/C-Zero and compare with Mitsubishi i-MiEV family if desired.",
+      "non_generalization_boundary": "Mitsubishi-derived sibling branch only."
+    },
+    {
+      "claim_id": "psa.pypsadiag.identity_and_unsafe_capabilities",
+      "exact_claim": "PyPSADiag contains a PSA recognition read using 22F080 on 752/652 in one workflow, and also exposes routines, zone writes, DTC clearing, flashing and key-bruteforce capabilities.",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "ecu_roles": [
+          "body_gateway"
+        ]
+      },
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "immutable_open_source_tool_implementation",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Treat F080 as a vendor identity research lead only; never project PyPSADiag write/routine/security/bruteforce functionality into automatic discovery.",
+      "promotion_test": "Verify whether F080 is readable in default session on target BSI families and normalize returned identity fields before use.",
+      "non_generalization_boundary": "Tool capability is not authorization or evidence that every PSA ECU supports the same workflow."
+    }
+  ],
+  "declared_counts": {
+    "sources": 7,
+    "platforms": 7,
+    "routes": 57,
+    "did_candidates": 7,
+    "command_evidence": 3,
+    "ecu_families": 3,
+    "module_inventories": 2,
+    "validation_recipes": 5,
+    "claims": 5,
+    "conflicts": 4,
+    "gaps": 5
+  }
+}

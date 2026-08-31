@@ -29,9 +29,9 @@ route silently vanishes with no error):
    (`plan.rs`: `let (Some(protocol), ...) = (...) else { continue; }`). Test
    by hand after ingesting — a route count of zero from
    `routes_for_context` is the symptom.
-2. **`service` must be `"22"`, `session` must be `"default_only"`** (no `0x`
-   prefix, exact strings) — enforced by
-   `every_route_has_claims_and_only_read_service_22`.
+2. **`service` must be read-only `"21"` or `"22"`, and `session` must be
+   `"default_only"`** (no `0x` prefix, exact strings). Service 21 is reserved
+   for source-backed local identifiers and remains exact-platform scoped.
 3. **Every route needs at least one `claim_id`**, and every `claim_id` it
    lists must exist in the same pack's `claims[]`.
 4. **`claim.source.revision` must be a 40-character hex string, and
@@ -77,6 +77,23 @@ route silently vanishes with no error):
     silently vanish from the plan.
 
 ## After ingesting
+
+For a rich specification-shaped package, use the compiler and always retain
+its manifest-verified authoring inputs:
+
+```sh
+pnpm --filter @scainner/uds-map research:compile \
+  --input /path/to/source-package \
+  --output data/research/<runtime-pack>.json \
+  --report ../../docs/product/research/<pack>/projection-report.json \
+  --archive ../../docs/product/research/<pack>/source
+```
+
+`--archive` is mandatory. The compiler rejects absolute/nested/traversal
+manifest paths, duplicate entries, symlinks, non-files, malformed hashes and
+hash mismatches before copying. It archives only `index.json` plus the files
+declared by that index, then records every archived hash in the projection
+report. Generated runtime data and the report itself stay outside `source/`.
 
 - `cargo test --lib discovery::research` (fast, self-contained) then
   `cargo test --lib` (full crate) from `apps/desktop/src-tauri`.

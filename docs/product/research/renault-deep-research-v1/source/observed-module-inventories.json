@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "inventories": [
+    {
+      "inventory_id": "canze_zoe_ph1_catalog",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "models": [
+          "zoe"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [
+        "renault_zoe_ph1_evc_7e4_7ec",
+        "renault_zoe_ph1_dcm_7ca_7da",
+        "renault_zoe_ph1_lbc_79b_7bb",
+        "renault_zoe_ph1_peb_75a_77e",
+        "renault_zoe_ph1_airbag_752_772",
+        "renault_zoe_ph1_usm_74d_76d",
+        "renault_zoe_ph1_cluster_743_763",
+        "renault_zoe_ph1_eps_742_762",
+        "renault_zoe_ph1_abs_esc_740_760",
+        "renault_zoe_ph1_brake_pedal_79c_7bc",
+        "renault_zoe_ph1_uch_745_765",
+        "renault_zoe_ph1_hvac_744_764",
+        "renault_zoe_ph1_park_assist_74e_76e",
+        "renault_zoe_ph1_bcb_obc_792_793",
+        "renault_zoe_ph1_lbc2_796_7b6"
+      ],
+      "source_refs": [
+        "S01"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "canze_zoe_ph2_catalog",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [
+        "renault_zoe_ph2_airbag_752_772",
+        "renault_zoe_ph2_audio_amplifier_782_7a2",
+        "renault_zoe_ph2_parking_brake_755_775",
+        "renault_zoe_ph2_uch_745_765",
+        "renault_zoe_ph2_hvac_744_764",
+        "renault_zoe_ph2_dcm_7ca_7da",
+        "renault_zoe_ph2_eps_742_762",
+        "renault_zoe_ph2_front_camera_7dc_7dd",
+        "renault_zoe_ph2_hands_free_799_7b9",
+        "renault_zoe_ph2_integrated_dynamics_70c_700",
+        "renault_zoe_ph2_front_radar_723_735",
+        "renault_zoe_ph2_cluster_743_763",
+        "renault_zoe_ph2_multimedia_714_734",
+        "renault_zoe_ph2_navigation_747_767",
+        "renault_zoe_ph2_park_assist_74e_76e",
+        "renault_zoe_ph2_plc_gateway_7d8_7c8",
+        "renault_zoe_ph2_usm_74d_76d",
+        "renault_zoe_ph2_pedestrian_sound_73f_761",
+        "renault_zoe_ph2_wireless_charger_7aa_7ad",
+        "renault_zoe_ph2_abs_esc_18da2df1_18daf12d",
+        "renault_zoe_ph2_bcb_obc_18dadef1_18daf1de",
+        "renault_zoe_ph2_e_act_eba_18dae2f1_18daf1e2",
+        "renault_zoe_ph2_inverter_18dadff1_18daf1df",
+        "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+        "renault_zoe_ph2_lbc2_18dadcf1_18daf1dc",
+        "renault_zoe_ph2_security_gateway_18dad2f1_18daf1d2",
+        "renault_zoe_ph2_vehicle_control_18dadaf1_18daf1da"
+      ],
+      "source_refs": [
+        "S03"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "canze_twingo3_ph2_catalog",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "models": [
+          "twingo_3"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [
+        "renault_twingo3_ph2_navigation_747_767",
+        "renault_twingo3_ph2_can_gateway_785_7a5",
+        "renault_twingo3_ph2_uch_745_765",
+        "renault_twingo3_ph2_multimedia_714_734",
+        "renault_twingo3_ph2_lbc_79b_7bb",
+        "renault_twingo3_ph2_hvac_744_764",
+        "renault_twingo3_ph2_cluster_743_763",
+        "renault_twingo3_ph2_automatic_transmission_7e1_7e9",
+        "renault_twingo3_ph2_usm_74d_76d",
+        "renault_twingo3_ph2_engine_7e0_7e8",
+        "renault_twingo3_ph2_evc_7e4_7ec",
+        "renault_twingo3_ph2_bcb_obc_792_793",
+        "renault_twingo3_ph2_front_camera_7dc_7dd",
+        "renault_twingo3_ph2_audio_712_732",
+        "renault_twingo3_ph2_airbag_752_772",
+        "renault_twingo3_ph2_cshv_78a_7d7",
+        "renault_twingo3_ph2_vehicle_charger_controller_719_739",
+        "renault_twingo3_ph2_dcm_7ca_7da",
+        "renault_twingo3_ph2_abs_esc_740_760",
+        "renault_twingo3_ph2_pedestrian_sound_73f_761",
+        "renault_twingo3_ph2_wireless_charger_7aa_7ad",
+        "renault_twingo3_ph2_eps_742_762",
+        "renault_twingo3_ph2_acc_75d_77d",
+        "renault_twingo3_ph2_top_control_74b_76b",
+        "renault_twingo3_ph2_peb_75a_77e",
+        "renault_twingo3_ph2_plc_gateway_7d8_7c8",
+        "renault_twingo3_ph2_shift_by_wire_79d_7bd",
+        "renault_twingo3_ph2_audio_amplifier_782_7a2",
+        "renault_twingo3_ph2_security_gateway_18dad2f1_18daf1d2"
+      ],
+      "source_refs": [
+        "S05"
+      ],
+      "physical_project_observation": false
+    }
+  ],
+  "declared_count": 3
+}

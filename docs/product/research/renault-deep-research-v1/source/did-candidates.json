@@ -1,0 +1,1431 @@
+{
+  "schema_version": 1,
+  "candidates": [
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9001",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9001",
+      "semantic": "HV battery state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "unknown",
+      "decoder_variants": [],
+      "validation_recipe_id": "soc_progression",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "CanZE identifies the semantic; source offset convention requires parser-level verification before a canonical formula is activated."
+    },
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9002",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9002",
+      "semantic": "HV battery usable state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S04-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.01,
+              "bias": 0.0,
+              "unit": "percent",
+              "quantity": "state_of_charge",
+              "label": "Usable SOC"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 100
+          },
+          "source_refs": [
+            "S04"
+          ]
+        }
+      ],
+      "validation_recipe_id": "soc_progression",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "Do not widen beyond the sourced model/platform without new evidence."
+    },
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9003",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9003",
+      "semantic": "HV battery state of health",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S04-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.01,
+              "bias": 0.0,
+              "unit": "percent",
+              "quantity": "state_of_health",
+              "label": "Battery SOH"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 110
+          },
+          "source_refs": [
+            "S04"
+          ]
+        }
+      ],
+      "validation_recipe_id": "soc_progression",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "Do not widen beyond the sourced model/platform without new evidence."
+    },
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9005",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9005",
+      "semantic": "HV battery pack voltage",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S04-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0.0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "Pack voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 500
+          },
+          "source_refs": [
+            "S04"
+          ]
+        }
+      ],
+      "validation_recipe_id": "voltage_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "Do not widen beyond the sourced model/platform without new evidence."
+    },
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9006",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9006",
+      "semantic": "Sum of measured cell voltages",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S04-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 4,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.0009765625,
+              "bias": 0.0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "Sum cell voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 500
+          },
+          "source_refs": [
+            "S04"
+          ]
+        }
+      ],
+      "validation_recipe_id": "voltage_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "Do not widen beyond the sourced model/platform without new evidence."
+    },
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9007",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9007",
+      "semantic": "Maximum cell voltage",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S04-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.000976563,
+              "bias": 0.0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "Maximum cell voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 5
+          },
+          "source_refs": [
+            "S04"
+          ]
+        }
+      ],
+      "validation_recipe_id": "voltage_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "Do not widen beyond the sourced model/platform without new evidence."
+    },
+    {
+      "candidate_id": "renault.zoe_ph2.lbc.9008",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ],
+        "ecu_roles": [
+          "lbc"
+        ]
+      },
+      "route_id": "renault_zoe_ph2_lbc_18dadbf1_18daf1db",
+      "service": "22",
+      "session": "default",
+      "did": "9008",
+      "semantic": "Index of maximum-voltage cell",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "unknown",
+      "decoder_variants": [],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S04"
+      ],
+      "non_generalization_boundary": "Do not widen beyond the sourced model/platform without new evidence."
+    },
+    {
+      "candidate_id": "renault.megane.abs.0100",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "0100",
+      "semantic": "steering wheel angle",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "deg",
+              "quantity": "angle",
+              "label": "Steering wheel angle"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "steering_center_left_right",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.012f",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "012F",
+      "semantic": "ECU supply voltage",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "ECU supply voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "voltage_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b00",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B00",
+      "semantic": "front-left wheel speed",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "Front-left wheel speed"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b01",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B01",
+      "semantic": "front-right wheel speed",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "Front-right wheel speed"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b02",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B02",
+      "semantic": "rear-left wheel speed",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "Rear-left wheel speed"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b03",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B03",
+      "semantic": "rear-right wheel speed",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "Rear-right wheel speed"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b04",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B04",
+      "semantic": "vehicle speed",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "Vehicle speed"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "wheel_speed_low_speed_turn",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b06",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B06",
+      "semantic": "odometer",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 4,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "km",
+              "quantity": "distance",
+              "label": "Odometer"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b07",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B07",
+      "semantic": "longitudinal acceleration",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "quantity": "acceleration",
+              "label": "Longitudinal acceleration source quantity"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b0b",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B0B",
+      "semantic": "lateral acceleration",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "g",
+              "quantity": "acceleration",
+              "label": "Lateral acceleration"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b0c",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B0C",
+      "semantic": "yaw angle/rate source quantity",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "quantity": "yaw",
+              "label": "Yaw source quantity"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b0e",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B0E",
+      "semantic": "master-cylinder brake pressure",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "bar",
+              "quantity": "pressure",
+              "label": "Master-cylinder brake pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "brake_pressure_stationary",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b11",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B11",
+      "semantic": "brake pedal state",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "quantity": "state",
+              "label": "Brake pedal"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "brake_pressure_stationary",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b17",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B17",
+      "semantic": "hydraulic unit temperature",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "unit": "degC",
+              "quantity": "temperature",
+              "label": "Hydraulic unit temperature"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": "temperature_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b27",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B27",
+      "semantic": "parking brake state",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 1.0,
+              "bias": 0.0,
+              "quantity": "state",
+              "label": "Parking brake"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium_high",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Megane-specific OBDb candidate; source year filters and ECU identity must match before activation."
+    },
+    {
+      "candidate_id": "renault.megane.abs.4b35",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "renault_megane_abs_740_760",
+      "service": "22",
+      "session": "default",
+      "did": "4B35",
+      "semantic": "ABS / traction / stability status bitfield",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S07-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "bitfield",
+              "signed": false,
+              "scale": 1,
+              "bias": 0,
+              "quantity": "state",
+              "label": "Electronic brake-force distribution / source bitfield"
+            },
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "bitfield",
+              "signed": false,
+              "scale": 1,
+              "bias": 0,
+              "quantity": "state",
+              "label": "ABS / traction / ESP status subfields"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": null,
+          "source_refs": [
+            "S07"
+          ]
+        }
+      ],
+      "validation_recipe_id": null,
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Bit layout is source-derived but requires exact bit-offset normalization and physical discrimination before activation."
+    }
+  ],
+  "declared_count": 23
+}

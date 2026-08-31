@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "authoring_contract": {
+    "title": "UDS brand research pack specification",
+    "version": "1.0",
+    "date": "2026-08-31",
+    "source_attachment": "Pasted markdown.md"
+  },
+  "brand_ids": [
+    "renault"
+  ],
+  "marques": [
+    "renault",
+    "dacia"
+  ],
+  "research_date": "2026-08-31",
+  "baseline_reference": {
+    "uds_map_version": 9,
+    "uds_map_generated": "2026-08-28",
+    "wmis": [
+      "VF1",
+      "VF2",
+      "VF6",
+      "VNV",
+      "VS5",
+      "UU1",
+      "UU5",
+      "93Y",
+      "8A1"
+    ],
+    "existing_platform_count": 1,
+    "existing_module_count": 16,
+    "existing_known_did_count": 7,
+    "rule": "Reference only; pack never replaces existing trusted or vehicle evidence."
+  },
+  "merge_mode": "additive_only",
+  "knowledge_dimensions": {
+    "knowledge_state": "research_candidate/community_reported/inherited/locally_confirmed/community_verified/oem_confirmed/unknown",
+    "vehicle_fit": "untested/matched/conflicted/insufficient",
+    "route_state": "reached/refused/silent/transport_failed/closed",
+    "identity_fit": "provisional/stable/conflicted",
+    "activation": "disabled/learning/enabled"
+  },
+  "claims": [
+    {
+      "claim_id": "renault.canze.zoe_ph1_route_grammar",
+      "exact_claim": "The sourced Zoe Phase 1 CanZE catalog defines a broad set of explicit 11-bit ECU request/response pairs including EVC 7E4/7EC, LBC 79B/7BB, ABS 740/760 and UCH 745/765.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph1"
+        ],
+        "models": [
+          "zoe"
+        ]
+      },
+      "source_refs": [
+        "S01"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_dataset",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "After Zoe Phase 1 classification, prioritize exact catalog routes for presence/identity before bounded enumeration.",
+      "promotion_test": "Physically inventory at least two Zoe Phase 1 vehicles and bind routes to stable ECU fingerprints.",
+      "non_generalization_boundary": "Zoe Phase 1 only."
+    },
+    {
+      "claim_id": "renault.canze.zoe_ph2_mixed_11_29",
+      "exact_claim": "Zoe Phase 2 uses both explicit 11-bit routes and exact normal-fixed-form 29-bit routes for selected modules including LBC, inverter, ABS and security gateway.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_zoe_ph2"
+        ],
+        "models": [
+          "zoe"
+        ]
+      },
+      "source_refs": [
+        "S03"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_dataset",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Enable only the exact 29-bit routes listed in this pack after Zoe Phase 2 classification; never target-range enumerate.",
+      "promotion_test": "Physically reproduce request/response tuples and read stable identity on a Zoe Phase 2.",
+      "non_generalization_boundary": "Exact routes do not authorize generic Renault 29-bit enumeration."
+    },
+    {
+      "claim_id": "renault.canze.twingo3_sgw3",
+      "exact_claim": "The Twingo III Phase 2 CanZE catalog contains a dedicated S-GW3 route 18DAD2F1/18DAF1D2 alongside a large 11-bit route set.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_twingo3_ph2"
+        ],
+        "models": [
+          "twingo_3"
+        ]
+      },
+      "source_refs": [
+        "S05"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_dataset",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use the exact S-GW3 tuple as presence/identity evidence only; do not attempt SecurityAccess.",
+      "promotion_test": "Confirm on physical Twingo III Phase 2 vehicle.",
+      "non_generalization_boundary": "Twingo III Phase 2 only."
+    },
+    {
+      "claim_id": "renault.obdb.megane_740_760",
+      "exact_claim": "The immutable OBDb Megane source contains enhanced service-22 chassis/dynamics data on request 740 with response 760, including wheel speeds, steering, odometer and brake-related fields.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_cmf_cd"
+        ],
+        "models": [
+          "megane"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "source_refs": [
+        "S07"
+      ],
+      "validation": {
+        "source_validation_status": "model_specific_open_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "After Megane-compatible platform classification, probe 740/760, capture identity, then execute only scoped candidates.",
+      "promotion_test": "Validate route, identity, wheel-speed and brake-pressure behavior physically.",
+      "non_generalization_boundary": "Megane-specific; source year filters must be honored."
+    },
+    {
+      "claim_id": "dacia.obdb.duster_enhanced_headers_unresolved",
+      "exact_claim": "The immutable Dacia Duster OBDb signal set contains many enhanced service-22 commands on headers such as 748 and 7E0, but several records omit an explicit response address.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "platform_ids": [
+          "dacia_cmf_b"
+        ],
+        "models": [
+          "duster_2",
+          "duster_3"
+        ]
+      },
+      "source_refs": [
+        "S08"
+      ],
+      "validation": {
+        "source_validation_status": "model_specific_open_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Keep enhanced commands documentation-only until response IDs are observed or independently sourced.",
+      "promotion_test": "Capture raw request/response addressing on a physical Duster and create canonical one-pair route records.",
+      "non_generalization_boundary": "An OBDb request header without response address does not authorize execution."
+    },
+    {
+      "claim_id": "dacia.duster_2024_hybrid_obd",
+      "exact_claim": "The 2024 Duster command-support matrix physically reports standard OBD hybrid-related metrics including hybrid battery voltage/current, hybrid mode and battery SOH under source ECU key DB33.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "platform_ids": [
+          "dacia_cmf_b"
+        ],
+        "models": [
+          "duster_3"
+        ],
+        "years": {
+          "from": 2024,
+          "to": 2024
+        }
+      },
+      "source_refs": [
+        "S10"
+      ],
+      "validation": {
+        "source_validation_status": "physical_command_support_matrix",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Treat the metrics as a high-value research lead, but do not construct an active route until DB33 transport/addressing is canonically normalized.",
+      "promotion_test": "Resolve raw CAN/OBD addressing and reproduce on project hardware.",
+      "non_generalization_boundary": "One model year/source test architecture; DB33 is not interpreted as a CAN ID by this pack."
+    },
+    {
+      "claim_id": "renault.oem.ampr_medium",
+      "exact_claim": "Renault identifies Megane E-Tech Electric with CMF-EV and Scenic E-Tech with AmpR Medium, formerly CMF-EV.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_ampr_medium"
+        ],
+        "models": [
+          "megane_e_tech",
+          "scenic_e_tech"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "source_refs": [
+        "S13",
+        "S14",
+        "S15"
+      ],
+      "validation": {
+        "source_validation_status": "oem_confirmed",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Classify platform confidently but stop at platform_known_route_knowledge_incomplete if no trusted route is available.",
+      "promotion_test": "Obtain read-only physical diagnostic capture and stable ECU identities.",
+      "non_generalization_boundary": "Platform identity does not imply Zoe route compatibility."
+    },
+    {
+      "claim_id": "renault.oem.ampr_small",
+      "exact_claim": "Renault states Renault 5 and Renault 4 use AmpR Small and describes SWEET400 as part of the platform's electrical/electronic architecture.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "renault"
+        ],
+        "platform_ids": [
+          "renault_ampr_small"
+        ],
+        "models": [
+          "renault_5",
+          "renault_4"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "source_refs": [
+        "S16"
+      ],
+      "validation": {
+        "source_validation_status": "oem_confirmed",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Do not inherit Zoe or CMF-B proprietary routes; record platform-known/route-incomplete state.",
+      "promotion_test": "Acquire safe physical presence/identity route evidence.",
+      "non_generalization_boundary": "No diagnostic route claim is made from OEM platform documentation."
+    },
+    {
+      "claim_id": "dacia.oem.cmf_b",
+      "exact_claim": "Dacia states Duster III uses CMF-B, which had already been used on the latest Sandero, Logan and Jogger.",
+      "scope": {
+        "brand_ids": [
+          "renault"
+        ],
+        "marques": [
+          "dacia"
+        ],
+        "platform_ids": [
+          "dacia_cmf_b"
+        ],
+        "models": [
+          "sandero_3",
+          "logan_3",
+          "jogger",
+          "duster_3"
+        ]
+      },
+      "source_refs": [
+        "S17"
+      ],
+      "validation": {
+        "source_validation_status": "oem_confirmed",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use CMF-B as platform classification evidence; proprietary Duster commands stay model scoped.",
+      "promotion_test": "Compare ECU fingerprints/routes across at least two Dacia CMF-B models.",
+      "non_generalization_boundary": "Shared platform is not proof of shared DID decoders."
+    }
+  ],
+  "declared_counts": {
+    "sources": 19,
+    "platforms": 12,
+    "routes": 76,
+    "did_candidates": 23,
+    "command_evidence": 1,
+    "ecu_families": 2,
+    "module_inventories": 3,
+    "validation_recipes": 7,
+    "claims": 9,
+    "conflicts": 3,
+    "gaps": 8
+  }
+}

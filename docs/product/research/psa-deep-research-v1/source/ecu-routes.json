@@ -1,0 +1,2787 @@
+{
+  "schema_version": 1,
+  "routes": [
+    {
+      "route_id": "psa_catalog_parking_assist_75d_65d",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "parking_assist"
+        ]
+      },
+      "module_role": "parking_assist",
+      "role_aliases": [
+        "aas",
+        "rrs"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "75D",
+        "resp": "65D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_abs_esc_6ad_68d",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "module_role": "abs_esc",
+      "role_aliases": [
+        "absmk100",
+        "espmk100",
+        "abs8",
+        "esp8"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6AD",
+        "resp": "68D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_display_765_665",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "display"
+        ]
+      },
+      "module_role": "display",
+      "role_aliases": [
+        "emf",
+        "avn"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "765",
+        "resp": "665",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_airbag_744_644",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "airbag"
+        ]
+      },
+      "module_role": "airbag",
+      "role_aliases": [
+        "srs",
+        "airbag"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "644",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_alarm_75c_65c",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "alarm"
+        ]
+      },
+      "module_role": "alarm",
+      "role_aliases": [
+        "alarm"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "75C",
+        "resp": "65C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_radio_760_660",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "radio"
+        ]
+      },
+      "module_role": "radio",
+      "role_aliases": [
+        "rd43",
+        "rd45",
+        "rd6",
+        "radio"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "760",
+        "resp": "660",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_body_gateway_752_652",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "body_gateway"
+        ]
+      },
+      "module_role": "body_gateway",
+      "role_aliases": [
+        "bsi",
+        "bsi2010",
+        "bsi2010_ev",
+        "bcm",
+        "bsm",
+        "bsr"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "752",
+        "resp": "652",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_aux_heater_731_711",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "aux_heater"
+        ]
+      },
+      "module_role": "aux_heater",
+      "role_aliases": [
+        "bech",
+        "chauff_add",
+        "bpga"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "731",
+        "resp": "711",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_hvac_76d_66d",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "hvac"
+        ]
+      },
+      "module_role": "hvac",
+      "role_aliases": [
+        "clim",
+        "hvac",
+        "acm"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "76D",
+        "resp": "66D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_cluster_75f_65f",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "cluster"
+        ]
+      },
+      "module_role": "cluster",
+      "role_aliases": [
+        "combine",
+        "ipc",
+        "meter"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "75F",
+        "resp": "65F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_rain_light_or_roof_74a_64a",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "rain_light_or_roof"
+        ]
+      },
+      "module_role": "rain_light_or_roof",
+      "role_aliases": [
+        "rain_light",
+        "cvm"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "74A",
+        "resp": "64A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_eps_6b5_695",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "eps"
+        ]
+      },
+      "module_role": "eps",
+      "role_aliases": [
+        "dae",
+        "eps",
+        "gep"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B5",
+        "resp": "695",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_steering_column_742_642",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "steering_column"
+        ]
+      },
+      "module_role": "steering_column",
+      "role_aliases": [
+        "com2000",
+        "com2008",
+        "com2016"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "742",
+        "resp": "642",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_engine_6a8_688",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "module_role": "engine",
+      "role_aliases": [
+        "edc",
+        "dcm",
+        "sid",
+        "med",
+        "mev",
+        "mg1",
+        "md1"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A8",
+        "resp": "688",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_nomad_handsfree_773_673",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "nomad_handsfree"
+        ]
+      },
+      "module_role": "nomad_handsfree",
+      "role_aliases": [
+        "kml",
+        "nomad"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "773",
+        "resp": "673",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_suspension_6b8_698",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "suspension"
+        ]
+      },
+      "module_role": "suspension",
+      "role_aliases": [
+        "suspension"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B8",
+        "resp": "698",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_rear_climate_778_678",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "rear_climate"
+        ]
+      },
+      "module_role": "rear_climate",
+      "role_aliases": [
+        "rear_climate"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "778",
+        "resp": "678",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_telematics_764_664",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "telematics"
+        ]
+      },
+      "module_role": "telematics",
+      "role_aliases": [
+        "nac",
+        "rcc",
+        "smeg",
+        "ivi",
+        "telematics"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "764",
+        "resp": "664",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_tpms_or_dsg_6af_68f",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "tpms_or_dsg"
+        ]
+      },
+      "module_role": "tpms_or_dsg",
+      "role_aliases": [
+        "tpms",
+        "dsg"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6AF",
+        "resp": "68F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_transmission_6a9_689",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "transmission"
+        ]
+      },
+      "module_role": "transmission",
+      "role_aliases": [
+        "am6",
+        "eat8",
+        "al4",
+        "dct",
+        "cvt",
+        "mta"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A9",
+        "resp": "689",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_hifi_amplifier_77d_67d",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "hifi_amplifier"
+        ]
+      },
+      "module_role": "hifi_amplifier",
+      "role_aliases": [
+        "audio_amp"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "77D",
+        "resp": "67D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_front_radar_lidar_6b6_696",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "front_radar_lidar"
+        ]
+      },
+      "module_role": "front_radar_lidar",
+      "role_aliases": [
+        "artiv",
+        "radar",
+        "lidar"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B6",
+        "resp": "696",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_headlamp_control_6b7_697",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "headlamp_control"
+        ]
+      },
+      "module_role": "headlamp_control",
+      "role_aliases": [
+        "afs",
+        "headlamp"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B7",
+        "resp": "697",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_wiper_motor_779_679",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "wiper_motor"
+        ]
+      },
+      "module_role": "wiper_motor",
+      "role_aliases": [
+        "wiper"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "779",
+        "resp": "679",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_additive_system_6c1_601",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "additive_system"
+        ]
+      },
+      "module_role": "additive_system",
+      "role_aliases": [
+        "additive"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6C1",
+        "resp": "601",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_driver_door_74b_64b",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "driver_door"
+        ]
+      },
+      "module_role": "driver_door",
+      "role_aliases": [
+        "driver_door"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "74B",
+        "resp": "64B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_sunroof_or_vth_770_670",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "sunroof_or_vth"
+        ]
+      },
+      "module_role": "sunroof_or_vth",
+      "role_aliases": [
+        "vth"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "770",
+        "resp": "670",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_traction_battery_msb_6b4_694",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "traction_battery_msb"
+        ]
+      },
+      "module_role": "traction_battery_msb",
+      "role_aliases": [
+        "tbmu",
+        "tbmu_phev",
+        "bmu_cte1"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B4",
+        "resp": "694",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_hybrid_control_2_or_mcu_6a6_686",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "hybrid_control_2_or_mcu"
+        ]
+      },
+      "module_role": "hybrid_control_2_or_mcu",
+      "role_aliases": [
+        "hcu2",
+        "mcu",
+        "mcu_ecmp"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A6",
+        "resp": "686",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_hybrid_control_1_or_rmcu_6a7_687",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "hybrid_control_1_or_rmcu"
+        ]
+      },
+      "module_role": "hybrid_control_1_or_rmcu",
+      "role_aliases": [
+        "hcu1",
+        "rmcu"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A7",
+        "resp": "687",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_leak_detection_6bc_69c",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "leak_detection"
+        ]
+      },
+      "module_role": "leak_detection",
+      "role_aliases": [
+        "dmtc"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6BC",
+        "resp": "69C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_dvr_763_663",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "dvr"
+        ]
+      },
+      "module_role": "dvr",
+      "role_aliases": [
+        "idvr"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "763",
+        "resp": "663",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_around_view_or_escl_74f_64f",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "around_view_or_escl"
+        ]
+      },
+      "module_role": "around_view_or_escl",
+      "role_aliases": [
+        "avm",
+        "escl"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "74F",
+        "resp": "64F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_rumble_708_728",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "rumble"
+        ]
+      },
+      "module_role": "rumble",
+      "role_aliases": [
+        "rumble"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "708",
+        "resp": "728",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_lvds_display_743_643",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "lvds_display"
+        ]
+      },
+      "module_role": "lvds_display",
+      "role_aliases": [
+        "emf_dgt_lvds"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "743",
+        "resp": "643",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_avas_5b0_5af",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "avas"
+        ]
+      },
+      "module_role": "avas",
+      "role_aliases": [
+        "avas"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "5B0",
+        "resp": "5AF",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_tailgate_76b_66b",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "tailgate"
+        ]
+      },
+      "module_role": "tailgate",
+      "role_aliases": [
+        "powered_tailgate"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "76B",
+        "resp": "66B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_gear_selector_6aa_68a",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "gear_selector"
+        ]
+      },
+      "module_role": "gear_selector",
+      "role_aliases": [
+        "gcm",
+        "shift_control"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6AA",
+        "resp": "68A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_css_6b0_690",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "css"
+        ]
+      },
+      "module_role": "css",
+      "role_aliases": [
+        "css"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B0",
+        "resp": "690",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_scr_6a1_681",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "scr"
+        ]
+      },
+      "module_role": "scr",
+      "role_aliases": [
+        "scr"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A1",
+        "resp": "681",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_power_converter_6ba_69a",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "power_converter"
+        ]
+      },
+      "module_role": "power_converter",
+      "role_aliases": [
+        "power_converter"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6BA",
+        "resp": "69A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_power_converter_2_49b_49a",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "power_converter_2"
+        ]
+      },
+      "module_role": "power_converter_2",
+      "role_aliases": [
+        "power_converter_2"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "49B",
+        "resp": "49A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_vcu_6a2_682",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "vcu"
+        ]
+      },
+      "module_role": "vcu",
+      "role_aliases": [
+        "vcu",
+        "e_vcu"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A2",
+        "resp": "682",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_obc_dcdc_590_58f",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "obc_dcdc"
+        ]
+      },
+      "module_role": "obc_dcdc",
+      "role_aliases": [
+        "obc_dcdc",
+        "obc_dcdc_ecmp"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "590",
+        "resp": "58F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_electric_brake_booster_5d0_5cf",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "electric_brake_booster"
+        ]
+      },
+      "module_role": "electric_brake_booster",
+      "role_aliases": [
+        "ebb"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "5D0",
+        "resp": "5CF",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_bml_sdcm_741_641",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "bml_sdcm"
+        ]
+      },
+      "module_role": "bml_sdcm",
+      "role_aliases": [
+        "bml",
+        "sdcm"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "741",
+        "resp": "641",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_electric_bsg_759_659",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "electric_bsg"
+        ]
+      },
+      "module_role": "electric_bsg",
+      "role_aliases": [
+        "bsg_e"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "759",
+        "resp": "659",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_immobilizer_703_70b",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "immobilizer"
+        ]
+      },
+      "module_role": "immobilizer",
+      "role_aliases": [
+        "immo",
+        "adc",
+        "wcm"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "703",
+        "resp": "70B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_catalog_bsp_gateway_720_728",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen",
+          "ds"
+        ],
+        "platform_ids": [
+          "psa_aee2004_fullcan",
+          "psa_aee2010_fullcan"
+        ],
+        "ecu_roles": [
+          "bsp_gateway"
+        ]
+      },
+      "module_role": "bsp_gateway",
+      "role_aliases": [
+        "bsp",
+        "gw"
+      ],
+      "route": {
+        "protocol": "can11_500",
+        "req": "720",
+        "resp": "728",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Non-exhaustive PSA ECU-family catalogue. Treat as a bounded presence/identity hypothesis, not a brand-wide fitted-module claim."
+    },
+    {
+      "route_id": "psa_c41_engine_6a8_688",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "module_role": "engine",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A8",
+        "resp": "688",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "locally_confirmed",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S00"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Project-observed on one C41 vehicle; exact route evidence may seed family matching but must not become brand-wide automatically."
+    },
+    {
+      "route_id": "psa_c41_abs_esc_6ad_68d",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "module_role": "abs_esc",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6AD",
+        "resp": "68D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "locally_confirmed",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S00"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Project-observed on one C41 vehicle; exact route evidence may seed family matching but must not become brand-wide automatically."
+    },
+    {
+      "route_id": "psa_c41_eps_6b5_695",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "ecu_roles": [
+          "eps"
+        ]
+      },
+      "module_role": "eps",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B5",
+        "resp": "695",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "locally_confirmed",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S00"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Project-observed on one C41 vehicle; exact route evidence may seed family matching but must not become brand-wide automatically."
+    },
+    {
+      "route_id": "psa_c41_front_camera_or_cvm_74a_64a",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_c41_project_observed"
+        ],
+        "ecu_roles": [
+          "front_camera_or_cvm"
+        ]
+      },
+      "module_role": "front_camera_or_cvm",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "74A",
+        "resp": "64A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "locally_confirmed",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S00"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Project-observed on one C41 vehicle; exact route evidence may seed family matching but must not become brand-wide automatically."
+    },
+    {
+      "route_id": "psa_e208_battery_6b4_694",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "traction_battery_msb"
+        ]
+      },
+      "module_role": "traction_battery_msb",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6B4",
+        "resp": "694",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Peugeot e-208 vehicle-profile route."
+    },
+    {
+      "route_id": "psa_e208_mcu_6a6_686",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "motor_control"
+        ]
+      },
+      "module_role": "motor_control",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A6",
+        "resp": "686",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Peugeot e-208 vehicle-profile route."
+    },
+    {
+      "route_id": "psa_e208_vcu_6a2_682",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot"
+        ],
+        "platform_ids": [
+          "psa_ecmp_e208"
+        ],
+        "models": [
+          "e_208"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "vehicle_control"
+        ]
+      },
+      "module_role": "vehicle_control",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "6A2",
+        "resp": "682",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact Peugeot e-208 vehicle-profile route."
+    },
+    {
+      "route_id": "psa_mmc_ev_bmu_761_762",
+      "scope": {
+        "brand_ids": [
+          "psa"
+        ],
+        "marques": [
+          "peugeot",
+          "citroen"
+        ],
+        "platform_ids": [
+          "psa_mmc_ev_ion_czero"
+        ],
+        "models": [
+          "ion",
+          "c_zero"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "battery_management"
+        ]
+      },
+      "module_role": "battery_management",
+      "role_aliases": [],
+      "route": {
+        "protocol": "can11_500",
+        "req": "761",
+        "resp": "762",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "vehicle_fit": "untested",
+      "route_state": "closed",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S04",
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Exact sibling iOn/C-Zero route; must remain isolated from mainstream PSA EV route families."
+    }
+  ],
+  "declared_count": 57
+}

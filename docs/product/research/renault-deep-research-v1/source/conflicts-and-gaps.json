@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "conflict_id": "renault_zoe_phase_route_split",
+      "finding": "Zoe Phase 1 and Phase 2 use materially different route/addressing sets; Phase 2 adds exact 29-bit routes.",
+      "automatic_merge": "forbidden",
+      "resolution": "Keep phase-specific platform IDs and route records. Platform classification is mandatory.",
+      "source_refs": [
+        "S01",
+        "S03"
+      ]
+    },
+    {
+      "conflict_id": "dacia_duster_missing_response_ids",
+      "finding": "The Duster OBDb enhanced corpus contains useful request headers and DIDs but several records omit explicit response addresses.",
+      "automatic_merge": "forbidden",
+      "resolution": "Preserve as documentation-only unresolved candidates; no route_id is created until response addressing is observed.",
+      "source_refs": [
+        "S08"
+      ]
+    },
+    {
+      "conflict_id": "renault_new_ev_platforms_no_public_routes",
+      "finding": "AmpR Medium and AmpR Small platform identity is OEM-confirmed while current public model route coverage is incomplete or empty.",
+      "automatic_merge": "forbidden",
+      "resolution": "Use platform_known_route_knowledge_incomplete terminal state; never inherit Zoe routes.",
+      "source_refs": [
+        "S11",
+        "S13",
+        "S14",
+        "S15",
+        "S16"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "duster_748_response_address",
+      "priority": "P0",
+      "required_evidence": "Physical raw request/response capture or immutable source with explicit response ID.",
+      "safe_next_action": "Use standard OBD and passive observation; do not execute enhanced 748 candidates.",
+      "retry_condition": "New response-address evidence.",
+      "source_refs": [
+        "S08"
+      ],
+      "research_leads": [
+        {
+          "header": "748",
+          "did": "3001",
+          "semantic": "12V battery voltage",
+          "source_decode": {
+            "scale": 0.1,
+            "bias": 0,
+            "unit": "V"
+          }
+        },
+        {
+          "header": "748",
+          "did": "3005",
+          "semantic": "2WD / Auto / 4WD mode switches"
+        },
+        {
+          "header": "748",
+          "did": "3006",
+          "semantic": "four wheel speeds",
+          "source_decode": {
+            "scale": 10,
+            "bias": 0,
+            "unit": "rpm"
+          }
+        },
+        {
+          "header": "748",
+          "did": "3008",
+          "semantic": "vehicle speed",
+          "source_decode": {
+            "signed": true,
+            "scale": 1,
+            "bias": 0,
+            "unit": "km/h"
+          }
+        },
+        {
+          "header": "748",
+          "did": "300A",
+          "semantic": "accelerator pedal position"
+        },
+        {
+          "header": "748",
+          "did": "3011",
+          "semantic": "reference engine torque",
+          "source_decode": {
+            "scale": 0.5,
+            "bias": -400,
+            "unit": "Nm"
+          }
+        },
+        {
+          "header": "748",
+          "did": "3020",
+          "semantic": "clutch temperature"
+        },
+        {
+          "header": "748",
+          "did": "3025",
+          "semantic": "requested torque"
+        }
+      ]
+    },
+    {
+      "gap_id": "duster_7e0_enhanced_response_confirmation",
+      "priority": "P0",
+      "required_evidence": "Physical service-22 response capture on project hardware for enhanced 7E0 DIDs.",
+      "safe_next_action": "Standard OBD route remains usable; enhanced DIDs remain disabled.",
+      "retry_condition": "Verified 7E0/7E8 enhanced response.",
+      "source_refs": [
+        "S08",
+        "S09"
+      ],
+      "research_leads": [
+        {
+          "header": "7E0",
+          "did": "2001",
+          "semantic": "coolant temperature",
+          "source_decode": {
+            "scale": 0.1,
+            "bias": -273,
+            "unit": "degC"
+          }
+        },
+        {
+          "header": "7E0",
+          "did": "2003",
+          "semantic": "vehicle speed",
+          "source_decode": {
+            "scale": 0.01,
+            "bias": 0,
+            "unit": "km/h"
+          }
+        },
+        {
+          "header": "7E0",
+          "did": "2004",
+          "semantic": "engine torque",
+          "source_decode": {
+            "scale": 0.03125,
+            "bias": -400,
+            "unit": "Nm"
+          }
+        },
+        {
+          "header": "7E0",
+          "did": "2005",
+          "semantic": "ECU supply voltage",
+          "source_decode": {
+            "scale": 0.01,
+            "bias": 0,
+            "unit": "V"
+          }
+        },
+        {
+          "header": "7E0",
+          "did": "2007",
+          "semantic": "estimated engine-oil temperature",
+          "source_decode": {
+            "scale": 0.1,
+            "bias": -273,
+            "unit": "degC"
+          }
+        },
+        {
+          "header": "7E0",
+          "did": "200B",
+          "semantic": "accelerator pedal track 1 voltage",
+          "source_decode": {
+            "scale": 0.001,
+            "bias": 0,
+            "unit": "V"
+          }
+        },
+        {
+          "header": "7E0",
+          "did": "200C",
+          "semantic": "accelerator pedal track 2 voltage",
+          "source_decode": {
+            "scale": 0.001,
+            "bias": 0,
+            "unit": "V"
+          }
+        }
+      ]
+    },
+    {
+      "gap_id": "duster_2024_db33_transport",
+      "priority": "P0",
+      "required_evidence": "Normalize source ECU key DB33 to full transport tuple using raw capture/schema evidence.",
+      "safe_next_action": "Treat hybrid metrics as non-executable physical support evidence.",
+      "retry_condition": "Canonical protocol+req+resp established.",
+      "source_refs": [
+        "S10"
+      ]
+    },
+    {
+      "gap_id": "renault_ampr_medium_routes",
+      "priority": "P0",
+      "required_evidence": "Read-only physical route census and stable identities on Megane E-Tech or Scenic E-Tech.",
+      "safe_next_action": "Platform classification only; terminal platform_known_route_knowledge_incomplete.",
+      "retry_condition": "Immutable licensed route source or project physical capture.",
+      "source_refs": [
+        "S11",
+        "S14",
+        "S15"
+      ]
+    },
+    {
+      "gap_id": "renault_ampr_small_routes",
+      "priority": "P0",
+      "required_evidence": "Read-only physical route census on Renault 5/4 with adapter transport capability documented.",
+      "safe_next_action": "Do not inherit Zoe/CMF-B routes.",
+      "retry_condition": "Immutable route evidence.",
+      "source_refs": [
+        "S16"
+      ]
+    },
+    {
+      "gap_id": "dacia_spring_routes",
+      "priority": "P1",
+      "required_evidence": "Current physical or immutable open diagnostic route set.",
+      "safe_next_action": "Record repository-empty source state; no fabricated route.",
+      "retry_condition": "New source or vehicle capture.",
+      "source_refs": [
+        "S12"
+      ]
+    },
+    {
+      "gap_id": "renault_cmf_b_routes",
+      "priority": "P1",
+      "required_evidence": "Clio V/Captur II ECU route inventories with immutable sources or project captures.",
+      "safe_next_action": "Standard OBD + trusted-map/global discovery only.",
+      "retry_condition": "Exact route evidence."
+    },
+    {
+      "gap_id": "renault_cmf_cd_gen3_routes",
+      "priority": "P1",
+      "required_evidence": "Austral read-only route and identity capture.",
+      "safe_next_action": "Platform-known/route-incomplete terminal state.",
+      "retry_condition": "Exact route evidence.",
+      "source_refs": [
+        "S18"
+      ]
+    }
+  ],
+  "terminal_state_guidance": [
+    {
+      "state": "platform_known_route_knowledge_incomplete",
+      "reason_examples": [
+        "AmpR Small identified without safe public routes",
+        "AmpR Medium identified without safe public routes",
+        "CMF-CD Gen3 identified without route evidence"
+      ],
+      "safe_next_action": "Passive capture when supported and standard/trusted identity-only research.",
+      "retry_condition": "New immutable route evidence or project physical observation."
+    },
+    {
+      "state": "unresolved_transport_encoding",
+      "reason_examples": [
+        "Duster DB33 source key cannot yet be mapped to canonical transport tuple"
+      ],
+      "safe_next_action": "No active request derived from unresolved record.",
+      "retry_condition": "Raw capture/schema normalization."
+    },
+    {
+      "state": "unsupported_transport",
+      "reason_examples": [
+        "Legacy Renault project requires KWP2000/ISO9141 not supported by adapter"
+      ],
+      "safe_next_action": "Report transport limitation without marking ECU absent.",
+      "retry_condition": "Compatible adapter/transport support."
+    }
+  ]
+}
