@@ -60,10 +60,10 @@ Each screen: purpose · primary action · what it shows · data (API route) · s
 
 ### A2 Connect
 - **Purpose:** get a live link to one car.
-- **Primary:** "Connect". Secondary: "Choose adapter" (profile: serial / Wi-Fi ELM; adapters enumerated).
+- **Primary:** the device list is the opening state ("Connect to your OBD device"): one row per device the machine can see, the last-used one preselected, then "Connect". Secondary: "Refresh"; after a failure, "Try again" and "Choose another device".
 - **Shows:** adapter state as a single line ("Looking for adapter → waking → talking to the car"), and the **brand-recognition scene** (§5a) as soon as the VIN resolves: the 3D chrome emblem of the marque over the dust field, turning while modules are discovered, settling to a slow idle once live; the WMI-derived brand name; VIN-less fallback → "Name this car" with the chrome nameplate.
 - **Data:** `POST /connect`, `GET /status`, `GET /adapters`, `GET|PUT /adapter`, events `conn-status`, `unknown-brand`.
-- **States:** no adapter found (explain + "Choose adapter") · adapter but no car (ignition off?) · connected · unknown brand (callback → "We don't have a profile for this brand yet; standard diagnostics work, deep scan will be conservative").
+- **States:** choose device (empty state explains pairing) · adapter but no car (ignition off?) · connected · unknown brand (callback → "We don't have a profile for this brand yet; standard diagnostics work, deep scan will be conservative").
 - **Replaces:** the Connect button in the shell + the AccountSyncCard adapter bits.
 
 ### A3 Scan (quick)

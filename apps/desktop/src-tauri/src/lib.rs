@@ -27,8 +27,8 @@ fn disconnect(state: State) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn list_adapters() -> Vec<elm::transport::enumerate::AdapterCandidate> {
-    ops::list_adapters()
+fn list_adapters(state: State) -> Vec<elm::transport::enumerate::AdapterCandidate> {
+    ops::list_adapters(&state)
 }
 
 #[tauri::command]

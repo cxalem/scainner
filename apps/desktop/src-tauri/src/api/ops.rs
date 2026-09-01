@@ -497,9 +497,12 @@ pub fn app_setting_set(state: &AppState, key: &str, value: &str) {
 
 // ---------- adapter profile (Phase 5: transport abstraction) ----------
 
-/// Candidate serial ports and paired Bluetooth devices on this machine.
-pub fn list_adapters() -> Vec<elm::transport::enumerate::AdapterCandidate> {
-    elm::transport::enumerate::candidates()
+/// Candidate serial ports and paired Bluetooth devices on this machine,
+/// each already named after the device behind it and tagged `last_used`
+/// against the saved profile — the picker shows the list, it doesn't
+/// reconstruct it.
+pub fn list_adapters(state: &AppState) -> Vec<elm::transport::enumerate::AdapterCandidate> {
+    elm::transport::enumerate::candidates(&adapter_profile(state))
 }
 
 /// The active adapter profile: `adapter.*` settings with the

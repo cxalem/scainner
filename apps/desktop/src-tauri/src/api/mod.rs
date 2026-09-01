@@ -1009,8 +1009,8 @@ async fn setting_set(
 
 // ---------- adapter profile ----------
 
-async fn adapters() -> ApiResult {
-    ok(json!({ "adapters": ops::list_adapters() }))
+async fn adapters(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ok(json!({ "adapters": ops::list_adapters(&api.state) }))
 }
 
 async fn adapter_get(State(api): State<Arc<ApiState>>) -> ApiResult {
