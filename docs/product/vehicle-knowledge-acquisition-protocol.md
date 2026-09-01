@@ -111,6 +111,30 @@ use: `knowledge_state` (`research_candidate` · `community_reported` ·
 `verified_on_vehicle` above map to `route_state = reached` plus an identity
 capture; a decode shown as a sensor requires `vehicle_fit = matched`.
 
+**Current schema (2026-09-01).** All four dimensions are persisted together on
+one table only. `hypotheses` carries `knowledge_state`, `vehicle_fit`,
+`route_state` and `activation` (`apps/desktop/src-tauri/src/db.rs:918-941`; all
+`db.rs` references below are that file). Of those, `hypotheses.route_state`
+(`db.rs:925`) is read back but never written by any insert or update, so a
+closed route can never be expressed on a hypothesis. Route state is real one
+level up, on `discovered_modules.route_state` (`db.rs:893`, written at
+`db.rs:2006-2010`) and on `route_outcomes.route_state` (`db.rs:911`).
+`discovered_modules` also carries a 3-value `identity_fit`
+(`conflicted` / `provisional` / `stable`, `db.rs:74`, `db.rs:883`) plus
+`route_json`, `family_id` and `family_match` (`db.rs:887-889`), and no
+`knowledge_state` or `activation` at all. `discovered_dids` reduces the whole
+model to one column: `confidence TEXT CHECK (confidence IN ('confirmed',
+'ai_guess','unlabeled'))` (`db.rs:771`). `ai_guess` is never written anywhere,
+and the sole writer (`db.rs:1725-1728`) picks `confirmed` whenever the shared
+map supplied a label, so `confirmed` there means "labelled by the map", not
+confirmed on this vehicle. `uds_probes` has neither dimension: only `enabled`
+and `origin` (`manual` / `discovery`) (`db.rs:733-746`), and the supervisor
+polls only rows whose origin is `manual` (`should_poll_probe`,
+`apps/desktop/src-tauri/src/elm/uds.rs:1439-1441`), so discovery-origin probes
+and enabled hypotheses produce no traffic. Reconciling these three parallel
+vocabularies is DA-7, DA-8 and DA-17 in
+`docs/product/discovery-protocol-audit-2026-09-01.md`.
+
 ---
 
 ## 5. The evidence record
@@ -416,18 +440,29 @@ A plan is the executable form of one evidence pass (`parked_verification` in
 | Table | Holds | Key fields |
 |---|---|---|
 | `verification_runs` | one full report per plan execution | `vehicle_id`, `connection_id`, `plan_version`, `result_json` |
-| `discovered_modules` | one row per reached route per vehicle | `module_address` (`req/resp`), `module_name`, fingerprint columns, `fingerprint_match_key`, `fingerprint_evidence_json`, `last_seen_at` |
-| `discovered_dids` | every answered identifier | `module_id`, `did`, `raw_sample`, `byte_length`, `label`, `confidence` (`confirmed` / `unlabeled`) |
+| `discovered_modules` | one row per reached route per vehicle | `module_address` (`req/resp`), `module_name`, `route_json`, `route_state`, `identity_fit` (`conflicted` / `provisional` / `stable`), `family_id`, `family_match`, `supplier`, fingerprint columns, `fingerprint_match_key`, `fingerprint_evidence_json`, `last_seen_at` |
+| `route_outcomes` | every census outcome per route, including the routes that never answered | `vehicle_id`, `connection_id`, `module_address`, `route_state`, `route_json`, `detail`, `observed_at` |
+| `discovered_dids` | every answered identifier | `module_id`, `did`, `raw_sample`, `byte_length`, `label`, `confidence` (`confirmed` / `ai_guess`, never written / `unlabeled`) |
+| `hypotheses` | one candidate decode per vehicle, module and DID; the only table with all four dimensions | `knowledge_state`, `vehicle_fit`, `route_state` (never written), `activation`, `label`, `decode_json`, `shape_json`, `interpretations_json`, `confidence`, `discriminating_test`, `next_step_id`, `family_id` |
+| `hypothesis_samples` | raw payloads for the correlation engine; schema and retention exist, no production writer | `hypothesis_id`, `ts_ms`, `payload_hex`, `refs_json` |
 | `uds_probes` | decodes promoted to sensors | `module`, `did`, `offset`, `len`, `scale`, `bias`, `unit`, `enabled`, `origin` |
+| `knowledge_candidates` | reusable knowledge projected out of vehicle history; deliberately no foreign key to a vehicle | `compatibility_key`, `scope` (`ecu_family` / `exact_ecu` / `observation`), `family_id`, `module_address`, `route_json`, `did`, `knowledge_state` (schema default `observed`), decode and shape columns |
 | `readings` | values from enabled probes and standard PIDs | `connection_id`, `vehicle_id`, `key`, `value`, `ts` |
 | `uds_modules` | user-added routes | `key`, `req`, `resp` |
 | `packages/uds-map` | shared, versioned candidate packs | per-brand modules, offset rules, services, DIDs with decode and provenance |
 
-Gaps to close for full compliance with §5: `discovered_modules` has no route
-tuple beyond `req/resp` (add protocol, bit width, address extension, session);
-correlation captures (Phase 5) have no table yet — they should be
+Gaps to close for full compliance with §5 (2026-09-01). The route tuple now
+exists: `discovered_modules.route_json` and `route_outcomes.route_json` carry
+protocol, bit width, address extension and session, so that gap is closed. The
+correlation gap moved rather than closed. `hypothesis_samples` has the right
+shape and a retention rule (`db.rs:2343`, `db.rs:2361-2385`) but no production
+writer; its only callers are tests (`db.rs:4195`). And `correlation_capture`
+(`apps/desktop/src-tauri/src/elm/uds.rs:826`) returns hex payloads with no
+timestamp on any sample, so a capture cannot be aligned against a reference
+signal even once a writer exists. Correlation captures remain
 `verification_runs` rows with a `condition` label and a plan version of the
-form `<brand>-<platform>-corr-v<N>`.
+form `<brand>-<platform>-corr-v<N>`. Wiring the engine to timestamped samples
+is DA-14 in `docs/product/discovery-protocol-audit-2026-09-01.md`.
 
 ---
 

@@ -1,7 +1,13 @@
 # Universal Discovery Protocol
 
-Version 1.3 · 2026-08-28 · companion to the Vehicle Knowledge Acquisition
+Version 1.4 · 2026-09-01 · companion to the Vehicle Knowledge Acquisition
 Protocol (`vehicle-knowledge-acquisition-protocol.md`)
+
+v1.4: implementation status refreshed against `origin/main`; §12 is rewritten
+from the audit in `discovery-protocol-audit-2026-09-01.md`, which is also the
+source for the status markers on the implementation order and for the §13.1
+baseline. Normative sections are unchanged; the audit's DA-7 decision on the
+state enums will drive the next normative revision.
 
 v1.3: brand classes are sourced data with "enhanced protocol not yet
 profiled" as the default for anything unverified (Mitsubishi moves there —
@@ -570,36 +576,43 @@ finding: the report says so, and research gets the fingerprint.
 
 | Stage | Today | To build |
 |---|---|---|
-| S0 | ✅ supervisor, PID bitmap | store WMI/VDS/year; expose available references |
-| S1 | ✅ `uds::discover` + `uds_map::addresses_to_probe`, per-brand policies, 29-bit normal-fixed | run automatically on new VIN; route tuple persisted; `closed` with recorded reason; global budget |
-| S2 | ✅ ISO block fingerprint; ✅ PSA `F080/F0FE` parser | per-brand identity blocks + parsers as data; repeat-for-identity; engine ECU fingerprint completed |
-| S3 | ⚠️ `known_did()` by VIN+route+DID | `ecu_families` + compatibility tuple; four-dimension states; inherited hypotheses; coverage report |
-| R | ⚠️ manual research reports | research task filing; corpus index; result import as candidates |
-| S4 | ✅ bounded sweep (`parked_verification`, `scan_range`) | driven by S3 gaps + sibling bands; global + per-module time budgets; carry-over |
-| S5 | ⚠️ probe polling (fixed set), drive logger, `read-many` | learning state; adaptive cohort; bounded samples with per-sample timestamps; correlation engine as a pure module with replay tests on the C4 captures |
-| S6 | ✅ Guided correlation UI + `capture` API | state-tree generation from hypotheses; full-screen guided flow rendering the contract in §9 |
-| S7 | ⚠️ manual `uds-map` edits with evidence notes | state machine; contribution export; review queue |
-| API/MCP | ✅ every stage callable | `GET /vehicles/{id}/coverage`, `GET /hypotheses`, `GET /guided-steps`, `POST /learning-state` |
+| S0 | ✅ standard PIDs on connect; ✅ `vehicles.year` stored (`db.rs:663-676`); ⚠️ WMI/VDS derived from the VIN on demand, never stored (`uds_map.rs:693`, `:1113-1130`, `coverage.rs:18,204`); ❌ available references | persist WMI/VDS (and the platform key) on `vehicles`; enumerate the reference channels a vehicle can supply |
+| S1 | ✅ runs automatically on a new VIN (`supervisor.rs:350-395` → `discovery::auto::run`, `auto.rs:188`, gated by `app_settings.auto_discovery`); ✅ route tuple persisted (`route_outcomes` `db.rs:906-917`, writer `auto.rs:256`, `discovered_modules.route_json` `db.rs:897`); ✅ global budget (`auto.rs:41-63`, enforced `:229-234`, `:300-304`); ⚠️ `closed` exists as a state and a coverage bucket but has no writer (`state.rs:127`, `coverage.rs:192`; `auto.rs:159-166` emits reached/refused/silent/transport_failed) | write `closed` with its reason (adapter, pins, protocol, evidence) so the `closed_route` bucket is reachable |
+| S2 | ✅ per-brand identity blocks as data (`uds_map.rs:184,457,1039`, test `:1823`); ✅ repeat-for-identity across connections (`identity.rs` `record_identity`, `state.rs` `next_identity_fit`, `auto.rs:361-380`); ⚠️ one brand's `F080/F0FE` parser is still Rust (`family.rs` `supplier_code_from_f0fe`); ❌ engine ECU fingerprint on the profiled vehicle (`join.rs` fixture: engine `6A8/688` "skipped, no fingerprint") | move the remaining identity parser into pack data; complete the engine ECU fingerprint (vehicle-side gap) |
+| S3 | ✅ `ecu_families` + compatibility tuple (`uds-map.json` v9, three families; `family.rs` `CompatibilityKey`/`match_family`); ✅ four-dimension states (`db.rs:918-941`, `state.rs:13-217`); ✅ inherited hypotheses (`join.rs` `join_vehicle`); ✅ coverage report (`coverage.rs:152-169`) | give the report a `scope` field and split scope status from knowledge status; surface `protocol_not_profiled` from `ProfiledLevel` (`uds_map.rs:422-429`) and `adapter_limited` with its source (see §13.7) |
+| R | ✅ result import as candidates (`research.rs` `ResearchPack`, `CandidateDidHypothesis`, `routes_for_exploration`); ⚠️ corpus exists as compiled packs (`research-packs.json`, `data/research/*.json`, `compile-research-pack.ts`, `docs/uds/brand-research-pack-specification.md`) with no index per module/DID; ❌ research task filing (nearest is `auto.rs:116` `notify_unknown_brand`, a notification, not a task) | a research task table and its call sites (no match, conflicted identity, unknown WMI); a queryable index per module and DID over the corpus |
+| S4 | ✅ bounded sweep runs (`plan.rs:1-9`, candidates `:315`, `uds.rs:576,680,728-790`); ⚠️ global budget only (`plan.rs:57-60` `SWEEP_BUDGET_SECS = 240`), no per-module cap; ⚠️ targets are not driven by S3 gaps (`plan.rs` never reads `hypotheses`, no sibling-band expansion); ❌ carry-over (`uds.rs:788-790` appends a message string only) | select targets from open hypotheses and sibling bands; per-module 30–90 s budget; persist where the sweep stopped so a later run resumes it |
+| S4x | ❌ not started (no `extended_scope`, `epoch` or `carry_over` symbol) | the whole stage: epochs with guard checks between them, carry-over ranges only, `extended_scope_complete` for exactly the ranges swept |
+| S5 | ✅ learning state (`state.rs:14` `LEARNING_STATE_SETTING`, `api/ops.rs:542,554`, `db.rs:2118`, `coverage.rs:129,400`); ✅ correlation engine as a pure, replay-tested module (`elm/correlation/*`, `analyze` at `correlation/mod.rs:24`, 46 tests, fixtures `tests/fixtures/psa/c41/correlation/`) with no caller outside tests; ⚠️ `hypothesis_samples` has schema, retention and tests but no production writer (`db.rs:942-951`, `:2361-2385`; `insert_hypothesis_sample` is test-only); ❌ adaptive cohort (probe polling is still a fixed set) | a `discovery::learn` step that timestamps and writes samples, calls `analyze` and writes `vehicle_fit` back; the adaptive cohort with module rotation, retirement and the 20 % occupancy measure |
+| S6 | ✅ state-tree generation from hypotheses (`api/ops.rs` `GuidedSteps`/`guided_steps()`, `coverage.rs:119-143`); ⚠️ rendered as a Lab tab, not full screen (`views/lab/GuidedCorrelation.tsx` via `views/lab/plan.ts:64`, mounted `views/Lab.tsx:71`) | the full-screen guided presentation of the §9 contract |
+| S7 | ⚠️ state machine partial: `KnowledgeState` + `check_activation` (`state.rs`) and a no-downgrade guard (`db.rs:1846-1858`), but promotion thresholds are unmodelled and `PATCH /hypotheses/{id}` accepts any valid value; ⚠️ `knowledge_candidates` + `GET /knowledge/candidates` (`db.rs:953-979`, `api/mod.rs:333,721`) are read-only, with publication disabled; ❌ review queue | transition rules that gate promotion on evidence; a contribution export artifact; the review queue |
+| API/MCP | ✅ `GET /vehicles/{id}/coverage` (`api/mod.rs:328`); ✅ `GET /hypotheses` and `PATCH /hypotheses/{id}` (`:331`, `:334`); ✅ `POST /vehicles/{id}/join` (`:332`); ✅ `GET /guided-steps` (`:330`, Tauri `lib.rs:187,408`); ✅ learning state as `GET`/`PUT /learning-state` (`:336`, `openapi.rs:106-107`) | MCP tools for coverage, hypotheses, guided steps and learning state |
 
-**Implementation order** (value first, continuous traffic last):
+**Implementation order** (value first, continuous traffic last). Status as of
+2026-09-01, from `discovery-protocol-audit-2026-09-01.md`:
 
-1. `ecu_families` schema and compatibility matching.
-2. Evidence-linked coverage report.
-3. The four state dimensions in DB and API.
-4. Inherited hypotheses, disabled by default.
+1. `ecu_families` schema and compatibility matching. *(done in #52)*
+2. Evidence-linked coverage report. *(done in #52)*
+3. The four state dimensions in DB and API. *(done in #52)*
+4. Inherited hypotheses, disabled by default. *(done in #52)*
 5. Correlation engine as a pure module, replay-tested on the existing C4
-   captures (runs #4–#49, the drive log, session 3).
+   captures (runs #4–#49, the drive log, session 3). *(done in #54; the module
+   has no caller outside tests)*
 6. Learning state with a bounded adaptive cohort; onboarding "learning drive".
-7. Automatic S1/S2 on new vehicles.
-8. Globally budgeted S4.
-9. Guided-step state tree generation and the full-screen flow.
-10. Research task filing + corpus; contribution and review pipeline.
+   *(open: the learning state exists, the cohort does not)*
+7. Automatic S1/S2 on new vehicles. *(done in #61 and #67)*
+8. Globally budgeted S4. *(open: a 240 s global budget exists; gap-driven
+   targets, per-module budgets and carry-over do not)*
+9. Guided-step state tree generation and the full-screen flow. *(state tree
+   done in `api/ops.rs`; the full-screen flow is open)*
+10. Research task filing + corpus; contribution and review pipeline. *(open:
+    packs are compiled and imported, task filing and the pipeline are not)*
 
 ---
 
 ## 13. Acceptance criteria
 
-1. Connecting the C4 to a fresh install with `uds-map` v7: within three
+1. Connecting the C4 to a fresh install with `uds-map` v9: within three
    minutes and without any button, every reachable module it can safely
    fingerprint is identified at `identity_fit = provisional`, compatible decodes are inherited as untested
    fits, and an evidence-linked coverage report exists. After one learning
