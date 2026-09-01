@@ -1426,7 +1426,7 @@ pub fn poll_probes(
                 p.did,
             ) {
                 if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
-                    let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
+                    let key = p.reading_key();
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
                     out.insert(key, v);
                 }

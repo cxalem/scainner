@@ -6,7 +6,7 @@
 // (elm/transport/enumerate.rs) so every client gets the same rows. What is
 // left here is the fallback for a payload from an older backend that has
 // none of the enriched fields yet.
-import type { AdapterCandidate, DeviceKind } from "@scainner/core";
+import type { AdapterCandidate, DeviceKind, NearbyDevice } from "@scainner/core";
 
 export type DeviceRow = {
   /** The candidate's id: a `/dev` path, or a MAC for a paired-only row. */
@@ -41,6 +41,51 @@ export function deviceRows(candidates: readonly AdapterCandidate[]): DeviceRow[]
       selectable: kind !== "paired_only" && path != null,
     };
   });
+}
+
+/** A scan result, ready to render: one row per radio the scan found that is
+ *  not already in the list. */
+export type NearbyRow = {
+  /** Dashed MAC — the id, and the label when the radio has no name. */
+  addr: string;
+  /** The vendor's friendly name, null when the radio answered without one. */
+  name: string | null;
+  /** What to show: the name wherever there is one, else the address. */
+  label: string;
+};
+
+/** The Nearby group's rows. The backend already drops what it knows to be
+ *  paired, but the device list is enumerated separately and can be newer —
+ *  so anything with a row here is dropped again rather than offered a
+ *  second Pair button. Addresses are compared case-insensitively; the first
+ *  sighting of a repeated address wins. */
+export function nearbyRows(
+  found: readonly NearbyDevice[],
+  rows: readonly DeviceRow[],
+): NearbyRow[] {
+  const known = new Set(
+    rows.map((row) => row.btAddr?.toLowerCase()).filter((addr): addr is string => addr != null),
+  );
+  const seen = new Set<string>();
+  const out: NearbyRow[] = [];
+  for (const device of found) {
+    const addr = device.addr.toLowerCase();
+    if (device.paired || known.has(addr) || seen.has(addr)) continue;
+    seen.add(addr);
+    const name = device.name?.trim() || null;
+    out.push({ addr, name, label: name ?? addr });
+  }
+  return out;
+}
+
+/** What the PIN field opens on. Almost every OBD dongle ships with 1234,
+ *  so that is the default — unless the profile already remembers one that
+ *  worked, which is the better guess for a second dongle from the same
+ *  box. */
+export const DEFAULT_PIN = "1234";
+
+export function defaultPin(saved?: string | null): string {
+  return saved?.trim() || DEFAULT_PIN;
 }
 
 /** The row the gate starts on: the one the profile points at, else the

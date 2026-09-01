@@ -121,6 +121,15 @@ let adapterProfile: AdapterProfile = {
   baud: 115200,
   timing: "default",
 };
+// The two radios a scan "finds" in the preview: one with a friendly name,
+// one that answered without one (so the UI's address fallback is visible).
+const NEARBY_IN_PREVIEW = [
+  { addr: "aa-bb-cc-dd-ee-11", name: "OBD Reader 4821", paired: false },
+  { addr: "aa-bb-cc-dd-ee-12", name: null, paired: false },
+];
+// What the preview has paired this session — appended to list_adapters so
+// a paired device becomes an ordinary row, exactly as it does for real.
+const pairedInPreview: Record<string, unknown>[] = [];
 // Starts undiscovered on purpose — mock mode's default scenario is "no
 // vehicle yet," so the first connect walks through the real discovery flow
 // (see DiscoveryFlow.tsx) instead of dropping straight into a populated
@@ -297,6 +306,61 @@ function buildHistory(key: string, hours: number): HistoryPoint[] {
     const ts = new Date(now - (n - i) * ((hours * 3600_000) / n));
     return { ts: ts.toISOString().replace("T", " ").slice(0, 19), value: Number(jitter(b, b * 0.08).toFixed(2)) };
   });
+}
+
+// ---------- reading keys (the Over-time sensor browser) ----------
+
+// One row per key the demo car has ever recorded: the standard gauges, then
+// a probe key per pack-known DID on each of its modules. `last_ts` is spread
+// across the last few weeks so the browser's "in this range" dot and the
+// "show all" tail both have something to show.
+type MockReadingKey = {
+  key: string;
+  label: string | null;
+  unit: string | null;
+  module_key: string | null;
+  module_name: string | null;
+  source: "standard" | "probe";
+  probe_id: number | null;
+  last_ts: string | null;
+};
+
+const MOCK_NOW = new Date("2026-08-19T08:00:00Z").getTime();
+const minutesAgo = (m: number) => new Date(MOCK_NOW - m * 60_000).toISOString().replace("T", " ").slice(0, 19);
+
+function readingKeyDetails(args?: Record<string, unknown>): MockReadingKey[] {
+  const v = vehicleFor(args);
+  const standard: MockReadingKey[] = ["voltage", "coolant", "rpm", "speed", "load", "fuel_level"].map((key, i) => ({
+    key,
+    label: null,
+    unit: null,
+    module_key: null,
+    module_name: "Standard",
+    source: "standard",
+    probe_id: null,
+    last_ts: minutesAgo(i * 4),
+  }));
+  let probeId = 0;
+  const probes: MockReadingKey[] = v.modules.flatMap((m) =>
+    didsBoundTo(v.brand, m)
+      .slice(0, 5)
+      .map((d) => {
+        probeId += 1;
+        // Every third key last answered weeks ago, so it sits in the tail.
+        const age = probeId % 3 === 0 ? 60 * 24 * 20 + probeId : probeId * 37;
+        return {
+          key: `uds_${slug(d.label)}`,
+          label: d.label,
+          unit: null,
+          module_key: moduleKey(m),
+          module_name: m.name,
+          source: "probe" as const,
+          probe_id: probeId,
+          last_ts: minutesAgo(age),
+        };
+      }),
+  );
+  return [...standard, ...probes];
 }
 
 // ---------- diagnose ----------
@@ -603,9 +667,11 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     }
     case "list_adapters":
       // Shaped like the enriched backend payload: one row per physical
-      // device, a Bluetooth node, a bare USB node, and one radio the OS
-      // has not exposed a serial node for.
+      // device, a Bluetooth node, a bare USB node, one radio the OS has
+      // not exposed a serial node for — and anything paired from the
+      // device screen during this preview session.
       return [
+        ...pairedInPreview,
         {
           kind: "serial",
           id: "/dev/cu.OBDLinkMX49489",
@@ -643,6 +709,36 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           last_used: false,
         },
       ] as T;
+    case "discover_adapters": {
+      // The real inquiry blocks for about 8 s; 2 s is enough to see the
+      // scanning row without making the preview tedious.
+      await delay(2000);
+      return NEARBY_IN_PREVIEW.filter(
+        (device) => !pairedInPreview.some((row) => row.bt_addr === device.addr),
+      ) as T;
+    }
+    case "pair_adapter": {
+      await delay(1200);
+      const addr = String(args?.addr ?? "");
+      const found = NEARBY_IN_PREVIEW.find((device) => device.addr === addr);
+      if (!found) throw new Error(`no device at ${addr}`);
+      if (String(args?.pin ?? "") !== "1234") throw new Error("wrong PIN");
+      // Pairing gives the OS a serial node, so the device joins the list
+      // as an ordinary connectable row rather than a paired-only one.
+      pairedInPreview.push({
+        kind: "serial",
+        id: `/dev/cu.${(found.name ?? addr).replace(/[^A-Za-z0-9]/g, "")}`,
+        name: `cu.${(found.name ?? addr).replace(/[^A-Za-z0-9]/g, "")}`,
+        likely_obd: true,
+        connected: true,
+        display_name: found.name ?? addr,
+        device_kind: "bluetooth_serial",
+        path: `/dev/cu.${(found.name ?? addr).replace(/[^A-Za-z0-9]/g, "")}`,
+        bt_addr: addr,
+        last_used: false,
+      });
+      return undefined as T;
+    }
     case "get_adapter_profile":
       return adapterProfile as T;
     case "set_adapter_profile":
@@ -779,7 +875,9 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       } as ObdClearOutcome as T;
     }
     case "reading_keys":
-      return ["fuel_level"] as T;
+      return readingKeyDetails(args).map((r) => r.key) as T;
+    case "reading_key_details":
+      return readingKeyDetails(args) as T;
     case "history":
       return buildHistory(String(args?.key ?? "voltage"), Number(args?.sinceHours ?? 24)) as T;
     case "db_path":

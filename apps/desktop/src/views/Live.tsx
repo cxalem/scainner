@@ -68,6 +68,7 @@ function SensorCard({
   live,
   pinned,
   onPin,
+  onOpenTrend,
   seen,
 }: {
   def: SensorDef;
@@ -75,6 +76,8 @@ function SensorCard({
   live: boolean;
   pinned: boolean;
   onPin: () => void;
+  /** Opens this same sensor in "Over time" (views/live/Trend.tsx). */
+  onOpenTrend: () => void;
   /** Running min/max for keys with no declared range. */
   seen: Map<string, { lo: number; hi: number }>;
 }) {
@@ -94,7 +97,14 @@ function SensorCard({
   return (
     <Card className="gap-[7px] px-3.5 py-3">
       <div className="flex items-baseline gap-2">
-        <span className="flex-1 truncate text-[12px] text-neutral-400">{def.name}</span>
+        <button
+          type="button"
+          onClick={onOpenTrend}
+          title={t.live.viewOverTime}
+          className="min-w-0 flex-1 truncate rounded-sm text-left text-[12px] text-neutral-400 transition-colors duration-150 hover:text-accent-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none"
+        >
+          {def.name}
+        </button>
         <IconButton icon={pinned ? PinOff : Pin} label={pinned ? t.live.unpin : t.live.pin} active={pinned} onClick={onPin} className="p-0" />
       </div>
       <div className="text-[22px] leading-none text-neutral-100">
@@ -197,6 +207,8 @@ export function Live({
   const t = useT();
   const { locale } = useLocale();
   const [mode, setMode] = useState<"now" | "trend">("now");
+  // Lifted here so a "Now" card can open its own sensor in "Over time".
+  const [trendKey, setTrendKey] = useState("voltage");
   const { pins, toggle } = usePins(vehicleId);
   const probesQuery = useListProbes(vehicleId);
   const probes = probesQuery.data ?? [];
@@ -272,6 +284,10 @@ export function Live({
                       live={liveOk}
                       pinned={pins.includes(d.key)}
                       onPin={() => toggle(d.key)}
+                      onOpenTrend={() => {
+                        setTrendKey(d.key);
+                        setMode("trend");
+                      }}
                       seen={seen}
                     />
                   ))}
@@ -281,7 +297,7 @@ export function Live({
             <AllSensorsCard connected={liveOk} />
           </>
         ) : (
-          <Trend vehicleId={vehicleId} />
+          <Trend vehicleId={vehicleId} sensorKey={trendKey} onSelectKey={setTrendKey} />
         )}
       </Swap>
     </>

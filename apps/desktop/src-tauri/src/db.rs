@@ -361,6 +361,33 @@ pub struct UdsProbe {
     pub hypothesis_id: Option<i64>,
 }
 
+impl UdsProbe {
+    /// The `readings.key` this probe's samples are stored under. The poller
+    /// (`elm::uds::poll_probes`) derives that key from the label, so anything
+    /// mapping a stored key back to its probe has to spell it the same way —
+    /// hence one function, used by both sides.
+    pub fn reading_key(&self) -> String {
+        format!("uds_{}", self.label.to_lowercase().replace(' ', "_"))
+    }
+}
+
+/// One stored reading key with what the UI needs to name and group it: where
+/// it came from (a standard OBD gauge or a UDS probe), which module answers
+/// it, and when it was last written. `label`/`unit` are None for standard
+/// keys — those are named by the frontend's gauge table.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct ReadingKeyRow {
+    pub key: String,
+    pub label: Option<String>,
+    pub unit: Option<String>,
+    pub module_key: Option<String>,
+    pub module_name: Option<String>,
+    /// `standard` | `probe`
+    pub source: String,
+    pub probe_id: Option<i64>,
+    pub last_ts: Option<String>,
+}
+
 fn manual_origin() -> String {
     "manual".into()
 }
@@ -3600,6 +3627,70 @@ impl Db {
             .collect()
     }
 
+    /// The same keys, each with the probe and module behind it and the newest
+    /// timestamp it carries. Two cheap queries: the keys plus their MAX(ts)
+    /// (served by idx_readings_vehicle_key_ts) and the discovered module
+    /// names. The probe join happens in memory because a probe's reading key
+    /// is derived from its label (`UdsProbe::reading_key`), which SQL would
+    /// have to spell a second time.
+    pub fn reading_key_details(&self, vehicle_id: Option<i64>) -> Vec<ReadingKeyRow> {
+        // list_probes takes the same (non-reentrant) lock — call it first.
+        let probes = self.list_probes(vehicle_id);
+        let conn = self.0.lock().unwrap();
+        let mut module_names: BTreeMap<String, String> = BTreeMap::new();
+        {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT module_address, module_name FROM discovered_modules
+                     WHERE vehicle_id IS ?1 AND module_name IS NOT NULL",
+                )
+                .unwrap();
+            let rows = stmt
+                .query_map(params![vehicle_id], |r| {
+                    Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+                })
+                .unwrap()
+                .filter_map(Result::ok);
+            for (address, name) in rows {
+                module_names.insert(address.to_lowercase().replace('/', "_"), name);
+            }
+        }
+        let mut stmt = conn
+            .prepare(
+                "SELECT key, MAX(ts) FROM readings WHERE vehicle_id IS ?1
+                 GROUP BY key ORDER BY key",
+            )
+            .unwrap();
+        stmt.query_map(params![vehicle_id], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+        })
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|(key, last_ts)| match probes.iter().find(|p| p.reading_key() == key) {
+            Some(p) => ReadingKeyRow {
+                key,
+                label: Some(p.label.clone()),
+                unit: (!p.unit.is_empty()).then(|| p.unit.clone()),
+                module_key: Some(p.module.clone()),
+                module_name: module_names.get(&p.module).cloned(),
+                source: "probe".into(),
+                probe_id: Some(p.id),
+                last_ts,
+            },
+            None => ReadingKeyRow {
+                key,
+                label: None,
+                unit: None,
+                module_key: None,
+                module_name: Some("Standard".into()),
+                source: "standard".into(),
+                probe_id: None,
+                last_ts,
+            },
+        })
+        .collect()
+    }
+
     pub fn connection_count(&self, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.query_row(
@@ -3826,6 +3917,60 @@ mod tests {
         assert_eq!(db.reading_keys(Some(peugeot)), vec!["coolant"]);
         assert_eq!(db.history(Some(citroen), "rpm", 24.0).len(), 1);
         assert!(db.history(Some(citroen), "coolant", 24.0).is_empty());
+    }
+
+    #[test]
+    fn reading_key_details_names_probe_keys_and_leaves_standard_ones_bare() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        let conn_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(conn_id, vehicle);
+        db.upsert_discovered_module(vehicle, "6A8/688", Some("Engine ECU"));
+        let probe = UdsProbe {
+            id: 0,
+            vehicle_id: Some(vehicle),
+            module: "6a8_688".into(),
+            did: 0xD422,
+            label: "Steering angle".into(),
+            unit: "°".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.1,
+            bias: 0.0,
+            enabled: true,
+            origin: "manual".into(),
+            hypothesis_id: None,
+        };
+        let probe_id = db.add_probe(&probe, Some(vehicle));
+        db.insert_reading(conn_id, Some(vehicle), "voltage", 12.6);
+        db.insert_reading(conn_id, Some(vehicle), &probe.reading_key(), -3.5);
+
+        let rows = db.reading_key_details(Some(vehicle));
+        assert_eq!(
+            rows.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(),
+            vec!["uds_steering_angle", "voltage"]
+        );
+
+        let steering = &rows[0];
+        assert_eq!(steering.source, "probe");
+        assert_eq!(steering.label.as_deref(), Some("Steering angle"));
+        assert_eq!(steering.unit.as_deref(), Some("°"));
+        assert_eq!(steering.module_key.as_deref(), Some("6a8_688"));
+        assert_eq!(steering.module_name.as_deref(), Some("Engine ECU"));
+        assert_eq!(steering.probe_id, Some(probe_id));
+        assert!(steering.last_ts.is_some());
+
+        let voltage = &rows[1];
+        assert_eq!(voltage.source, "standard");
+        assert_eq!(voltage.label, None);
+        assert_eq!(voltage.module_key, None);
+        assert_eq!(voltage.module_name.as_deref(), Some("Standard"));
+        assert_eq!(voltage.probe_id, None);
+        assert!(voltage.last_ts.is_some());
+
+        // Another car's keys never appear here, same rule as reading_keys.
+        let (other, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
+        assert!(db.reading_key_details(Some(other)).is_empty());
     }
 
     #[test]

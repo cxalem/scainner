@@ -12,12 +12,12 @@
 import { Context, Effect, type ParseResult } from "effect";
 import type { InvokeError } from "../errors";
 import type { ConnStatus } from "../schema/connection";
-import type { AdapterCandidate, AdapterProfile } from "../schema/adapter";
+import type { AdapterCandidate, AdapterProfile, NearbyDevice } from "../schema/adapter";
 import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/vehicle";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
 import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
-import type { HistoryPoint } from "../schema/history";
+import type { HistoryPoint, ReadingKey } from "../schema/history";
 
 export class DeviceService extends Context.Tag("DeviceService")<
   DeviceService,
@@ -27,6 +27,14 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly connect: () => Effect.Effect<void, InvokeError>;
     readonly disconnect: () => Effect.Effect<void, InvokeError>;
     readonly listAdapters: () => Effect.Effect<AdapterCandidate[], InvokeError | ParseResult.ParseError>;
+    /// Scan for Bluetooth devices in range that are not paired yet. Blocks
+    /// for `seconds` (clamped 3..15 by the backend) — the radio inquiry is
+    /// the wait — and omits anything already paired, since those are
+    /// `listAdapters` rows already.
+    readonly discoverAdapters: (seconds: number) => Effect.Effect<NearbyDevice[], InvokeError | ParseResult.ParseError>;
+    /// Pair one device the user chose, with the PIN they typed. There is no
+    /// unpair, and nothing pairs on its own.
+    readonly pairAdapter: (addr: string, pin: string) => Effect.Effect<void, InvokeError>;
     readonly adapterProfile: () => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     readonly setAdapterProfile: (profile: AdapterProfile) => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     // vehicle / report (schema v2: keyed by vehicle id, never by VIN string)
@@ -49,6 +57,12 @@ export class DeviceService extends Context.Tag("DeviceService")<
     // sensors / history
     readonly allSensors: () => Effect.Effect<SensorReading[], InvokeError | ParseResult.ParseError>;
     readonly readingKeys: (vehicleId: number | null) => Effect.Effect<string[], InvokeError>;
+    /// The same keys, each with its label, unit, module and newest
+    /// timestamp. `readingKeys` stays the plain list so the agent API and
+    /// the MCP tool over it keep their shape.
+    readonly readingKeyDetails: (
+      vehicleId: number | null,
+    ) => Effect.Effect<ReadingKey[], InvokeError | ParseResult.ParseError>;
     readonly historyPoints: (vehicleId: number | null, key: string, hours: number) => Effect.Effect<HistoryPoint[], InvokeError | ParseResult.ParseError>;
     // uds
     readonly udsModules: () => Effect.Effect<UdsModule[], InvokeError | ParseResult.ParseError>;

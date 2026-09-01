@@ -12,6 +12,7 @@ import {
   ConnStatus,
   AdapterCandidate,
   AdapterProfile,
+  NearbyDevice,
   CarReport,
   VehicleInfo,
   VehicleListRow,
@@ -31,6 +32,7 @@ import {
   UdsProbe,
   SensorReading,
   HistoryPoint,
+  ReadingKey,
 } from "@scainner/core";
 
 // Collapses the try/promise/catch boilerplate every hand-written call site
@@ -56,6 +58,8 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   connect: () => call<void>("connect"),
   disconnect: () => call<void>("disconnect"),
   listAdapters: () => decoded(Schema.mutable(Schema.Array(AdapterCandidate)), "list_adapters"),
+  discoverAdapters: (seconds) => decoded(Schema.mutable(Schema.Array(NearbyDevice)), "discover_adapters", { seconds }),
+  pairAdapter: (addr, pin) => call<void>("pair_adapter", { addr, pin }),
   adapterProfile: () => decoded(AdapterProfile, "get_adapter_profile"),
   setAdapterProfile: (profile) => decoded(AdapterProfile, "set_adapter_profile", { profile }),
 
@@ -75,6 +79,7 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
 
   allSensors: () => decoded(Schema.mutable(Schema.Array(SensorReading)), "all_sensors"),
   readingKeys: (vehicleId) => call<string[]>("reading_keys", { vehicleId }),
+  readingKeyDetails: (vehicleId) => decoded(Schema.mutable(Schema.Array(ReadingKey)), "reading_key_details", { vehicleId }),
   historyPoints: (vehicleId, key, hours) => decoded(Schema.mutable(Schema.Array(HistoryPoint)), "history", { vehicleId, key, sinceHours: hours }),
 
   udsModules: () => decoded(Schema.mutable(Schema.Array(UdsModule)), "uds_modules"),
