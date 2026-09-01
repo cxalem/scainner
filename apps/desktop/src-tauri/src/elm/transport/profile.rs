@@ -78,8 +78,16 @@ impl TimingProfile {
 
 /// The JSON field names of `AdapterProfile`, for rejecting unknown keys in
 /// a partial `PUT /adapter` body instead of silently dropping them.
-pub const FIELDS: [&str; 8] = [
-    "kind", "path", "bt_addr", "pin", "host", "port", "baud", "timing",
+pub const FIELDS: [&str; 9] = [
+    "kind",
+    "path",
+    "bt_addr",
+    "pin",
+    "allow_repair",
+    "host",
+    "port",
+    "baud",
+    "timing",
 ];
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,6 +101,8 @@ pub struct AdapterProfile {
     pub bt_addr: Option<String>,
     /// Bluetooth pairing PIN used by the re-pair step.
     pub pin: String,
+    /// Explicit permission for the last-resort unpair/re-pair step.
+    pub allow_repair: bool,
     /// Host of a Wi-Fi adapter (`tcp_elm`).
     pub host: Option<String>,
     pub port: u16,
@@ -107,6 +117,7 @@ impl Default for AdapterProfile {
             path: None,
             bt_addr: None,
             pin: "1234".into(),
+            allow_repair: false,
             host: None,
             port: 35000,
             baud: 115_200,
@@ -141,6 +152,9 @@ impl AdapterProfile {
             bt_addr: get("adapter.bt_addr", Some("SCAINNER_OBD_MAC"))
                 .map(|s| s.to_ascii_lowercase()),
             pin: get("adapter.pin", Some("SCAINNER_OBD_PIN")).unwrap_or(defaults.pin),
+            allow_repair: get("adapter.allow_repair", None)
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(defaults.allow_repair),
             host: get("adapter.host", None),
             port: get("adapter.port", None)
                 .and_then(|s| s.parse().ok())
@@ -168,6 +182,7 @@ impl AdapterProfile {
             ("adapter.path", self.path.clone().unwrap_or_default()),
             ("adapter.bt_addr", self.bt_addr.clone().unwrap_or_default()),
             ("adapter.pin", self.pin.clone()),
+            ("adapter.allow_repair", self.allow_repair.to_string()),
             ("adapter.host", self.host.clone().unwrap_or_default()),
             ("adapter.port", self.port.to_string()),
             ("adapter.baud", self.baud.to_string()),
@@ -382,13 +397,14 @@ mod tests {
             path: Some("/dev/ttyUSB0".into()),
             bt_addr: None,
             pin: "6789".into(),
+            allow_repair: true,
             host: None,
             port: 35000,
             baud: 38400,
             timing: TimingProfile::Fast,
         };
         let rows: HashMap<&str, String> = original.to_settings().into_iter().collect();
-        assert_eq!(rows.len(), 8, "one row per adapter.* key");
+        assert_eq!(rows.len(), 9, "one row per adapter.* key");
         let back = AdapterProfile::from_lookups(|k| rows.get(k).cloned(), |_| Some("ENV".into()));
         assert_eq!(
             back, original,

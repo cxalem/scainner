@@ -3,7 +3,7 @@
 // dongle attached). Lets the UI be previewed and iterated on without a car.
 // See `src/lib/tauri.ts` for how this is switched in.
 
-import type { ConnStatus, Live as LiveMap } from "@scainner/core";
+import type { AdapterProfile, ConnStatus, Live as LiveMap } from "@scainner/core";
 import type { CarReport, KeyStat } from "@scainner/core";
 import type { ClearOutcome, UdsModule, UdsProbe } from "@scainner/core";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@scainner/core";
@@ -111,6 +111,17 @@ export function mockListen<T>(event: string, cb: Listener<T>): Promise<() => voi
 // ---------- fake "the car is idling" live loop ----------
 
 let connState: ConnStatus = { state: "disconnected" };
+let adapterProfile: AdapterProfile = {
+  kind: "elm_serial",
+  path: null,
+  bt_addr: null,
+  pin: "1234",
+  allow_repair: false,
+  host: null,
+  port: 35000,
+  baud: 115200,
+  timing: "default",
+};
 // Starts undiscovered on purpose — mock mode's default scenario is "no
 // vehicle yet," so the first connect walks through the real discovery flow
 // (see DiscoveryFlow.tsx) instead of dropping straight into a populated
@@ -587,6 +598,17 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       emit("conn-status", connState);
       return undefined as T;
     }
+    case "list_adapters":
+      return [
+        { kind: "serial", id: "/dev/cu.OBDLinkMX49489", name: "OBDLink MX+", likely_obd: true, connected: null },
+        { kind: "serial", id: "/dev/cu.V-LINK", name: "Vgate iCar Pro", likely_obd: true, connected: null },
+        { kind: "serial", id: "/dev/cu.usbserial-110", name: "USB ELM327", likely_obd: true, connected: null },
+      ] as T;
+    case "get_adapter_profile":
+      return adapterProfile as T;
+    case "set_adapter_profile":
+      adapterProfile = args?.profile as AdapterProfile;
+      return adapterProfile as T;
     case "list_vehicles":
       return (discovered
         ? DEMO_VEHICLES.map((v) => ({ id: v.id, vin: v.vin, display_name: null, connections: Math.round(47 / v.id) }))

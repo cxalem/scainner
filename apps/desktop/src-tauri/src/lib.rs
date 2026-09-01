@@ -27,6 +27,24 @@ fn disconnect(state: State) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn list_adapters() -> Vec<elm::transport::enumerate::AdapterCandidate> {
+    ops::list_adapters()
+}
+
+#[tauri::command]
+fn get_adapter_profile(state: State) -> elm::transport::AdapterProfile {
+    ops::adapter_profile(&state)
+}
+
+#[tauri::command]
+fn set_adapter_profile(
+    state: State,
+    profile: elm::transport::AdapterProfile,
+) -> Result<elm::transport::AdapterProfile, String> {
+    ops::set_adapter_profile(&state, profile)
+}
+
+#[tauri::command]
 fn uds_cancel_scan(state: State) {
     ops::uds_cancel_scan(&state)
 }
@@ -357,6 +375,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             connect,
             disconnect,
+            list_adapters,
+            get_adapter_profile,
+            set_adapter_profile,
             conn_status,
             scan_dtcs,
             clear_dtcs,

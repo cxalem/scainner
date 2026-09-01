@@ -12,6 +12,7 @@
 import { Context, Effect, type ParseResult } from "effect";
 import type { InvokeError } from "../errors";
 import type { ConnStatus } from "../schema/connection";
+import type { AdapterCandidate, AdapterProfile } from "../schema/adapter";
 import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/vehicle";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
 import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
@@ -25,6 +26,9 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly connStatus: () => Effect.Effect<ConnStatus, InvokeError | ParseResult.ParseError>;
     readonly connect: () => Effect.Effect<void, InvokeError>;
     readonly disconnect: () => Effect.Effect<void, InvokeError>;
+    readonly listAdapters: () => Effect.Effect<AdapterCandidate[], InvokeError | ParseResult.ParseError>;
+    readonly adapterProfile: () => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
+    readonly setAdapterProfile: (profile: AdapterProfile) => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     // vehicle / report (schema v2: keyed by vehicle id, never by VIN string)
     readonly listVehicles: () => Effect.Effect<VehicleListRow[], InvokeError | ParseResult.ParseError>;
     readonly vehicleReport: (vehicleId: number) => Effect.Effect<CarReport, InvokeError | ParseResult.ParseError>;

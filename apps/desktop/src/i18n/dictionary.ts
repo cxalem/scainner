@@ -799,6 +799,14 @@ export type Dictionary = {
     brandUnknownYet: string;
     connect: string;
     connecting: string;
+    chooseAdapter: string;
+    adapterTitle: string;
+    adapterHelp: string;
+    refreshAdapters: string;
+    useAdapter: string;
+    noAdapters: string;
+    pairedNeedsPort: string;
+    adapterSaveFailed: string;
     browseOffline: string;
     lines: { lookingForAdapter: string; wakingBus: string; vinRead: (vin: string) => string; recognisedFrom: (brand: string, wmi: string) => string; adapterFound: (v: string) => string };
   };

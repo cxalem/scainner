@@ -14,6 +14,7 @@ import { brandFromVin } from "@/lib/brand";
 import { appearVariants, fadeVariants, screenVariants, staggerItem } from "@/motion";
 import type { ConnStatus } from "@scainner/core";
 import { useT } from "@/i18n";
+import { AdapterPicker } from "@/components/AdapterPicker";
 
 const VehicleScene = lazy(() => import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })));
 
@@ -59,6 +60,7 @@ export function ConnectGate({
   // The connection log: one line per thing the backend told us, in order.
   // Rebuilt from ConnStatus transitions, so it only ever says what happened.
   const [lines, setLines] = useState<string[]>([]);
+  const [adapterPickerOpen, setAdapterPickerOpen] = useState(false);
   const seen = useRef({ adapter: false, vin: false });
   useEffect(() => {
     if (conn.state === "disconnected") {
@@ -189,6 +191,12 @@ export function ConnectGate({
           </span>
         </div>
 
+        {!connecting && !connected && (
+          <Button variant="ghost" size="sm" onClick={() => setAdapterPickerOpen(true)}>
+            {t.gate.chooseAdapter}
+          </Button>
+        )}
+
         <AnimatePresence initial={false}>
           {conn.detail && conn.state === "disconnected" && (
             <motion.p
@@ -209,6 +217,7 @@ export function ConnectGate({
           </Button>
         )}
       </div>
+      <AdapterPicker open={adapterPickerOpen} onClose={() => setAdapterPickerOpen(false)} />
     </motion.div>
   );
 }

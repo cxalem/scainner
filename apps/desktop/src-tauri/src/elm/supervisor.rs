@@ -500,8 +500,14 @@ fn run_loop(
                         }
                         consecutive_failures = 0;
                     }
-                    Err(_) => {
+                    Err(error) => {
                         consecutive_failures += 1;
+                        log::warn!(
+                            "live PID {} failed ({}/9 before reconnect): {}",
+                            pid.pid,
+                            consecutive_failures,
+                            error
+                        );
                         if consecutive_failures > 8 {
                             // Link is gone — go back to reconnect phase.
                             db.end_connection(ctx.connection_id);
@@ -660,7 +666,8 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
     if start > 0 {
         log::debug!("connect: skipping to attempt {start} (learned from last successful connect)");
     }
-    for attempt in start..3 {
+    let attempts = if profile.allow_repair { 3 } else { 2 };
+    for attempt in start.min(attempts - 1)..attempts {
         if attempt == 0 {
             if std::path::Path::new(&port).exists() {
                 log::debug!("connect attempt 0: fast path — port exists, probing directly");
@@ -715,16 +722,18 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                     db.setting_set(&level_key, &attempt.to_string());
                     return Ok(d);
                 }
-                if attempt == 2 {
-                    return Err(
-                        "port opens but the adapter never returns a prompt after 3 BT cycles"
-                            .into(),
-                    );
+                if attempt + 1 == attempts {
+                    let message = if profile.allow_repair {
+                        "port opens but the adapter never returns a prompt after reconnect and explicit re-pair"
+                    } else {
+                        "port opens but the adapter never returns a prompt after reconnect; automatic unpair/re-pair is disabled"
+                    };
+                    return Err(message.into());
                 }
             }
             Err(e) => {
                 log::debug!("connect attempt {attempt}: open failed -> {e}");
-                if attempt == 2 {
+                if attempt + 1 == attempts {
                     return Err(e.to_string());
                 }
                 std::thread::sleep(Duration::from_secs(1));
