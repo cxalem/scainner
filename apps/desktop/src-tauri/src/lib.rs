@@ -245,7 +245,7 @@ fn list_probes(state: State, vehicle_id: Option<i64>) -> Vec<db::UdsProbe> {
 }
 
 #[tauri::command]
-fn add_probe(state: State, probe: db::UdsProbe, vehicle_id: Option<i64>) -> i64 {
+fn add_probe(state: State, probe: db::UdsProbe, vehicle_id: Option<i64>) -> Result<i64, String> {
     ops::add_probe(&state, &probe, vehicle_id)
 }
 

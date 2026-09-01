@@ -1436,8 +1436,13 @@ pub fn poll_probes(
     out
 }
 
+/// What the background poller is allowed to put on the bus. A manual probe
+/// is the user typing a DID in; a hypothesis-linked probe is the user
+/// activating a hypothesis. Both are explicit decisions. A discovery probe
+/// with no such decision behind it stays a stored decode definition for
+/// explicit reads and never becomes background traffic on its own.
 fn should_poll_probe(probe: &crate::db::UdsProbe) -> bool {
-    probe.enabled && probe.origin == "manual"
+    probe.enabled && (probe.origin == "manual" || probe.hypothesis_id.is_some())
 }
 
 // ---------- auto-discovery (the "no ranges, one button" engine) ----------
@@ -1634,6 +1639,22 @@ fn ensure_module_key(
     // fails on a duplicate, the key is already usable regardless.
     let _ = db.add_uds_module(&key, &label, &req_hex, &resp_hex);
     key
+}
+
+/// The resolvable module key for a discovered module address (the
+/// `req/resp` form `discovered_modules.module_address` stores): the
+/// profile's or the user's custom key when the route is already documented,
+/// otherwise a freshly registered custom key. `None` when the address is not
+/// a valid pair. Callers outside this module need this because a probe whose
+/// module key `resolve` cannot find would fail silently forever.
+pub fn module_key_for_address(
+    db: &Db,
+    vin: Option<&str>,
+    address: &str,
+    name: Option<&str>,
+) -> Option<String> {
+    let (req, resp) = parse_module_address(address)?;
+    Some(ensure_module_key(db, vin, req, resp, name))
 }
 
 /// Point physical addressing at one route without the full per-module
@@ -2641,11 +2662,44 @@ mod tests {
             bias: 0.0,
             enabled: true,
             origin: "discovery".into(),
+            hypothesis_id: None,
         };
         assert!(!should_poll_probe(&probe));
         assert!(should_poll_probe(&crate::db::UdsProbe {
             origin: "manual".into(),
             ..probe
+        }));
+    }
+
+    #[test]
+    fn a_hypothesis_linked_probe_is_polled_only_while_it_is_enabled() {
+        // The other half of the same rule: activating a hypothesis IS the
+        // decision to read that DID, so its probe polls even though
+        // discovery created it. Switching the hypothesis off switches the
+        // probe off, and that must stop the traffic.
+        let linked = crate::db::UdsProbe {
+            id: 1,
+            vehicle_id: Some(1),
+            module: "7e0_7e8".into(),
+            did: 0xD422,
+            label: "Battery voltage".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.01,
+            bias: 0.0,
+            enabled: true,
+            origin: "discovery".into(),
+            hypothesis_id: Some(42),
+        };
+        assert!(should_poll_probe(&linked));
+        assert!(!should_poll_probe(&crate::db::UdsProbe {
+            enabled: false,
+            ..linked.clone()
+        }));
+        assert!(!should_poll_probe(&crate::db::UdsProbe {
+            hypothesis_id: None,
+            ..linked
         }));
     }
 
