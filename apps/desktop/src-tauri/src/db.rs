@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 11;
+const SCHEMA_VERSION: i64 = 12;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -127,6 +127,18 @@ pub struct HypothesisRow {
     pub sample_count: i64,
     pub created_at: String,
     pub updated_at: String,
+    /// What justified the current `knowledge_state`, when a promotion needed
+    /// justifying (schema v12). Cleared when the state is retracted.
+    pub evidence: Option<HypothesisEvidence>,
+}
+
+/// The evidence stored beside a hypothesis: the verification runs whose
+/// discriminating result carried it to its knowledge state. Kept as JSON so
+/// later evidence kinds (a second vehicle, a pack citation) can join it
+/// without another column.
+#[derive(Serialize, serde::Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct HypothesisEvidence {
+    pub run_ids: Vec<i64>,
 }
 
 /// What a join (or any other writer) asks to persist for one hypothesis.
@@ -143,12 +155,15 @@ pub struct HypothesisUpsert {
 }
 
 /// Fields a state transition may touch. `None` leaves the column alone.
+/// `evidence_run_ids` is what the caller offers in support of a
+/// knowledge-state promotion; an empty list retracts the stored evidence.
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct HypothesisPatch {
     pub knowledge_state: Option<String>,
     pub vehicle_fit: Option<String>,
     pub activation: Option<String>,
     pub label: Option<String>,
+    pub evidence_run_ids: Option<Vec<i64>>,
 }
 
 /// Raw sample storage is written by the S5 hypothesis poll (a follow-up in
@@ -964,7 +979,7 @@ impl Db {
                 route_json TEXT,
                 did INTEGER NOT NULL,
                 payload_length INTEGER,
-                knowledge_state TEXT NOT NULL DEFAULT 'observed',
+                knowledge_state TEXT NOT NULL DEFAULT 'unknown',
                 label TEXT,
                 decode_json TEXT,
                 shape_json TEXT,
@@ -1026,6 +1041,19 @@ impl Db {
                 )?;
             }
         }
+        // v12: the evidence behind a knowledge-state promotion. The
+        // verification runs that discriminated the decode are kept on the
+        // hypothesis, so the gate in `patch_hypothesis` can be audited
+        // afterwards instead of taken on trust. Idempotent like v7/v10.
+        let _ = conn.execute("ALTER TABLE hypotheses ADD COLUMN evidence_json TEXT", []);
+        // The projected table's pre-v12 default sat outside the protocol
+        // vocabulary (`KnowledgeState::parse` does not accept 'observed');
+        // `unknown` is the state it always meant.
+        let _ = conn.execute(
+            "UPDATE knowledge_candidates SET knowledge_state = 'unknown'
+             WHERE knowledge_state = 'observed'",
+            [],
+        );
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
         Ok(Self(Mutex::new(conn)))
     }
@@ -1764,7 +1792,7 @@ impl Db {
             "SELECT m.module_address, m.family_id, m.supplier,
                     m.spare_part_number, m.hardware_version, m.software_version,
                     m.system_name, m.route_json, d.byte_length,
-                    COALESCE(h.knowledge_state, 'observed'),
+                    COALESCE(h.knowledge_state, 'unknown'),
                     COALESCE(h.label, d.label), h.decode_json, h.shape_json,
                     h.interpretations_json, h.confidence, h.discriminating_test,
                     m.fingerprint_match_key, COALESCE(m.cloud_id, 'legacy-' || m.id)
@@ -2234,7 +2262,7 @@ impl Db {
                 h.shape_json, h.interpretations_json, h.confidence, h.discriminating_test,
                 h.next_step_id, h.family_id,
                 (SELECT COUNT(*) FROM hypothesis_samples s WHERE s.hypothesis_id = h.id),
-                h.created_at, h.updated_at
+                h.created_at, h.updated_at, h.evidence_json
          FROM hypotheses h JOIN discovered_modules m ON m.id = h.module_id";
 
     fn hypothesis_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<HypothesisRow> {
@@ -2259,6 +2287,9 @@ impl Db {
             sample_count: r.get(17)?,
             created_at: r.get(18)?,
             updated_at: r.get(19)?,
+            evidence: r
+                .get::<_, Option<String>>(20)?
+                .and_then(|json| serde_json::from_str(&json).ok()),
         })
     }
 
@@ -2285,6 +2316,11 @@ impl Db {
     /// Apply a state transition with the rules from `discovery::state`
     /// enforced against the row's resulting state. `learning_on` is the
     /// `app_settings.learning_state` flag. Err carries the violated rule.
+    ///
+    /// A knowledge-state promotion is gated on evidence: the runs named in
+    /// `patch.evidence_run_ids` must be this vehicle's own, and the rules in
+    /// `check_knowledge` decide whether they carry the claim. The runs that
+    /// justified the state are stored, and a retraction drops them.
     pub fn patch_hypothesis(
         &self,
         id: i64,
@@ -2292,7 +2328,8 @@ impl Db {
         learning_on: bool,
     ) -> Result<Option<HypothesisRow>, crate::elm::discovery::state::RuleViolation> {
         use crate::elm::discovery::state::{
-            check_activation, Activation, KnowledgeState, RuleViolation, VehicleFit,
+            check_activation, check_knowledge, Activation, KnowledgeEvidence, KnowledgeState,
+            RuleViolation, VehicleFit,
         };
         let Some(current) = self.hypothesis(id) else {
             return Ok(None);
@@ -2315,16 +2352,66 @@ impl Db {
             Some(v) => Activation::parse(v).ok_or_else(|| invalid("activation", v))?,
             None => Activation::parse(&current.activation).unwrap_or(Activation::Disabled),
         };
+        let was =
+            KnowledgeState::parse(&current.knowledge_state).unwrap_or(KnowledgeState::Unknown);
+        let offered = patch.evidence_run_ids.clone().unwrap_or_default();
+        // Evidence has to be this car's own: a run recorded against another
+        // vehicle proves nothing about this decode.
+        {
+            let conn = self.0.lock().unwrap();
+            for run in &offered {
+                let mine: i64 = conn
+                    .query_row(
+                        "SELECT COUNT(*) FROM verification_runs WHERE id = ?1 AND vehicle_id = ?2",
+                        params![run, current.vehicle_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0);
+                if mine == 0 {
+                    return Err(RuleViolation {
+                        rule: "evidence_run_not_found",
+                        reason: format!(
+                            "verification run #{run} is not recorded for vehicle #{}",
+                            current.vehicle_id
+                        ),
+                    });
+                }
+            }
+        }
+        check_knowledge(
+            was,
+            knowledge,
+            &KnowledgeEvidence {
+                run_ids: offered.clone(),
+                vehicle_fit: fit,
+            },
+        )?;
         check_activation(activation, fit, learning_on)?;
+        // Offered runs replace what was stored; an empty list and any move
+        // off `locally_confirmed` retract it.
+        let evidence_json = match &patch.evidence_run_ids {
+            Some(ids) if !ids.is_empty() => serde_json::to_string(&HypothesisEvidence {
+                run_ids: ids.clone(),
+            })
+            .ok(),
+            Some(_) => None,
+            None if knowledge != was && knowledge != KnowledgeState::LocallyConfirmed => None,
+            None => current
+                .evidence
+                .as_ref()
+                .and_then(|e| serde_json::to_string(e).ok()),
+        };
         let conn = self.0.lock().unwrap();
         let _ = conn.execute(
             "UPDATE hypotheses SET knowledge_state = ?1, vehicle_fit = ?2, activation = ?3,
-             label = COALESCE(?4, label), updated_at = datetime('now') WHERE id = ?5",
+             label = COALESCE(?4, label), evidence_json = ?5, updated_at = datetime('now')
+             WHERE id = ?6",
             params![
                 knowledge.as_str(),
                 fit.as_str(),
                 activation.as_str(),
                 patch.label,
+                evidence_json,
                 id
             ],
         );
@@ -4244,11 +4331,18 @@ mod tests {
             db.patch_hypothesis(id, &bad, true).unwrap_err().rule,
             "unknown_state_value"
         );
+        // Confirming the decode needs the run that discriminated it.
+        let connection = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection, vehicle);
+        let run = db
+            .insert_verification_run(vehicle, connection, "corr-v1", "{}")
+            .unwrap();
         let confirm = HypothesisPatch {
             vehicle_fit: Some("matched".into()),
             activation: Some("enabled".into()),
             knowledge_state: Some("locally_confirmed".into()),
             label: Some("Wheel speed RL".into()),
+            evidence_run_ids: Some(vec![run]),
         };
         let row = db.patch_hypothesis(id, &confirm, false).unwrap().unwrap();
         assert_eq!(
@@ -4260,6 +4354,202 @@ mod tests {
             ("matched", "enabled", "locally_confirmed")
         );
         assert!(db.patch_hypothesis(999, &confirm, false).unwrap().is_none());
+    }
+
+    /// The knowledge dimension is gated the way activation is: a promotion
+    /// to a confirmed state has to name the evidence, and the evidence has
+    /// to belong to this car.
+    #[test]
+    fn promoting_knowledge_requires_this_vehicles_discriminating_runs() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000002");
+        let connection = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection, vehicle);
+        let module = db.upsert_discovered_module(vehicle, "6AD/68D", None);
+        let (id, _) = db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id: vehicle,
+            module_id: module,
+            did: 0xD400,
+            knowledge_state: "inherited".into(),
+            ..Default::default()
+        });
+        // Another car's evidence, recorded before this one's.
+        let (other_vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000003");
+        let other_connection = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(other_connection, other_vehicle);
+        let other_run = db
+            .insert_verification_run(other_vehicle, other_connection, "corr-v1", "{}")
+            .unwrap();
+        let run = db
+            .insert_verification_run(vehicle, connection, "corr-v1", "{}")
+            .unwrap();
+
+        // Matched, but nothing to point at.
+        let bare = HypothesisPatch {
+            knowledge_state: Some("locally_confirmed".into()),
+            vehicle_fit: Some("matched".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            db.patch_hypothesis(id, &bare, false).unwrap_err().rule,
+            "locally_confirmed_requires_evidence"
+        );
+        // A run, but this car never matched the decode.
+        let unmatched = HypothesisPatch {
+            knowledge_state: Some("locally_confirmed".into()),
+            evidence_run_ids: Some(vec![run]),
+            ..Default::default()
+        };
+        assert_eq!(
+            db.patch_hypothesis(id, &unmatched, false).unwrap_err().rule,
+            "locally_confirmed_requires_evidence"
+        );
+        // Someone else's run proves nothing here.
+        let borrowed = HypothesisPatch {
+            evidence_run_ids: Some(vec![other_run]),
+            ..bare.clone()
+        };
+        assert_eq!(
+            db.patch_hypothesis(id, &borrowed, false).unwrap_err().rule,
+            "evidence_run_not_found"
+        );
+        // Fleet knowledge never starts on one car.
+        for fleet in ["community_verified", "oem_confirmed"] {
+            let patch = HypothesisPatch {
+                knowledge_state: Some(fleet.into()),
+                evidence_run_ids: Some(vec![run]),
+                ..bare.clone()
+            };
+            assert_eq!(
+                db.patch_hypothesis(id, &patch, false).unwrap_err().rule,
+                "fleet_state_not_settable_locally"
+            );
+        }
+        // Nothing was written while the rules refused.
+        assert_eq!(db.hypothesis(id).unwrap().knowledge_state, "inherited");
+        assert!(db.hypothesis(id).unwrap().evidence.is_none());
+
+        let confirmed = HypothesisPatch {
+            evidence_run_ids: Some(vec![run]),
+            ..bare.clone()
+        };
+        let row = db.patch_hypothesis(id, &confirmed, false).unwrap().unwrap();
+        assert_eq!(row.knowledge_state, "locally_confirmed");
+        assert_eq!(row.evidence.unwrap().run_ids, vec![run]);
+        // An unrelated patch leaves the evidence where it is.
+        let relabel = HypothesisPatch {
+            label: Some("Wheel speed RL".into()),
+            ..Default::default()
+        };
+        let row = db.patch_hypothesis(id, &relabel, false).unwrap().unwrap();
+        assert_eq!(row.evidence.unwrap().run_ids, vec![run]);
+    }
+
+    #[test]
+    fn retracting_a_confirmation_drops_the_evidence_behind_it() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000004");
+        let connection = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection, vehicle);
+        let module = db.upsert_discovered_module(vehicle, "6AD/68D", None);
+        let (id, _) = db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id: vehicle,
+            module_id: module,
+            did: 0xD400,
+            knowledge_state: "unknown".into(),
+            ..Default::default()
+        });
+        let run = db
+            .insert_verification_run(vehicle, connection, "corr-v1", "{}")
+            .unwrap();
+        let row = db
+            .patch_hypothesis(
+                id,
+                &HypothesisPatch {
+                    knowledge_state: Some("locally_confirmed".into()),
+                    vehicle_fit: Some("matched".into()),
+                    evidence_run_ids: Some(vec![run]),
+                    ..Default::default()
+                },
+                false,
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(row.evidence.unwrap().run_ids, vec![run]);
+
+        // A human demotion is allowed and takes the evidence with it.
+        let row = db
+            .patch_hypothesis(
+                id,
+                &HypothesisPatch {
+                    knowledge_state: Some("research_candidate".into()),
+                    ..Default::default()
+                },
+                false,
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(row.knowledge_state, "research_candidate");
+        assert!(row.evidence.is_none());
+        let stored: Option<String> =
+            db.0.lock()
+                .unwrap()
+                .query_row(
+                    "SELECT evidence_json FROM hypotheses WHERE id = ?1",
+                    params![id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+        assert!(stored.is_none());
+    }
+
+    /// A database written before v12 opens with the evidence column and with
+    /// the projected state moved into the protocol's vocabulary.
+    #[test]
+    fn a_pre_v12_database_gains_evidence_and_the_protocol_vocabulary() {
+        let path =
+            std::env::temp_dir().join(format!("scainner-v11-{}.sqlite3", uuid::Uuid::new_v4()));
+        {
+            let db = Db::open(&path).expect("fresh db");
+            let conn = db.0.lock().unwrap();
+            // Wind the file back to the v11 shape.
+            conn.execute_batch(
+                "ALTER TABLE hypotheses DROP COLUMN evidence_json;
+                 INSERT INTO knowledge_candidates
+                     (compatibility_key, scope, module_address, did, knowledge_state)
+                 VALUES ('family:example', 'ecu_family', '6AD/68D', 54272, 'observed');
+                 PRAGMA user_version = 11;",
+            )
+            .unwrap();
+        }
+        let db = Db::open(&path).expect("reopened db");
+        let conn = db.0.lock().unwrap();
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
+        let state: String = conn
+            .query_row(
+                "SELECT knowledge_state FROM knowledge_candidates WHERE compatibility_key = 'family:example'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(state, "unknown");
+        assert!(crate::elm::discovery::state::KnowledgeState::parse(&state).is_some());
+        let has_evidence_column: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('hypotheses') WHERE name = 'evidence_json'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(has_evidence_column, 1);
+        drop(conn);
+        drop(db);
+        for suffix in ["", "-wal", "-shm"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", path.display()));
+        }
     }
 
     #[test]
@@ -4303,6 +4593,9 @@ mod tests {
             family_id: Some("cont_esp_mk100_psa".into()),
             ..Default::default()
         });
+        let run = db
+            .insert_verification_run(vehicle, connection, "corr-v1", "{}")
+            .unwrap();
         db.patch_hypothesis(
             hypothesis,
             &HypothesisPatch {
@@ -4310,6 +4603,7 @@ mod tests {
                 vehicle_fit: Some("matched".into()),
                 activation: Some("enabled".into()),
                 label: None,
+                evidence_run_ids: Some(vec![run]),
             },
             false,
         )

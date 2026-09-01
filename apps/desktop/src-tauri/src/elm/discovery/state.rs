@@ -230,6 +230,58 @@ pub fn check_activation(
     }
 }
 
+/// What a caller offers in support of a knowledge-state promotion: the
+/// verification runs whose discriminating result justifies the claim, and
+/// what this vehicle has shown about the decode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KnowledgeEvidence {
+    pub run_ids: Vec<i64>,
+    pub vehicle_fit: VehicleFit,
+}
+
+/// The knowledge rules (protocol §3, §4 S7). `knowledge_state` says what the
+/// world knows, so one car may only raise it as far as that car can prove:
+/// `locally_confirmed` needs a discriminating run on a decode this vehicle
+/// matched, and the fleet states (`community_verified`, `oem_confirmed`) are
+/// never settable from here — they arrive with a pack or through the inherit
+/// path. Demotions stay allowed: a human may retract a claim, and the caller
+/// then drops the evidence that backed it.
+pub fn check_knowledge(
+    from: KnowledgeState,
+    to: KnowledgeState,
+    evidence: &KnowledgeEvidence,
+) -> Result<(), RuleViolation> {
+    if from == to {
+        return Ok(());
+    }
+    match to {
+        KnowledgeState::LocallyConfirmed if evidence.vehicle_fit != VehicleFit::Matched => {
+            Err(RuleViolation {
+                rule: "locally_confirmed_requires_evidence",
+                reason: format!(
+                    "knowledge_state=locally_confirmed requires vehicle_fit=matched (current: {})",
+                    evidence.vehicle_fit.as_str()
+                ),
+            })
+        }
+        KnowledgeState::LocallyConfirmed if evidence.run_ids.is_empty() => Err(RuleViolation {
+            rule: "locally_confirmed_requires_evidence",
+            reason: "knowledge_state=locally_confirmed requires at least one discriminating \
+                     verification run in evidence_run_ids"
+                .into(),
+        }),
+        KnowledgeState::CommunityVerified | KnowledgeState::OemConfirmed => Err(RuleViolation {
+            rule: "fleet_state_not_settable_locally",
+            reason: format!(
+                "knowledge_state={} is fleet knowledge: it arrives with a pack or a second \
+                 vehicle, never from a patch on this car",
+                to.as_str()
+            ),
+        }),
+        _ => Ok(()),
+    }
+}
+
 /// The identity-confidence rule. `previous` is what the module last
 /// answered and on which connection (None on the first read). Stable needs
 /// the same material on an *independent* connection: a repeat inside the
@@ -380,6 +432,106 @@ mod tests {
         assert!(check_activation(Activation::Learning, VehicleFit::Untested, true).is_ok());
         let err = check_activation(Activation::Learning, VehicleFit::Matched, false).unwrap_err();
         assert_eq!(err.rule, "learning_requires_learning_state");
+    }
+
+    /// Evidence helper for the knowledge rules: what a caller would send
+    /// with the patch.
+    fn evidence(run_ids: &[i64], vehicle_fit: VehicleFit) -> KnowledgeEvidence {
+        KnowledgeEvidence {
+            run_ids: run_ids.to_vec(),
+            vehicle_fit,
+        }
+    }
+
+    #[test]
+    fn a_state_that_does_not_move_never_needs_evidence() {
+        for state in KnowledgeState::ALL {
+            assert!(
+                check_knowledge(state, state, &evidence(&[], VehicleFit::Untested)).is_ok(),
+                "{} should be allowed to stay put",
+                state.as_str()
+            );
+        }
+    }
+
+    #[test]
+    fn candidate_and_reported_states_need_no_evidence() {
+        for to in [
+            KnowledgeState::ResearchCandidate,
+            KnowledgeState::CommunityReported,
+            KnowledgeState::Inherited,
+            KnowledgeState::ReachedOnVehicle,
+            KnowledgeState::VerifiedOnVehicle,
+        ] {
+            assert!(
+                check_knowledge(
+                    KnowledgeState::Unknown,
+                    to,
+                    &evidence(&[], VehicleFit::Untested)
+                )
+                .is_ok(),
+                "{} is not a confirmation",
+                to.as_str()
+            );
+        }
+    }
+
+    #[test]
+    fn locally_confirmed_needs_a_matched_fit_and_a_discriminating_run() {
+        let from = KnowledgeState::Inherited;
+        let to = KnowledgeState::LocallyConfirmed;
+        // Nothing at all.
+        let err = check_knowledge(from, to, &evidence(&[], VehicleFit::Untested)).unwrap_err();
+        assert_eq!(err.rule, "locally_confirmed_requires_evidence");
+        // A run, but this car never matched the decode.
+        for fit in [
+            VehicleFit::Untested,
+            VehicleFit::Conflicted,
+            VehicleFit::Insufficient,
+        ] {
+            let err = check_knowledge(from, to, &evidence(&[7], fit)).unwrap_err();
+            assert_eq!(err.rule, "locally_confirmed_requires_evidence");
+        }
+        // Matched, but no run to point at.
+        let err = check_knowledge(from, to, &evidence(&[], VehicleFit::Matched)).unwrap_err();
+        assert_eq!(err.rule, "locally_confirmed_requires_evidence");
+        // Both: the only way up.
+        assert!(check_knowledge(from, to, &evidence(&[7], VehicleFit::Matched)).is_ok());
+    }
+
+    #[test]
+    fn fleet_states_are_never_set_from_one_car() {
+        for to in [
+            KnowledgeState::CommunityVerified,
+            KnowledgeState::OemConfirmed,
+        ] {
+            for from in [
+                KnowledgeState::Unknown,
+                KnowledgeState::Inherited,
+                KnowledgeState::LocallyConfirmed,
+            ] {
+                let err =
+                    check_knowledge(from, to, &evidence(&[7, 8], VehicleFit::Matched)).unwrap_err();
+                assert_eq!(err.rule, "fleet_state_not_settable_locally");
+            }
+        }
+    }
+
+    #[test]
+    fn a_demotion_is_always_allowed() {
+        for to in [
+            KnowledgeState::Unknown,
+            KnowledgeState::ResearchCandidate,
+            KnowledgeState::CommunityReported,
+            KnowledgeState::Inherited,
+        ] {
+            assert!(check_knowledge(
+                KnowledgeState::LocallyConfirmed,
+                to,
+                &evidence(&[], VehicleFit::Conflicted)
+            )
+            .is_ok());
+        }
     }
 
     #[test]
