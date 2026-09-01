@@ -392,8 +392,36 @@ pub fn list_probes(state: &AppState, vehicle_id: Option<i64>) -> Vec<db::UdsProb
     state.db.list_probes(vehicle_id)
 }
 
-pub fn add_probe(state: &AppState, probe: &db::UdsProbe, vehicle_id: Option<i64>) -> i64 {
-    state.db.add_probe(probe, vehicle_id)
+/// A probe whose module key nothing can resolve is a probe that fails
+/// silently forever: `uds::resolve` only matches a key documented for the
+/// vehicle's VIN or registered as a custom module, so an unresolvable key
+/// never reaches the bus and never reports why. Reject it at the door with
+/// the keys that would have worked.
+pub fn add_probe(
+    state: &AppState,
+    probe: &db::UdsProbe,
+    vehicle_id: Option<i64>,
+) -> Result<i64, String> {
+    let vin = vehicle_id
+        .and_then(|id| state.db.vehicle(id))
+        .and_then(|v| v.vin);
+    let custom = elm::uds::custom_modules(&state.db, vin.as_deref());
+    if elm::uds::resolve(vin.as_deref(), &probe.module, &custom).is_none() {
+        let known: Vec<String> = elm::uds::modules_for_vin(vin.as_deref(), &custom)
+            .into_iter()
+            .map(|m| m.key)
+            .collect();
+        let known = if known.is_empty() {
+            "none for this vehicle — add a custom module first".to_string()
+        } else {
+            known.join(", ")
+        };
+        return Err(format!(
+            "unknown module key {:?}: it is neither documented for this vehicle nor registered as a custom module (available: {known})",
+            probe.module
+        ));
+    }
+    Ok(state.db.add_probe(probe, vehicle_id))
 }
 
 pub fn delete_probe(state: &AppState, id: i64) {
@@ -564,13 +592,91 @@ pub fn set_learning_state(state: &AppState, on: bool) -> usize {
 }
 
 /// State transition with the rules enforced; `Err` is the violated rule.
+/// The hypothesis and its probe are one pipeline, so the stored transition
+/// is followed by the probe side of it (see `sync_hypothesis_probe`).
 pub fn patch_hypothesis(
     state: &AppState,
     id: i64,
     patch: &db::HypothesisPatch,
 ) -> Result<Option<db::HypothesisRow>, discovery::state::RuleViolation> {
     let learning_on = learning_state(state);
-    state.db.patch_hypothesis(id, patch, learning_on)
+    let row = state.db.patch_hypothesis(id, patch, learning_on)?;
+    // Only an activation change moves the probe: a label or knowledge patch
+    // on an enabled hypothesis must not switch a probe the user turned off
+    // back on.
+    if patch.activation.is_some() {
+        if let Some(row) = &row {
+            sync_hypothesis_probe(state, row);
+        }
+    }
+    Ok(row)
+}
+
+/// The probe a hypothesis asks for, built from the inherited decode its
+/// `decode_json` carries (the shape the family join writes). A hypothesis
+/// without a decode still gets a probe — reading the raw first byte is what
+/// a probe with no formula has always meant, and the DID has to be read
+/// before anyone can work out its formula. `signed` is deliberately
+/// dropped: the stored probe shape has no such column, so carrying it over
+/// would be a claim the poller cannot honour.
+fn probe_from_hypothesis(row: &db::HypothesisRow, module: String) -> db::UdsProbe {
+    let decode = row
+        .decode_json
+        .as_deref()
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok())
+        .unwrap_or(serde_json::Value::Null);
+    let number = |key: &str| decode.get(key).and_then(serde_json::Value::as_f64);
+    let text = |key: &str| {
+        decode
+            .get(key)
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string)
+    };
+    db::UdsProbe {
+        id: 0,
+        vehicle_id: Some(row.vehicle_id),
+        module,
+        did: row.did,
+        label: row
+            .label
+            .clone()
+            .or_else(|| text("label"))
+            .unwrap_or_else(|| format!("DID {:04X}", row.did)),
+        unit: text("unit").unwrap_or_default(),
+        offset: number("offset").unwrap_or(0.0).max(0.0) as usize,
+        len: number("len").unwrap_or(1.0).max(1.0) as usize,
+        scale: number("scale").unwrap_or(1.0),
+        bias: number("bias").unwrap_or(0.0),
+        enabled: true,
+        origin: "discovery".into(),
+        hypothesis_id: Some(row.id),
+    }
+}
+
+/// One sensor pipeline. Activating a hypothesis is the user saying "read
+/// this DID on this car", so it gets the probe that makes that happen —
+/// adopting the row they may already have created by hand rather than
+/// duplicating it. Any other activation switches the linked probe off.
+/// Called after the transition is stored, so it acts on the state that
+/// actually passed the rule check, not on the requested one.
+fn sync_hypothesis_probe(state: &AppState, row: &db::HypothesisRow) {
+    if row.activation != discovery::state::Activation::Enabled.as_str() {
+        state.db.disable_hypothesis_probes(row.id);
+        return;
+    }
+    let vin = state.db.vehicle(row.vehicle_id).and_then(|v| v.vin);
+    // The module key has to be the one `uds::resolve` answers to; the
+    // discovered address is not it. `module_key_for_address` registers the
+    // route as a custom module when nothing documents it yet, which is
+    // exactly what makes the probe readable afterwards.
+    let Some(module) =
+        elm::uds::module_key_for_address(&state.db, vin.as_deref(), &row.module_address, None)
+    else {
+        return;
+    };
+    state
+        .db
+        .link_hypothesis_probe(row.id, row.vehicle_id, &probe_from_hypothesis(row, module));
 }
 
 /// Markdown briefing about the car, ready to paste into any AI chat.
@@ -1039,4 +1145,232 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
         facts,
         steps,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::{HypothesisPatch, HypothesisUpsert, UdsProbe};
+
+    fn test_state() -> AppState {
+        AppState::new(
+            Arc::new(Db::open(std::path::Path::new(":memory:")).expect("in-memory db")),
+            PathBuf::from(":memory:"),
+        )
+    }
+
+    /// One car, one discovered module on it, one hypothesis on that module
+    /// carrying an inherited decode. Returns (vehicle id, hypothesis id).
+    fn car_with_a_hypothesis(state: &AppState) -> (i64, i64) {
+        let (vehicle_id, _) = state.db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module_id =
+            state
+                .db
+                .upsert_discovered_module(vehicle_id, "6AD/68D", Some("Chassis module"));
+        let (hypothesis_id, _) = state.db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id,
+            module_id,
+            did: 0xD400,
+            knowledge_state: "research_candidate".into(),
+            label: Some("Wheel speed".into()),
+            decode_json: Some(
+                r#"{"offset":0,"len":2,"scale":0.01,"bias":0.0,"unit":"km/h","signed":false}"#
+                    .into(),
+            ),
+            ..Default::default()
+        });
+        (vehicle_id, hypothesis_id)
+    }
+
+    fn enable(state: &AppState, hypothesis_id: i64) {
+        patch_hypothesis(
+            state,
+            hypothesis_id,
+            &HypothesisPatch {
+                vehicle_fit: Some("matched".into()),
+                activation: Some("enabled".into()),
+                ..Default::default()
+            },
+        )
+        .expect("a matched hypothesis may be enabled")
+        .expect("the hypothesis exists");
+    }
+
+    fn resolvable(state: &AppState, vehicle_id: i64, module: &str) -> bool {
+        let vin = state.db.vehicle(vehicle_id).and_then(|v| v.vin);
+        let custom = elm::uds::custom_modules(&state.db, vin.as_deref());
+        elm::uds::resolve(vin.as_deref(), module, &custom).is_some()
+    }
+
+    #[test]
+    fn enabling_a_hypothesis_creates_one_probe_the_reader_can_actually_resolve() {
+        let state = test_state();
+        let (vehicle_id, hypothesis_id) = car_with_a_hypothesis(&state);
+        assert!(list_probes(&state, Some(vehicle_id)).is_empty());
+
+        enable(&state, hypothesis_id);
+
+        let probes = list_probes(&state, Some(vehicle_id));
+        assert_eq!(probes.len(), 1, "activation produced exactly one probe");
+        let probe = &probes[0];
+        assert_eq!(probe.hypothesis_id, Some(hypothesis_id));
+        assert!(probe.enabled);
+        assert_eq!(probe.origin, "discovery");
+        assert_eq!(probe.did, 0xD400);
+        assert_eq!(probe.label, "Wheel speed");
+        assert_eq!((probe.offset, probe.len), (0, 2));
+        assert_eq!((probe.scale, probe.bias), (0.01, 0.0));
+        assert_eq!(probe.unit, "km/h");
+        // The discovered address is not a module key. Writing it would give
+        // a probe that fails silently forever.
+        assert_ne!(probe.module, "6AD/68D");
+        assert!(
+            resolvable(&state, vehicle_id, &probe.module),
+            "probe module {:?} is unreadable",
+            probe.module
+        );
+
+        // Enabling again is the same decision, not a second sensor.
+        enable(&state, hypothesis_id);
+        assert_eq!(list_probes(&state, Some(vehicle_id)).len(), 1);
+    }
+
+    #[test]
+    fn an_activated_hypothesis_adopts_the_probe_the_user_already_typed_in() {
+        let state = test_state();
+        let (vehicle_id, hypothesis_id) = car_with_a_hypothesis(&state);
+        let module = elm::uds::module_key_for_address(
+            &state.db,
+            state.db.vehicle(vehicle_id).and_then(|v| v.vin).as_deref(),
+            "6AD/68D",
+            None,
+        )
+        .expect("a valid address pair has a key");
+        let manual = UdsProbe {
+            id: 0,
+            vehicle_id: Some(vehicle_id),
+            module: module.clone(),
+            did: 0xD400,
+            label: "My own wheel speed".into(),
+            unit: "km/h".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.02,
+            bias: 0.0,
+            enabled: false,
+            origin: "manual".into(),
+            hypothesis_id: None,
+        };
+        let manual_id = state.db.add_probe(&manual, Some(vehicle_id));
+
+        enable(&state, hypothesis_id);
+
+        let probes = list_probes(&state, Some(vehicle_id));
+        assert_eq!(probes.len(), 1, "no duplicate row for a DID already saved");
+        assert_eq!(probes[0].id, manual_id);
+        assert_eq!(probes[0].hypothesis_id, Some(hypothesis_id));
+        assert!(probes[0].enabled);
+        assert_eq!(
+            (probes[0].label.as_str(), probes[0].scale),
+            ("My own wheel speed", 0.02),
+            "adoption records ownership, it does not rewrite the user's formula"
+        );
+    }
+
+    #[test]
+    fn switching_a_hypothesis_off_switches_its_probe_off_and_back_on_again() {
+        let state = test_state();
+        let (vehicle_id, hypothesis_id) = car_with_a_hypothesis(&state);
+        enable(&state, hypothesis_id);
+
+        patch_hypothesis(
+            &state,
+            hypothesis_id,
+            &HypothesisPatch {
+                activation: Some("disabled".into()),
+                ..Default::default()
+            },
+        )
+        .unwrap()
+        .unwrap();
+
+        let probes = list_probes(&state, Some(vehicle_id));
+        assert_eq!(probes.len(), 1, "the definition is kept, only switched off");
+        assert!(!probes[0].enabled);
+        assert_eq!(probes[0].hypothesis_id, Some(hypothesis_id));
+
+        enable(&state, hypothesis_id);
+        let probes = list_probes(&state, Some(vehicle_id));
+        assert_eq!(probes.len(), 1);
+        assert!(probes[0].enabled);
+    }
+
+    #[test]
+    fn turning_the_learning_state_off_switches_linked_probes_off_too() {
+        let state = test_state();
+        let (vehicle_id, hypothesis_id) = car_with_a_hypothesis(&state);
+        set_learning_state(&state, true);
+        enable(&state, hypothesis_id);
+        // Straight to the store, so the probe is still on when the cascade
+        // runs — exactly the state the cascade exists to clean up.
+        state
+            .db
+            .patch_hypothesis(
+                hypothesis_id,
+                &HypothesisPatch {
+                    activation: Some("learning".into()),
+                    ..Default::default()
+                },
+                true,
+            )
+            .unwrap()
+            .unwrap();
+        assert!(list_probes(&state, Some(vehicle_id))[0].enabled);
+
+        assert_eq!(set_learning_state(&state, false), 1);
+
+        let probes = list_probes(&state, Some(vehicle_id));
+        assert!(
+            !probes[0].enabled,
+            "learning off must stop the traffic it authorised"
+        );
+        assert_eq!(probes[0].hypothesis_id, Some(hypothesis_id));
+    }
+
+    #[test]
+    fn a_probe_whose_module_key_resolves_to_nothing_is_refused() {
+        let state = test_state();
+        let (vehicle_id, _) = state.db.ensure_vehicle("VR7EXAMPLE0000001");
+        let probe = |module: &str| UdsProbe {
+            id: 0,
+            vehicle_id: Some(vehicle_id),
+            module: module.into(),
+            did: 0xD422,
+            label: "Battery voltage".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.01,
+            bias: 0.0,
+            enabled: true,
+            origin: "manual".into(),
+            hypothesis_id: None,
+        };
+
+        let err = add_probe(&state, &probe("typo_module"), Some(vehicle_id)).unwrap_err();
+        assert!(err.contains("typo_module"), "{err}");
+        assert!(
+            list_probes(&state, Some(vehicle_id)).is_empty(),
+            "a probe that could never answer must not be stored"
+        );
+
+        let vin = state.db.vehicle(vehicle_id).and_then(|v| v.vin);
+        let custom = elm::uds::custom_modules(&state.db, vin.as_deref());
+        let key = elm::uds::modules_for_vin(vin.as_deref(), &custom)
+            .first()
+            .map(|m| m.key.clone())
+            .expect("this vehicle has at least one documented module");
+        assert!(add_probe(&state, &probe(&key), Some(vehicle_id)).is_ok());
+        assert_eq!(list_probes(&state, Some(vehicle_id)).len(), 1);
+    }
 }

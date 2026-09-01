@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 12;
+const SCHEMA_VERSION: i64 = 13;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -353,6 +353,12 @@ pub struct UdsProbe {
     /// shipped knowledge map changes.
     #[serde(default = "manual_origin")]
     pub origin: String,
+    /// Set when the probe exists because a hypothesis was activated (schema
+    /// v13). One sensor pipeline: the hypothesis is the decision to read
+    /// this DID, the probe is how that decision reaches the bus — so a
+    /// linked probe is polled whatever its origin says.
+    #[serde(default)]
+    pub hypothesis_id: Option<i64>,
 }
 
 fn manual_origin() -> String {
@@ -757,7 +763,8 @@ impl Db {
                 scale REAL NOT NULL DEFAULT 1.0,
                 bias REAL NOT NULL DEFAULT 0.0,
                 enabled INTEGER NOT NULL DEFAULT 1,
-                origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual','discovery'))
+                origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual','discovery')),
+                hypothesis_id INTEGER REFERENCES hypotheses(id)
             );
             -- Auto-discovery shape (product-plan.md): no writer yet, the
             -- discovery-engine stream is later — tables exist so the shape
@@ -1052,6 +1059,15 @@ impl Db {
         let _ = conn.execute(
             "UPDATE knowledge_candidates SET knowledge_state = 'unknown'
              WHERE knowledge_state = 'observed'",
+            [],
+        );
+        // v13: a probe may be owned by a hypothesis. Activating a
+        // hypothesis is the user's decision to read that DID, and this
+        // column is how that decision reaches the poller instead of dying
+        // in a second, never-polled table. NULL on every existing row:
+        // probes created before v13 keep their old `origin` semantics.
+        let _ = conn.execute(
+            "ALTER TABLE uds_probes ADD COLUMN hypothesis_id INTEGER REFERENCES hypotheses(id)",
             [],
         );
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
@@ -2148,6 +2164,14 @@ impl Db {
     /// one statement. Returns how many rows changed.
     pub fn disable_learning_hypotheses(&self) -> usize {
         let conn = self.0.lock().unwrap();
+        // The probes a learning hypothesis owns go off with it, or the
+        // supervisor would keep reading DIDs the flag no longer allows
+        // through the other half of the pipeline.
+        let _ = conn.execute(
+            "UPDATE uds_probes SET enabled = 0 WHERE hypothesis_id IN
+               (SELECT id FROM hypotheses WHERE activation = 'learning')",
+            [],
+        );
         conn.execute(
             "UPDATE hypotheses SET activation = 'disabled', updated_at = datetime('now')
              WHERE activation = 'learning'",
@@ -2819,7 +2843,8 @@ impl Db {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
-                "SELECT id, vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin
+                "SELECT id, vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled,
+                        origin, hypothesis_id
                  FROM uds_probes WHERE vehicle_id IS ?1 OR vehicle_id IS NULL ORDER BY id",
             )
             .unwrap();
@@ -2837,6 +2862,7 @@ impl Db {
                 bias: r.get(9)?,
                 enabled: r.get(10)?,
                 origin: r.get(11)?,
+                hypothesis_id: r.get(12)?,
             })
         })
         .unwrap()
@@ -2847,8 +2873,8 @@ impl Db {
     pub fn add_probe(&self, p: &UdsProbe, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, cloud_id)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual', ?11)",
+            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, hypothesis_id, cloud_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual', NULL, ?11)",
             params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled, Self::new_cloud_id()],
         )
         .ok();
@@ -2954,6 +2980,69 @@ impl Db {
             params![id, enabled],
         )
         .ok();
+    }
+
+    /// A hypothesis that has just been activated owns a probe: the row that
+    /// makes the poller actually read that DID. An existing row for the same
+    /// (vehicle, module, DID) is adopted whatever its origin — that is the
+    /// whole point, a user who already saved this DID by hand must not end
+    /// up with a duplicate. Otherwise a new `discovery`-origin row is
+    /// created from the hypothesis's decode. Returns the probe's id.
+    pub fn link_hypothesis_probe(&self, hypothesis_id: i64, vehicle_id: i64, p: &UdsProbe) -> i64 {
+        let conn = self.0.lock().unwrap();
+        // A manual row wins the adoption when both exist: it is the one the
+        // user can see and edit in the probe list.
+        let existing: Option<i64> = conn
+            .query_row(
+                "SELECT id FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3
+                 ORDER BY origin = 'manual' DESC, id LIMIT 1",
+                params![vehicle_id, p.module, p.did as i64],
+                |r| r.get(0),
+            )
+            .ok();
+        match existing {
+            Some(id) => {
+                // Adoption never rewrites a formula the user may have tuned;
+                // it only records the ownership and switches the row on.
+                let _ = conn.execute(
+                    "UPDATE uds_probes SET hypothesis_id = ?2, enabled = 1 WHERE id = ?1",
+                    params![id, hypothesis_id],
+                );
+                id
+            }
+            None => {
+                let _ = conn.execute(
+                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, hypothesis_id, cloud_id)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10, ?11)",
+                    params![
+                        vehicle_id,
+                        p.module,
+                        p.did as i64,
+                        p.label,
+                        p.unit,
+                        p.offset as i64,
+                        p.len as i64,
+                        p.scale,
+                        p.bias,
+                        hypothesis_id,
+                        Self::new_cloud_id()
+                    ],
+                );
+                conn.last_insert_rowid()
+            }
+        }
+    }
+
+    /// Switch off every probe a hypothesis owns. The row is kept (with its
+    /// link) so re-enabling the hypothesis reuses it instead of piling up a
+    /// second definition of the same DID.
+    pub fn disable_hypothesis_probes(&self, hypothesis_id: i64) -> usize {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE uds_probes SET enabled = 0 WHERE hypothesis_id = ?1",
+            params![hypothesis_id],
+        )
+        .unwrap_or(0)
     }
 
     /// Custom UDS modules (non-PSA brands, or extra PSA modules the built-in
@@ -3774,6 +3863,63 @@ mod tests {
     }
 
     #[test]
+    fn a_pre_v13_database_opens_with_no_hypothesis_link_on_existing_probes() {
+        // The v13 column is additive: a database written before the probe /
+        // hypothesis link existed must open untouched, with every stored
+        // probe still polling on exactly the rule it was saved under.
+        let path = std::env::temp_dir().join(format!(
+            "scainner-v11-migration-{}.sqlite3",
+            uuid::Uuid::new_v4()
+        ));
+        {
+            let conn = Connection::open(&path).expect("v11 fixture");
+            conn.execute_batch(
+                r#"
+                CREATE TABLE uds_probes (
+                    id INTEGER PRIMARY KEY,
+                    vehicle_id INTEGER,
+                    module TEXT NOT NULL,
+                    did INTEGER NOT NULL,
+                    label TEXT NOT NULL,
+                    unit TEXT NOT NULL DEFAULT '',
+                    offset INTEGER NOT NULL DEFAULT 0,
+                    len INTEGER NOT NULL DEFAULT 1,
+                    scale REAL NOT NULL DEFAULT 1.0,
+                    bias REAL NOT NULL DEFAULT 0.0,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    origin TEXT NOT NULL DEFAULT 'manual',
+                    cloud_id TEXT
+                );
+                INSERT INTO uds_probes (module, did, label, unit, len, scale, cloud_id)
+                    VALUES ('engine', 54306, 'Battery voltage', 'V', 2, 0.01, 'existing-cloud-id');
+                PRAGMA user_version = 11;
+                "#,
+            )
+            .expect("v11 fixture schema");
+        }
+
+        let db = Db::open(&path).expect("a v11 database must open, not be refused");
+        let version: i64 =
+            db.0.lock()
+                .unwrap()
+                .query_row("PRAGMA user_version", [], |r| r.get(0))
+                .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
+        let probes = db.list_probes(None);
+        assert_eq!(probes.len(), 1, "the existing probe survived the migration");
+        assert_eq!(probes[0].label, "Battery voltage");
+        assert_eq!(probes[0].origin, "manual");
+        assert_eq!(
+            probes[0].hypothesis_id, None,
+            "nothing owns a probe that predates the link"
+        );
+        drop(db);
+        for suffix in ["", "-wal", "-shm"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", path.display()));
+        }
+    }
+
+    #[test]
     fn probes_are_scoped_per_vehicle() {
         // A probe found on one car (e.g. auto-discovery on a Kona) must
         // never be attempted on another (e.g. a Peugeot) — the same cross-
@@ -3794,6 +3940,7 @@ mod tests {
             bias: 0.0,
             enabled: true,
             origin: "manual".into(),
+            hypothesis_id: None,
         };
         db.add_probe(&probe, Some(citroen));
         let citroen_probes = db.list_probes(Some(citroen));
@@ -3825,6 +3972,7 @@ mod tests {
             bias: 0.0,
             enabled: true,
             origin: "manual".into(),
+            hypothesis_id: None,
         };
         db.add_probe(&probe, None); // legacy path: no vehicle scope
         assert_eq!(db.list_probes(Some(citroen)).len(), 1);
@@ -4012,6 +4160,7 @@ mod tests {
             bias: 0.0,
             enabled: true,
             origin: "manual".into(),
+            hypothesis_id: None,
         };
         let id = db.add_probe(&manual, Some(citroen));
 

@@ -915,7 +915,10 @@ async fn probes(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>)
 
 async fn add_probe(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let probe: crate::db::UdsProbe = parse_required(&body)?;
-    let id = ops::add_probe(&api.state, &probe, probe.vehicle_id);
+    // An unresolvable module key is a bad request, not a stored row that
+    // never answers: say so instead of accepting it.
+    let id = ops::add_probe(&api.state, &probe, probe.vehicle_id)
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?;
     ok(json!({ "id": id }))
 }
 

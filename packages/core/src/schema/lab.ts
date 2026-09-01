@@ -33,6 +33,10 @@ export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
   // boundary defaults it to `manual`. Rows read back from SQLite always
   // carry either `manual` or `discovery`.
   origin: Schema.optional(Schema.Literal("manual", "discovery")),
+  // Set when the probe exists because a hypothesis was activated: the same
+  // row is what the poller reads, so a linked probe polls whatever its
+  // origin says. Absent on every probe created before that link existed.
+  hypothesis_id: Schema.optional(Schema.NullOr(Schema.Number)),
 }) {}
 // Verified per-module UDS clear (before/after fault code lists).
 export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
