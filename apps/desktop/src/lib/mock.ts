@@ -299,6 +299,61 @@ function buildHistory(key: string, hours: number): HistoryPoint[] {
   });
 }
 
+// ---------- reading keys (the Over-time sensor browser) ----------
+
+// One row per key the demo car has ever recorded: the standard gauges, then
+// a probe key per pack-known DID on each of its modules. `last_ts` is spread
+// across the last few weeks so the browser's "in this range" dot and the
+// "show all" tail both have something to show.
+type MockReadingKey = {
+  key: string;
+  label: string | null;
+  unit: string | null;
+  module_key: string | null;
+  module_name: string | null;
+  source: "standard" | "probe";
+  probe_id: number | null;
+  last_ts: string | null;
+};
+
+const MOCK_NOW = new Date("2026-08-19T08:00:00Z").getTime();
+const minutesAgo = (m: number) => new Date(MOCK_NOW - m * 60_000).toISOString().replace("T", " ").slice(0, 19);
+
+function readingKeyDetails(args?: Record<string, unknown>): MockReadingKey[] {
+  const v = vehicleFor(args);
+  const standard: MockReadingKey[] = ["voltage", "coolant", "rpm", "speed", "load", "fuel_level"].map((key, i) => ({
+    key,
+    label: null,
+    unit: null,
+    module_key: null,
+    module_name: "Standard",
+    source: "standard",
+    probe_id: null,
+    last_ts: minutesAgo(i * 4),
+  }));
+  let probeId = 0;
+  const probes: MockReadingKey[] = v.modules.flatMap((m) =>
+    didsBoundTo(v.brand, m)
+      .slice(0, 5)
+      .map((d) => {
+        probeId += 1;
+        // Every third key last answered weeks ago, so it sits in the tail.
+        const age = probeId % 3 === 0 ? 60 * 24 * 20 + probeId : probeId * 37;
+        return {
+          key: `uds_${slug(d.label)}`,
+          label: d.label,
+          unit: null,
+          module_key: moduleKey(m),
+          module_name: m.name,
+          source: "probe" as const,
+          probe_id: probeId,
+          last_ts: minutesAgo(age),
+        };
+      }),
+  );
+  return [...standard, ...probes];
+}
+
 // ---------- diagnose ----------
 
 // Seeded with a realistic fault story, not all-clean — so the Diagnose UI
@@ -779,7 +834,9 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       } as ObdClearOutcome as T;
     }
     case "reading_keys":
-      return ["fuel_level"] as T;
+      return readingKeyDetails(args).map((r) => r.key) as T;
+    case "reading_key_details":
+      return readingKeyDetails(args) as T;
     case "history":
       return buildHistory(String(args?.key ?? "voltage"), Number(args?.sinceHours ?? 24)) as T;
     case "db_path":

@@ -31,6 +31,7 @@ import {
   UdsProbe,
   SensorReading,
   HistoryPoint,
+  ReadingKey,
 } from "@scainner/core";
 
 // Collapses the try/promise/catch boilerplate every hand-written call site
@@ -75,6 +76,7 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
 
   allSensors: () => decoded(Schema.mutable(Schema.Array(SensorReading)), "all_sensors"),
   readingKeys: (vehicleId) => call<string[]>("reading_keys", { vehicleId }),
+  readingKeyDetails: (vehicleId) => decoded(Schema.mutable(Schema.Array(ReadingKey)), "reading_key_details", { vehicleId }),
   historyPoints: (vehicleId, key, hours) => decoded(Schema.mutable(Schema.Array(HistoryPoint)), "history", { vehicleId, key, sinceHours: hours }),
 
   udsModules: () => decoded(Schema.mutable(Schema.Array(UdsModule)), "uds_modules"),

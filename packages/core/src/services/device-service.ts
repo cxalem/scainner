@@ -17,7 +17,7 @@ import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
 import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
-import type { HistoryPoint } from "../schema/history";
+import type { HistoryPoint, ReadingKey } from "../schema/history";
 
 export class DeviceService extends Context.Tag("DeviceService")<
   DeviceService,
@@ -49,6 +49,12 @@ export class DeviceService extends Context.Tag("DeviceService")<
     // sensors / history
     readonly allSensors: () => Effect.Effect<SensorReading[], InvokeError | ParseResult.ParseError>;
     readonly readingKeys: (vehicleId: number | null) => Effect.Effect<string[], InvokeError>;
+    /// The same keys, each with its label, unit, module and newest
+    /// timestamp. `readingKeys` stays the plain list so the agent API and
+    /// the MCP tool over it keep their shape.
+    readonly readingKeyDetails: (
+      vehicleId: number | null,
+    ) => Effect.Effect<ReadingKey[], InvokeError | ParseResult.ParseError>;
     readonly historyPoints: (vehicleId: number | null, key: string, hours: number) => Effect.Effect<HistoryPoint[], InvokeError | ParseResult.ParseError>;
     // uds
     readonly udsModules: () => Effect.Effect<UdsModule[], InvokeError | ParseResult.ParseError>;

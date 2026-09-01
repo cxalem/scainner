@@ -228,6 +228,11 @@ fn reading_keys(state: State, vehicle_id: Option<i64>) -> Vec<String> {
 }
 
 #[tauri::command]
+fn reading_key_details(state: State, vehicle_id: Option<i64>) -> Vec<db::ReadingKeyRow> {
+    ops::reading_key_details(&state, vehicle_id)
+}
+
+#[tauri::command]
 fn list_vehicles(state: State) -> Vec<db::VehicleListRow> {
     ops::list_vehicles(&state)
 }
@@ -459,6 +464,7 @@ pub fn run() {
             writes_log,
             list_probes,
             reading_keys,
+            reading_key_details,
             list_vehicles,
             vehicle_report,
             vehicle_info,

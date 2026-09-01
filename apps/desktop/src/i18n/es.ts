@@ -731,6 +731,7 @@ export const es: Dictionary = {
     groupDiscovered: "Descubiertos en este coche",
     pin: "Fijar",
     unpin: "Soltar",
+    viewOverTime: "Ver en el tiempo",
     state: { standard: "estándar", verified: "verificado aquí", inherited: "de coches similares", candidate: "candidato, sin probar" },
     allSensors: {
       title: "Todos los sensores, una lectura",
@@ -760,6 +761,27 @@ export const es: Dictionary = {
       voltageReferenceNote:
         "Referencia: 12,4–12,8 V en reposo · 13,5–14,8 V en carga · los alternadores inteligentes bajan a propósito mientras conduces. Vigila la tendencia a lo largo de semanas, no caídas puntuales.",
       ranges: { "1h": "1 h", "24h": "24 h", "7d": "7 d", "30d": "30 d" },
+      browser: {
+        title: "Sensores",
+        searchPlaceholder: "Buscar sensores",
+        searchAriaLabel: "Buscar sensores",
+        listAriaLabel: "Sensores guardados",
+        pickerLabel: "Sensor",
+        standard: "Estándar",
+        noDataInRange: "Sin datos en este rango",
+        showAll: (n) => `Ver todos (${n})`,
+        showFewer: "Ver menos",
+        noMatch: (q) => `Nada coincide con «${q}».`,
+        empty: "Todavía no hay lecturas guardadas. Los datos se acumulan conduciendo con el coche conectado.",
+        couldNotLoad: "No se pudo cargar la lista de sensores.",
+      },
+      compare: {
+        title: "Comparar",
+        add: "Añadir a la comparación",
+        remove: (sensor) => `Quitar ${sensor}`,
+        limitNote: (max) => `${max} sensores a la vez`,
+        empty: "Añade sensores para verlos en el mismo rango.",
+      },
     },
     sensorRanges: {
       cardTitle: "Rangos de sensores",

@@ -721,6 +721,8 @@ export type Dictionary = {
     groupDiscovered: string;
     pin: string;
     unpin: string;
+    // "Now" rows open the same sensor in "Over time" — the label is the link.
+    viewOverTime: string;
     state: { standard: string; verified: string; inherited: string; candidate: string };
     allSensors: {
       title: string;
@@ -748,6 +750,30 @@ export type Dictionary = {
       noDataForRange: string;
       voltageReferenceNote: string;
       ranges: Record<"1h" | "24h" | "7d" | "30d", string>;
+      // The sensor browser beside the chart: search, module groups, and the
+      // toggle for keys with nothing in the selected range.
+      browser: {
+        title: string;
+        searchPlaceholder: string;
+        searchAriaLabel: string;
+        listAriaLabel: string;
+        pickerLabel: string;
+        standard: string;
+        noDataInRange: string;
+        showAll: (n: number) => string;
+        showFewer: string;
+        noMatch: (q: string) => string;
+        empty: string;
+        couldNotLoad: string;
+      };
+      // The compare strip under the stats: up to four sensors side by side.
+      compare: {
+        title: string;
+        add: string;
+        remove: (sensor: string) => string;
+        limitNote: (max: number) => string;
+        empty: string;
+      };
     };
     sensorRanges: {
       cardTitle: string;

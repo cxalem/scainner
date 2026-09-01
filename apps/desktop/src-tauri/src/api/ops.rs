@@ -367,6 +367,38 @@ pub fn reading_keys(state: &AppState, vehicle_id: Option<i64>) -> Vec<String> {
     state.db.reading_keys(vehicle_id)
 }
 
+/// The same keys with their probe, module and newest timestamp. The database
+/// names a module only when discovery has seen it; for the rest the name
+/// comes from the knowledge map's profile for this vehicle's VIN (or a custom
+/// module the user added), and failing that the module key stands in. No car
+/// traffic — every source here is local.
+pub fn reading_key_details(state: &AppState, vehicle_id: Option<i64>) -> Vec<db::ReadingKeyRow> {
+    let mut rows = state.db.reading_key_details(vehicle_id);
+    if rows
+        .iter()
+        .any(|r| r.module_name.is_none() && r.module_key.is_some())
+    {
+        let vin = vehicle_id
+            .and_then(|id| state.db.vehicle(id))
+            .and_then(|v| v.vin);
+        let custom = elm::uds::custom_modules(&state.db, vin.as_deref());
+        let modules = elm::uds::modules_for_vin(vin.as_deref(), &custom);
+        for row in rows.iter_mut().filter(|r| r.module_name.is_none()) {
+            let Some(key) = row.module_key.clone() else {
+                continue;
+            };
+            row.module_name = Some(
+                modules
+                    .iter()
+                    .find(|m| m.key == key)
+                    .map(|m| m.label.clone())
+                    .unwrap_or(key),
+            );
+        }
+    }
+    rows
+}
+
 pub fn list_vehicles(state: &AppState) -> Vec<db::VehicleListRow> {
     state.db.list_vehicles()
 }

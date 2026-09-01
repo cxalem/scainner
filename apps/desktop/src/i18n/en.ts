@@ -722,6 +722,7 @@ export const en: Dictionary = {
     groupDiscovered: "Discovered on this car",
     pin: "Pin",
     unpin: "Unpin",
+    viewOverTime: "View over time",
     state: { standard: "standard", verified: "verified here", inherited: "from similar cars", candidate: "candidate, unproven" },
     allSensors: {
       title: "All sensors, read once",
@@ -751,6 +752,27 @@ export const en: Dictionary = {
       voltageReferenceNote:
         "Reference: 12.4–12.8 V rested · 13.5–14.8 V charging · smart alternators intentionally float lower while driving. Watch the trend across weeks, not single dips.",
       ranges: { "1h": "1 h", "24h": "24 h", "7d": "7 d", "30d": "30 d" },
+      browser: {
+        title: "Sensors",
+        searchPlaceholder: "Search sensors",
+        searchAriaLabel: "Search sensors",
+        listAriaLabel: "Stored sensors",
+        pickerLabel: "Sensor",
+        standard: "Standard",
+        noDataInRange: "No data in this range",
+        showAll: (n) => `Show all (${n})`,
+        showFewer: "Show fewer",
+        noMatch: (q) => `Nothing matches "${q}".`,
+        empty: "No stored readings yet. Data accumulates as you drive with the car connected.",
+        couldNotLoad: "The sensor list could not be loaded.",
+      },
+      compare: {
+        title: "Compare",
+        add: "Add to compare",
+        remove: (sensor) => `Remove ${sensor}`,
+        limitNote: (max) => `${max} sensors at a time`,
+        empty: "Add sensors to see them on the same range.",
+      },
     },
     sensorRanges: {
       cardTitle: "Sensor ranges",

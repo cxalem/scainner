@@ -62,6 +62,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/live", "Latest live PID readings (the last live-update broadcast) with their age", &[], None, false, false),
     r("GET", "/readings", "Stored readings for one key, oldest first", &[("vehicle_id", "vehicle id (omit for unidentified rows)"), ("key", "reading key, e.g. rpm, coolant, voltage"), ("since", "window in hours (default 24)"), ("limit", "keep only the newest N points")], None, false, false),
     r("GET", "/readings/keys", "Reading keys recorded for a vehicle", VEHICLE_Q, None, false, false),
+    r("GET", "/readings/keys/details", "The same keys, each with label, unit, module key/name, source (standard|probe), probe id and the newest timestamp", VEHICLE_Q, None, false, false),
     r("POST", "/dtc/scan", "Modes 03/07/0A/01: stored, pending, permanent codes, MIL, freeze frame", &[], None, true, false),
     r("POST", "/dtc/clear", "Mode 04 clear, verified with a before/after scan and logged to writes_log", &[], Some(r#"{"confirmed": true}"#), true, true),
     r("GET", "/dtc/history", "Past DTC scans, newest first", &[("vehicle_id", "vehicle id"), ("limit", "max rows (default 20)")], None, false, false),

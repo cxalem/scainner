@@ -287,6 +287,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/live", get(live))
         .route("/readings", get(readings))
         .route("/readings/keys", get(reading_keys))
+        .route("/readings/keys/details", get(reading_key_details))
         .route("/dtc/scan", post(dtc_scan))
         .route("/dtc/clear", post(dtc_clear))
         .route("/dtc/history", get(dtc_history))
@@ -472,6 +473,15 @@ async fn reading_keys(
     Query(q): Query<VehicleQuery>,
 ) -> ApiResult {
     ok(ops::reading_keys(&api.state, q.vehicle_id))
+}
+
+/// The enriched form of the above: `/readings/keys` stays a plain string
+/// array so existing clients (the MCP `reading_keys` tool) keep working.
+async fn reading_key_details(
+    State(api): State<Arc<ApiState>>,
+    Query(q): Query<VehicleQuery>,
+) -> ApiResult {
+    ok(ops::reading_key_details(&api.state, q.vehicle_id))
 }
 
 async fn dtc_scan(State(api): State<Arc<ApiState>>) -> ApiResult {

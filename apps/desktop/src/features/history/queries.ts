@@ -17,6 +17,17 @@ export function useReadingKeys(vehicleId: number | null) {
   });
 }
 
+/// The enriched key list behind the Over-time sensor browser: label, unit,
+/// module and the newest timestamp per key. Stale for a minute — the list
+/// only changes when a probe is added or a new key is first recorded.
+export function useReadingKeyDetails(vehicleId: number | null) {
+  return useQuery({
+    queryKey: ["reading_key_details", vehicleId],
+    queryFn: () => run((device) => device.readingKeyDetails(vehicleId)),
+    staleTime: 60_000,
+  });
+}
+
 export function useHistoryPoints(vehicleId: number | null, key: string, hours: number) {
   return useQuery({
     queryKey: ["history", vehicleId, key, hours],
