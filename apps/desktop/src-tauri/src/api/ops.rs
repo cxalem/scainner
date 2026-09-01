@@ -537,6 +537,41 @@ pub fn list_adapters(state: &AppState) -> Vec<elm::transport::enumerate::Adapter
     elm::transport::enumerate::candidates(&adapter_profile(state))
 }
 
+/// Scan for Bluetooth radios that are not paired yet, so a dongle out of
+/// the box can be added from the device screen instead of the OS settings.
+/// Already-paired addresses are dropped: they are rows in `list_adapters`
+/// already, and offering them again would only invite a needless re-pair.
+///
+/// The inquiry blocks the calling thread for `seconds`, so this runs on the
+/// blocking pool — same reason `ask` moves its wait off the main thread.
+pub async fn discover_adapters(
+    seconds: u8,
+) -> Result<Vec<elm::transport::bluetooth::NearbyDevice>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let control = elm::transport::bluetooth::platform();
+        let known: std::collections::HashSet<String> =
+            control.paired().into_iter().map(|d| d.addr).collect();
+        let found = control.discover(seconds)?;
+        Ok(found
+            .into_iter()
+            .filter(|d| !d.paired && !known.contains(&d.addr))
+            .collect())
+    })
+    .await
+    .map_err(|e| format!("worker join error: {e}"))?
+}
+
+/// Pair one address with the PIN the user typed. User-initiated only: there
+/// is no unpair and nothing re-pairs on its own (see the crate walk in
+/// `elm/connect.rs`).
+pub async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        elm::transport::bluetooth::platform().pair(&addr, pin.as_deref())
+    })
+    .await
+    .map_err(|e| format!("worker join error: {e}"))?
+}
+
 /// The active adapter profile: `adapter.*` settings with the
 /// `SCAINNER_OBD_*` environment fallback applied.
 pub fn adapter_profile(state: &AppState) -> elm::transport::AdapterProfile {

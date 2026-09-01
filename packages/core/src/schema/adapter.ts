@@ -23,6 +23,17 @@ export class AdapterCandidate extends Schema.Class<AdapterCandidate>("AdapterCan
   last_used: Schema.optional(Schema.Boolean),
 }) {}
 
+/// A radio a scan found that is not paired yet — a dongle straight out of
+/// the box. `name` is absent when it answered the inquiry without one, and
+/// the UI shows the address instead of inventing a label. `paired` is what
+/// the platform reported at scan time; the backend already drops anything
+/// it knows to be paired, so a true here is only ever informational.
+export class NearbyDevice extends Schema.Class<NearbyDevice>("NearbyDevice")({
+  addr: Schema.String,
+  name: Schema.NullOr(Schema.String),
+  paired: Schema.Boolean,
+}) {}
+
 export class AdapterProfile extends Schema.Class<AdapterProfile>("AdapterProfile")({
   kind: Schema.Literal("elm_serial", "tcp_elm"),
   path: Schema.NullOr(Schema.String),

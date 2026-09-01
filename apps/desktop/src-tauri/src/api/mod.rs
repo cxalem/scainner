@@ -25,6 +25,7 @@ use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use crate::elm::transport::bluetooth;
 use ops::AppState;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -346,6 +347,8 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/cases", get(cases).post(create_case))
         .route("/settings/{key}", get(setting_get).put(setting_set))
         .route("/adapters", get(adapters))
+        .route("/adapters/discover", post(adapters_discover))
+        .route("/adapters/pair", post(adapters_pair))
         .route("/adapter", get(adapter_get).put(adapter_set))
         .route("/sync/batch", get(sync_batch))
         .route("/db-path", get(db_path))
@@ -1021,6 +1024,57 @@ async fn setting_set(
 
 async fn adapters(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(json!({ "adapters": ops::list_adapters(&api.state) }))
+}
+
+#[derive(Deserialize, Default)]
+struct AdapterDiscoverBody {
+    seconds: Option<u8>,
+}
+
+/// Radios in range that are not paired yet. Blocking for up to 15 s by
+/// design — the radio inquiry is the wait — but never on the supervisor:
+/// `ops::discover_adapters` runs it on the blocking pool.
+async fn adapters_discover(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: AdapterDiscoverBody = if body.is_empty() {
+        AdapterDiscoverBody::default()
+    } else {
+        parse_required(&body)?
+    };
+    let seconds = b
+        .seconds
+        .unwrap_or(bluetooth::DEFAULT_DISCOVER_SECONDS)
+        .clamp(
+            *bluetooth::DISCOVER_SECONDS.start(),
+            *bluetooth::DISCOVER_SECONDS.end(),
+        );
+    let devices = ops::discover_adapters(seconds)
+        .await
+        .map_err(|e| ApiError::msg(StatusCode::SERVICE_UNAVAILABLE, e))?;
+    ok(json!({ "devices": devices }))
+}
+
+#[derive(Deserialize)]
+struct PairBody {
+    addr: String,
+    pin: Option<String>,
+}
+
+/// Pair the device the user chose. 400 with whatever the platform said,
+/// because every failure here (wrong PIN, out of range, dongle asleep) is
+/// something the person holding the hardware can act on.
+async fn adapters_pair(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: PairBody = parse_required(&body)?;
+    let addr = b.addr.trim().to_ascii_lowercase();
+    if addr.is_empty() {
+        return Err(ApiError::msg(
+            StatusCode::BAD_REQUEST,
+            "addr is required: the dashed MAC of the device to pair",
+        ));
+    }
+    ops::pair_adapter(addr, b.pin)
+        .await
+        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?;
+    ok(json!({ "paired": true }))
 }
 
 async fn adapter_get(State(api): State<Arc<ApiState>>) -> ApiResult {

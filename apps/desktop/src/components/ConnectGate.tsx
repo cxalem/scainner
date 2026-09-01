@@ -14,7 +14,7 @@
 // disconnects stay inside the shell instead of kicking you back here.
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Plug, PlugZap, RefreshCw, ScanLine, Usb } from "lucide-react";
+import { ArrowRight, Plug, PlugZap, RefreshCw, Radar, ScanLine, Usb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { BRAND } from "@/brand";
@@ -215,6 +215,7 @@ export function ConnectGate({
                   selectedId={devices.selected?.id ?? null}
                   onSelect={selectDevice}
                   loading={devices.loading}
+                  discovery={devices.discovery}
                 />
               </motion.div>
             ) : (
@@ -295,9 +296,25 @@ export function ConnectGate({
         </div>
 
         {screen === "choose_device" && (
-          <Button variant="ghost" size="sm" icon={RefreshCw} busy={devices.loading} onClick={() => void refreshDevices()}>
-            {t.gate.refreshAdapters}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="sm" icon={RefreshCw} busy={devices.loading} onClick={() => void refreshDevices()}>
+              {t.gate.refreshAdapters}
+            </Button>
+            {/* A scan is the answer only when the dongle is not in the list
+                yet, so it sits beside Refresh rather than above it. The
+                button just goes busy — the "Scanning…" line belongs in the
+                Nearby group, where the results will land. */}
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={Radar}
+              busy={devices.discovery.scanning}
+              disabled={devices.loading}
+              onClick={() => void devices.discovery.discover()}
+            >
+              {t.gate.discoverDevices}
+            </Button>
+          </div>
         )}
         {screen === "failed" && (
           <Button

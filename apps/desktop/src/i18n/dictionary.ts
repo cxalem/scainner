@@ -842,6 +842,18 @@ export type Dictionary = {
     lookingForDevices: string;
     noDevices: string;
     pairFirst: string;
+    // Discovery: finding and pairing a dongle that the OS has never seen,
+    // without leaving the device screen for system Bluetooth settings.
+    discoverDevices: string;
+    scanning: string;
+    nearby: string;
+    pair: string;
+    pairing: string;
+    pinLabel: string;
+    pinHint: string;
+    noNearby: string;
+    discoveryUnavailable: string;
+    pairFailed: string;
     chooseAnotherDevice: string;
     deviceListFailed: string;
     adapterSaveFailed: string;

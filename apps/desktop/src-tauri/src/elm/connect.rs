@@ -251,7 +251,7 @@ fn stage_failed(stage: Stage, reason: impl Into<String>, started: Instant) -> Co
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::elm::transport::bluetooth::PairedDevice;
+    use crate::elm::transport::bluetooth::{NearbyDevice, PairedDevice};
     use std::sync::Mutex;
 
     /// Records what the pipeline asked the radio to do, so a test can assert
@@ -296,6 +296,16 @@ mod tests {
         }
         fn paired(&self) -> Vec<PairedDevice> {
             self.paired.clone()
+        }
+        /// The connect pipeline never scans and never pairs; a call from it
+        /// would be the bug, so the fake records one and refuses.
+        fn discover(&self, _seconds: u8) -> Result<Vec<NearbyDevice>, String> {
+            self.calls.lock().unwrap().push("discover".into());
+            Err("the connect pipeline must not scan".into())
+        }
+        fn pair(&self, addr: &str, _pin: Option<&str>) -> Result<(), String> {
+            self.calls.lock().unwrap().push(format!("pair {addr}"));
+            Err("the connect pipeline must not pair".into())
         }
     }
 
@@ -562,27 +572,47 @@ mod tests {
     /// the crate does either: an automatic re-pair is disruptive, needs a PIN
     /// that is not standardised across adapters, and belongs to the person
     /// holding the hardware.
+    ///
+    /// Unpairing stays banned crate-wide. Pairing is allowed in exactly one
+    /// file — `transport/bluetooth.rs`, reached only from the device screen's
+    /// Pair button with the PIN the user typed — so a second call site (a
+    /// retry loop, a "fix it for me" path) fails this test rather than
+    /// shipping.
     #[test]
     fn the_crate_never_unpairs_or_re_pairs_a_radio() {
         // Built at runtime so this test's own source is not a hit. The
         // enumeration flag (`--paired`) is deliberately not one of these.
-        let banned = [format!("--un{}", "pair"), format!("\"--{}\"", "pair")];
-        fn walk(dir: &std::path::Path, banned: &[String], found: &mut Vec<String>) {
+        let unpair = format!("--un{}", "pair");
+        let pair = format!("\"--{}\"", "pair");
+        fn walk(dir: &std::path::Path, hit: &mut impl FnMut(&std::path::Path, &str)) {
             for entry in std::fs::read_dir(dir).expect("the crate's own source") {
                 let path = entry.expect("readable entry").path();
                 if path.is_dir() {
-                    walk(&path, banned, found);
+                    walk(&path, hit);
                 } else if path.extension().is_some_and(|e| e == "rs") {
                     let text = std::fs::read_to_string(&path).expect("readable source");
-                    if banned.iter().any(|needle| text.contains(needle)) {
-                        found.push(path.display().to_string());
-                    }
+                    hit(&path, &text);
                 }
             }
         }
         let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-        let mut found = Vec::new();
-        walk(&src, &banned, &mut found);
-        assert!(found.is_empty(), "pairing commands are back in {found:?}");
+        let (mut unpairs, mut pairs) = (Vec::new(), Vec::new());
+        walk(&src, &mut |path, text| {
+            if text.contains(&unpair) {
+                unpairs.push(path.display().to_string());
+            }
+            if text.contains(&pair) {
+                pairs.push(path.display().to_string());
+            }
+        });
+        assert!(unpairs.is_empty(), "unpairing is back in {unpairs:?}");
+        let stray: Vec<&String> = pairs
+            .iter()
+            .filter(|p| !p.ends_with("transport/bluetooth.rs"))
+            .collect();
+        assert!(
+            stray.is_empty(),
+            "pairing belongs to the user's Pair button only, not to {stray:?}"
+        );
     }
 }

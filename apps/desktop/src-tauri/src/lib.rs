@@ -31,6 +31,29 @@ fn list_adapters(state: State) -> Vec<elm::transport::enumerate::AdapterCandidat
     ops::list_adapters(&state)
 }
 
+/// Radios in range that are not paired yet. Async on purpose: the inquiry
+/// blocks for `seconds`, and `ops` puts that on the blocking pool so the
+/// IPC layer keeps answering while the scan runs.
+#[tauri::command]
+async fn discover_adapters(
+    seconds: Option<u8>,
+) -> Result<Vec<elm::transport::bluetooth::NearbyDevice>, String> {
+    ops::discover_adapters(
+        seconds
+            .unwrap_or(elm::transport::bluetooth::DEFAULT_DISCOVER_SECONDS)
+            .clamp(
+                *elm::transport::bluetooth::DISCOVER_SECONDS.start(),
+                *elm::transport::bluetooth::DISCOVER_SECONDS.end(),
+            ),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
+    ops::pair_adapter(addr.trim().to_ascii_lowercase(), pin).await
+}
+
 #[tauri::command]
 fn get_adapter_profile(state: State) -> elm::transport::AdapterProfile {
     ops::adapter_profile(&state)
@@ -425,6 +448,8 @@ pub fn run() {
             connect,
             disconnect,
             list_adapters,
+            discover_adapters,
+            pair_adapter,
             get_adapter_profile,
             set_adapter_profile,
             conn_status,

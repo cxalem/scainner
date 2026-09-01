@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { AdapterCandidate } from "@scainner/core";
-import { deviceRows, gateScreen, preselectedDevice } from "./device-list";
+import type { AdapterCandidate, NearbyDevice } from "@scainner/core";
+import {
+  DEFAULT_PIN,
+  defaultPin,
+  deviceRows,
+  gateScreen,
+  nearbyRows,
+  preselectedDevice,
+} from "./device-list";
 
 const candidate = (fields: Partial<AdapterCandidate> & { id: string; name: string }) =>
   ({
@@ -95,6 +102,70 @@ describe("preselectedDevice", () => {
       candidate({ kind: "bluetooth", id: "aa-bb", name: "Radio", device_kind: "paired_only", path: null }),
     ]);
     expect(preselectedDevice(pairedOnly)).toBeNull();
+  });
+});
+
+describe("nearbyRows", () => {
+  const nearby = (fields: Partial<NearbyDevice> & { addr: string }) =>
+    ({ name: null, paired: false, ...fields }) as NearbyDevice;
+
+  it("labels a named radio by its name and an unnamed one by its address", () => {
+    expect(
+      nearbyRows([nearby({ addr: "aa-bb-cc-dd-ee-11", name: "OBD Reader 4821" }), nearby({ addr: "aa-bb-cc-dd-ee-12" })], []),
+    ).toEqual([
+      { addr: "aa-bb-cc-dd-ee-11", name: "OBD Reader 4821", label: "OBD Reader 4821" },
+      { addr: "aa-bb-cc-dd-ee-12", name: null, label: "aa-bb-cc-dd-ee-12" },
+    ]);
+  });
+
+  it("treats a blank name as no name", () => {
+    expect(nearbyRows([nearby({ addr: "aa-bb", name: "  " })], [])[0]).toMatchObject({
+      name: null,
+      label: "aa-bb",
+    });
+  });
+
+  it("drops a radio that is already a device row, whatever the case", () => {
+    const rows = deviceRows([
+      candidate({
+        kind: "bluetooth",
+        id: "AA-BB-CC-DD-EE-01",
+        name: "Known",
+        device_kind: "paired_only",
+        path: null,
+        bt_addr: "AA-BB-CC-DD-EE-01",
+      }),
+    ]);
+    expect(nearbyRows([nearby({ addr: "aa-bb-cc-dd-ee-01", name: "Known" })], rows)).toEqual([]);
+  });
+
+  it("drops a radio the scan itself reported as paired", () => {
+    expect(nearbyRows([nearby({ addr: "aa-bb-cc-dd-ee-13", name: "Headphones", paired: true })], [])).toEqual([]);
+  });
+
+  it("keeps the first sighting of a repeated address", () => {
+    expect(
+      nearbyRows(
+        [nearby({ addr: "aa-bb-cc-dd-ee-14", name: "First" }), nearby({ addr: "AA-BB-CC-DD-EE-14", name: "Second" })],
+        [],
+      ),
+    ).toEqual([{ addr: "aa-bb-cc-dd-ee-14", name: "First", label: "First" }]);
+  });
+
+  it("lowercases the address it hands to the pair call", () => {
+    expect(nearbyRows([nearby({ addr: "AA-BB-CC-DD-EE-15" })], [])[0].addr).toBe("aa-bb-cc-dd-ee-15");
+  });
+});
+
+describe("defaultPin", () => {
+  it("opens on 1234 when the profile remembers nothing", () => {
+    expect(defaultPin(undefined)).toBe(DEFAULT_PIN);
+    expect(defaultPin(null)).toBe(DEFAULT_PIN);
+    expect(defaultPin("   ")).toBe(DEFAULT_PIN);
+  });
+
+  it("prefers a PIN the profile already remembers", () => {
+    expect(defaultPin("0000")).toBe("0000");
   });
 });
 
