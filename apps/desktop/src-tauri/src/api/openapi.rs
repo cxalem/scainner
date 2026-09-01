@@ -99,10 +99,10 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/modules/{id}/dids", "Discovered DIDs of one module (by discovered_modules.id)", &[], None, false, false),
     // discovery knowledge layer (Universal Discovery Protocol S3 + coverage)
     r("GET", "/vehicles/{id}/coverage", "Coverage report from data: vehicle, standard, routes, identified modules, decode states, hypotheses, learning; every line carries evidence ids", &[], None, false, false),
-    r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation", &[], None, false, false),
+    r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation, plus the evidence.run_ids a confirmation rests on", &[], None, false, false),
     r("POST", "/vehicles/{id}/join", "S3 join: match fingerprinted modules to ecu_families, register inherited + unknown hypotheses. Local, idempotent, no car needed", &[], None, false, false),
     r("GET", "/knowledge/candidates", "De-identified reusable signal knowledge, independent of private vehicle records", &[], None, false, false),
-    r("PATCH", "/hypotheses/{id}", "State transition; 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on)", &[], Some(r#"{"vehicle_fit": "matched", "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
+    r("PATCH", "/hypotheses/{id}", "State transition; evidence_run_ids names the verification runs a knowledge_state promotion rests on and comes back as evidence. 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on, locally_confirmed needs matched fit + a run of this vehicle, community_verified/oem_confirmed are never set locally)", &[], Some(r#"{"vehicle_fit": "matched", "knowledge_state": "locally_confirmed", "evidence_run_ids": [12], "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
     r("GET", "/learning-state", "Whether learning activation is allowed ({\"on\": bool})", &[], None, false, false),
     r("PUT", "/learning-state", "Switch the learning state", &[], Some(r#"{"on": true}"#), false, false),
     r("GET", "/fingerprint-experiment", "Local VIN-free ECU fingerprint cohort measurement", &[], None, false, false),

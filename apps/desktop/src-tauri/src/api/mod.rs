@@ -849,6 +849,8 @@ async fn vehicle_join(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> 
 
 /// State transition on one hypothesis. A rule violation is a 409 whose body
 /// names the rule and the reason, so an agent can explain instead of retry.
+/// `evidence_run_ids` carries the verification runs a knowledge-state
+/// promotion rests on; the reply echoes them as `evidence`.
 async fn patch_hypothesis(
     State(api): State<Arc<ApiState>>,
     Path(id): Path<i64>,
@@ -859,10 +861,11 @@ async fn patch_hypothesis(
         && patch.vehicle_fit.is_none()
         && patch.activation.is_none()
         && patch.label.is_none()
+        && patch.evidence_run_ids.is_none()
     {
         return Err(ApiError::msg(
             StatusCode::BAD_REQUEST,
-            "send at least one of knowledge_state, vehicle_fit, activation, label",
+            "send at least one of knowledge_state, vehicle_fit, activation, label, evidence_run_ids",
         ));
     }
     match ops::patch_hypothesis(&api.state, id, &patch) {
@@ -1750,6 +1753,115 @@ mod tests {
         .await;
         assert_eq!(body["decodes"]["matched"]["hypothesis_ids"][0], id);
         assert_eq!(body["decodes"]["enabled"]["count"], 1);
+    }
+
+    /// A knowledge-state promotion through the router: what the world knows
+    /// only moves on evidence this car actually recorded, and what it moves
+    /// to is what the outbound knowledge table carries.
+    #[tokio::test]
+    async fn promoting_a_hypothesis_needs_evidence_through_the_router() {
+        let (api, db) = test_api();
+        let c4 = crate::elm::discovery::join::fixtures::seed_c4(&db);
+        let vehicle = c4.vehicle_id;
+        crate::elm::discovery::join::join_vehicle(&db, crate::elm::uds_map::map(), vehicle);
+        // A decode the world does not know yet: the pack's own states
+        // arrive through the inherit path and are not what this gate rules on.
+        let unknown = db
+            .list_hypotheses(vehicle)
+            .into_iter()
+            .find(|h| h.module_id == c4.abs && h.knowledge_state == "unknown")
+            .expect("an unknown hypothesis on the seeded module");
+        let (id, did) = (unknown.id, unknown.did);
+
+        let connection = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection, vehicle);
+        let run = db
+            .insert_verification_run(vehicle, connection, "corr-v1", "{}")
+            .unwrap();
+        // A run belonging to a different car.
+        let (other, _) = db.ensure_vehicle("VF7OTHER0000000001");
+        let other_connection = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(other_connection, other);
+        let other_run = db
+            .insert_verification_run(other, other_connection, "corr-v1", "{}")
+            .unwrap();
+
+        // Matched, but no discriminating run named.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"vehicle_fit": "matched", "knowledge_state": "locally_confirmed"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["rule"], "locally_confirmed_requires_evidence");
+
+        // Another vehicle's run.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(&format!(
+                r#"{{"vehicle_fit": "matched", "knowledge_state": "locally_confirmed", "evidence_run_ids": [{other_run}]}}"#
+            )),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["rule"], "evidence_run_not_found");
+
+        // Fleet knowledge is never settable from one car.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(&format!(
+                r#"{{"vehicle_fit": "matched", "knowledge_state": "community_verified", "evidence_run_ids": [{run}]}}"#
+            )),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(body["rule"], "fleet_state_not_settable_locally");
+
+        // The car's own run carries the promotion, and the reply echoes it.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(&format!(
+                r#"{{"vehicle_fit": "matched", "knowledge_state": "locally_confirmed", "evidence_run_ids": [{run}]}}"#
+            )),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["knowledge_state"], "locally_confirmed");
+        assert_eq!(body["evidence"]["run_ids"][0], run);
+
+        let (status, learned) = call(&api, "GET", "/knowledge/candidates", Some(TOKEN), None).await;
+        assert_eq!(status, StatusCode::OK);
+        let confirmed = learned
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["did"] == did && c["knowledge_state"] == "locally_confirmed");
+        assert!(confirmed.is_some(), "{learned}");
+
+        // Retracting the claim takes the evidence with it.
+        let (status, body) = call(
+            &api,
+            "PATCH",
+            &format!("/hypotheses/{id}"),
+            Some(TOKEN),
+            Some(r#"{"knowledge_state": "research_candidate"}"#),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["knowledge_state"], "research_candidate");
+        assert!(body["evidence"].is_null());
     }
 
     /// Every documented route must be served, and every route the decision
