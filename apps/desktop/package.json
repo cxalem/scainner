@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "preview": "vite preview",
+    "render:emblems": "node scripts/render-emblems.mjs",
     "tauri": "tauri",
     "test:watch": "vitest"
   },

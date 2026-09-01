@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Per-emblem escape hatches for scripts/render-emblems.mjs. Key = GLB basename",
+    "(the same key the app uses for the badge). Every field is optional; anything",
+    "absent falls back to the script's defaults. The file is empty of real entries",
+    "because the defaults currently frame all 25 badges correctly — it exists so",
+    "the next model that does not can be fixed without touching the script.",
+    "",
+    "  yawDeg           horizontal swing off dead-on   (default 6)",
+    "  elevDeg          camera height above centre     (default 10)",
+    "  margin           fraction of the half-frame the badge fills (default 0.88)",
+    "  keepText         true to skip wordmark stripping for this badge",
+    "  bandMaxYFrac     bottom band height as a fraction of model height (0.35)",
+    "  bandMinWidthFrac band must span this fraction of model width to count (0.5)",
+    "  bandMinCount     minimum meshes in the band before it reads as text (3)",
+    "",
+    "Example:  \"somemake\": { \"elevDeg\": 4, \"margin\": 0.8, \"keepText\": true }"
+  ]
+}
