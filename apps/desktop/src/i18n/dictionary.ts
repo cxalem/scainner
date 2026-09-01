@@ -804,13 +804,20 @@ export type Dictionary = {
     // when a failed attempt reports the one it stopped at.
     stages: { link: string; open: string; handshake: string; bus: string };
     failedAt: (stage: string, reason: string) => string;
-    chooseAdapter: string;
-    adapterTitle: string;
-    adapterHelp: string;
+    // The device screen: the gate's opening state, one row per device the
+    // machine can see. The backend names them; the UI writes the secondary
+    // line from a `device_kind` plus the path, so it stays translatable.
+    chooseDeviceTitle: string;
+    lastUsed: string;
+    pairedNotConnected: string;
+    transportBluetooth: string;
+    transportUsb: string;
     refreshAdapters: string;
-    useAdapter: string;
-    noAdapters: string;
-    pairedNeedsPort: string;
+    lookingForDevices: string;
+    noDevices: string;
+    pairFirst: string;
+    chooseAnotherDevice: string;
+    deviceListFailed: string;
     adapterSaveFailed: string;
     browseOffline: string;
     lines: { lookingForAdapter: string; wakingBus: string; vinRead: (vin: string) => string; recognisedFrom: (brand: string, wmi: string) => string; adapterFound: (v: string) => string };

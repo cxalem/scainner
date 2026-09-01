@@ -602,10 +602,46 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       return undefined as T;
     }
     case "list_adapters":
+      // Shaped like the enriched backend payload: one row per physical
+      // device, a Bluetooth node, a bare USB node, and one radio the OS
+      // has not exposed a serial node for.
       return [
-        { kind: "serial", id: "/dev/cu.OBDLinkMX49489", name: "OBDLink MX+", likely_obd: true, connected: null },
-        { kind: "serial", id: "/dev/cu.V-LINK", name: "Vgate iCar Pro", likely_obd: true, connected: null },
-        { kind: "serial", id: "/dev/cu.usbserial-110", name: "USB ELM327", likely_obd: true, connected: null },
+        {
+          kind: "serial",
+          id: "/dev/cu.OBDLinkMX49489",
+          name: "cu.OBDLinkMX49489",
+          likely_obd: true,
+          connected: true,
+          display_name: "OBDLink MX+ 49489",
+          device_kind: "bluetooth_serial",
+          path: "/dev/cu.OBDLinkMX49489",
+          bt_addr: "aa-bb-cc-dd-ee-01",
+          last_used: true,
+        },
+        {
+          kind: "serial",
+          id: "/dev/cu.usbserial-1410",
+          name: "cu.usbserial-1410",
+          likely_obd: true,
+          connected: null,
+          display_name: "USB serial adapter",
+          device_kind: "usb_serial",
+          path: "/dev/cu.usbserial-1410",
+          bt_addr: null,
+          last_used: false,
+        },
+        {
+          kind: "bluetooth",
+          id: "aa-bb-cc-dd-ee-02",
+          name: "V-LINK",
+          likely_obd: true,
+          connected: false,
+          display_name: "V-LINK",
+          device_kind: "paired_only",
+          path: null,
+          bt_addr: "aa-bb-cc-dd-ee-02",
+          last_used: false,
+        },
       ] as T;
     case "get_adapter_profile":
       return adapterProfile as T;
