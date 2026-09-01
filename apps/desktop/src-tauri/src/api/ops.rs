@@ -121,10 +121,17 @@ pub fn require_confirmed(confirmed: bool) -> Result<(), String> {
 
 // ---------- connection lifecycle ----------
 
+/// One connect request = one run of the connect pipeline. A supervisor
+/// whose run failed has already stopped its thread and left the stage and
+/// reason on its status, so "try again" replaces it with a fresh one
+/// instead of silently doing nothing; a run that is still connecting or
+/// already connected is left alone.
 pub fn connect(state: &AppState, app: tauri::AppHandle) -> Result<(), String> {
     let mut guard = lock_or_recover(&state.supervisor);
-    if guard.is_some() {
-        return Ok(()); // already running
+    if let Some(supervisor) = guard.as_ref() {
+        if lock_or_recover(&supervisor.status).state != "disconnected" {
+            return Ok(()); // still running
+        }
     }
     *guard = Some(Supervisor::spawn(app, state.db.clone()));
     Ok(())
@@ -512,10 +519,6 @@ pub fn set_adapter_profile(
     for (key, value) in profile.to_settings() {
         state.db.setting_set(key, &value);
     }
-    // A changed profile is a different (or differently reachable) adapter:
-    // forget the escalation level learned for it so the ladder starts from
-    // the cheap step again.
-    state.db.setting_set(&profile.learned_level_key(), "0");
     Ok(profile)
 }
 

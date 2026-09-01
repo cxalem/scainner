@@ -68,7 +68,11 @@ pub fn open(profile: &AdapterProfile) -> Result<Box<dyn Transport>, ElmError> {
                     "no serial port configured: set adapter.path (or SCAINNER_OBD_PORT)".into(),
                 )
             })?;
-            Ok(Box::new(elm_serial::ElmSerial::open(&path, profile.baud)?))
+            Ok(Box::new(elm_serial::ElmSerial::open(
+                &path,
+                profile.baud,
+                profile.bt_addr.as_deref(),
+            )?))
         }
         AdapterKind::TcpElm => {
             let host = profile.host.clone().ok_or_else(|| {

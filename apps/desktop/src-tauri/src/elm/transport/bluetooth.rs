@@ -1,14 +1,11 @@
 //! Platform Bluetooth control for classic-Bluetooth (SPP) adapters.
 //!
-//! Empirically established with a real dongle (2026-08-14): the RFCOMM link
-//! drops when the port closes; a disconnect/connect cycle revives it and
-//! recreates the serial node if it vanished after an unpair. The dongle
-//! also periodically stops answering on an existing pairing ("sulk mode")
-//! and only a fresh PIN pairing wakes it — the `repair` step.
-//!
-//! The PIN is **not standardized** across ELM327 clones: `1234` covers most
-//! of them, `0000` / `1111` / `6789` the rest. It lives in the adapter
-//! profile (`adapter.pin`), never in code.
+//! Exactly two operations, and neither of them touches the pairing:
+//! enumerate what is paired, and bring one address's link up (which also
+//! recreates the serial node macOS removes when the link drops). Unpairing
+//! and re-pairing a radio behind the user's back is disruptive, needs a PIN
+//! that is not standardised across adapters, and belongs to the person
+//! holding the hardware — the connect pipeline does neither.
 
 use std::time::Duration;
 
@@ -22,10 +19,11 @@ pub struct PairedDevice {
 }
 
 pub trait BluetoothControl: Send + Sync {
-    /// Disconnect/connect cycle; waits for `port_path` to (re)appear.
-    fn cycle(&self, addr: &str, port_path: &str) -> Result<(), String>;
-    /// unpair → pair with `pin` → connect → wait for `port_path`.
-    fn repair(&self, addr: &str, pin: &str, port_path: &str) -> Result<(), String>;
+    /// Bring the RFCOMM link up without tearing anything down first, then
+    /// wait for `port_path` to exist. This is the pipeline's Link stage:
+    /// the blocking `open` on the port node should not have to negotiate a
+    /// sleeping link itself (which regularly outlasts the open timeout).
+    fn connect(&self, addr: &str, port_path: &str) -> Result<(), String>;
     /// Paired devices, empty where the platform offers no enumeration.
     fn paired(&self) -> Vec<PairedDevice>;
 }
@@ -53,10 +51,7 @@ Bluetooth settings, then connect again";
 pub struct Unsupported;
 
 impl BluetoothControl for Unsupported {
-    fn cycle(&self, _addr: &str, _port_path: &str) -> Result<(), String> {
-        Err(MANUAL_PAIRING_REQUIRED.into())
-    }
-    fn repair(&self, _addr: &str, _pin: &str, _port_path: &str) -> Result<(), String> {
+    fn connect(&self, _addr: &str, _port_path: &str) -> Result<(), String> {
         Err(MANUAL_PAIRING_REQUIRED.into())
     }
     fn paired(&self) -> Vec<PairedDevice> {
@@ -90,19 +85,13 @@ impl MacosBlueutil {
 }
 
 impl BluetoothControl for MacosBlueutil {
-    fn cycle(&self, addr: &str, port_path: &str) -> Result<(), String> {
-        let disc = Self::command().args(["--disconnect", addr]).output();
-        log::trace!(
-            "blueutil --disconnect: {:?}",
-            disc.as_ref().map(|o| o.status.code())
-        );
-        std::thread::sleep(Duration::from_secs(1));
+    fn connect(&self, addr: &str, port_path: &str) -> Result<(), String> {
         let out = Self::command()
             .args(["--connect", addr])
             .output()
             .map_err(|e| format!("blueutil not runnable (brew install blueutil): {e}"))?;
-        log::trace!(
-            "blueutil --connect: code={:?} stderr={}",
+        log::info!(
+            "blueutil --connect {addr}: code={:?} stderr={}",
             out.status.code(),
             String::from_utf8_lossy(&out.stderr).trim()
         );
@@ -119,37 +108,6 @@ impl BluetoothControl for MacosBlueutil {
         Err(format!(
             "serial port {port_path} did not appear after connect"
         ))
-    }
-
-    fn repair(&self, addr: &str, pin: &str, port_path: &str) -> Result<(), String> {
-        let un = Self::command().args(["--unpair", addr]).output();
-        log::debug!("blueutil --unpair: {:?}", un.map(|o| o.status.code()));
-        std::thread::sleep(Duration::from_secs(2));
-        let pair = Self::command()
-            .args(["--pair", addr, pin])
-            .output()
-            .map_err(|e| format!("blueutil not runnable (brew install blueutil): {e}"))?;
-        log::debug!(
-            "blueutil --pair: code={:?} stderr={}",
-            pair.status.code(),
-            String::from_utf8_lossy(&pair.stderr).trim()
-        );
-        if !pair.status.success() {
-            return Err(
-                "PIN pairing failed — is the adapter powered, and is adapter.pin right?".into(),
-            );
-        }
-        std::thread::sleep(Duration::from_secs(1));
-        let conn = Self::command().args(["--connect", addr]).output();
-        log::debug!(
-            "blueutil --connect (post-pair): {:?}",
-            conn.map(|o| o.status.code())
-        );
-        if Self::wait_for_port(port_path, 15, Duration::from_secs(1)) {
-            return Ok(());
-        }
-        // Port node sometimes needs one extra cycle after a re-pair.
-        self.cycle(addr, port_path)
     }
 
     fn paired(&self) -> Vec<PairedDevice> {
@@ -201,11 +159,7 @@ mod tests {
     #[test]
     fn the_no_op_control_asks_for_manual_pairing_instead_of_shelling_out() {
         let control = Unsupported;
-        let err = control.cycle("aa-bb-cc-dd-ee-ff", "/dev/x").unwrap_err();
-        assert!(err.starts_with("manual pairing required"));
-        let err = control
-            .repair("aa-bb-cc-dd-ee-ff", "1234", "/dev/x")
-            .unwrap_err();
+        let err = control.connect("aa-bb-cc-dd-ee-ff", "/dev/x").unwrap_err();
         assert!(err.starts_with("manual pairing required"));
         assert!(control.paired().is_empty());
     }

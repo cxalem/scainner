@@ -10,6 +10,8 @@ import {
   DeviceService,
   InvokeError,
   ConnStatus,
+  AdapterCandidate,
+  AdapterProfile,
   CarReport,
   VehicleInfo,
   VehicleListRow,
@@ -53,6 +55,9 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   connStatus: () => decoded(ConnStatus, "conn_status"),
   connect: () => call<void>("connect"),
   disconnect: () => call<void>("disconnect"),
+  listAdapters: () => decoded(Schema.mutable(Schema.Array(AdapterCandidate)), "list_adapters"),
+  adapterProfile: () => decoded(AdapterProfile, "get_adapter_profile"),
+  setAdapterProfile: (profile) => decoded(AdapterProfile, "set_adapter_profile", { profile }),
 
   listVehicles: () => decoded(Schema.mutable(Schema.Array(VehicleListRow)), "list_vehicles"),
   vehicleReport: (vehicleId) => decoded(CarReport, "vehicle_report", { vehicleId }),

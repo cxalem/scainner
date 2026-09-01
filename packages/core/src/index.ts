@@ -5,6 +5,7 @@
 export * from "./errors";
 
 export * from "./schema/connection";
+export * from "./schema/adapter";
 export * from "./schema/diagnostic-outcome";
 export * from "./schema/vehicle";
 export * from "./schema/diagnose";

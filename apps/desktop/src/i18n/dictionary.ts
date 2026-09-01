@@ -799,6 +799,19 @@ export type Dictionary = {
     brandUnknownYet: string;
     connect: string;
     connecting: string;
+    tryAgain: string;
+    // The connect pipeline's stages, named while each one runs and again
+    // when a failed attempt reports the one it stopped at.
+    stages: { link: string; open: string; handshake: string; bus: string };
+    failedAt: (stage: string, reason: string) => string;
+    chooseAdapter: string;
+    adapterTitle: string;
+    adapterHelp: string;
+    refreshAdapters: string;
+    useAdapter: string;
+    noAdapters: string;
+    pairedNeedsPort: string;
+    adapterSaveFailed: string;
     browseOffline: string;
     lines: { lookingForAdapter: string; wakingBus: string; vinRead: (vin: string) => string; recognisedFrom: (brand: string, wmi: string) => string; adapterFound: (v: string) => string };
   };

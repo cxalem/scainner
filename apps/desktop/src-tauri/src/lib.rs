@@ -27,6 +27,24 @@ fn disconnect(state: State) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn list_adapters() -> Vec<elm::transport::enumerate::AdapterCandidate> {
+    ops::list_adapters()
+}
+
+#[tauri::command]
+fn get_adapter_profile(state: State) -> elm::transport::AdapterProfile {
+    ops::adapter_profile(&state)
+}
+
+#[tauri::command]
+fn set_adapter_profile(
+    state: State,
+    profile: elm::transport::AdapterProfile,
+) -> Result<elm::transport::AdapterProfile, String> {
+    ops::set_adapter_profile(&state, profile)
+}
+
+#[tauri::command]
 fn uds_cancel_scan(state: State) {
     ops::uds_cancel_scan(&state)
 }
@@ -332,12 +350,56 @@ fn data_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
     dir.join("scainner.sqlite3")
 }
 
+/// stderr *and* the log file: a connect that fails in a car park has to
+/// leave evidence behind, and stderr is invisible unless the app was
+/// started from a terminal.
+struct Tee(std::fs::File);
+
+impl std::io::Write for Tee {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let _ = self.0.write_all(buf);
+        std::io::stderr().write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        let _ = self.0.flush();
+        std::io::stderr().flush()
+    }
+}
+
+/// `~/Library/Logs/com.cxalem.scainner/desktop.log`, rolled over to `.1`
+/// once it passes 2 MB. `None` on platforms with no known log directory —
+/// logging then stays exactly as it was, on stderr only.
+fn log_file() -> Option<std::fs::File> {
+    #[cfg(target_os = "macos")]
+    {
+        let dir = std::path::PathBuf::from(std::env::var_os("HOME")?)
+            .join("Library/Logs/com.cxalem.scainner");
+        std::fs::create_dir_all(&dir).ok()?;
+        let path = dir.join("desktop.log");
+        if std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) > 2 * 1024 * 1024 {
+            std::fs::rename(&path, dir.join("desktop.log.1")).ok();
+        }
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+            .ok()
+    }
+    #[cfg(not(target_os = "macos"))]
+    None
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Quiet by default — set RUST_LOG=debug (or =trace for per-DID scan
     // detail) to see the connection/scan internals. `Info` is the default
     // level so warnings and above always surface.
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let mut logger =
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"));
+    if let Some(file) = log_file() {
+        logger.target(env_logger::Target::Pipe(Box::new(Tee(file))));
+    }
+    logger.init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -357,6 +419,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             connect,
             disconnect,
+            list_adapters,
+            get_adapter_profile,
+            set_adapter_profile,
             conn_status,
             scan_dtcs,
             clear_dtcs,

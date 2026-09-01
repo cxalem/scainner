@@ -88,10 +88,10 @@ pub struct AdapterProfile {
     pub kind: AdapterKind,
     /// Serial port path (`elm_serial`).
     pub path: Option<String>,
-    /// Dashed MAC of the paired dongle, for the Bluetooth revival ladder.
-    /// Without it only the "open the port directly" step can run.
+    /// Dashed MAC of the paired dongle. Without it the connect pipeline's
+    /// Link stage has nothing to bring up and is skipped.
     pub bt_addr: Option<String>,
-    /// Bluetooth pairing PIN used by the re-pair step.
+    /// Bluetooth pairing PIN, for a pairing the user performs themselves.
     pub pin: String,
     /// Host of a Wi-Fi adapter (`tcp_elm`).
     pub host: Option<String>,
@@ -173,49 +173,6 @@ impl AdapterProfile {
             ("adapter.baud", self.baud.to_string()),
             ("adapter.timing", self.timing.as_str().to_string()),
         ]
-    }
-
-    /// What physically identifies this adapter: the Bluetooth address, else
-    /// the serial path, else `host:port`. The learned Bluetooth escalation
-    /// level is keyed by it so a level learned on one dongle never applies
-    /// to a different adapter.
-    pub fn identity(&self) -> String {
-        match self.kind {
-            AdapterKind::ElmSerial => format!(
-                "{}:{}",
-                self.kind.as_str(),
-                self.bt_addr
-                    .clone()
-                    .or_else(|| self.path.clone())
-                    .unwrap_or_default()
-            ),
-            AdapterKind::TcpElm => format!(
-                "{}:{}:{}",
-                self.kind.as_str(),
-                self.host.clone().unwrap_or_default(),
-                self.port
-            ),
-        }
-    }
-
-    /// `app_settings` key of the escalation level last known to work for
-    /// this adapter (`bt_connect_level:<identity>`).
-    pub fn learned_level_key(&self) -> String {
-        format!("bt_connect_level:{}", self.identity())
-    }
-
-    /// Where the Bluetooth escalation ladder starts: the stored level for
-    /// this adapter, but always 0 when there is no Bluetooth address — the
-    /// ladder's steps 1 and 2 cannot run for a USB adapter, so a learned
-    /// level would only skip the one step that can succeed.
-    pub fn ladder_start(&self, stored: Option<String>) -> u8 {
-        if self.bt_addr.is_none() {
-            return 0;
-        }
-        stored
-            .and_then(|v| v.parse::<u8>().ok())
-            .filter(|&level| level <= 2)
-            .unwrap_or(0)
     }
 
     /// Trim every field and treat blanks as unset (a JSON body with
@@ -396,39 +353,17 @@ mod tests {
         );
     }
 
+    /// A profile written by an older build carries an `adapter.allow_repair`
+    /// row. Nothing reads it any more and it must not make the load fail.
     #[test]
-    fn the_learned_ladder_level_is_per_adapter_and_ignored_without_bluetooth() {
-        let usb = AdapterProfile {
-            path: Some("/dev/ttyUSB0".into()),
-            ..Default::default()
-        };
-        assert_eq!(
-            usb.ladder_start(Some("2".into())),
-            0,
-            "no bt_addr: always attempt 0"
-        );
-        assert_eq!(usb.identity(), "elm_serial:/dev/ttyUSB0");
-
-        let bt = AdapterProfile {
-            path: Some("/dev/cu.OBDII".into()),
-            bt_addr: Some("aa-bb-cc-dd-ee-ff".into()),
-            ..Default::default()
-        };
-        assert_eq!(bt.ladder_start(Some("2".into())), 2);
-        assert_eq!(bt.ladder_start(Some("7".into())), 0, "out of range → 0");
-        assert_eq!(bt.ladder_start(None), 0);
-        assert_eq!(
-            bt.learned_level_key(),
-            "bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff"
-        );
-        assert_ne!(usb.learned_level_key(), bt.learned_level_key());
-
-        let wifi = AdapterProfile {
-            kind: AdapterKind::TcpElm,
-            host: Some("192.168.0.10".into()),
-            ..Default::default()
-        };
-        assert_eq!(wifi.identity(), "tcp_elm:192.168.0.10:35000");
+    fn a_stale_repair_permission_row_is_ignored() {
+        let settings = HashMap::from([
+            ("adapter.path", "/dev/cu.OBDII"),
+            ("adapter.allow_repair", "true"),
+        ]);
+        let p = AdapterProfile::from_lookups(lookup(&settings), |_| None);
+        assert_eq!(p.path.as_deref(), Some("/dev/cu.OBDII"));
+        assert!(p.validate().is_ok());
     }
 
     #[test]

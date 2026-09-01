@@ -12,8 +12,9 @@ import { BRAND } from "@/brand";
 import { Button, Pill } from "@/components/ui";
 import { brandFromVin } from "@/lib/brand";
 import { appearVariants, fadeVariants, screenVariants, staggerItem } from "@/motion";
-import type { ConnStatus } from "@scainner/core";
+import type { ConnStatus, ConnectStage } from "@scainner/core";
 import { useT } from "@/i18n";
+import { AdapterPicker } from "@/components/AdapterPicker";
 
 const VehicleScene = lazy(() => import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })));
 
@@ -42,6 +43,10 @@ export function ConnectGate({
   const t = useT();
   const connecting = conn.state === "connecting";
   const connected = conn.state === "connected";
+  const stageLabel = (stage: ConnectStage) => t.gate.stages[stage];
+  // One failed attempt, one stage, one reason — nothing retried behind the
+  // scenes, so this is the whole story and the button below says so.
+  const failure = conn.state === "disconnected" ? conn.error : null;
   const brand = brandFromVin(conn.vin);
   const brandKnown = brand != null && (connecting || connected);
 
@@ -59,6 +64,7 @@ export function ConnectGate({
   // The connection log: one line per thing the backend told us, in order.
   // Rebuilt from ConnStatus transitions, so it only ever says what happened.
   const [lines, setLines] = useState<string[]>([]);
+  const [adapterPickerOpen, setAdapterPickerOpen] = useState(false);
   const seen = useRef({ adapter: false, vin: false });
   useEffect(() => {
     if (conn.state === "disconnected") {
@@ -144,7 +150,9 @@ export function ConnectGate({
                   )}
                 </div>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-[12.5px] text-neutral-400">{connecting ? t.gate.readingVin : t.gate.noAdapter}</span>
+                  <span className="text-[12.5px] text-neutral-400">
+                    {connecting ? (conn.stage ? stageLabel(conn.stage) : t.gate.readingVin) : t.gate.noAdapter}
+                  </span>
                   <span className="text-[11px] uppercase tracking-[0.1em] text-neutral-600">
                     {connecting ? t.gate.brandUnknownYet : t.gate.plugToBegin}
                   </span>
@@ -180,7 +188,7 @@ export function ConnectGate({
             </Button>
           ) : (
             <Button variant="primary" size="lg" icon={PlugZap} busy={connecting} onClick={onConnect} disabled={connected}>
-              {connecting ? t.gate.connecting : t.gate.connect}
+              {connecting ? t.gate.connecting : failure ? t.gate.tryAgain : t.gate.connect}
             </Button>
           )}
           <span className="inline-flex items-center gap-[7px] text-[12px] text-neutral-500">
@@ -189,8 +197,14 @@ export function ConnectGate({
           </span>
         </div>
 
+        {!connecting && !connected && (
+          <Button variant="ghost" size="sm" onClick={() => setAdapterPickerOpen(true)}>
+            {t.gate.chooseAdapter}
+          </Button>
+        )}
+
         <AnimatePresence initial={false}>
-          {conn.detail && conn.state === "disconnected" && (
+          {(failure || (conn.detail && conn.state === "disconnected")) && (
             <motion.p
               initial="hidden"
               animate="visible"
@@ -198,7 +212,7 @@ export function ConnectGate({
               variants={appearVariants}
               className="max-w-[46ch] text-center text-[12px] leading-snug text-stop"
             >
-              {conn.detail}
+              {failure ? t.gate.failedAt(stageLabel(failure.stage), failure.reason) : conn.detail}
             </motion.p>
           )}
         </AnimatePresence>
@@ -209,6 +223,7 @@ export function ConnectGate({
           </Button>
         )}
       </div>
+      <AdapterPicker open={adapterPickerOpen} onClose={() => setAdapterPickerOpen(false)} />
     </motion.div>
   );
 }

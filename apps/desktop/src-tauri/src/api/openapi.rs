@@ -54,9 +54,9 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/openapi.json", "This document", &[], None, false, false),
     r("GET", "/events", "Server-Sent Events relay of conn-status, live-update, uds-scan-progress, discovery-progress, unknown-brand", &[], None, false, false),
     // connection
-    r("POST", "/connect", "Start the connection supervisor (same loop as the UI's Connect: finds the adapter, cures Bluetooth sulk mode, keeps the link alive). Idempotent.", &[], None, false, false),
+    r("POST", "/connect", "Run the connect pipeline once (same as the UI's Connect: link, open, handshake, bus). No automatic retry — call it again to try again. Idempotent while a connection is running.", &[], None, false, false),
     r("POST", "/disconnect", "Stop the supervisor (cancels any running scan first)", &[], None, false, false),
-    r("GET", "/status", "ConnStatus: state, ELM version, VIN/vehicle identity, scanning flag", &[], None, false, false),
+    r("GET", "/status", "ConnStatus: state, stage (link|open|handshake|bus while connecting), error {stage, reason} after a failed attempt, ELM version, VIN/vehicle identity, scanning flag", &[], None, false, false),
     r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Workshop courtesy car"}"#), true, false),
     // standard OBD
     r("GET", "/live", "Latest live PID readings (the last live-update broadcast) with their age", &[], None, false, false),
