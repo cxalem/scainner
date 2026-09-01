@@ -600,12 +600,100 @@ fn run_loop(
     }
 }
 
+/// What attempt 0 has to do to the Bluetooth link before it can open the
+/// port node.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LinkPrep {
+    /// The node is there and nothing says the link is down: open it.
+    OpenDirectly,
+    /// The node is there but the platform reports the adapter as *not
+    /// connected*. Opening the node in that state makes the OS negotiate
+    /// the RFCOMM link inside the blocking `open`, which a sleeping dongle
+    /// regularly drags past any sane open timeout — so wake it first.
+    Wake,
+    /// No node at all: the full disconnect/connect cycle, as before.
+    Cycle,
+}
+
+/// Attempt 0's decision, kept pure so it can be tested without a radio.
+/// `connected` is what the platform reports for `bt_addr`: `None` when
+/// nothing can say (no blueutil, no Bluetooth enumeration, a USB adapter),
+/// and then the old fast path stands.
+fn attempt_0_prep(port_exists: bool, bt_addr: Option<&str>, connected: Option<bool>) -> LinkPrep {
+    if !port_exists {
+        return LinkPrep::Cycle;
+    }
+    match (bt_addr, connected) {
+        (Some(_), Some(false)) => LinkPrep::Wake,
+        _ => LinkPrep::OpenDirectly,
+    }
+}
+
+/// Whether the platform reports `addr` as connected. `None` means it
+/// enumerates nothing at all (blueutil missing, or a build without
+/// Bluetooth control) — an unknown state, never a "no".
+fn reported_connected(bt: &dyn transport::bluetooth::BluetoothControl, addr: &str) -> Option<bool> {
+    let paired = bt.paired();
+    if paired.is_empty() {
+        return None;
+    }
+    Some(
+        paired
+            .iter()
+            .any(|d| d.addr.eq_ignore_ascii_case(addr) && d.connected),
+    )
+}
+
+fn no_bt_addr_error(what: &str, port: &str) -> String {
+    format!("{what}: port {port} is not available and no adapter.bt_addr is set to revive it (set it for a Bluetooth adapter, or plug the USB adapter back in)")
+}
+
+/// Run attempt 0's link preparation. Returns whether the link was just
+/// brought up, so the caller can let the RFCOMM channel settle before
+/// opening. A *failed* wake is not fatal: the node is still there, so the
+/// open (and then the ladder) still gets its chance.
+fn prepare_link_for_attempt_0(
+    bt: &dyn transport::bluetooth::BluetoothControl,
+    port: &str,
+    bt_addr: Option<&str>,
+) -> Result<bool, String> {
+    let port_exists = std::path::Path::new(port).exists();
+    let connected = bt_addr.and_then(|addr| reported_connected(bt, addr));
+    match attempt_0_prep(port_exists, bt_addr, connected) {
+        LinkPrep::OpenDirectly => {
+            log::info!("connect attempt 0: fast path — {port} exists and nothing reports the link down, opening directly");
+            Ok(false)
+        }
+        LinkPrep::Wake => {
+            let addr = bt_addr.unwrap_or_default();
+            log::info!(
+                "connect attempt 0: {port} exists but {addr} reports not connected — waking the link before opening"
+            );
+            match bt.connect(addr, port) {
+                Ok(()) => Ok(true),
+                Err(e) => {
+                    log::warn!("connect attempt 0: wake failed ({e}); opening {port} anyway");
+                    Ok(false)
+                }
+            }
+        }
+        LinkPrep::Cycle => {
+            log::info!("connect attempt 0: no port node at {port}, bluetooth cycle...");
+            match bt_addr {
+                Some(addr) => bt.cycle(addr, port).map(|()| true),
+                None => Err(no_bt_addr_error("connect attempt 0", port)),
+            }
+        }
+    }
+}
+
 /// Escalation ladder, cheapest first:
-///   attempt 0 — FAST PATH: if the port node already exists, just open it and
-///     probe. A healthy link reconnects in ~2-3s instead of the ~10s a full
-///     BT cycle costs. (The stale-port trap is real — the node can exist with
-///     a dead RFCOMM link behind it — but the probe catches that, and we only
-///     pay the escalation cost when it actually happens.)
+///   attempt 0 — FAST PATH: if the port node already exists and the link is
+///     up, just open it and probe. A healthy link reconnects in ~2-3s
+///     instead of the ~10s a full BT cycle costs. (The stale-port trap is
+///     real — the node can exist with a dead RFCOMM link behind it — but a
+///     link the platform reports as disconnected is woken first, and the
+///     probe catches whatever slips through.)
 ///   attempt 1 — plain BT disconnect/connect cycle.
 ///   attempt 2 — full PIN re-pair (the dongle's sulk-state cure).
 ///
@@ -652,9 +740,7 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
     let cycle = |what: &str| -> Result<(), String> {
         match &bt_addr {
             Some(addr) => bluetooth.cycle(addr, &port),
-            None => Err(format!(
-                "{what}: port {port} is not available and no adapter.bt_addr is set to revive it (set it for a Bluetooth adapter, or plug the USB adapter back in)"
-            )),
+            None => Err(no_bt_addr_error(what, &port)),
         }
     };
     let pin = profile.pin.clone();
@@ -668,13 +754,12 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
     }
     let attempts = if profile.allow_repair { 3 } else { 2 };
     for attempt in start.min(attempts - 1)..attempts {
+        // True when this attempt just brought the RFCOMM link up, so the
+        // channel needs a moment before the open.
+        let mut link_just_up = attempt > 0;
         if attempt == 0 {
-            if std::path::Path::new(&port).exists() {
-                log::debug!("connect attempt 0: fast path — port exists, probing directly");
-            } else {
-                log::debug!("connect attempt 0: no port node, bluetooth cycle...");
-                cycle("connect attempt 0")?;
-            }
+            link_just_up =
+                prepare_link_for_attempt_0(bluetooth.as_ref(), &port, bt_addr.as_deref())?;
         } else if attempt == 1 {
             log::debug!("connect attempt 1: bluetooth cycle...");
             cycle("connect attempt 1")?;
@@ -690,24 +775,21 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
             }
         }
         // Let the RFCOMM channel settle before opening — opening too early
-        // wedges it. Only needed after a cycle/repair; the fast path opens an
-        // already-settled link.
-        if attempt > 0 {
+        // wedges it. Only needed after a cycle/repair/wake; the fast path
+        // opens an already-settled link.
+        if link_just_up {
             std::thread::sleep(Duration::from_secs(2));
         }
         log::debug!("connect attempt {attempt}: opening {port}");
         match ElmDriver::open(&profile) {
             Ok(mut d) => {
-                // Liveness probe: ATZ on the open port. Fast path gets one
-                // short try (a healthy link answers in <1s; a dead one should
-                // fail fast so escalation starts sooner); post-cycle attempts
-                // get two patient tries since fresh links often eat the first
-                // write.
-                let (tries, per_try) = if attempt == 0 {
-                    (1, Duration::from_secs(3))
-                } else {
-                    (2, Duration::from_secs(5))
-                };
+                // Liveness probe: ATZ on the open port. Every attempt gets
+                // two patient tries — a freshly opened link eats the first
+                // write often enough that the old single 3 s try on the fast
+                // path failed connects that a second one would have made
+                // (owner's sleeping STN dongle, 2026-09-01). The extra cost
+                // is only paid on a link that is genuinely silent.
+                let (tries, per_try) = (2, Duration::from_secs(5));
                 let mut alive = false;
                 for probe_try in 0..tries {
                     let probe = d.cmd("ATZ", per_try);
@@ -1175,5 +1257,130 @@ fn handle_request(
             let _ = tx.send(Err("naming is handled by the connection loop".into()));
         }
         Request::Stop => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::elm::transport::bluetooth::{BluetoothControl, PairedDevice};
+
+    /// Records what the connect ladder asked the radio to do, so a test can
+    /// assert the *wake* happened (or didn't) without a radio.
+    #[derive(Default)]
+    struct FakeBluetooth {
+        paired: Vec<PairedDevice>,
+        calls: Mutex<Vec<String>>,
+    }
+
+    impl FakeBluetooth {
+        fn with(addr: &str, connected: bool) -> Self {
+            Self {
+                paired: vec![PairedDevice {
+                    addr: addr.into(),
+                    name: "OBDII".into(),
+                    connected,
+                }],
+                calls: Mutex::new(Vec::new()),
+            }
+        }
+        fn calls(&self) -> Vec<String> {
+            self.calls.lock().unwrap().clone()
+        }
+    }
+
+    impl BluetoothControl for FakeBluetooth {
+        fn connect(&self, addr: &str, _port_path: &str) -> Result<(), String> {
+            self.calls.lock().unwrap().push(format!("connect {addr}"));
+            Ok(())
+        }
+        fn cycle(&self, addr: &str, _port_path: &str) -> Result<(), String> {
+            self.calls.lock().unwrap().push(format!("cycle {addr}"));
+            Ok(())
+        }
+        fn repair(&self, addr: &str, _pin: &str, _port_path: &str) -> Result<(), String> {
+            self.calls.lock().unwrap().push(format!("repair {addr}"));
+            Ok(())
+        }
+        fn paired(&self) -> Vec<PairedDevice> {
+            self.paired.clone()
+        }
+    }
+
+    /// A path that certainly exists, standing in for a live port node.
+    const EXISTING_PORT: &str = "/dev/null";
+    const MISSING_PORT: &str = "/dev/scainner-no-such-port";
+
+    #[test]
+    fn attempt_0_wakes_a_paired_but_disconnected_link_before_opening() {
+        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", false);
+        let settled = prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("aa-bb-cc-dd-ee-ff"))
+            .expect("a wake must not fail the attempt");
+        assert!(
+            settled,
+            "a freshly woken link has to settle before the open"
+        );
+        assert_eq!(bt.calls(), vec!["connect aa-bb-cc-dd-ee-ff"]);
+    }
+
+    #[test]
+    fn attempt_0_opens_directly_when_the_link_is_already_connected() {
+        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", true);
+        let settled =
+            prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("aa-bb-cc-dd-ee-ff")).unwrap();
+        assert!(!settled);
+        assert!(bt.calls().is_empty(), "the fast path must stay fast");
+    }
+
+    #[test]
+    fn attempt_0_matches_the_address_case_insensitively() {
+        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", true);
+        prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("AA-BB-CC-DD-EE-FF")).unwrap();
+        assert!(bt.calls().is_empty());
+    }
+
+    #[test]
+    fn attempt_0_still_cycles_when_the_port_node_is_missing() {
+        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", true);
+        let settled =
+            prepare_link_for_attempt_0(&bt, MISSING_PORT, Some("aa-bb-cc-dd-ee-ff")).unwrap();
+        assert!(settled);
+        assert_eq!(bt.calls(), vec!["cycle aa-bb-cc-dd-ee-ff"]);
+    }
+
+    #[test]
+    fn attempt_0_without_a_bluetooth_address_keeps_the_old_behaviour() {
+        let bt = FakeBluetooth::default();
+        // USB adapter, node present: open it, touch no radio.
+        assert!(!prepare_link_for_attempt_0(&bt, EXISTING_PORT, None).unwrap());
+        // Node gone and nothing to revive it with: the same honest error.
+        let err = prepare_link_for_attempt_0(&bt, MISSING_PORT, None).unwrap_err();
+        assert!(
+            err.contains("no adapter.bt_addr is set to revive it"),
+            "{err}"
+        );
+        assert!(bt.calls().is_empty());
+    }
+
+    #[test]
+    fn a_platform_that_enumerates_nothing_keeps_the_fast_path() {
+        // blueutil missing (or a non-macOS build): `paired()` is empty, the
+        // connected state is unknown, and we must not guess "disconnected".
+        let bt = FakeBluetooth::default();
+        assert!(
+            !prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("aa-bb-cc-dd-ee-ff")).unwrap()
+        );
+        assert!(bt.calls().is_empty());
+        assert_eq!(reported_connected(&bt, "aa-bb-cc-dd-ee-ff"), None);
+    }
+
+    #[test]
+    fn an_address_the_platform_does_not_list_counts_as_disconnected() {
+        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-01", true);
+        assert_eq!(reported_connected(&bt, "aa-bb-cc-dd-ee-02"), Some(false));
+        assert_eq!(
+            attempt_0_prep(true, Some("aa-bb-cc-dd-ee-02"), Some(false)),
+            LinkPrep::Wake
+        );
     }
 }

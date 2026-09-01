@@ -22,6 +22,12 @@ pub struct PairedDevice {
 }
 
 pub trait BluetoothControl: Send + Sync {
+    /// Bring the RFCOMM link up without tearing anything down first, then
+    /// wait for `port_path`. This is the cheap wake for a paired-but-idle
+    /// adapter: the connect ladder's attempt 0 uses it so the blocking
+    /// `open` on the port node doesn't have to negotiate a sleeping link
+    /// itself (which regularly outlasts the open timeout).
+    fn connect(&self, addr: &str, port_path: &str) -> Result<(), String>;
     /// Disconnect/connect cycle; waits for `port_path` to (re)appear.
     fn cycle(&self, addr: &str, port_path: &str) -> Result<(), String>;
     /// unpair → pair with `pin` → connect → wait for `port_path`.
@@ -53,6 +59,9 @@ Bluetooth settings, then connect again";
 pub struct Unsupported;
 
 impl BluetoothControl for Unsupported {
+    fn connect(&self, _addr: &str, _port_path: &str) -> Result<(), String> {
+        Err(MANUAL_PAIRING_REQUIRED.into())
+    }
     fn cycle(&self, _addr: &str, _port_path: &str) -> Result<(), String> {
         Err(MANUAL_PAIRING_REQUIRED.into())
     }
@@ -90,19 +99,13 @@ impl MacosBlueutil {
 }
 
 impl BluetoothControl for MacosBlueutil {
-    fn cycle(&self, addr: &str, port_path: &str) -> Result<(), String> {
-        let disc = Self::command().args(["--disconnect", addr]).output();
-        log::trace!(
-            "blueutil --disconnect: {:?}",
-            disc.as_ref().map(|o| o.status.code())
-        );
-        std::thread::sleep(Duration::from_secs(1));
+    fn connect(&self, addr: &str, port_path: &str) -> Result<(), String> {
         let out = Self::command()
             .args(["--connect", addr])
             .output()
             .map_err(|e| format!("blueutil not runnable (brew install blueutil): {e}"))?;
-        log::trace!(
-            "blueutil --connect: code={:?} stderr={}",
+        log::info!(
+            "blueutil --connect {addr}: code={:?} stderr={}",
             out.status.code(),
             String::from_utf8_lossy(&out.stderr).trim()
         );
@@ -119,6 +122,16 @@ impl BluetoothControl for MacosBlueutil {
         Err(format!(
             "serial port {port_path} did not appear after connect"
         ))
+    }
+
+    fn cycle(&self, addr: &str, port_path: &str) -> Result<(), String> {
+        let disc = Self::command().args(["--disconnect", addr]).output();
+        log::trace!(
+            "blueutil --disconnect: {:?}",
+            disc.as_ref().map(|o| o.status.code())
+        );
+        std::thread::sleep(Duration::from_secs(1));
+        self.connect(addr, port_path)
     }
 
     fn repair(&self, addr: &str, pin: &str, port_path: &str) -> Result<(), String> {
@@ -202,6 +215,8 @@ mod tests {
     fn the_no_op_control_asks_for_manual_pairing_instead_of_shelling_out() {
         let control = Unsupported;
         let err = control.cycle("aa-bb-cc-dd-ee-ff", "/dev/x").unwrap_err();
+        assert!(err.starts_with("manual pairing required"));
+        let err = control.connect("aa-bb-cc-dd-ee-ff", "/dev/x").unwrap_err();
         assert!(err.starts_with("manual pairing required"));
         let err = control
             .repair("aa-bb-cc-dd-ee-ff", "1234", "/dev/x")
