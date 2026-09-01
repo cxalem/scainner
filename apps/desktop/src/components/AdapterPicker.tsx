@@ -62,10 +62,9 @@ export function AdapterPicker({ open, onClose }: { open: boolean; onClose: () =>
         ...profile,
         kind: "elm_serial",
         path: candidate.id,
+        // The connect pipeline brings this address's link up when the
+        // platform reports it down; nothing pairs or unpairs anything.
         bt_addr: bluetoothAddressFor(candidate, candidates),
-        // Reconnect cycles are safe and needed when macOS removes an SPP
-        // node. Unpair/re-pair is a separate destructive permission.
-        allow_repair: false,
       }))));
       onClose();
     } catch {

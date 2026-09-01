@@ -1194,9 +1194,7 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
 
-        // Review #65: a profile change resets the learned escalation level
-        // for that adapter, and the level is keyed per adapter.
-        db.setting_set("bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff", "2");
+        // A serial profile with a Bluetooth address round-trips as written.
         let (status, _) = call(
             &api,
             "PUT",
@@ -1207,9 +1205,8 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(
-            db.setting_get("bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff")
-                .as_deref(),
-            Some("0")
+            db.setting_get("adapter.bt_addr").as_deref(),
+            Some("aa-bb-cc-dd-ee-ff")
         );
     }
 

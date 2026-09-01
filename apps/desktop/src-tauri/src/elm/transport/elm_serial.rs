@@ -18,16 +18,15 @@ use std::time::Duration;
 /// connect time.
 pub const SUPPORTED_BAUDS: [u32; 6] = [9600, 19200, 38400, 57600, 115_200, 230_400];
 
-/// How long the blocking `libc::open` gets before the waiter gives up. A
-/// USB node opens instantly; a Bluetooth SPP node blocks until macOS has
-/// the RFCOMM link up.
-pub const OPEN_TIMEOUT: Duration = Duration::from_secs(15);
+/// The connect pipeline's Open budget for a wired or network-backed node.
+/// A USB node opens instantly, so anything past this is a wedged device,
+/// not a slow one.
+pub const OPEN_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// The Bluetooth budget. Waking a *sleeping* dongle inside `open` (the
-/// link is paired but idle, so macOS negotiates it while we block) is
-/// regularly slower than 15 s on an STN chip, and the old budget turned
-/// that into a failed connect (owner's dongle, 2026-09-01).
-pub const BLUETOOTH_OPEN_TIMEOUT: Duration = Duration::from_secs(25);
+/// The Open budget for a Bluetooth serial node, which blocks until macOS
+/// has the RFCOMM link up. The Link stage has usually woken the radio
+/// already; this is what a link that was up but idle needs.
+pub const BLUETOOTH_OPEN_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// Which budget one open gets: the longer one only for a Bluetooth serial
 /// node — a `cu.` callout device with a Bluetooth address in the profile.

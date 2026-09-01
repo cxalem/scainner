@@ -116,7 +116,6 @@ let adapterProfile: AdapterProfile = {
   path: null,
   bt_addr: null,
   pin: "1234",
-  allow_repair: false,
   host: null,
   port: 35000,
   baud: 115200,
@@ -573,9 +572,13 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "conn_status":
       return connState as T;
     case "connect": {
-      connState = { state: "connecting" };
-      emit("conn-status", connState);
-      await delay(900);
+      // The same four stages the backend pipeline walks, so the gate's
+      // stage labels are exercised in the browser preview too.
+      for (const stage of ["link", "open", "handshake", "bus"] as const) {
+        connState = { state: "connecting", stage };
+        emit("conn-status", connState);
+        await delay(300);
+      }
       // First demo connect reports vehicle_is_new (schema v2), so the
       // discovery flow runs in the browser preview too.
       const isNew = !discovered;

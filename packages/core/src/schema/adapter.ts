@@ -13,7 +13,6 @@ export class AdapterProfile extends Schema.Class<AdapterProfile>("AdapterProfile
   path: Schema.NullOr(Schema.String),
   bt_addr: Schema.NullOr(Schema.String),
   pin: Schema.String,
-  allow_repair: Schema.Boolean,
   host: Schema.NullOr(Schema.String),
   port: Schema.Number,
   baud: Schema.Number,

@@ -4,8 +4,27 @@
 // 3: cross-feature types need a clear home or the feature boundary leaks).
 import { Schema } from "effect";
 
+// The connect pipeline's stages, in the order they run. The backend
+// (elm/connect.rs) reports the one it is on while connecting, and names the
+// one it stopped at when an attempt fails — there is no retry ladder behind
+// this, so the stage is always the whole story.
+export const ConnectStage = Schema.Literal("link", "open", "handshake", "bus");
+export type ConnectStage = typeof ConnectStage.Type;
+
+// Why the last attempt stopped, and where.
+export const ConnectFailure = Schema.Struct({
+  stage: ConnectStage,
+  reason: Schema.String,
+});
+export type ConnectFailure = typeof ConnectFailure.Type;
+
 export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   state: Schema.String,
+  // Set while `state` is "connecting": which stage is running right now.
+  stage: Schema.optional(Schema.NullOr(ConnectStage)),
+  // Set with "disconnected" after a failed attempt, cleared by the next one.
+  // One failed stage, one reason — the user decides whether to try again.
+  error: Schema.optional(Schema.NullOr(ConnectFailure)),
   elm_version: Schema.optional(Schema.NullOr(Schema.String)),
   detail: Schema.optional(Schema.NullOr(Schema.String)),
   // The CURRENT connection's own resolved identity — never a cache of a

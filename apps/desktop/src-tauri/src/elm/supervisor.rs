@@ -1,16 +1,18 @@
 //! Connection supervisor: owns the serial driver on a background thread,
-//! keeps the link alive (Bluetooth cycle on failure), polls PIDs at ~1 Hz,
-//! writes every reading to SQLite, and dispatches one-shot requests (DTC
-//! scan, UDS reads, etc.) that arrive over a command channel.
+//! polls PIDs at ~1 Hz, writes every reading to SQLite, and dispatches
+//! one-shot requests (DTC scan, UDS reads, etc.) that arrive over a command
+//! channel.
 //!
-//! This file is deliberately just the connection lifecycle and request
-//! dispatch — the actual OBD/UDS business logic lives in `obd.rs` and
-//! `uds.rs` respectively. `handle_request` is the seam between them.
+//! Getting the link up is `connect.rs`'s job: one deterministic pipeline
+//! run per connect request, no ladder and no automatic re-attempt. This
+//! file is deliberately just the connection lifecycle and request dispatch
+//! — the actual OBD/UDS business logic lives in `obd.rs` and `uds.rs`
+//! respectively. `handle_request` is the seam between them.
 
+use super::connect::{self, ConnectError, Stage};
 use super::discovery;
 use super::driver::ElmDriver;
 use super::obd;
-use super::operation;
 use super::parser;
 use super::transport::{self, AdapterKind, AdapterProfile};
 use super::uds;
@@ -26,6 +28,13 @@ use tauri::Emitter;
 #[derive(Clone, Serialize, Default)]
 pub struct ConnStatus {
     pub state: String, // "disconnected" | "connecting" | "connected"
+    /// Which pipeline stage is running right now — set while `state` is
+    /// `connecting` so the UI names the step instead of showing an
+    /// anonymous spinner.
+    pub stage: Option<Stage>,
+    /// Why the last attempt stopped, and where. Set with `disconnected`
+    /// after a failed attempt, and cleared by the next one.
+    pub error: Option<ConnectError>,
     pub elm_version: Option<String>,
     pub detail: Option<String>,
     // The CURRENT connection's own resolved identity — never a cache of a
@@ -131,8 +140,11 @@ pub struct Supervisor {
 impl Supervisor {
     pub fn spawn(app: tauri::AppHandle, db: Arc<Db>) -> Self {
         let (tx, rx) = mpsc::channel::<Request>();
+        // Born connecting: a supervisor only exists because someone asked
+        // for a connection, and `ops::connect` reads this state to tell a
+        // run in progress from one that has already stopped.
         let status = Arc::new(Mutex::new(ConnStatus {
-            state: "disconnected".into(),
+            state: "connecting".into(),
             ..Default::default()
         }));
         let cancel_scan = Arc::new(AtomicBool::new(false));
@@ -171,10 +183,14 @@ fn notify(app: &tauri::AppHandle, title: &str, body: &str) {
     let _ = app.notification().builder().title(title).body(body).show();
 }
 
-/// The main loop: alternates between a (re)connect phase and a polling phase.
-/// Any link failure during polling (8 consecutive command failures) drops
-/// back to reconnect rather than giving up — this is what makes the app
-/// self-heal through the dongle's "sulk mode" without user intervention.
+/// The main loop: one connect pipeline run, then the polling phase.
+///
+/// A link that drops during polling (8 consecutive command failures) gets
+/// exactly one more pipeline run, so a session survives a dongle that
+/// blinks; a run that fails ends the thread with the stage and reason on
+/// the status. There is no automatic re-attempt and no backoff loop — the
+/// user presses connect again if they want another go, and `ops::connect`
+/// starts a fresh supervisor for it.
 fn run_loop(
     app: tauri::AppHandle,
     db: Arc<Db>,
@@ -183,66 +199,14 @@ fn run_loop(
     cancel_scan: Arc<AtomicBool>,
 ) {
     'outer: loop {
-        // ---- (re)connect phase ----
-        set_status(
-            &app,
-            &status,
-            ConnStatus {
-                state: "connecting".into(),
-                ..Default::default()
-            },
-        );
-        let mut drv = match connect_with_retries(&db) {
-            Ok(d) => d,
-            Err(e) => {
-                set_status(
-                    &app,
-                    &status,
-                    ConnStatus {
-                        state: "disconnected".into(),
-                        detail: Some(e),
-                        ..Default::default()
-                    },
-                );
-                // Wait a bit, but stay responsive to Stop.
-                match rx.recv_timeout(Duration::from_secs(10)) {
-                    Ok(Request::Stop) => return,
-                    Ok(req) => {
-                        answer_disconnected(req);
-                    }
-                    Err(_) => {}
-                }
-                continue;
-            }
+        // ---- connect phase: one pipeline run ----
+        let (mut drv, version) = match connect_once(&app, &db, &status) {
+            Some(connected) => connected,
+            // The status already carries the stage and the reason. Ending
+            // the thread here is what makes the next connect request a
+            // genuinely fresh single attempt.
+            None => return,
         };
-        let version = match drv.init() {
-            Ok(v) => v,
-            Err(e) => {
-                set_status(
-                    &app,
-                    &status,
-                    ConnStatus {
-                        state: "disconnected".into(),
-                        detail: Some(e.to_string()),
-                        ..Default::default()
-                    },
-                );
-                continue;
-            }
-        };
-        // Wake the ECU / detect protocol, then remember what the adapter
-        // settled on so every diagnostic operation restores exactly that.
-        let _ = drv.cmd("0100", Duration::from_secs(20));
-        match operation::capture_link_state(&mut drv) {
-            Some(state) => log::info!(
-                "adapter protocol {} (functional header {})",
-                state.protocol,
-                state.header
-            ),
-            None => {
-                log::warn!("ATDPN did not report a CAN protocol; cleanup falls back to auto-detect")
-            }
-        }
         let link = drv.describe();
         log::info!(
             "connected over {} {} (banner {:?}, device_kind {})",
@@ -306,12 +270,11 @@ fn run_loop(
             ConnStatus {
                 state: "connected".into(),
                 elm_version: Some(version.clone()),
-                detail: None,
                 vin: resolved_vin.clone(),
                 vehicle_id,
                 display_name,
                 vehicle_is_new,
-                scanning: false,
+                ..Default::default()
             },
         );
 
@@ -459,13 +422,11 @@ fn run_loop(
                                     ConnStatus {
                                         state: "connected".into(),
                                         elm_version: Some(version.clone()),
-                                        detail: None,
-                                        vin: None,
                                         vehicle_id: Some(id),
                                         display_name: Some(trimmed.to_string()),
                                         // Naming IS this vehicle's first appearance.
                                         vehicle_is_new: true,
-                                        scanning: false,
+                                        ..Default::default()
                                     },
                                 );
                                 let _ = tx.send(Ok(id));
@@ -509,7 +470,9 @@ fn run_loop(
                             error
                         );
                         if consecutive_failures > 8 {
-                            // Link is gone — go back to reconnect phase.
+                            // The link is gone mid-session: one more
+                            // pipeline run, and if that fails the thread
+                            // ends with the stage and reason on the status.
                             db.end_connection(ctx.connection_id);
                             continue 'outer;
                         }
@@ -600,126 +563,12 @@ fn run_loop(
     }
 }
 
-/// What attempt 0 has to do to the Bluetooth link before it can open the
-/// port node.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum LinkPrep {
-    /// The node is there and nothing says the link is down: open it.
-    OpenDirectly,
-    /// The node is there but the platform reports the adapter as *not
-    /// connected*. Opening the node in that state makes the OS negotiate
-    /// the RFCOMM link inside the blocking `open`, which a sleeping dongle
-    /// regularly drags past any sane open timeout — so wake it first.
-    Wake,
-    /// No node at all: the full disconnect/connect cycle, as before.
-    Cycle,
-}
-
-/// Attempt 0's decision, kept pure so it can be tested without a radio.
-/// `connected` is what the platform reports for `bt_addr`: `None` when
-/// nothing can say (no blueutil, no Bluetooth enumeration, a USB adapter),
-/// and then the old fast path stands.
-fn attempt_0_prep(port_exists: bool, bt_addr: Option<&str>, connected: Option<bool>) -> LinkPrep {
-    if !port_exists {
-        return LinkPrep::Cycle;
-    }
-    match (bt_addr, connected) {
-        (Some(_), Some(false)) => LinkPrep::Wake,
-        _ => LinkPrep::OpenDirectly,
-    }
-}
-
-/// Whether the platform reports `addr` as connected. `None` means it
-/// enumerates nothing at all (blueutil missing, or a build without
-/// Bluetooth control) — an unknown state, never a "no".
-fn reported_connected(bt: &dyn transport::bluetooth::BluetoothControl, addr: &str) -> Option<bool> {
-    let paired = bt.paired();
-    if paired.is_empty() {
-        return None;
-    }
-    Some(
-        paired
-            .iter()
-            .any(|d| d.addr.eq_ignore_ascii_case(addr) && d.connected),
-    )
-}
-
-fn no_bt_addr_error(what: &str, port: &str) -> String {
-    format!("{what}: port {port} is not available and no adapter.bt_addr is set to revive it (set it for a Bluetooth adapter, or plug the USB adapter back in)")
-}
-
-/// Run attempt 0's link preparation. Returns whether the link was just
-/// brought up, so the caller can let the RFCOMM channel settle before
-/// opening. A *failed* wake is not fatal: the node is still there, so the
-/// open (and then the ladder) still gets its chance.
-fn prepare_link_for_attempt_0(
-    bt: &dyn transport::bluetooth::BluetoothControl,
-    port: &str,
-    bt_addr: Option<&str>,
-) -> Result<bool, String> {
-    let port_exists = std::path::Path::new(port).exists();
-    let connected = bt_addr.and_then(|addr| reported_connected(bt, addr));
-    match attempt_0_prep(port_exists, bt_addr, connected) {
-        LinkPrep::OpenDirectly => {
-            log::info!("connect attempt 0: fast path — {port} exists and nothing reports the link down, opening directly");
-            Ok(false)
-        }
-        LinkPrep::Wake => {
-            let addr = bt_addr.unwrap_or_default();
-            log::info!(
-                "connect attempt 0: {port} exists but {addr} reports not connected — waking the link before opening"
-            );
-            match bt.connect(addr, port) {
-                Ok(()) => Ok(true),
-                Err(e) => {
-                    log::warn!("connect attempt 0: wake failed ({e}); opening {port} anyway");
-                    Ok(false)
-                }
-            }
-        }
-        LinkPrep::Cycle => {
-            log::info!("connect attempt 0: no port node at {port}, bluetooth cycle...");
-            match bt_addr {
-                Some(addr) => bt.cycle(addr, port).map(|()| true),
-                None => Err(no_bt_addr_error("connect attempt 0", port)),
-            }
-        }
-    }
-}
-
-/// Escalation ladder, cheapest first:
-///   attempt 0 — FAST PATH: if the port node already exists and the link is
-///     up, just open it and probe. A healthy link reconnects in ~2-3s
-///     instead of the ~10s a full BT cycle costs. (The stale-port trap is
-///     real — the node can exist with a dead RFCOMM link behind it — but a
-///     link the platform reports as disconnected is woken first, and the
-///     probe catches whatever slips through.)
-///   attempt 1 — plain BT disconnect/connect cycle.
-///   attempt 2 — full PIN re-pair (the dongle's sulk-state cure).
-///
-/// This is a general-purpose ladder because dongles vary: most reconnect
-/// fine at attempt 0 or 1, and always jumping straight to a full unpair/
-/// re-pair would be needlessly disruptive for them (heavier on the OS
-/// Bluetooth stack, and it uses `SCAINNER_OBD_PIN`, which may not even be
-/// the right PIN for someone else's hardware).
-///
-/// But *this specific dongle* (see driver.rs's "sulk mode") empirically
-/// needs the full repair essentially every time — so starting from scratch
-/// at attempt 0 on every single connection just burns ~10-15s on steps that
-/// are known not to work before reaching the one that does. Rather than
-/// hardcode that assumption (which would be wrong for better-behaved
-/// hardware), we learn it: the level that last succeeded is persisted
-/// (`app_settings` key `bt_connect_level:<adapter identity>`) and the ladder starts there next
-/// time. A dongle that only ever needs attempt 0 stays fast forever; one
-/// that needs attempt 2 skips straight to it after the first connection.
-fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
+/// The profile this connect should use. A fresh install with a single
+/// dongle and nothing configured still connects: the one port that looks
+/// like an adapter is used.
+fn resolve_profile(db: &Db) -> Result<AdapterProfile, ConnectError> {
     let mut profile = AdapterProfile::load(|key| db.setting_get(key));
-    if profile.kind == AdapterKind::TcpElm {
-        return connect_tcp(&profile);
-    }
-    if profile.path.is_none() {
-        // Nothing configured yet: try the one port that looks like an
-        // adapter, so a fresh install with a single dongle still connects.
+    if profile.kind == AdapterKind::ElmSerial && profile.path.is_none() {
         match transport::enumerate::guess_serial_path() {
             Some(path) => {
                 log::info!(
@@ -728,176 +577,61 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                 profile.path = Some(path);
             }
             None => {
-                return Err("no adapter configured: pick one under Settings → Adapter (PUT /adapter), or set SCAINNER_OBD_PORT".into());
+                return Err(ConnectError::new(
+                    Stage::Link,
+                    "no adapter configured: pick one under Settings → Adapter (PUT /adapter), or set SCAINNER_OBD_PORT",
+                ))
             }
         }
     }
-    let port = profile.path.clone().unwrap_or_default();
-    let bluetooth = transport::bluetooth::platform();
-    // Without a Bluetooth address (a USB adapter, or a profile the user has
-    // not completed) the ladder's Bluetooth steps have nothing to act on.
-    let bt_addr = profile.bt_addr.clone();
-    let cycle = |what: &str| -> Result<(), String> {
-        match &bt_addr {
-            Some(addr) => bluetooth.cycle(addr, &port),
-            None => Err(no_bt_addr_error(what, &port)),
-        }
+    Ok(profile)
+}
+
+/// One pipeline run, with its stages broadcast on the connection status.
+/// `None` means it failed and the status already carries the stage and the
+/// reason; nothing here re-attempts anything.
+fn connect_once(
+    app: &tauri::AppHandle,
+    db: &Db,
+    status: &Arc<Mutex<ConnStatus>>,
+) -> Option<(ElmDriver, String)> {
+    let emit = |stage: Stage| {
+        set_status(
+            app,
+            status,
+            ConnStatus {
+                state: "connecting".into(),
+                stage: Some(stage),
+                ..Default::default()
+            },
+        );
     };
-    let pin = profile.pin.clone();
-    // The learned level is per adapter (review #65): a level 2 learned on
-    // a sulking Bluetooth dongle must not make a USB adapter skip the only
-    // step that can work for it.
-    let level_key = profile.learned_level_key();
-    let start = profile.ladder_start(db.setting_get(&level_key));
-    if start > 0 {
-        log::debug!("connect: skipping to attempt {start} (learned from last successful connect)");
-    }
-    let attempts = if profile.allow_repair { 3 } else { 2 };
-    for attempt in start.min(attempts - 1)..attempts {
-        // True when this attempt just brought the RFCOMM link up, so the
-        // channel needs a moment before the open.
-        let mut link_just_up = attempt > 0;
-        if attempt == 0 {
-            link_just_up =
-                prepare_link_for_attempt_0(bluetooth.as_ref(), &port, bt_addr.as_deref())?;
-        } else if attempt == 1 {
-            log::debug!("connect attempt 1: bluetooth cycle...");
-            cycle("connect attempt 1")?;
-        } else {
-            log::debug!("connect attempt 2: full PIN re-pair...");
-            match &bt_addr {
-                Some(addr) => bluetooth.repair(addr, &pin, &port)?,
-                None => {
-                    return Err(format!(
-                        "port {port} opens but the adapter stays silent, and no adapter.bt_addr is set to re-pair it"
-                    ))
-                }
-            }
+    let bluetooth = transport::bluetooth::platform();
+    let outcome = resolve_profile(db)
+        .and_then(|profile| connect::connect(&profile, bluetooth.as_ref(), &emit));
+    match outcome {
+        Ok(driver) => {
+            // `init` stored exactly this as the adapter's identification.
+            let version = driver
+                .describe()
+                .banner
+                .unwrap_or_else(|| "ELM327-compatible (no banner)".to_string());
+            Some((driver, version))
         }
-        // Let the RFCOMM channel settle before opening — opening too early
-        // wedges it. Only needed after a cycle/repair/wake; the fast path
-        // opens an already-settled link.
-        if link_just_up {
-            std::thread::sleep(Duration::from_secs(2));
+        Err(error) => {
+            log::warn!("connect failed at {}: {}", error.stage, error.reason);
+            set_status(
+                app,
+                status,
+                ConnStatus {
+                    state: "disconnected".into(),
+                    detail: Some(error.to_string()),
+                    error: Some(error),
+                    ..Default::default()
+                },
+            );
+            None
         }
-        log::debug!("connect attempt {attempt}: opening {port}");
-        match ElmDriver::open(&profile) {
-            Ok(mut d) => {
-                // Liveness probe: ATZ on the open port. Every attempt gets
-                // two patient tries — a freshly opened link eats the first
-                // write often enough that the old single 3 s try on the fast
-                // path failed connects that a second one would have made
-                // (owner's sleeping STN dongle, 2026-09-01). The extra cost
-                // is only paid on a link that is genuinely silent.
-                let (tries, per_try) = (2, Duration::from_secs(5));
-                let mut alive = false;
-                for probe_try in 0..tries {
-                    let probe = d.cmd("ATZ", per_try);
-                    log::trace!("connect attempt {attempt} probe {probe_try}: ATZ -> {probe:?}");
-                    if ElmDriver::reset_alive(&probe) {
-                        alive = true;
-                        break;
-                    }
-                    std::thread::sleep(Duration::from_secs(1));
-                }
-                if alive {
-                    db.setting_set(&level_key, &attempt.to_string());
-                    return Ok(d);
-                }
-                if attempt + 1 == attempts {
-                    let message = if profile.allow_repair {
-                        "port opens but the adapter never returns a prompt after reconnect and explicit re-pair"
-                    } else {
-                        "port opens but the adapter never returns a prompt after reconnect; automatic unpair/re-pair is disabled"
-                    };
-                    return Err(message.into());
-                }
-            }
-            Err(e) => {
-                log::debug!("connect attempt {attempt}: open failed -> {e}");
-                if attempt + 1 == attempts {
-                    return Err(e.to_string());
-                }
-                std::thread::sleep(Duration::from_secs(1));
-            }
-        }
-    }
-    unreachable!()
-}
-
-/// Wi-Fi adapters have no Bluetooth ladder: open the socket, probe once
-/// patiently (the first write after a socket open is often eaten), retry
-/// the open a couple of times.
-fn connect_tcp(profile: &AdapterProfile) -> Result<ElmDriver, String> {
-    let mut last = String::from("no attempt made");
-    for attempt in 0..3 {
-        match ElmDriver::open(profile) {
-            Ok(mut d) => {
-                for _ in 0..2 {
-                    let probe = d.cmd("ATZ", Duration::from_secs(5));
-                    if ElmDriver::reset_alive(&probe) {
-                        return Ok(d);
-                    }
-                    std::thread::sleep(Duration::from_secs(1));
-                }
-                last = "socket opens but the adapter never returns a prompt".into();
-            }
-            Err(e) => {
-                log::debug!("tcp connect attempt {attempt}: {e}");
-                last = e.to_string();
-            }
-        }
-        std::thread::sleep(Duration::from_secs(2));
-    }
-    Err(last)
-}
-
-fn answer_disconnected(req: Request) {
-    let err = "not connected".to_string();
-    match req {
-        Request::ScanDtcs(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::ClearDtcs(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::ReadEcuInfo(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::Readiness(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::AllSensors(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsRead { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsReadMany { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsScan { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::Discover { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::ParkedVerification(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::CorrelationCapture { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsClear { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsModuleDtcs { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::NameVehicle { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::Stop => {}
     }
 }
 
@@ -1257,130 +991,5 @@ fn handle_request(
             let _ = tx.send(Err("naming is handled by the connection loop".into()));
         }
         Request::Stop => {}
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::elm::transport::bluetooth::{BluetoothControl, PairedDevice};
-
-    /// Records what the connect ladder asked the radio to do, so a test can
-    /// assert the *wake* happened (or didn't) without a radio.
-    #[derive(Default)]
-    struct FakeBluetooth {
-        paired: Vec<PairedDevice>,
-        calls: Mutex<Vec<String>>,
-    }
-
-    impl FakeBluetooth {
-        fn with(addr: &str, connected: bool) -> Self {
-            Self {
-                paired: vec![PairedDevice {
-                    addr: addr.into(),
-                    name: "OBDII".into(),
-                    connected,
-                }],
-                calls: Mutex::new(Vec::new()),
-            }
-        }
-        fn calls(&self) -> Vec<String> {
-            self.calls.lock().unwrap().clone()
-        }
-    }
-
-    impl BluetoothControl for FakeBluetooth {
-        fn connect(&self, addr: &str, _port_path: &str) -> Result<(), String> {
-            self.calls.lock().unwrap().push(format!("connect {addr}"));
-            Ok(())
-        }
-        fn cycle(&self, addr: &str, _port_path: &str) -> Result<(), String> {
-            self.calls.lock().unwrap().push(format!("cycle {addr}"));
-            Ok(())
-        }
-        fn repair(&self, addr: &str, _pin: &str, _port_path: &str) -> Result<(), String> {
-            self.calls.lock().unwrap().push(format!("repair {addr}"));
-            Ok(())
-        }
-        fn paired(&self) -> Vec<PairedDevice> {
-            self.paired.clone()
-        }
-    }
-
-    /// A path that certainly exists, standing in for a live port node.
-    const EXISTING_PORT: &str = "/dev/null";
-    const MISSING_PORT: &str = "/dev/scainner-no-such-port";
-
-    #[test]
-    fn attempt_0_wakes_a_paired_but_disconnected_link_before_opening() {
-        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", false);
-        let settled = prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("aa-bb-cc-dd-ee-ff"))
-            .expect("a wake must not fail the attempt");
-        assert!(
-            settled,
-            "a freshly woken link has to settle before the open"
-        );
-        assert_eq!(bt.calls(), vec!["connect aa-bb-cc-dd-ee-ff"]);
-    }
-
-    #[test]
-    fn attempt_0_opens_directly_when_the_link_is_already_connected() {
-        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", true);
-        let settled =
-            prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("aa-bb-cc-dd-ee-ff")).unwrap();
-        assert!(!settled);
-        assert!(bt.calls().is_empty(), "the fast path must stay fast");
-    }
-
-    #[test]
-    fn attempt_0_matches_the_address_case_insensitively() {
-        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", true);
-        prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("AA-BB-CC-DD-EE-FF")).unwrap();
-        assert!(bt.calls().is_empty());
-    }
-
-    #[test]
-    fn attempt_0_still_cycles_when_the_port_node_is_missing() {
-        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-ff", true);
-        let settled =
-            prepare_link_for_attempt_0(&bt, MISSING_PORT, Some("aa-bb-cc-dd-ee-ff")).unwrap();
-        assert!(settled);
-        assert_eq!(bt.calls(), vec!["cycle aa-bb-cc-dd-ee-ff"]);
-    }
-
-    #[test]
-    fn attempt_0_without_a_bluetooth_address_keeps_the_old_behaviour() {
-        let bt = FakeBluetooth::default();
-        // USB adapter, node present: open it, touch no radio.
-        assert!(!prepare_link_for_attempt_0(&bt, EXISTING_PORT, None).unwrap());
-        // Node gone and nothing to revive it with: the same honest error.
-        let err = prepare_link_for_attempt_0(&bt, MISSING_PORT, None).unwrap_err();
-        assert!(
-            err.contains("no adapter.bt_addr is set to revive it"),
-            "{err}"
-        );
-        assert!(bt.calls().is_empty());
-    }
-
-    #[test]
-    fn a_platform_that_enumerates_nothing_keeps_the_fast_path() {
-        // blueutil missing (or a non-macOS build): `paired()` is empty, the
-        // connected state is unknown, and we must not guess "disconnected".
-        let bt = FakeBluetooth::default();
-        assert!(
-            !prepare_link_for_attempt_0(&bt, EXISTING_PORT, Some("aa-bb-cc-dd-ee-ff")).unwrap()
-        );
-        assert!(bt.calls().is_empty());
-        assert_eq!(reported_connected(&bt, "aa-bb-cc-dd-ee-ff"), None);
-    }
-
-    #[test]
-    fn an_address_the_platform_does_not_list_counts_as_disconnected() {
-        let bt = FakeBluetooth::with("aa-bb-cc-dd-ee-01", true);
-        assert_eq!(reported_connected(&bt, "aa-bb-cc-dd-ee-02"), Some(false));
-        assert_eq!(
-            attempt_0_prep(true, Some("aa-bb-cc-dd-ee-02"), Some(false)),
-            LinkPrep::Wake
-        );
     }
 }
