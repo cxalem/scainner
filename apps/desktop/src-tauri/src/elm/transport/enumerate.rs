@@ -1,60 +1,29 @@
-//! Candidate adapters for the connect screen: serial port nodes on this
-//! machine and the paired Bluetooth devices the platform can list. The
-//! `likely_obd` flag is a name heuristic, nothing more — the user picks.
-//!
-//! A dongle usually shows up twice: once as a `/dev` node named after the
-//! radio (`cu.OBDLinkMX49489`) and once as a paired device with the
-//! friendly name the vendor set (`OBDLink MX+ 49489`). Pairing the two is
-//! done here rather than in each client, so every client gets the same
-//! readable name, the same `bt_addr` to save alongside the path, and one
-//! row per physical device instead of two.
-
 use super::bluetooth::{self, PairedDevice};
 use super::profile::AdapterProfile;
 use serde::Serialize;
 
-/// What the row actually is, for the label the UI builds around the path.
-/// Serialised as `bluetooth_serial` / `usb_serial` / `paired_only`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DeviceKind {
-    /// A serial node matched to a paired Bluetooth device.
     BluetoothSerial,
-    /// A serial node with no paired device behind it.
     UsbSerial,
-    /// A paired device the platform has not exposed a serial node for.
     PairedOnly,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct AdapterCandidate {
-    /// `serial` (use as `adapter.path`) or `bluetooth` (use as
-    /// `adapter.bt_addr`; its serial node appears once connected).
     pub kind: String,
-    /// The port path or the dashed MAC.
     pub id: String,
-    /// Device name (Bluetooth) or the port's base name.
     pub name: String,
     pub likely_obd: bool,
-    /// Bluetooth only: currently connected.
     pub connected: Option<bool>,
-    /// The readable name to show: the paired device's friendly name when
-    /// one matches this node, else the node's own name with the platform
-    /// prefix stripped, else a generic label for a bare vendor string.
     pub display_name: String,
-    /// Which of the three row shapes this is; the UI builds the secondary
-    /// line from this plus `path` in its own language.
     pub device_kind: DeviceKind,
-    /// The serial node to open, absent on a `paired_only` row.
     pub path: Option<String>,
-    /// The dashed MAC to bring up before opening `path`, when known.
     pub bt_addr: Option<String>,
-    /// This is the device the saved profile points at.
     pub last_used: bool,
 }
 
-/// Names that usually belong to an OBD adapter rather than a debug console,
-/// a keyboard or a modem. Case-insensitive substring match.
 const OBD_HINTS: [&str; 12] = [
     "obd",
     "elm",
@@ -70,13 +39,8 @@ const OBD_HINTS: [&str; 12] = [
     "wchusb",
 ];
 
-/// macOS serial nodes that are never an adapter.
 const MACOS_NOISE: [&str; 3] = ["Bluetooth-Incoming-Port", "debug-console", "wlan-debug"];
 
-/// Bus/driver names a `/dev` node carries when the device told the host
-/// nothing about itself. A node whose name is only one of these plus a
-/// port number has no product name to show, so it gets a generic label
-/// rather than an invented one.
 const BARE_VENDOR_TOKENS: [&str; 5] = [
     "usbserial",
     "usbmodem",
@@ -85,7 +49,6 @@ const BARE_VENDOR_TOKENS: [&str; 5] = [
     "usbtouart",
 ];
 
-/// The label for a node that names its driver and nothing else.
 const GENERIC_USB_NAME: &str = "USB serial adapter";
 
 pub fn likely_obd_name(name: &str) -> bool {
@@ -103,16 +66,12 @@ fn serial_glob_matches(name: &str) -> bool {
     }
 }
 
-/// The node name without the platform's prefix: `cu.OBDLinkMX49489` →
-/// `OBDLinkMX49489`.
 pub fn strip_node_prefix(name: &str) -> &str {
     name.strip_prefix("cu.")
         .or_else(|| name.strip_prefix("tty."))
         .unwrap_or(name)
 }
 
-/// Lower-case letters and digits only, so `OBDLink MX+ 49489` and
-/// `OBDLinkMX49489` compare equal.
 fn identity(value: &str) -> String {
     value
         .chars()
@@ -121,17 +80,12 @@ fn identity(value: &str) -> String {
         .collect()
 }
 
-/// True when the node name is a driver/bus token plus a port number and
-/// carries no product name of its own (`usbserial-1410`, `usbmodem14201`).
 fn is_bare_vendor_name(base: &str) -> bool {
     let id = identity(base);
     let stem = id.trim_end_matches(|c: char| c.is_ascii_digit());
     !stem.is_empty() && BARE_VENDOR_TOKENS.contains(&stem)
 }
 
-/// The paired device behind a serial node, when exactly one name matches.
-/// Ambiguity resolves to nothing: a wrong `bt_addr` brings up the wrong
-/// radio's link before opening the port.
 pub fn paired_match<'a>(node_name: &str, paired: &'a [PairedDevice]) -> Option<&'a PairedDevice> {
     let node = identity(strip_node_prefix(node_name));
     if node.is_empty() {
@@ -145,9 +99,6 @@ pub fn paired_match<'a>(node_name: &str, paired: &'a [PairedDevice]) -> Option<&
     matches.next().is_none().then_some(first)
 }
 
-/// Serial candidates from a directory listing (the `/dev` names on unix).
-/// Unenriched: `display_name`/`device_kind` assume no paired device until
-/// [`enrich`] has seen the paired list.
 pub fn serial_candidates_from_names<'a>(
     names: impl Iterator<Item = &'a str>,
 ) -> Vec<AdapterCandidate> {
@@ -200,10 +151,6 @@ fn same_addr(a: &str, b: &str) -> bool {
     a.eq_ignore_ascii_case(b)
 }
 
-/// One row per physical device: every serial node, named after the paired
-/// device behind it when there is one, plus the paired devices the
-/// platform has not exposed a node for. The saved profile marks one row
-/// `last_used` so the UI can preselect it.
 pub fn enrich(
     serial: Vec<AdapterCandidate>,
     paired: &[PairedDevice],
@@ -240,8 +187,6 @@ pub fn enrich(
                 device
             }),
     );
-    // Rows the user can act on first, the last-used one at the very top;
-    // the paired-but-portless rows are informational and sink to the end.
     out.sort_by(|a, b| {
         let group = |c: &AdapterCandidate| u8::from(c.device_kind == DeviceKind::PairedOnly);
         group(a)
@@ -255,8 +200,6 @@ pub fn enrich(
 
 fn serial_candidates() -> Vec<AdapterCandidate> {
     if cfg!(windows) {
-        // `COM1..COM32` that actually open. Not implemented: there is no
-        // serial transport on Windows yet (see elm_serial.rs).
         return Vec::new();
     }
     let names: Vec<String> = std::fs::read_dir("/dev")
@@ -269,8 +212,6 @@ fn serial_candidates() -> Vec<AdapterCandidate> {
     serial_candidates_from_names(names.iter().map(String::as_str))
 }
 
-/// Everything the machine can see right now, named and ordered for a
-/// picker. `profile` is the saved adapter profile, for the `last_used` tag.
 pub fn candidates(profile: &AdapterProfile) -> Vec<AdapterCandidate> {
     enrich(
         serial_candidates(),
@@ -279,8 +220,6 @@ pub fn candidates(profile: &AdapterProfile) -> Vec<AdapterCandidate> {
     )
 }
 
-/// The one serial port to try when no `adapter.path` is configured: the
-/// single `likely_obd` candidate, if exactly one exists.
 pub fn guess_serial_path() -> Option<String> {
     let likely: Vec<AdapterCandidate> = serial_candidates()
         .into_iter()
@@ -406,7 +345,7 @@ mod tests {
         ];
         let nodes = serial(&["cu.OBDLinkMX49489", "cu.usbserial-1410"]);
         if nodes.is_empty() {
-            return; // no serial globs on this platform
+            return;
         }
         let rows = enrich(nodes, &paired, &AdapterProfile::default());
         let matched = rows
@@ -416,14 +355,12 @@ mod tests {
         assert_eq!(matched.display_name, "OBDLink MX+ 49489");
         assert_eq!(matched.device_kind, DeviceKind::BluetoothSerial);
         assert_eq!(matched.bt_addr.as_deref(), Some("aa-bb-cc-dd-ee-01"));
-        // The radio is already represented by its node: one row, not two.
         assert!(!rows.iter().any(|r| r.id == "aa-bb-cc-dd-ee-01"));
         let generic = rows
             .iter()
             .find(|r| r.id == "/dev/cu.usbserial-1410")
             .expect("the unmatched node stays too");
         assert_eq!(generic.display_name, "USB serial adapter");
-        // A paired device with no node of its own is still offered, last.
         let leftover = rows.last().expect("non-empty");
         assert_eq!(leftover.display_name, "Headphones");
         assert_eq!(leftover.device_kind, DeviceKind::PairedOnly);
@@ -435,7 +372,7 @@ mod tests {
         let paired = [device("aa-bb-cc-dd-ee-02", "V-LINK")];
         let nodes = serial(&["cu.OBDLinkMX49489", "cu.V-LINK"]);
         if nodes.is_empty() {
-            return; // no serial globs on this platform
+            return;
         }
         let profile = AdapterProfile {
             path: Some("/dev/cu.V-LINK".into()),

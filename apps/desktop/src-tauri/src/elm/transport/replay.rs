@@ -1,8 +1,3 @@
-//! Replay transport: a recorded command/response script for tests. Every
-//! command must arrive in the recorded order; a step may instead raise one
-//! of the driver's error categories or demand a minimum timeout so the
-//! fixture also pins the caller's timing.
-
 use super::{Transport, TransportInfo};
 use crate::elm::driver::ElmError;
 use serde::Deserialize;
@@ -14,8 +9,6 @@ use std::time::Duration;
 struct ReplayFixture {
     schema_version: u32,
     name: String,
-    /// A fixture is rejected unless its author explicitly confirms that VINs,
-    /// ECU serials, registration numbers, and adapter MACs were removed.
     contains_vehicle_identifiers: bool,
     steps: Vec<ReplayStep>,
 }

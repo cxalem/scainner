@@ -1,12 +1,3 @@
-//! The one set of operations both front doors share.
-//!
-//! Every `#[tauri::command]` in `lib.rs` and every HTTP handler in
-//! `api/mod.rs` is a thin adapter over a function here, so the UI and an
-//! agent hitting the local API go through exactly the same code path to the
-//! supervisor and the database (decision record: personal-hub
-//! `1-Projects/Scainner/agent-api.md`). Nothing in this file knows about
-//! Tauri IPC or HTTP — it takes an `AppState` and plain arguments.
-
 use crate::db::{self, Db};
 use crate::elm;
 use crate::elm::discovery;
@@ -22,8 +13,6 @@ use std::time::Duration;
 pub struct AppState {
     pub db: Arc<Db>,
     pub supervisor: Mutex<Option<Supervisor>>,
-    /// Where the SQLite file lives — reported by `db_path` and in the AI
-    /// briefing so an agent can open the raw history if it needs to.
     pub db_path: PathBuf,
 }
 
@@ -37,24 +26,10 @@ impl AppState {
     }
 }
 
-// Safety-net ceiling, not the everyday UX timer — normal requests (DTC scan,
-// single DID read, PID reads) return in well under a second to a few seconds.
-// UDS range scans are the outlier: 256 DIDs at up to 600ms each plus session
-// overhead can legitimately take a couple of minutes, so this has to cover
-// that comfortably or a slow-but-healthy scan gets mistaken for a hang (see
-// uds_scan_range's doc comment for the full story).
 const ASK_TIMEOUT: Duration = Duration::from_secs(300);
 
-/// Ceiling for the multi-minute research operations (full discovery, the
-/// parked verification plan, correlation captures with repeats): these can
-/// legitimately run well past five minutes on a slow ECU.
 const LONG_ASK_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
-/// A poisoned mutex (from a previous panic while holding it) would otherwise
-/// make every single command that touches shared state panic forever after —
-/// one bad unwrap cascading into a fully dead app. Recover instead: the state
-/// underneath is still perfectly usable, only the "was a panic in progress"
-/// flag got set.
 pub fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     match m.lock() {
         Ok(g) => g,
@@ -67,15 +42,6 @@ pub fn lock_or_recover<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     }
 }
 
-/// Sends one request to the supervisor and awaits its reply OFF the main
-/// thread. This function (and every command built on it) used to be fully
-/// synchronous — and Tauri runs sync commands on the MAIN thread, so a
-/// dongle round-trip (a DTC scan, a UDS read, anything) blocked the entire
-/// IPC layer while it waited: every other command in flight (history
-/// refetches, connection status, all of it) queued behind it, which is
-/// exactly the app-wide "click something, everything hangs for a beat"
-/// jank reported live 2026-08-21. The send itself stays cheap and sync;
-/// only the blocking wait moves to a worker via spawn_blocking.
 pub async fn ask<T: Send + 'static>(
     state: &AppState,
     make: impl FnOnce(mpsc::Sender<Result<T, String>>) -> Request,
@@ -106,11 +72,6 @@ async fn ask_within<T: Send + 'static>(
     .map_err(|e| format!("worker join error: {e}"))?
 }
 
-/// Write safety rail, enforced at the command boundary: every operation that
-/// writes to the car takes `confirmed` and refuses when it is false, so a
-/// stray call (a bug, a future automation, an agent) cannot skip the
-/// confirmation step. The frontend passes true only from its confirm modal;
-/// the HTTP API only from an explicit `{"confirmed": true}` body.
 pub fn require_confirmed(confirmed: bool) -> Result<(), String> {
     if confirmed {
         Ok(())
@@ -119,18 +80,11 @@ pub fn require_confirmed(confirmed: bool) -> Result<(), String> {
     }
 }
 
-// ---------- connection lifecycle ----------
-
-/// One connect request = one run of the connect pipeline. A supervisor
-/// whose run failed has already stopped its thread and left the stage and
-/// reason on its status, so "try again" replaces it with a fresh one
-/// instead of silently doing nothing; a run that is still connecting or
-/// already connected is left alone.
 pub fn connect(state: &AppState, app: tauri::AppHandle) -> Result<(), String> {
     let mut guard = lock_or_recover(&state.supervisor);
     if let Some(supervisor) = guard.as_ref() {
         if lock_or_recover(&supervisor.status).state != "disconnected" {
-            return Ok(()); // still running
+            return Ok(());
         }
     }
     *guard = Some(Supervisor::spawn(app, state.db.clone()));
@@ -140,8 +94,6 @@ pub fn connect(state: &AppState, app: tauri::AppHandle) -> Result<(), String> {
 pub fn disconnect(state: &AppState) -> Result<(), String> {
     let mut guard = lock_or_recover(&state.supervisor);
     if let Some(sup) = guard.take() {
-        // Wake up an in-progress UDS scan first so Stop doesn't sit queued
-        // behind it for however long the scan has left to run.
         sup.cancel_scan
             .store(true, std::sync::atomic::Ordering::Relaxed);
         let _ = sup.tx.send(Request::Stop);
@@ -149,8 +101,6 @@ pub fn disconnect(state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
-/// Aborts an in-progress UDS range scan. Takes effect within one DID's
-/// timeout (≤600ms), not instantly — the scan loop only checks between DIDs.
 pub fn uds_cancel_scan(state: &AppState) {
     log::debug!("scan cancel requested");
     if let Some(sup) = lock_or_recover(&state.supervisor).as_ref() {
@@ -169,15 +119,10 @@ pub fn conn_status(state: &AppState) -> ConnStatus {
         })
 }
 
-// ---------- standard OBD ----------
-
 pub async fn scan_dtcs(state: &AppState) -> Result<DtcResult, String> {
     ask(state, Request::ScanDtcs).await
 }
 
-/// Clears engine DTCs (mode 04), verified: scans before, clears, scans
-/// again, and logs the whole thing to `writes_log`. Returns both scans so
-/// the caller can show an honest before/after.
 pub async fn clear_dtcs(
     state: &AppState,
     confirmed: bool,
@@ -198,20 +143,12 @@ pub async fn all_sensors(state: &AppState) -> Result<Vec<SensorReading>, String>
     ask(state, Request::AllSensors).await
 }
 
-// ---------- UDS ----------
-
-/// The modules offered for the connected vehicle: what the knowledge map
-/// documents for its VIN (`source: "profile"`) plus the user's customs
-/// (`source: "custom"`). Without a connected, identified vehicle only the
-/// customs are offered — there is no profile to draw on.
 pub fn uds_modules(state: &AppState) -> Vec<elm::uds::UdsModule> {
     let vin = conn_status(state).vin;
     let custom = elm::uds::custom_modules(&state.db, vin.as_deref());
     elm::uds::modules_for_vin(vin.as_deref(), &custom)
 }
 
-/// Add a custom module (any brand's CAN request/response IDs, hex strings
-/// like "7E0"/"7E8") for routes the knowledge map does not document yet.
 pub fn add_uds_module(
     state: &AppState,
     key: &str,
@@ -259,11 +196,6 @@ pub async fn uds_scan(
     .await
 }
 
-/// One-button auto-discovery. No addresses/ranges to fill in — those come
-/// from the car's VIN and the shipped knowledge map, never from the user.
-/// `full`: false re-probes only what a prior pass on THIS car already
-/// found (fast); true forces the complete blind sweep. Cancellable through
-/// `uds_cancel_scan`.
 pub async fn discover_sensors(
     state: &AppState,
     full: bool,
@@ -271,27 +203,15 @@ pub async fn discover_sensors(
     ask_within(state, LONG_ASK_TIMEOUT, |tx| Request::Discover { full, tx }).await
 }
 
-/// What "Scan again" did. Both halves are reported because they answer
-/// different questions: `triggered` is "is it running right now", `cleared`
-/// is "will the next connection run it".
 #[derive(serde::Serialize, Clone, Debug)]
 pub struct DiscoveryRunOutcome {
     pub triggered: bool,
     pub cleared: bool,
     pub knowledge_key: String,
-    /// Plain-English explanation for the agent API's reader; the UI keys
-    /// off `triggered` and uses its own translated copy.
     pub detail: String,
     pub summary: Option<discovery::auto::AutoSummary>,
 }
 
-/// "Scan again" for one vehicle. Always forgets the stored knowledge key,
-/// so the next connection runs the pass even if this call cannot; and when
-/// that vehicle is the one on the wire, runs it now through the supervisor
-/// — no reconnect, since the supervisor already owns a live driver.
-///
-/// The run is the same S1–S3 pass connect does, so it can take minutes;
-/// progress arrives on conn-status (`discovery.stage`) meanwhile.
 pub async fn run_discovery(
     state: &AppState,
     vehicle_id: i64,
@@ -319,17 +239,12 @@ pub async fn run_discovery(
     })
 }
 
-/// Reproducible parked-car research pass over the plan generated from the
-/// vehicle's profile (`discovery::plan`). Read-only requests on each
-/// module's read service; the complete evidence is attached to this vehicle
-/// and connection in SQLite.
 pub async fn parked_verification(
     state: &AppState,
 ) -> Result<elm::uds::ParkedVerificationReport, String> {
     ask_within(state, LONG_ASK_TIMEOUT, Request::ParkedVerification).await
 }
 
-/// Arguments of one guided-correlation step, shared by both front doors.
 #[derive(serde::Deserialize, Clone, Debug)]
 pub struct CorrelationCaptureArgs {
     pub req: String,
@@ -346,8 +261,6 @@ fn default_repeats() -> u8 {
     3
 }
 
-/// One step of a guided correlation session: the operator holds a physical
-/// condition, the app reads the given identifiers `repeats` times. Read-only.
 pub async fn correlation_capture(
     state: &AppState,
     args: CorrelationCaptureArgs,
@@ -365,9 +278,6 @@ pub async fn correlation_capture(
     .await
 }
 
-/// Clears the fault memory on one module (ABS/engine). Standard, safe
-/// diagnostic operation — cannot damage anything, only erases stored codes.
-/// Returns a verified before/after so the caller can show what happened.
 pub async fn uds_clear(
     state: &AppState,
     module: String,
@@ -377,19 +287,13 @@ pub async fn uds_clear(
     ask(state, |tx| Request::UdsClear { module, tx }).await
 }
 
-/// Reads the fault codes currently stored on one module (UDS 19 02, read-only).
 pub async fn uds_module_dtcs(state: &AppState, module: String) -> Result<Vec<String>, String> {
     ask(state, |tx| Request::UdsModuleDtcs { module, tx }).await
 }
 
-/// The "name this car" flow for a live, VIN-less connection — routed through
-/// the supervisor so the connection loop can adopt the new identity and
-/// re-emit conn-status (see Request::NameVehicle).
 pub async fn name_current_vehicle(state: &AppState, name: String) -> Result<i64, String> {
     ask(state, |tx| Request::NameVehicle { name, tx }).await
 }
-
-// ---------- knowledge (local DB reads, no car needed) ----------
 
 pub fn writes_log(state: &AppState, vehicle_id: Option<i64>, limit: i64) -> Vec<db::WriteLogRow> {
     state.db.writes_log(vehicle_id, limit)
@@ -415,11 +319,6 @@ pub fn reading_keys(state: &AppState, vehicle_id: Option<i64>) -> Vec<String> {
     state.db.reading_keys(vehicle_id)
 }
 
-/// The same keys with their probe, module and newest timestamp. The database
-/// names a module only when discovery has seen it; for the rest the name
-/// comes from the knowledge map's profile for this vehicle's VIN (or a custom
-/// module the user added), and failing that the module key stands in. No car
-/// traffic — every source here is local.
 pub fn reading_key_details(state: &AppState, vehicle_id: Option<i64>) -> Vec<db::ReadingKeyRow> {
     let mut rows = state.db.reading_key_details(vehicle_id);
     if rows
@@ -479,11 +378,6 @@ pub fn list_probes(state: &AppState, vehicle_id: Option<i64>) -> Vec<db::UdsProb
     state.db.list_probes(vehicle_id)
 }
 
-/// A probe whose module key nothing can resolve is a probe that fails
-/// silently forever: `uds::resolve` only matches a key documented for the
-/// vehicle's VIN or registered as a custom module, so an unresolvable key
-/// never reaches the bus and never reports why. Reject it at the door with
-/// the keys that would have worked.
 pub fn add_probe(
     state: &AppState,
     probe: &db::UdsProbe,
@@ -575,23 +469,10 @@ pub fn app_setting_set(state: &AppState, key: &str, value: &str) {
     state.db.setting_set(key, value);
 }
 
-// ---------- adapter profile (Phase 5: transport abstraction) ----------
-
-/// Candidate serial ports and paired Bluetooth devices on this machine,
-/// each already named after the device behind it and tagged `last_used`
-/// against the saved profile — the picker shows the list, it doesn't
-/// reconstruct it.
 pub fn list_adapters(state: &AppState) -> Vec<elm::transport::enumerate::AdapterCandidate> {
     elm::transport::enumerate::candidates(&adapter_profile(state))
 }
 
-/// Scan for Bluetooth radios that are not paired yet, so a dongle out of
-/// the box can be added from the device screen instead of the OS settings.
-/// Already-paired addresses are dropped: they are rows in `list_adapters`
-/// already, and offering them again would only invite a needless re-pair.
-///
-/// The inquiry blocks the calling thread for `seconds`, so this runs on the
-/// blocking pool — same reason `ask` moves its wait off the main thread.
 pub async fn discover_adapters(
     seconds: u8,
 ) -> Result<Vec<elm::transport::bluetooth::NearbyDevice>, String> {
@@ -609,11 +490,6 @@ pub async fn discover_adapters(
     .map_err(|e| format!("worker join error: {e}"))?
 }
 
-/// Pair one address. `pin` is `None` for the ordinary case — Secure Simple
-/// Pairing, which is what current dongles use — and carries the user's code
-/// only on a retry after a `PinRequired` answer. User-initiated only: there
-/// is no unpair and nothing re-pairs on its own (see the crate walk in
-/// `elm/connect.rs`).
 pub async fn pair_adapter(
     addr: String,
     pin: Option<String>,
@@ -625,14 +501,10 @@ pub async fn pair_adapter(
     .map_err(|e| elm::transport::bluetooth::PairFailure::Other(format!("worker join error: {e}")))?
 }
 
-/// The active adapter profile: `adapter.*` settings with the
-/// `SCAINNER_OBD_*` environment fallback applied.
 pub fn adapter_profile(state: &AppState) -> elm::transport::AdapterProfile {
     elm::transport::AdapterProfile::load(|key| state.db.setting_get(key))
 }
 
-/// Persist a profile after validating it. Takes effect at the next
-/// (re)connect; the supervisor re-reads the settings on every attempt.
 pub fn set_adapter_profile(
     state: &AppState,
     profile: elm::transport::AdapterProfile,
@@ -660,9 +532,6 @@ pub fn verification_run(state: &AppState, id: i64) -> Option<(db::VerificationRu
     state.db.verification_run(id)
 }
 
-// ---------- discovery knowledge layer (plan A6) ----------
-
-/// S3 join for one vehicle: families → inherited hypotheses. Local, no car.
 pub fn join_vehicle(state: &AppState, vehicle_id: i64) -> Option<discovery::join::JoinSummary> {
     state.db.vehicle(vehicle_id)?;
     Some(discovery::join::join_vehicle(
@@ -676,8 +545,6 @@ pub fn coverage(state: &AppState, vehicle_id: i64) -> Option<discovery::coverage
     discovery::coverage::coverage(&state.db, elm::uds_map::map(), vehicle_id)
 }
 
-/// The parked-verification plan the generator would run for a vehicle, from
-/// its profile and the routes it has reached. No car traffic.
 pub fn parked_plan(state: &AppState, vehicle_id: i64) -> Option<discovery::plan::ParkedPlan> {
     let vehicle = state.db.vehicle(vehicle_id)?;
     let reached = elm::uds::reached_routes(&state.db, vehicle_id);
@@ -693,8 +560,6 @@ pub fn list_hypotheses(state: &AppState, vehicle_id: i64) -> Vec<db::HypothesisR
     state.db.list_hypotheses(vehicle_id)
 }
 
-/// The de-identified "what the car said" document that goes into the next
-/// deep-research prompt. Local, no car traffic, no VIN and no serial.
 pub fn research_request(
     state: &AppState,
     vehicle_id: i64,
@@ -710,10 +575,6 @@ pub fn learning_state(state: &AppState) -> bool {
         .unwrap_or(false)
 }
 
-/// Switch the learning state. Turning it off cascades: every hypothesis
-/// polled as `learning` (on any vehicle) goes back to `disabled`, so the
-/// supervisor never keeps reading DIDs the flag no longer allows. Returns
-/// how many hypotheses were disabled.
 pub fn set_learning_state(state: &AppState, on: bool) -> usize {
     state.db.setting_set(
         discovery::state::LEARNING_STATE_SETTING,
@@ -726,9 +587,6 @@ pub fn set_learning_state(state: &AppState, on: bool) -> usize {
     }
 }
 
-/// State transition with the rules enforced; `Err` is the violated rule.
-/// The hypothesis and its probe are one pipeline, so the stored transition
-/// is followed by the probe side of it (see `sync_hypothesis_probe`).
 pub fn patch_hypothesis(
     state: &AppState,
     id: i64,
@@ -736,9 +594,6 @@ pub fn patch_hypothesis(
 ) -> Result<Option<db::HypothesisRow>, discovery::state::RuleViolation> {
     let learning_on = learning_state(state);
     let row = state.db.patch_hypothesis(id, patch, learning_on)?;
-    // Only an activation change moves the probe: a label or knowledge patch
-    // on an enabled hypothesis must not switch a probe the user turned off
-    // back on.
     if patch.activation.is_some() {
         if let Some(row) = &row {
             sync_hypothesis_probe(state, row);
@@ -747,14 +602,6 @@ pub fn patch_hypothesis(
     Ok(row)
 }
 
-/// The probe a hypothesis asks for, built from the inherited decode its
-/// `decode_json` carries (the shape the family join writes). A hypothesis
-/// without a decode still gets a probe — reading the raw first byte is what
-/// a probe with no formula has always meant, and the DID has to be read
-/// before anyone can work out its formula. `signed` rides along with the
-/// rest of the formula (schema v14): the probe row carries it and the
-/// poller honours it, so a two's-complement sensor no longer arrives as
-/// its wrapped positive twin.
 fn probe_from_hypothesis(row: &db::HypothesisRow, module: String) -> db::UdsProbe {
     let decode = row
         .decode_json
@@ -791,22 +638,12 @@ fn probe_from_hypothesis(row: &db::HypothesisRow, module: String) -> db::UdsProb
     }
 }
 
-/// One sensor pipeline. Activating a hypothesis is the user saying "read
-/// this DID on this car", so it gets the probe that makes that happen —
-/// adopting the row they may already have created by hand rather than
-/// duplicating it. Any other activation switches the linked probe off.
-/// Called after the transition is stored, so it acts on the state that
-/// actually passed the rule check, not on the requested one.
 fn sync_hypothesis_probe(state: &AppState, row: &db::HypothesisRow) {
     if row.activation != discovery::state::Activation::Enabled.as_str() {
         state.db.disable_hypothesis_probes(row.id);
         return;
     }
     let vin = state.db.vehicle(row.vehicle_id).and_then(|v| v.vin);
-    // The module key has to be the one `uds::resolve` answers to; the
-    // discovered address is not it. `module_key_for_address` registers the
-    // route as a custom module when nothing documents it yet, which is
-    // exactly what makes the probe readable afterwards.
     let Some(module) =
         elm::uds::module_key_for_address(&state.db, vin.as_deref(), &row.module_address, None)
     else {
@@ -817,7 +654,6 @@ fn sync_hypothesis_probe(state: &AppState, row: &db::HypothesisRow) {
         .link_hypothesis_probe(row.id, row.vehicle_id, &probe_from_hypothesis(row, module));
 }
 
-/// Markdown briefing about the car, ready to paste into any AI chat.
 pub fn ai_context(state: &AppState, vehicle_id: Option<i64>, since_hours: f64) -> String {
     let vehicles: Vec<_> = vehicle_id
         .and_then(|id| state.db.vehicle(id))
@@ -835,9 +671,6 @@ pub fn ai_context(state: &AppState, vehicle_id: Option<i64>, since_hours: f64) -
     let days = since_hours / 24.0;
 
     let mut md = String::from("# Car diagnostic briefing (Scainner export)\n\n## Vehicles\n\n");
-    // Deliberately no hardcoded car description here — Scainner works on any
-    // car (see README "Bring your own car"), so the briefing only claims what
-    // was actually read from (or the user named for) each connected vehicle.
     if vehicles.is_empty() {
         md.push_str("(No vehicle recorded yet — connect to a car first.)\n");
     }
@@ -894,8 +727,6 @@ pub fn ai_context(state: &AppState, vehicle_id: Option<i64>, since_hours: f64) -
     md
 }
 
-// ---------- guided correlation steps (multi-brand plan P4.2) ----------
-
 #[cfg(test)]
 mod guided_tests {
     use super::expected_signature;
@@ -937,15 +768,10 @@ mod guided_tests {
     }
 }
 
-/// One node of the guided-step state tree (universal discovery protocol §9).
-/// Generated from the vehicle's open hypotheses, never written by hand: the
-/// app renders it, an API client or an agent walks it the same way.
 #[derive(serde::Serialize, Clone, Debug)]
 pub struct GuidedStepNode {
     pub id: String,
-    /// `baseline` or `input`.
     pub kind: &'static str,
-    /// `REQ/RESP` of the module the capture reads.
     pub module: Option<String>,
     pub hypotheses: Vec<String>,
     pub precondition: serde_json::Map<String, serde_json::Value>,
@@ -953,12 +779,8 @@ pub struct GuidedStepNode {
     pub condition_label: String,
     pub capture: GuidedCapture,
     pub success: GuidedSuccess,
-    /// Vehicle facts the step needs; the app asks the operator when a fact
-    /// is not known.
     pub applicable_if: serde_json::Map<String, serde_json::Value>,
     pub optional: bool,
-    /// Question the operator must answer before the step is offered, when a
-    /// fact it depends on is not in the database.
     pub operator_confirmation: Option<String>,
     pub safety: &'static str,
     pub estimated_seconds: u32,
@@ -983,7 +805,6 @@ pub struct GuidedSuccess {
 #[derive(serde::Serialize, Clone, Debug)]
 pub struct GuidedSteps {
     pub vehicle_id: i64,
-    /// `{brand}-{platform|unknown}-corr-v{plan_revision}`.
     pub plan_version: String,
     pub repeats: u8,
     pub facts: serde_json::Map<String, serde_json::Value>,
@@ -993,8 +814,6 @@ pub struct GuidedSteps {
 const GUIDED_SAFETY: &str = "read-only; you control the car; stop if anything feels wrong";
 const GUIDED_REPEATS: u8 = 3;
 
-/// `{brand}-{platform|unknown}-corr-v{n}`: the parked plan's version with
-/// the correlation marker, so both kinds of run share one revision.
 pub fn correlation_plan_version(vin: Option<&str>) -> String {
     let parked = discovery::plan::plan_version(vin);
     match parked.rsplit_once("-v") {
@@ -1003,9 +822,6 @@ pub fn correlation_plan_version(vin: Option<&str>) -> String {
     }
 }
 
-/// What a discriminating test asks of the operator, read from its wording.
-/// Keyword classes, not brands: the same words describe the same physical
-/// action on every car.
 struct TestShape {
     moves_car: bool,
     needs_gear_selector: bool,
@@ -1036,7 +852,6 @@ fn shape_of(test: &str) -> TestShape {
     }
 }
 
-/// Stable, label-safe condition name from the test text.
 fn condition_slug(test: &str) -> String {
     let mut out = String::new();
     let mut last_sep = true;
@@ -1055,10 +870,6 @@ fn condition_slug(test: &str) -> String {
     out.trim_end_matches('_').to_string()
 }
 
-/// Per-hypothesis success signature read from the test wording (protocol
-/// section 9: `changed`, `monotonic_increase`, `monotonic_decrease`,
-/// `sign_positive`). Words that describe a fall map to a decrease, words
-/// that describe a rise to an increase; anything else is `changed`.
 pub fn expected_signature(test: &str) -> &'static str {
     let t = test.to_ascii_lowercase();
     let decreases = ["fall", "drop", "decrease", "lower", "down to"];
@@ -1107,12 +918,6 @@ fn baseline_node(id: &str, module: Option<&str>, dids: Vec<String>) -> GuidedSte
     }
 }
 
-/// The guided-step tree for one vehicle: open hypotheses that carry a
-/// discriminating test, grouped by module and test, each input bracketed
-/// by a baseline (A→B→A). Steps that move the car are optional with an
-/// explicit precondition; steps that need a gear selector or a clutch carry
-/// `applicable_if` plus an operator confirmation while the gearbox is not a
-/// known fact. `None` when the vehicle does not exist.
 pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
     let vehicle = state.db.vehicle(vehicle_id)?;
     let vin = vehicle.vin.as_deref();
@@ -1121,8 +926,6 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
         rows.iter().filter(|h| h.vehicle_fit != "matched").collect();
     let did_hex = |d: u16| format!("{d:04X}");
 
-    // Facts the database and the pack can vouch for. The gearbox is not
-    // recorded anywhere yet, so it is `unknown` and the steps say so.
     let mut facts = serde_json::Map::new();
     facts.insert("vin_known".into(), vin.is_some().into());
     facts.insert(
@@ -1138,7 +941,6 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
     facts.insert("gearbox".into(), "unknown".into());
     let gearbox_known = false;
 
-    // Group (module, test) in first-seen order.
     let mut groups: Vec<(String, String, Vec<&db::HypothesisRow>)> = Vec::new();
     for h in &open {
         let Some(test) = h.discriminating_test.as_deref() else {
@@ -1153,16 +955,12 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
             None => groups.push((address, test.to_string(), vec![h])),
         }
     }
-    // Stationary tests first, then those that move the car: information
-    // per minute, and the optional nodes last.
     groups.sort_by_key(|(_, test, _)| shape_of(test).moves_car);
 
     let mut inputs: Vec<GuidedStepNode> = Vec::new();
     for (address, test, members) in &groups {
         let shape = shape_of(test);
         let hypotheses: Vec<String> = members.iter().map(|h| did_hex(h.did)).collect();
-        // Every open hypothesis on the module without a test of its own
-        // rides along: any input may be the one that moves it.
         let mut dids = hypotheses.clone();
         for h in &open {
             if h.module_address.eq_ignore_ascii_case(address)
@@ -1172,7 +970,6 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
                 dids.push(did_hex(h.did));
             }
         }
-        // A DID of another module named in the test is a reference read.
         let mut reference_dids: HashMap<String, Vec<String>> = HashMap::new();
         for h in &rows {
             if h.module_address.eq_ignore_ascii_case(address) {
@@ -1247,11 +1044,6 @@ pub fn guided_steps(state: &AppState, vehicle_id: i64) -> Option<GuidedSteps> {
         });
     }
 
-    // One independent experiment per input: `baseline_before_<i>`,
-    // `input_<i>`, `baseline_after_<i>`, all three on the input's module and
-    // DID set. Edges run within the triplet; triplets chain in order, so a
-    // diff always compares an input with its own baselines and never with a
-    // capture taken on another module or minutes earlier.
     let mut steps: Vec<GuidedStepNode> = Vec::new();
     let count = inputs.len();
     for (i, mut node) in inputs.into_iter().enumerate() {
@@ -1297,8 +1089,6 @@ mod tests {
         )
     }
 
-    /// One car, one discovered module on it, one hypothesis on that module
-    /// carrying an inherited decode. Returns (vehicle id, hypothesis id).
     fn car_with_a_hypothesis(state: &AppState) -> (i64, i64) {
         let (vehicle_id, _) = state.db.ensure_vehicle("VR7EXAMPLE0000001");
         let module_id =
@@ -1360,8 +1150,6 @@ mod tests {
         assert_eq!((probe.scale, probe.bias), (0.01, 0.0));
         assert_eq!(probe.unit, "km/h");
         assert!(!probe.signed, "this decode says the window is unsigned");
-        // The discovered address is not a module key. Writing it would give
-        // a probe that fails silently forever.
         assert_ne!(probe.module, "6AD/68D");
         assert!(
             resolvable(&state, vehicle_id, &probe.module),
@@ -1369,16 +1157,12 @@ mod tests {
             probe.module
         );
 
-        // Enabling again is the same decision, not a second sensor.
         enable(&state, hypothesis_id);
         assert_eq!(list_probes(&state, Some(vehicle_id)).len(), 1);
     }
 
     #[test]
     fn an_activated_hypothesis_carries_its_signed_flag_onto_the_probe() {
-        // A two's-complement decode used to lose its sign on the way to the
-        // probe row, which is how a −2.0° steering angle reached the
-        // readings table as 6551.6° (2026-09-01 ride).
         let state = test_state();
         let (vehicle_id, _) = state.db.ensure_vehicle("VR7EXAMPLE0000001");
         let module_id =
@@ -1484,8 +1268,6 @@ mod tests {
         let (vehicle_id, hypothesis_id) = car_with_a_hypothesis(&state);
         set_learning_state(&state, true);
         enable(&state, hypothesis_id);
-        // Straight to the store, so the probe is still on when the cascade
-        // runs — exactly the state the cascade exists to clean up.
         state
             .db
             .patch_hypothesis(

@@ -1,59 +1,26 @@
-//! Platform Bluetooth control for classic-Bluetooth (SPP) adapters.
-//!
-//! Four operations, all of them driven by something the user did: enumerate
-//! what is paired, bring one address's link up (which also recreates the
-//! serial node macOS removes when the link drops), scan for radios that are
-//! not paired yet, and pair the one the user picked.
-//!
-//! Pairing carries no PIN by default: Secure Simple Pairing is what current
-//! dongles do, so asking for a code before the radio has asked for one made
-//! every device look like a device that wants one. A PIN goes out only on a
-//! retry, after the radio itself asked — see [`PairFailure::PinRequired`].
-//!
-//! What is still never done here: unpairing, and re-pairing behind the
-//! user's back. Both are disruptive, need a PIN that is not standardised
-//! across adapters, and belong to the person holding the hardware — the
-//! connect pipeline does neither, and `elm/connect.rs` has a test that walks
-//! the crate to keep it that way.
-
 use std::process::Stdio;
 use std::time::Duration;
 
-/// The paired-device view the settings UI enumerates from.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct PairedDevice {
-    /// Dashed lower-case MAC, e.g. `aa-bb-cc-dd-ee-ff`.
     pub addr: String,
     pub name: String,
     pub connected: bool,
 }
 
-/// A radio a scan saw. `paired` is what the platform reported at scan
-/// time, so a device the user paired elsewhere is recognisable rather than
-/// offered a second time.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct NearbyDevice {
-    /// Dashed lower-case MAC, e.g. `aa-bb-cc-dd-ee-ff`.
     pub addr: String,
-    /// The friendly name the vendor set, absent when the radio answered the
-    /// inquiry without one.
     pub name: Option<String>,
     pub paired: bool,
 }
 
-/// Why a pairing attempt failed. `PinRequired` is the one failure a client
-/// can act on by itself: it reveals the PIN field and retries with what the
-/// user types. Everything else is for the person holding the hardware —
-/// out of range, asleep, refused, wrong PIN.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PairFailure {
-    /// The radio asked for a PIN/passkey and the attempt carried none.
     PinRequired(String),
     Other(String),
 }
 
-/// The marker every client matches on: the Tauri command's error string
-/// starts with it, and the HTTP route answers 409 `{"error":"pin_required"}`.
 pub const PIN_REQUIRED: &str = "pin_required";
 
 impl PairFailure {
@@ -68,9 +35,6 @@ impl PairFailure {
 }
 
 impl std::fmt::Display for PairFailure {
-    /// The IPC wire form: the marker is a prefix so a Tauri client, which
-    /// only ever sees the error string, can tell the two apart the same way
-    /// the HTTP client tells 409 from 400.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::PinRequired(message) => write!(f, "{PIN_REQUIRED}: {message}"),
@@ -79,16 +43,8 @@ impl std::fmt::Display for PairFailure {
     }
 }
 
-/// blueutil's own wording for "this radio wants a PIN". Run without one it
-/// falls back to reading a code from stdin — which is closed here — and
-/// prints `Type pin code (up to 16 characters) for "…" (…) and press
-/// Enter:`; a radio that insists on legacy authentication comes back as
-/// `Failed to pair "…" with error 0x… (Authentication Failure)`. Matched
-/// case-insensitively against whatever blueutil actually printed (v2.13).
 const PIN_WORDINGS: [&str; 3] = ["pin code", "passkey", "authentication failure"];
 
-/// Read a failed `blueutil --pair` message: a PIN request the UI can answer,
-/// or a failure it can only report.
 pub fn classify_pair_failure(detail: &str) -> PairFailure {
     let lower = detail.to_ascii_lowercase();
     if PIN_WORDINGS.iter().any(|wording| lower.contains(wording)) {
@@ -98,35 +54,17 @@ pub fn classify_pair_failure(detail: &str) -> PairFailure {
     }
 }
 
-/// A scan shorter than this finds nothing; longer than this and the user is
-/// staring at a spinner. The API clamps to the range and defaults to
-/// `DEFAULT_DISCOVER_SECONDS`.
 pub const DISCOVER_SECONDS: std::ops::RangeInclusive<u8> = 3..=15;
 pub const DEFAULT_DISCOVER_SECONDS: u8 = 8;
 
 pub trait BluetoothControl: Send + Sync {
-    /// Bring the RFCOMM link up without tearing anything down first, then
-    /// wait for `port_path` to exist. This is the pipeline's Link stage:
-    /// the blocking `open` on the port node should not have to negotiate a
-    /// sleeping link itself (which regularly outlasts the open timeout).
     fn connect(&self, addr: &str, port_path: &str) -> Result<(), String>;
-    /// Paired devices, empty where the platform offers no enumeration.
     fn paired(&self) -> Vec<PairedDevice>;
-    /// Scan for radios in range. Blocks for `seconds` — the radio is busy
-    /// for the whole inquiry — so every caller runs it off the main thread.
     fn discover(&self, seconds: u8) -> Result<Vec<NearbyDevice>, String>;
-    /// Pair one address the user chose. `pin` is `None` on the first
-    /// attempt — the common case, Secure Simple Pairing — and carries the
-    /// user's code only on a retry after [`PairFailure::PinRequired`]. Only
-    /// ever called from an explicit "Pair" click; nothing pairs on its own.
     fn pair(&self, addr: &str, pin: Option<&str>) -> Result<(), PairFailure>;
 }
 
-/// The control implementation for this build's platform.
 pub fn platform() -> Box<dyn BluetoothControl> {
-    // The crate's own tests never drive the radio: an inquiry blocks for
-    // seconds and a pair pops a system dialog on whatever hardware the
-    // suite happens to run on. Parsing is covered by fixture tests below.
     #[cfg(test)]
     {
         return Box::new(Unsupported);
@@ -146,8 +84,6 @@ pub const MANUAL_PAIRING_REQUIRED: &str = "manual pairing required: automatic Bl
 reconnection is only implemented on macOS; pair and connect the adapter in the system \
 Bluetooth settings, then connect again";
 
-/// Platforms without a scripted Bluetooth stack: never shell out, just say
-/// what the user has to do by hand.
 #[cfg_attr(target_os = "macos", allow(dead_code))]
 pub struct Unsupported;
 
@@ -166,16 +102,12 @@ impl BluetoothControl for Unsupported {
     }
 }
 
-/// macOS via `blueutil` (Homebrew).
-// Unused in a test build on purpose — `platform()` hands out `Unsupported`
-// there so the suite never touches the radio.
 #[cfg_attr(test, allow(dead_code))]
 pub struct MacosBlueutil;
 
 #[cfg_attr(test, allow(dead_code))]
 impl MacosBlueutil {
     fn command() -> std::process::Command {
-        // Homebrew path first; fall back to PATH.
         let path = if std::path::Path::new("/opt/homebrew/bin/blueutil").exists() {
             "/opt/homebrew/bin/blueutil"
         } else {
@@ -212,7 +144,6 @@ impl BluetoothControl for MacosBlueutil {
                 String::from_utf8_lossy(&out.stderr)
             ));
         }
-        // Give macOS a moment to (re)create the serial node.
         if Self::wait_for_port(port_path, 10, Duration::from_millis(500)) {
             return Ok(());
         }
@@ -226,10 +157,6 @@ impl BluetoothControl for MacosBlueutil {
             Ok(out) if out.status.success() => {
                 parse_blueutil_paired(&String::from_utf8_lossy(&out.stdout))
             }
-            // An empty list here is indistinguishable from "nothing is
-            // paired", and it is what de-dups the scan results — so say so
-            // in the log rather than letting a paired dongle quietly show
-            // up as a stranger in the Nearby group.
             other => {
                 log::warn!(
                     "blueutil --paired unusable, treating this machine as having no paired devices: {}",
@@ -266,11 +193,6 @@ impl BluetoothControl for MacosBlueutil {
         if let Some(pin) = pin.map(str::trim).filter(|p| !p.is_empty()) {
             command.arg(pin);
         }
-        // With no PIN argument blueutil reads one from stdin if the radio
-        // asks for it. Closed stdin turns that prompt into an immediate
-        // failure carrying blueutil's own wording — which is the signal
-        // `classify_pair_failure` reads — instead of a wait on a terminal
-        // nobody is looking at.
         let out = command.stdin(Stdio::null()).output().map_err(|e| {
             PairFailure::Other(format!(
                 "blueutil not runnable (brew install blueutil): {e}"
@@ -284,8 +206,6 @@ impl BluetoothControl for MacosBlueutil {
         if out.status.success() {
             return Ok(());
         }
-        // blueutil reports a refused pairing on stderr and the PIN prompt on
-        // stdout; show whichever one actually said something.
         let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
         let detail = if stderr.is_empty() { stdout } else { stderr };
@@ -297,8 +217,6 @@ impl BluetoothControl for MacosBlueutil {
     }
 }
 
-/// Parse `blueutil --paired` lines:
-/// `address: aa-bb-cc-dd-ee-ff, connected (master, -60 dBm), not favourite, paired, name: "OBDII", recent access date: ...`
 pub fn parse_blueutil_paired(text: &str) -> Vec<PairedDevice> {
     text.lines()
         .filter_map(|line| {
@@ -329,12 +247,6 @@ pub fn parse_blueutil_paired(text: &str) -> Vec<PairedDevice> {
         .collect()
 }
 
-/// Parse `blueutil --inquiry <seconds>` lines, which carry the same fields
-/// as `--paired` plus devices that are not paired yet:
-/// `address: 00-04-3e-84-65-14, not connected, not favourite, not paired, name: "Reader 49489", recent access date: -`
-///
-/// A radio that answered the inquiry without a name gets `name: None` — the
-/// UI shows the address rather than inventing a label for it.
 pub fn parse_inquiry(text: &str) -> Vec<NearbyDevice> {
     text.lines()
         .filter_map(|line| {
@@ -354,8 +266,6 @@ pub fn parse_inquiry(text: &str) -> Vec<NearbyDevice> {
                 .map(str::trim)
                 .filter(|n| !n.is_empty())
                 .map(str::to_string);
-            // `paired` and `not paired` are separate comma-separated fields,
-            // so an exact match on the field is what tells them apart.
             let paired = line.split(',').any(|part| part.trim() == "paired");
             Some(NearbyDevice { addr, name, paired })
         })
@@ -389,12 +299,8 @@ mod tests {
         );
     }
 
-    /// The whole point of the no-PIN-first attempt: the UI opens the PIN
-    /// field only when blueutil says the radio asked for one.
     #[test]
     fn blueutil_pin_prompts_are_told_apart_from_real_failures() {
-        // What blueutil v2.13 prints when `--pair` carries no PIN and the
-        // radio requests one; stdin is closed, so this is the whole answer.
         let prompt = "pairing aa-bb-cc-dd-ee-01 failed: Type pin code (up to 16 characters) \
                       for \"OBDII\" (aa-bb-cc-dd-ee-01) and press Enter:";
         assert_eq!(
@@ -407,7 +313,6 @@ mod tests {
         .is_pin_required());
         assert!(classify_pair_failure("Input passkey 123456 on \"OBDII\"").is_pin_required());
 
-        // Everything the user has to fix in the world, not in the app.
         for detail in [
             "pairing aa-bb-cc-dd-ee-01 failed",
             "pairing aa-bb-cc-dd-ee-01 failed: Failed to start pairing with \"OBDII\"",
@@ -421,8 +326,6 @@ mod tests {
         }
     }
 
-    /// The Tauri client only ever sees the error string, so the marker has
-    /// to survive the trip as a prefix.
     #[test]
     fn a_pin_request_carries_its_marker_into_the_error_string() {
         let failure = PairFailure::PinRequired("wants a pin code".into());
@@ -435,8 +338,6 @@ mod tests {
         );
     }
 
-    /// The suite must never reach for the radio: `platform()` hands out the
-    /// no-op control under `cfg(test)`, whatever the host OS is.
     #[test]
     fn the_test_build_never_gets_a_control_that_shells_out() {
         assert!(platform().discover(3).is_err());

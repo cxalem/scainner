@@ -1,18 +1,3 @@
-//! Transport abstraction for ELM327-compatible adapters (multi-brand plan,
-//! Phase 5). The driver above this module speaks the AT/OBD protocol; the
-//! `Transport` below moves bytes and knows nothing about the car.
-//!
-//! - `elm_serial`: a serial port (Bluetooth SPP or USB) opened with raw
-//!   termios — the byte-for-byte setup that provably talks to classic
-//!   Bluetooth dongles on macOS.
-//! - `tcp_elm`: an ELM327 Wi-Fi adapter at `host:port`, same AT protocol.
-//! - `replay`: recorded fixtures for tests.
-//! - `bluetooth`: platform Bluetooth control (`blueutil` on macOS, a
-//!   "manual pairing required" no-op elsewhere).
-//! - `profile`: the adapter profile stored in `app_settings`, with the
-//!   `SCAINNER_OBD_*` environment variables as a one-release fallback.
-//! - `enumerate`: candidate ports / paired devices for the settings UI.
-
 pub mod bluetooth;
 pub mod elm_serial;
 pub mod enumerate;
@@ -27,29 +12,17 @@ use std::time::Duration;
 
 pub use profile::{AdapterKind, AdapterProfile, TimingProfile};
 
-/// What a transport is, for status displays and the connection row.
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct TransportInfo {
-    /// `elm_serial`, `tcp_elm` or `replay`.
     pub kind: String,
-    /// The serial path, `host:port` or replay name.
     pub target: String,
-    /// The adapter's `ATI` banner once the handshake has read it.
     pub banner: Option<String>,
 }
 
-/// One byte-moving link to an ELM-compatible adapter. Implementations are
-/// only ever used from the supervisor thread but must be `Send` so the
-/// driver can travel there.
 pub trait Transport: Send {
-    /// Send `cmd` (a `\r` is appended) and read until the `>` prompt or
-    /// `timeout`. `Err(NoResponse)` when nothing at all arrived.
     fn cmd(&mut self, cmd: &str, timeout: Duration) -> Result<String, ElmError>;
-    /// Release the underlying resource. Called from the driver's `Drop`.
     fn close(&mut self);
     fn describe(&self) -> TransportInfo;
-    /// Test hook: the replay transport asserts every recorded step was
-    /// consumed; every other transport is a test bug here.
     #[cfg(test)]
     fn assert_replay_complete(&self) {
         panic!(
@@ -59,7 +32,6 @@ pub trait Transport: Send {
     }
 }
 
-/// Open the transport an adapter profile describes.
 pub fn open(profile: &AdapterProfile) -> Result<Box<dyn Transport>, ElmError> {
     match profile.kind {
         AdapterKind::ElmSerial => {
@@ -87,8 +59,6 @@ pub fn open(profile: &AdapterProfile) -> Result<Box<dyn Transport>, ElmError> {
     }
 }
 
-/// Shared "read until the prompt" loop: `read` returns the bytes it got
-/// (possibly none within its own short wait) or an io error string.
 pub(crate) fn read_until_prompt(
     timeout: Duration,
     mut read: impl FnMut(&mut [u8]) -> Result<usize, String>,
@@ -104,7 +74,6 @@ pub(crate) fn read_until_prompt(
                 break;
             }
         } else {
-            // The read already waited ~100 ms; small extra breather.
             std::thread::sleep(Duration::from_millis(20));
         }
     }

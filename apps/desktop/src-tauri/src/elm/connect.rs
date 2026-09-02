@@ -1,16 +1,3 @@
-//! The connect pipeline: four stages, one timeout each, one outcome each.
-//!
-//! No stage retries itself, there is no escalation ladder, and nothing here
-//! unpairs or re-pairs a radio. A failure stops the run and reports which
-//! stage failed and why; the operator decides whether to try again. Retries
-//! are something to add back only if the clean version proves it needs them.
-//!
-//! - `Link` — bring the radio link up when (and only when) the platform
-//!   says it is down, or the port node it creates is missing.
-//! - `Open` — open the transport the profile describes.
-//! - `Handshake` — `ElmDriver::init()`, the proven AT sequence.
-//! - `Bus` — the `0100` wake-up and the protocol capture cleanup restores.
-
 use super::driver::ElmDriver;
 use super::operation;
 use super::transport::bluetooth::BluetoothControl;
@@ -18,16 +5,10 @@ use super::transport::{AdapterKind, AdapterProfile};
 use serde::Serialize;
 use std::time::{Duration, Instant};
 
-/// One fixed wait after the radio reports the link up, so the RFCOMM
-/// channel is settled before the open. Not a retry loop: opening too early
-/// wedges the channel, and one second is what the hardware needs.
 const LINK_SETTLE: Duration = Duration::from_secs(1);
 
-/// The `0100` wake-up budget: a cold ECU on a slow protocol uses most of it.
 const BUS_WAKE_TIMEOUT: Duration = Duration::from_secs(20);
 
-/// Where a connect attempt got to. Serialised into the connection status so
-/// the UI can name the step instead of showing an anonymous spinner.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stage {
@@ -54,7 +35,6 @@ impl std::fmt::Display for Stage {
     }
 }
 
-/// Why the run stopped, and where.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ConnectError {
     pub stage: Stage,
@@ -76,24 +56,12 @@ impl std::fmt::Display for ConnectError {
     }
 }
 
-/// What the Link stage has to do before the port node can be opened.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LinkAction {
-    /// Nothing to bring up: a wired adapter, a network adapter, or a link
-    /// nothing reports as down.
     None,
-    /// Ask the platform to bring this address's link up (and, with it,
-    /// recreate the serial node).
     BluetoothConnect(String),
 }
 
-/// The Link stage's decision, kept pure so it can be tested without a radio.
-///
-/// `reported_connected` is what the platform says about `bt_addr`: `None`
-/// when nothing can say (no Bluetooth control, a wired adapter), and an
-/// unknown state is never treated as a "no". A missing port node is the one
-/// case that overrides that: whatever the platform reports, only a connect
-/// can bring the node back.
 pub fn plan_link(
     profile: &AdapterProfile,
     port_exists: bool,
@@ -116,9 +84,6 @@ pub fn plan_link(
     LinkAction::None
 }
 
-/// Whether the platform reports `addr` as connected. `None` means it
-/// enumerates nothing at all (no Bluetooth control on this build, or the
-/// helper is not installed) — an unknown state, never a "no".
 pub fn reported_connected(bt: &dyn BluetoothControl, addr: &str) -> Option<bool> {
     let paired = bt.paired();
     if paired.is_empty() {
@@ -131,14 +96,10 @@ pub fn reported_connected(bt: &dyn BluetoothControl, addr: &str) -> Option<bool>
     )
 }
 
-/// A radio error that means "this machine cannot script Bluetooth at all".
-/// The Link stage is skipped rather than failed for those: the port node may
-/// well be there already, and the Open stage is the honest place to find out.
 fn bluetooth_unavailable(error: &str) -> bool {
     error.contains("not runnable") || error.starts_with("manual pairing required")
 }
 
-/// Run the pipeline once. `emit` is called with each stage as it starts.
 pub fn connect(
     profile: &AdapterProfile,
     bt: &dyn BluetoothControl,
@@ -149,15 +110,12 @@ pub fn connect(
     })
 }
 
-/// The pipeline with the transport open injected, so tests can drive the
-/// whole thing over a recorded link.
 pub(crate) fn connect_with(
     profile: &AdapterProfile,
     bt: &dyn BluetoothControl,
     emit: &dyn Fn(Stage),
     open: &mut dyn FnMut(&AdapterProfile) -> Result<ElmDriver, String>,
 ) -> Result<ElmDriver, ConnectError> {
-    // ---- Link ----
     let started = stage_start(Stage::Link, emit);
     let port = profile.path.clone().unwrap_or_default();
     let port_exists = !port.is_empty() && std::path::Path::new(&port).exists();
@@ -184,7 +142,6 @@ pub(crate) fn connect_with(
     }
     stage_done(Stage::Link, started);
 
-    // ---- Open ----
     let started = stage_start(Stage::Open, emit);
     let mut driver = match open(profile) {
         Ok(driver) => driver,
@@ -192,20 +149,12 @@ pub(crate) fn connect_with(
     };
     stage_done(Stage::Open, started);
 
-    // ---- Handshake ----
-    // The adapter's own AT sequence is the liveness probe; there is no
-    // separate pre-probe to eat the first write.
     let started = stage_start(Stage::Handshake, emit);
     if let Err(e) = driver.init() {
         return Err(stage_failed(Stage::Handshake, e.to_string(), started));
     }
     stage_done(Stage::Handshake, started);
 
-    // ---- Bus ----
-    // `NO DATA` / `UNABLE TO CONNECT` here is an answer, not a failure:
-    // ignition off is a normal state and the app has plenty to do without a
-    // live bus. Only silence or a transport error means the link is not
-    // usable.
     let started = stage_start(Stage::Bus, emit);
     match driver.cmd("0100", BUS_WAKE_TIMEOUT) {
         Ok(raw) => log::info!("connect stage bus: 0100 answered {:?}", raw.trim()),
@@ -254,8 +203,6 @@ mod tests {
     use crate::elm::transport::bluetooth::{NearbyDevice, PairFailure, PairedDevice};
     use std::sync::Mutex;
 
-    /// Records what the pipeline asked the radio to do, so a test can assert
-    /// the wake happened (or didn't) without a radio.
     #[derive(Default)]
     struct FakeBluetooth {
         paired: Vec<PairedDevice>,
@@ -297,8 +244,6 @@ mod tests {
         fn paired(&self) -> Vec<PairedDevice> {
             self.paired.clone()
         }
-        /// The connect pipeline never scans and never pairs; a call from it
-        /// would be the bug, so the fake records one and refuses.
         fn discover(&self, _seconds: u8) -> Result<Vec<NearbyDevice>, String> {
             self.calls.lock().unwrap().push("discover".into());
             Err("the connect pipeline must not scan".into())
@@ -312,7 +257,6 @@ mod tests {
     }
 
     const ADDR: &str = "aa-bb-cc-dd-ee-ff";
-    /// A path that certainly exists, standing in for a live port node.
     const EXISTING_PORT: &str = "/dev/null";
     const MISSING_PORT: &str = "/dev/scainner-no-such-port";
 
@@ -324,7 +268,6 @@ mod tests {
         }
     }
 
-    /// The handshake plus whatever the bus stage is given, as one script.
     fn script(bus: &str) -> String {
         format!(
             r#"{{
@@ -346,8 +289,6 @@ mod tests {
     const ANSWERING_BUS: &str = r#"{"command": "0100", "response": "41 00 BE 3E B8 11\r>"},
                 {"command": "ATDPN", "response": "A6\r>"}"#;
 
-    /// Runs the pipeline over a recorded link, returning the stages it
-    /// emitted, the driver-or-error, and how many times the port was opened.
     fn run(
         profile: &AdapterProfile,
         bt: &FakeBluetooth,
@@ -379,8 +320,6 @@ mod tests {
     #[test]
     fn plan_link_only_wakes_a_link_the_platform_reports_as_down() {
         let profile = bluetooth_profile();
-        // Unknown (nothing enumerates), connected, and "no address at all"
-        // all leave the radio alone.
         assert_eq!(plan_link(&profile, true, None), LinkAction::None);
         assert_eq!(plan_link(&profile, true, Some(true)), LinkAction::None);
         let wired = AdapterProfile {
@@ -398,13 +337,10 @@ mod tests {
         };
         assert_eq!(plan_link(&network, false, Some(false)), LinkAction::None);
 
-        // Reported down, with an address to act on: bring it up.
         assert_eq!(
             plan_link(&profile, true, Some(false)),
             LinkAction::BluetoothConnect(ADDR.into())
         );
-        // No port node: only a connect can recreate it, whatever the
-        // platform reports about the link itself.
         assert_eq!(
             plan_link(&profile, false, Some(true)),
             LinkAction::BluetoothConnect(ADDR.into())
@@ -465,9 +401,6 @@ mod tests {
             .lock()
             .unwrap_or_else(|p| p.into_inner());
         operation::set_link_state(None);
-        // macOS removes the serial node when the link drops and only a
-        // connect recreates it; the platform can still report the address
-        // as connected while the node is gone.
         let profile = AdapterProfile {
             path: Some(MISSING_PORT.into()),
             ..bluetooth_profile()
@@ -520,9 +453,6 @@ mod tests {
     #[test]
     fn a_handshake_failure_reports_the_adapters_own_silence() {
         let bt = FakeBluetooth::with(ADDR, true);
-        // Five silent resets is what `init` gives an adapter; the fixture
-        // supplies exactly that and nothing more, so any command after the
-        // handshake would fail the replay's completeness check.
         let raw = r#"{
             "schema_version": 1,
             "name": "silent adapter",
@@ -551,8 +481,6 @@ mod tests {
         operation::set_link_state(None);
         let bt = FakeBluetooth::with(ADDR, true);
 
-        // Ignition off: the adapter answers, the car does not. Still a
-        // connection — the app has plenty to do without a live bus.
         let ignition_off = script(
             r#"{"command": "0100", "response": "UNABLE TO CONNECT\r>"},
                 {"command": "ATDPN", "response": "?\r>"}"#,
@@ -561,7 +489,6 @@ mod tests {
         assert!(result.is_ok(), "ignition off is a normal state");
         assert_eq!(stages.len(), 4);
 
-        // A link that has gone away mid-handshake is not.
         let silent = script(r#"{"command": "0100", "error": "no_response"}"#);
         let (stages, result, _) = run(&bluetooth_profile(), &bt, Some(&silent));
         let error = result.err().expect("silence means the link is gone");
@@ -570,20 +497,8 @@ mod tests {
         operation::set_link_state(None);
     }
 
-    /// The pipeline never unpairs or re-pairs anything, and nothing else in
-    /// the crate does either: an automatic re-pair is disruptive, needs a PIN
-    /// that is not standardised across adapters, and belongs to the person
-    /// holding the hardware.
-    ///
-    /// Unpairing stays banned crate-wide. Pairing is allowed in exactly one
-    /// file — `transport/bluetooth.rs`, reached only from the device screen's
-    /// Pair button (without a PIN first, with the user's code on the retry
-    /// the radio asked for) — so a second call site (a retry loop, a "fix it
-    /// for me" path) fails this test rather than shipping.
     #[test]
     fn the_crate_never_unpairs_or_re_pairs_a_radio() {
-        // Built at runtime so this test's own source is not a hit. The
-        // enumeration flag (`--paired`) is deliberately not one of these.
         let unpair = format!("--un{}", "pair");
         let pair = format!("\"--{}\"", "pair");
         fn walk(dir: &std::path::Path, hit: &mut impl FnMut(&std::path::Path, &str)) {

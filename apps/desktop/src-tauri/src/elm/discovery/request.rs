@@ -1,18 +1,3 @@
-//! The research request: what one car actually said, de-identified, in the
-//! research pack's own conflicts-and-gaps vocabulary.
-//!
-//! It closes the loop the other way round from `research.rs`: a pack tells
-//! discovery where to look, and this tells the next round of research what
-//! the looking found — which routes stayed silent, which modules answered
-//! without matching a family, which identifiers are still unlabelled.
-//! Generated, never authored, and pasted into the next deep-research prompt.
-//!
-//! **Nothing identifying leaves here.** The VIN contributes only its
-//! three-character WMI, module identity is limited to the part/hardware/
-//! software references and the system name, and no raw payload is exported:
-//! an unlabelled identifier's bytes may well be the serial nobody has
-//! classified yet. `research_request_carries_no_vin_or_serial` is the test.
-
 use super::state::KnowledgeState;
 use crate::db::Db;
 use crate::elm::uds_map;
@@ -25,7 +10,6 @@ pub const SCHEMA_VERSION: u32 = 1;
 pub struct ResearchRequest {
     pub schema_version: u32,
     pub generated_at: String,
-    /// The VIN's world manufacturer identifier and nothing else from it.
     pub wmi: Option<String>,
     pub platform_key: Option<String>,
     pub knowledge_key: String,
@@ -47,7 +31,6 @@ pub struct RequestModule {
     pub family_match: Option<String>,
 }
 
-/// The fingerprint tuple only: no VIN, no serial, nothing owner-specific.
 #[derive(Debug, Serialize)]
 pub struct RequestIdentity {
     pub supplier: Option<String>,
@@ -72,11 +55,7 @@ pub struct RequestDid {
     pub address: String,
     pub did: String,
     pub byte_length: Option<i64>,
-    /// How the value behaves over the samples taken: `constant`, `slow`,
-    /// `fast`, `event_like`, or `unsampled` when nothing has read it twice.
     pub shape_class: String,
-    /// How many samples that classification rests on. The payloads
-    /// themselves stay on the vehicle.
     pub samples: i64,
 }
 
@@ -91,8 +70,6 @@ fn hex_did(did: u16) -> String {
     format!("{did:04X}")
 }
 
-/// The correlation engine stores its shape beside the hypothesis; the class
-/// is the part a research prompt can act on without the payloads.
 fn shape_class(shape_json: Option<&str>) -> String {
     let Some(raw) = shape_json else {
         return "unsampled".into();
@@ -108,7 +85,6 @@ fn shape_class(shape_json: Option<&str>) -> String {
         .unwrap_or_else(|| "unsampled".into())
 }
 
-/// De-identified evidence for one vehicle. `None` when the vehicle is unknown.
 pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
     let vehicle = db.vehicle(vehicle_id)?;
     let vin = vehicle.vin.as_deref();
@@ -153,9 +129,6 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
         })
         .collect();
 
-    // An identifier is worth asking research about when the vehicle answered
-    // it and nothing in the trusted map, the overlays or a family join could
-    // say what it means.
     let mut unlabeled_dids: Vec<RequestDid> = Vec::new();
     for module in &module_rows {
         let shapes: BTreeMap<u16, (Option<String>, i64)> = hypotheses
@@ -328,8 +301,6 @@ mod tests {
             .unwrap();
         assert_eq!(refused.nrc, Some(0x31));
 
-        // The labelled identity DID is knowledge; only the unlabelled one is
-        // a question for research.
         let dids: Vec<&str> = request
             .unlabeled_dids
             .iter()
@@ -355,8 +326,6 @@ mod tests {
         let db = Db::open(std::path::Path::new(":memory:")).unwrap();
         let vehicle_id = seed(&db);
         let module_id = db.upsert_discovered_module(vehicle_id, "6A8/688", Some("engine"));
-        // A serial-looking identity value must not survive into the export,
-        // and neither must the VIN or its raw payload.
         db.upsert_discovered_did(module_id, 0xF18C, "53 4E 31 32 33", 5, Some("ECU serial"));
         let request = research_request(&db, vehicle_id).unwrap();
         let json = serde_json::to_string(&request).unwrap();
@@ -367,7 +336,6 @@ mod tests {
         assert!(!json.contains("53 4E 31 32 33"), "{json}");
         assert!(!json.contains("56 46 37"), "{json}");
         assert!(!json.contains("raw_sample"), "{json}");
-        // The WMI, which is brand routing rather than owner identity, stays.
         assert!(json.contains("\"wmi\":\"VF7\""), "{json}");
     }
 

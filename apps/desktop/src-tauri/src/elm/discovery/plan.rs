@@ -1,13 +1,3 @@
-//! The parked-verification plan generator (multi-brand plan P2.2).
-//!
-//! A plan is generated from pack data for the connected VIN, never written
-//! by hand: targets are the profile's modules restricted to the routes this
-//! vehicle has reached (all profile modules while nothing has been reached
-//! yet); each target reads the brand's identity block; the one target with
-//! the strongest evidence of live data gets a bounded sweep over the brand's
-//! data bands minus the identity/config classes and any declared exclusion
-//! bands. The plan version is `{brand}-{platform|unknown}-v{plan_revision}`.
-
 use super::pack_ext::{self, BandClass, ProfileModule};
 use super::research::{self, CandidateDecodeHypothesis};
 use crate::elm::uds_map::{self, hex16, ReadService, Route, RouteProtocol, UdsMap};
@@ -21,13 +11,11 @@ pub enum ReadStage {
     Candidate,
 }
 
-/// One identity read of a plan target.
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct PlannedRead {
     pub did: u16,
     pub purpose: String,
     pub stage: ReadStage,
-    /// Source-proposed formulas, evaluated for review but never trusted lookup.
     pub candidate_decodes: Vec<CandidateDecodeHypothesis>,
 }
 
@@ -35,14 +23,12 @@ pub struct PlannedRead {
 pub struct PlanTarget {
     pub key: String,
     pub label: String,
-    /// Family the pack has seen on this route (`unknown` when none).
     pub expected_family: String,
     pub req: String,
     pub resp: String,
     pub route: Route,
     pub read_service: ReadService,
     pub dids: Vec<PlannedRead>,
-    /// Inclusive identifier ranges swept after `dids`, confirmed bands first.
     pub sweep: Vec<(u16, u16)>,
     pub source: String,
 }
@@ -53,14 +39,11 @@ pub struct ParkedPlan {
     pub brand_id: Option<String>,
     pub platform: Option<String>,
     pub targets: Vec<PlanTarget>,
-    /// Ceiling for every sweep of the plan together (protocol §4 S4).
     pub sweep_budget_secs: u64,
 }
 
-/// Global S4 budget (protocol §7): four minutes of sweeping per connection.
 pub const SWEEP_BUDGET_SECS: u64 = 240;
 
-/// `{brand}-{platform|unknown}-v{plan_revision}` for this VIN.
 pub fn plan_version(vin: Option<&str>) -> String {
     let brand = uds_map::brand_for_vin(vin)
         .map(|b| b.id.clone())
@@ -154,8 +137,6 @@ fn identity_reads(vin: Option<&str>) -> Vec<PlannedRead> {
     reads
 }
 
-/// How much live-data evidence the pack holds for a route: family decodes
-/// plus decodable module-bound DIDs. The sweep goes to the highest.
 fn data_evidence(map: &UdsMap, vin: Option<&str>, module: &ProfileModule) -> usize {
     let family_decodes = module
         .family_id
@@ -170,8 +151,6 @@ fn data_evidence(map: &UdsMap, vin: Option<&str>, module: &ProfileModule) -> usi
     family_decodes + bound
 }
 
-/// Sweep bands for one module: the brand's `did_bands` in confidence order,
-/// data class only, minus brand/family exclusion bands.
 pub fn sweep_bands(map: &UdsMap, vin: Option<&str>, family_id: Option<&str>) -> Vec<(u16, u16)> {
     let Some(brand) = uds_map::brand_for_vin_in(map, vin) else {
         return Vec::new();
@@ -204,8 +183,6 @@ fn confidence_rank(c: Option<&str>) -> u8 {
     }
 }
 
-/// Generate the plan for `vin` given the routes the vehicle has reached
-/// (`(req, resp)` pairs from `discovered_modules`).
 #[cfg_attr(not(test), allow(dead_code))]
 pub fn generate(vin: Option<&str>, reached: &[(u32, u32)], map: &UdsMap) -> ParkedPlan {
     generate_for_vehicle(vin, None, reached, map)
@@ -228,8 +205,6 @@ pub fn generate_for_vehicle(
             .cloned()
             .collect()
     };
-    // Reached routes the profile does not document still get the ISO block:
-    // the pack learns from them, and an unknown brand has nothing else.
     for (req, resp) in reached {
         if !modules.iter().any(|m| m.req == *req && m.resp == *resp) {
             modules.push(ProfileModule {
@@ -266,9 +241,6 @@ pub fn generate_for_vehicle(
             }
         })
         .collect();
-    // Research routes are a separate, lower-trust input. They are added only
-    // after an exact platform match and carry candidate DIDs as hypothesis
-    // probes. They never flow through `known_did` or receive trusted decodes.
     let platform_key = uds_map::platform_for_vin(vin)
         .map(|platform| platform.key)
         .or_else(|| research::platform_for_vehicle_facts(vin, model));
@@ -366,7 +338,6 @@ pub fn generate_for_vehicle(
             ),
         });
     }
-    // The sweep: one target, the route with the most live-data evidence.
     let sweep_target = modules
         .iter()
         .enumerate()
@@ -409,8 +380,6 @@ mod tests {
     use crate::elm::discovery::pack_ext::tests::verified_brand_vin;
     use crate::elm::uds_map::map;
 
-    /// The routes this project's verified vehicle reached in its recorded
-    /// parked runs (evidence run #2): camera, ABS/ESP, steering.
     fn routes_reached_by_the_verified_vehicle() -> Vec<(u32, u32)> {
         vec![(0x74A, 0x64A), (0x6AD, 0x68D), (0x6B5, 0x695)]
     }
@@ -431,7 +400,6 @@ mod tests {
             format!("{}-unknown-v{}", brand.id, pack_ext::plan_revision()),
             "no VDS pattern is confirmed for the platform, so it stays unknown"
         );
-        // Three identity targets on exactly the reached routes, plus one sweep.
         let identity: Vec<&PlanTarget> = plan
             .targets
             .iter()
@@ -453,9 +421,6 @@ mod tests {
                 "{req}/{resp} missing"
             );
         }
-        // Every identity target reads the brand's full block: the ISO DIDs
-        // and the vendor DIDs the old plan read (F080, F0FE), with the
-        // serial and the presence probe.
         for target in &identity {
             let dids: Vec<u16> = target.dids.iter().map(|d| d.did).collect();
             for did in [
@@ -467,7 +432,6 @@ mod tests {
             assert_eq!(target.route.protocol, uds_map::RouteProtocol::Can11_500);
             assert_ne!(target.expected_family, "unknown");
         }
-        // The sweep lands on the ABS/ESP (the route with twelve family decodes).
         let sweep = plan
             .targets
             .iter()
@@ -510,7 +474,6 @@ mod tests {
 
     #[test]
     fn another_brand_gets_its_own_iso_plan_and_service() {
-        // A brand with a module documented on read service 21, by data.
         let (brand, module) = map()
             .brands
             .iter()

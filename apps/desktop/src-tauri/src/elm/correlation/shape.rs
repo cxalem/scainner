@@ -27,8 +27,6 @@ pub(crate) fn normalize_width(input: &HypothesisInput) -> (HypothesisInput, usiz
     (normalized, dropped)
 }
 
-/// Bytes the whole-payload analysis looks at: everything up to the decode
-/// width limit. Longer payloads are truncated, which the notes report.
 fn analysed_width(input: &HypothesisInput) -> usize {
     input
         .samples
@@ -36,8 +34,6 @@ fn analysed_width(input: &HypothesisInput) -> usize {
         .map_or(0, |sample| sample.payload.len().min(MAX_DECODE_BYTES))
 }
 
-/// Two's-complement guess: both sign-bit states occur and reading the field
-/// as signed makes the values span markedly less than reading it unsigned.
 pub(crate) fn signed_guess(input: &HypothesisInput) -> bool {
     let len = analysed_width(input);
     if len == 0 {
@@ -67,12 +63,6 @@ fn span(input: &HypothesisInput, offset: usize, len: usize, signed: bool) -> f64
         - values.iter().copied().fold(f64::INFINITY, f64::min)
 }
 
-/// Offset-binary guess for one byte-aligned window: the values sit around
-/// mid-scale (`0x80…`) with the sign bit *set* on the resting/positive side,
-/// stay within half of full scale, and do not all lie on one side of the
-/// centre by more than a small margin. Two's complement never looks like
-/// this (its values hug zero and full scale), so the two guesses are
-/// disjoint.
 pub(crate) fn offset_binary_window(input: &HypothesisInput, offset: usize, len: usize) -> bool {
     if len == 0 || len > 4 {
         return false;
@@ -101,8 +91,6 @@ pub(crate) fn offset_binary_window(input: &HypothesisInput, offset: usize, len: 
         && (max - min) < full_scale * 0.5
 }
 
-/// Byte offsets of every 16-bit window inside the analysed width that reads
-/// as offset-binary, plus the inherited decode's own window when one exists.
 pub(crate) fn offset_binary_windows(input: &HypothesisInput) -> Vec<(usize, usize)> {
     let width = analysed_width(input);
     let mut windows = Vec::new();
@@ -120,7 +108,6 @@ pub(crate) fn offset_binary_windows(input: &HypothesisInput) -> Vec<(usize, usiz
     windows
 }
 
-/// Bits that ever change across samples, as a mask the width of the payload.
 fn varying_bits(input: &HypothesisInput) -> Vec<u8> {
     let Some(first) = input.samples.first() else {
         return Vec::new();
@@ -137,8 +124,6 @@ fn varying_bits(input: &HypothesisInput) -> Vec<u8> {
     mask
 }
 
-/// Printable ASCII with optional NUL padding, at least four visible
-/// characters and at least one letter or digit: an identification string.
 pub(crate) fn ascii_text(input: &HypothesisInput) -> Option<String> {
     let first = input.samples.first()?;
     let printable = |byte: &u8| (0x20..=0x7e).contains(byte);
@@ -217,9 +202,6 @@ pub(crate) fn describe_shape(
     }
 }
 
-/// Encoding observations that the frozen `Shape` has no field for:
-/// truncation of wide payloads, offset-binary windows, bit-packed flags and
-/// ASCII text. Reported as notes; they rank nothing and name nothing.
 pub(crate) fn shape_notes(input: &HypothesisInput, shape: &Shape) -> Vec<String> {
     let mut notes = Vec::new();
     let Some(first) = input.samples.first() else {

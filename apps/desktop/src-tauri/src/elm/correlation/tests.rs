@@ -456,13 +456,6 @@ fn five_thousand_samples_stay_inside_the_bounded_fit_path() {
     );
 }
 
-/// The seven payload shapes the single-vehicle corpus never exercised
-/// (audit §5.4), replayed from the open corpus under
-/// `tests/fixtures/{brand}/{platform}/{shape}/` (`docs/uds/CORPUS.md`).
-///
-/// Fixtures are discovered at run time so that a brand is a directory name
-/// here, never a token in a test. Every shape asserts a minimum brand count,
-/// so a moved or deleted directory fails instead of silently skipping.
 mod shapes {
     use std::collections::{BTreeMap, BTreeSet};
     use std::path::{Path, PathBuf};
@@ -624,9 +617,6 @@ mod shapes {
         fixtures
     }
 
-    // --- The open corpus decoder semantics (bit offset, bit length, LSB
-    // --- byte order, two's complement, mul/div/add, clamp, enumerations).
-
     fn extract_bits(data: &[u8], bix: usize, len: usize, blsb: bool) -> Option<u64> {
         if bix + len > data.len() * 8 {
             return None;
@@ -693,9 +683,6 @@ mod shapes {
         }
     }
 
-    /// Every recorded expectation reproduces from the sample payload with
-    /// the corpus decoder semantics: the payloads are exactly the bytes
-    /// after the echoed identifier, whatever the service.
     fn assert_expectations_decode(fixture: &Fixture) {
         for (sample, case) in fixture.input.samples.iter().zip(&fixture.expected.cases) {
             for (id, expected) in &case.values {
@@ -714,8 +701,6 @@ mod shapes {
         }
     }
 
-    /// The corpus signal as the contract's byte-aligned `InheritedDecode`,
-    /// when it is expressible (whole bytes, MSB order, no enumeration).
     fn inherited_from(id: &str, fmt: &serde_json::Value) -> Option<InheritedDecode> {
         let len = number(fmt, "len", 0.0) as usize;
         let bix = number(fmt, "bix", 0.0) as usize;
@@ -749,8 +734,6 @@ mod shapes {
         })
     }
 
-    /// Byte-aligned signals decode through the engine's own inherited-decode
-    /// path to the recorded value (before the corpus' min/max clamp).
     fn assert_engine_decodes(fixture: &Fixture) -> usize {
         let mut checked = 0;
         for (id, signal) in &fixture.expected.signals {
@@ -781,14 +764,9 @@ mod shapes {
         checked
     }
 
-    /// Drive the ELM replay exactly as the app would: addressing commands,
-    /// then one request per case; the parsed response must be the sample
-    /// payload after the echoed identifier. Service 22 goes through
-    /// `read_did`, the other services through the raw command path.
     fn replay_through_driver(fixture: &Fixture) {
         let mut driver = ElmDriver::from_replay_json(&fixture.replay_json)
             .unwrap_or_else(|error| panic!("{}: {error}", fixture.name));
-        // The echo is the service byte plus the parameter bytes of the request.
         let echo = 1 + fixture.expected.parameter.len() / 2;
         let mut index = 0;
         for step in &fixture.replay.steps {
@@ -832,8 +810,6 @@ mod shapes {
             .collect()
     }
 
-    /// Whole fixtures restricted to one signal window, so the shape guesses
-    /// can be tested on the field itself.
     fn window_input(fixture: &Fixture, offset: usize, len: usize) -> HypothesisInput {
         let mut input = fixture.input.clone();
         input.inherited = None;
@@ -1068,7 +1044,6 @@ mod shapes {
                 fixture.name,
                 report.notes
             );
-            // An inherited decode addresses the field directly: no truncation note.
             if let Some((id, signal)) = fixture
                 .expected
                 .signals
@@ -1205,8 +1180,6 @@ mod shapes {
                 .filter(|(_, signal)| number(&signal.fmt, "len", 8.0) < 8.0)
                 .collect::<Vec<_>>();
             sub_byte += flags.len();
-            // Toggle one recorded flag inside real bytes: the engine reports
-            // the bit-packed shape instead of treating the payload as a number.
             if let Some((_, signal)) = flags.first() {
                 let bix = number(&signal.fmt, "bix", 0.0) as usize;
                 let mut input = fixture.input.clone();
