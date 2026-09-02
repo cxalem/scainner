@@ -356,6 +356,44 @@ export const en: Dictionary = {
       estimateNote: "Consumption includes idling and comes from the engine, not the pump. Expect ±5–10 %.",
     },
   },
+  autoScan: {
+    banner: {
+      title: "Scanning your car for sensors",
+      line: "Live data becomes available when this finishes.",
+      action: "See progress in Lab",
+      dismiss: "Dismiss",
+    },
+    live: {
+      title: "Live data is not available while we look for sensors",
+      body: "The scan uses the same connection the gauges do.",
+      action: "See progress in Lab",
+    },
+    lab: {
+      title: "Automatic sensor scan",
+      explainer: "Runs once per car for each version of the shipped maps. Scan again to run it now anyway.",
+      runningLine: (stage) => `Running: ${stage}.`,
+      skippedLine: (when) => `Not run. The maps have not changed since the scan on ${when}.`,
+      doneLine: (when) => `Last completed ${when}.`,
+      idleLine: "Not run on this connection.",
+      unknownLine: "No scan on this connection yet.",
+      scanAgain: "Scan again",
+      scanning: "Scanning…",
+      queued: "Not connected. The scan runs the next time this car connects.",
+      failed: "Could not start the scan.",
+      stages: {
+        census: "looking for modules",
+        identity: "identifying modules",
+        join: "matching known families",
+        coverage: "writing the coverage report",
+      },
+      reason: {
+        never_run: "first scan of this car",
+        knowledge_changed: "the app ships new maps",
+        requested: "you asked for it",
+        knowledge_unchanged: "the maps have not changed",
+      },
+    },
+  },
   lab: {
     discovery: {
       cardTitle: "Find this car's sensors",

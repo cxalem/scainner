@@ -364,6 +364,44 @@ export const es: Dictionary = {
       estimateNote: "El consumo incluye el ralentí y viene del motor, no del surtidor. Cuenta con ±5-10 %.",
     },
   },
+  autoScan: {
+    banner: {
+      title: "Buscando sensores en tu coche",
+      line: "Los datos en vivo estarán disponibles cuando termine.",
+      action: "Ver el progreso en Lab",
+      dismiss: "Descartar",
+    },
+    live: {
+      title: "Los datos en vivo no están disponibles mientras buscamos sensores",
+      body: "El escaneo usa la misma conexión que los indicadores.",
+      action: "Ver el progreso en Lab",
+    },
+    lab: {
+      title: "Escaneo automático de sensores",
+      explainer: "Se ejecuta una vez por coche con cada versión de los mapas incluidos. Pulsa «Escanear otra vez» para ejecutarlo ahora.",
+      runningLine: (stage) => `En curso: ${stage}.`,
+      skippedLine: (when) => `No se ejecutó. Los mapas no han cambiado desde el escaneo del ${when}.`,
+      doneLine: (when) => `Último escaneo completado: ${when}.`,
+      idleLine: "No se ejecutó en esta conexión.",
+      unknownLine: "Todavía no hay escaneo en esta conexión.",
+      scanAgain: "Escanear otra vez",
+      scanning: "Escaneando…",
+      queued: "Sin conexión. El escaneo se ejecutará la próxima vez que conectes este coche.",
+      failed: "No se pudo iniciar el escaneo.",
+      stages: {
+        census: "buscando módulos",
+        identity: "identificando módulos",
+        join: "comparando con familias conocidas",
+        coverage: "escribiendo el informe de cobertura",
+      },
+      reason: {
+        never_run: "primer escaneo de este coche",
+        knowledge_changed: "la app incluye mapas nuevos",
+        requested: "lo has pedido tú",
+        knowledge_unchanged: "los mapas no han cambiado",
+      },
+    },
+  },
   lab: {
     discovery: {
       cardTitle: "Buscar los sensores de este coche",

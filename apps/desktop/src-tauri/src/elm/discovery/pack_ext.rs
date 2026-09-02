@@ -57,6 +57,13 @@ fn bands_from_value(value: Option<&Value>) -> Vec<(u16, u16)> {
         .unwrap_or_default()
 }
 
+/// The pack's own `generated` date (v9 top-level field, not in the frozen
+/// `UdsMap` struct). Pairs with `map().version` to identify one build of
+/// the trusted map — see `knowledge::knowledge_key`.
+pub fn map_generated() -> &'static str {
+    raw()["generated"].as_str().unwrap_or("")
+}
+
 /// Pack-level `plan_revision` (the `n` in `{brand}-{platform}-v{n}`);
 /// 1 when the pack does not carry one yet.
 pub fn plan_revision() -> u32 {

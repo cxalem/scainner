@@ -159,6 +159,14 @@ async fn discover_sensors(
 }
 
 #[tauri::command]
+async fn run_discovery(
+    state: State<'_>,
+    vehicle_id: i64,
+) -> Result<ops::DiscoveryRunOutcome, String> {
+    ops::run_discovery(&state, vehicle_id).await
+}
+
+#[tauri::command]
 async fn parked_verification(
     state: State<'_>,
 ) -> Result<elm::uds::ParkedVerificationReport, String> {
@@ -475,6 +483,7 @@ pub fn run() {
             uds_scan,
             uds_cancel_scan,
             discover_sensors,
+            run_discovery,
             parked_verification,
             correlation_capture,
             uds_read_many,

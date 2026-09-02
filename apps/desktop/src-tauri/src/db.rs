@@ -3151,6 +3151,15 @@ impl Db {
         .ok();
     }
 
+    /// Remove one setting entirely — an absent row and a row holding a
+    /// sentinel are not the same thing to a caller that treats "no row" as
+    /// "never happened" (see `discovery::knowledge`).
+    pub fn setting_delete(&self, key: &str) {
+        let conn = self.0.lock().unwrap();
+        conn.execute("DELETE FROM app_settings WHERE key = ?1", params![key])
+            .ok();
+    }
+
     // ---------- per-vehicle report ----------
 
     pub fn vehicle_report(&self, vehicle_id: i64) -> CarReport {
