@@ -48,6 +48,13 @@
   --section-divider-strong: rgba(183, 171, 240, 0.45); /* footer active-badge border */
   --section-input-bg: rgba(20, 18, 31, 0.35); /* waitlist email field */
 
+  /* On-dark steps for the comparison band. */
+  --section-body: rgba(239, 237, 250, 0.72); /* band paragraph, tag label */
+  --section-strong: rgba(239, 237, 250, 0.85); /* the 34px code on dark */
+  --section-dim: rgba(239, 237, 250, 0.6); /* that code's caption */
+  --section-divider-soft: rgba(214, 207, 242, 0.18); /* outline card on dark */
+  --section-tag-bg: rgba(145, 132, 217, 0.1); /* "read to answer" tags */
+
   /* — accent (blurple) and its ramp — */
   --accent: #4634a8;
   --accent-100: #f6f4fd;
@@ -84,6 +91,9 @@
   --stop: oklch(0.5 0.17 25);
   --stop-bg: oklch(0.96 0.04 25);
   --stop-line: oklch(0.87 0.08 25);
+  /* Informational, not a severity. */
+  --info: #3b4a86;
+  --info-bg: #e9ecf8;
 
   /* — elevation — */
   --shadow-sm: 0 1px 2px rgba(29, 26, 51, 0.06);
