@@ -843,7 +843,6 @@ export type Dictionary = {
   };
   // A2 — connect gate.
   gate: {
-    plugIn: string;
     plugInBody: (app: string) => string;
     reading: string;
     readingBody: string;
@@ -856,10 +855,21 @@ export type Dictionary = {
     connect: string;
     connecting: string;
     tryAgain: string;
-    // The connect pipeline's stages, named while each one runs and again
-    // when a failed attempt reports the one it stopped at.
+    // The connect pipeline's stages, named while each one runs.
     stages: { link: string; open: string; handshake: string; bus: string };
-    failedAt: (stage: string, reason: string) => string;
+    // What a failed attempt says in the toast: one headline per stage the
+    // pipeline can stop at, and a second line only where the reason carries
+    // something the user can act on. Keyed by lib/device-list's
+    // `stageMessage`; the raw transport error goes behind `failureDetails`.
+    failure: { link: string; open: string; handshake: string; bus: string; unknown: string };
+    failureHints: {
+      link: string;
+      openBusy: string;
+      openTimeout: string;
+      handshake: string;
+      bus: string;
+    };
+    failureDetails: string;
     // The device screen: the gate's opening state, one row per device the
     // machine can see. The backend names them; the UI writes the secondary
     // line from a `device_kind` plus the path, so it stays translatable.

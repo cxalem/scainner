@@ -1,8 +1,8 @@
-// A2 — the connect gate. One card, four states, in the order the user
+// A2 — the connect gate. One card, three states, in the order the user
 // actually walks them (Brief F, 2026-09-01):
 //
 //   choose_device → connecting → connected
-//                 ↘ failed ↗ (Try again) or ↩ (Choose another device)
+//        ↖________________↙ (a failed attempt, reported in a toast)
 //
 // The device choice used to be a modal behind a "Choose adapter" button;
 // it is the opening screen now, so the common case is one tap on Connect
@@ -10,19 +10,27 @@
 // the scene box's footprint and the button row, so moving between them
 // never moves the layout under the pointer.
 //
+// A failed attempt has no screen of its own (Brief M, 2026-09-02). It drops
+// straight back to the device list with the device it tried still selected
+// — so Connect alone retries it — and says what went wrong in a toast over
+// the top: end-user words, one recovery action each, and the transport
+// error itself behind Details for a support screenshot. The inline red line
+// it replaces both said the wrong thing and moved the whole card while the
+// user's hand was already on the way to the button.
+//
 // Shown until the first successful connect of this app session; later
 // disconnects stay inside the shell instead of kicking you back here.
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Plug, PlugZap, RefreshCw, ScanLine, Usb } from "lucide-react";
+import { AlertTriangle, ArrowRight, Plug, PlugZap, RefreshCw, ScanLine, Usb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { BRAND } from "@/brand";
-import { Button, Pill } from "@/components/ui";
+import { Button, Pill, Toast } from "@/components/ui";
 import { brandFromVin } from "@/lib/brand";
-import { gateScreen } from "@/lib/device-list";
+import { gateScreen, stageMessage } from "@/lib/device-list";
 import { appearVariants, fadeVariants, screenVariants, staggerItem } from "@/motion";
-import type { ConnStatus, ConnectStage } from "@scainner/core";
+import type { ConnStatus, ConnectFailure, ConnectStage } from "@scainner/core";
 import { useT } from "@/i18n";
 import { DeviceList, saveDeviceProfile, useDeviceList } from "@/components/DeviceList";
 
@@ -53,42 +61,56 @@ export function ConnectGate({
   const t = useT();
   const stageLabel = (stage: ConnectStage) => t.gate.stages[stage];
   // One failed attempt, one stage, one reason — nothing retried behind the
-  // scenes, so this is the whole story and the buttons below say so.
+  // scenes, so this is the whole story and the toast says so.
   const failure = conn.state === "disconnected" ? conn.error : null;
   const brand = brandFromVin(conn.vin);
 
   const devices = useDeviceList();
   const { refresh: refreshDevices, select: selectDevice } = devices;
   // The gap between the Connect click and the backend's first "connecting"
-  // status, and the user stepping back from a failure to the list.
+  // status.
   const [starting, setStarting] = useState(false);
-  const [choosing, setChoosing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   // The device this attempt is actually on, held while it runs: the list
   // may refresh under it (a Bluetooth node comes and goes).
   const [attempting, setAttempting] = useState<string | null>(null);
+  // The failure the toast is showing, and whether it is up. Held separately
+  // from `conn.error` so dismissing it sticks: the status object is rebuilt
+  // on every event the backend sends, and reading it directly would reopen
+  // the toast the user just closed. The failure outlives the dismissal by
+  // one animation — blanking the words mid fade-out would be visible.
+  const [shownFailure, setShownFailure] = useState<ConnectFailure | null>(null);
+  const [failureOpen, setFailureOpen] = useState(false);
+  const failureKey = failure ? `${failure.stage} ${failure.reason}` : null;
 
-  const screen = gateScreen({
-    state: conn.state,
-    failed: failure != null,
-    starting,
-    choosing,
-  });
+  const screen = gateScreen({ state: conn.state, starting });
   const connecting = screen === "connecting";
   const connected = screen === "connected";
   const brandKnown = brand != null && (connecting || connected);
 
   // The backend has taken over (or the attempt is over): drop the local
-  // flags so the derivation above runs on the real status again.
+  // flag so the derivation above runs on the real status again.
   useEffect(() => {
-    if (conn.state !== "disconnected") {
-      setStarting(false);
-      setChoosing(false);
-    }
+    if (conn.state !== "disconnected") setStarting(false);
   }, [conn.state]);
   useEffect(() => {
     if (failure) setStarting(false);
   }, [failure]);
+  // A new failure raises the toast; the next attempt clearing the error
+  // takes it away again.
+  useEffect(() => {
+    if (failureKey && failure) setShownFailure(failure);
+    setFailureOpen(failureKey != null);
+    // `failure` changes identity on every status event — the key is what
+    // actually says "this is a different failure".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [failureKey]);
+  // The attempt is over, so the list is live again: put the highlight back
+  // on the device it was on, which is what Connect and Try again both act
+  // on.
+  useEffect(() => {
+    if (failureKey && attempting) selectDevice(attempting);
+  }, [failureKey, attempting, selectDevice]);
   // If the invoke itself never lands (the backend never reaches
   // "connecting"), fall back to the list rather than stranding the user on
   // a stage view nothing will ever advance — there is no cancel to offer.
@@ -103,8 +125,8 @@ export function ConnectGate({
       const row = devices.rows.find((r) => r.id === deviceId);
       if (!row?.selectable) return;
       setSaveError(null);
+      setFailureOpen(false);
       setStarting(true);
-      setChoosing(false);
       setAttempting(row.id);
       try {
         await saveDeviceProfile(row);
@@ -156,10 +178,9 @@ export function ConnectGate({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conn.state, conn.elm_version, conn.vin]);
 
-  // What Connect / Try again acts on: the device the last attempt used
-  // while a failure is on screen, the highlighted row otherwise.
-  const target =
-    (screen === "failed" ? (attempting ?? devices.selected?.id) : devices.selected?.id) ?? null;
+  // What Connect and the toast's Try again both act on: the highlighted
+  // row, which a failure has just put back on the device that failed.
+  const target = devices.selected?.id ?? attempting ?? null;
   const canConnect = devices.rows.some((row) => row.id === target && row.selectable);
   const attemptedName =
     devices.rows.find((row) => row.id === attempting)?.name ?? devices.selected?.name ?? null;
@@ -167,16 +188,23 @@ export function ConnectGate({
     ? brandKnown
       ? t.gate.recognised(brand!.name)
       : t.gate.reading
-    : screen === "failed"
-      ? t.gate.plugIn
-      : t.gate.chooseDeviceTitle;
+    : t.gate.chooseDeviceTitle;
   const body = connecting || connected
     ? brandKnown
       ? t.gate.recognisedBody(brand!.name)
       : t.gate.readingBody
     : t.gate.plugInBody(BRAND.name);
   // The name of the device this attempt is on, under the heading.
-  const subject = connecting || screen === "failed" ? attemptedName : null;
+  const subject = connecting ? attemptedName : null;
+
+  // What the toast says: the stage picks the sentence, the reason decides
+  // whether there is a second line worth acting on.
+  const failureCopy = shownFailure ? stageMessage(shownFailure.stage, shownFailure.reason) : null;
+  const dismissFailure = useCallback(() => setFailureOpen(false), []);
+  const chooseAnotherDevice = useCallback(() => {
+    setFailureOpen(false);
+    void refreshDevices();
+  }, [refreshDevices]);
 
   return (
     <motion.div
@@ -286,7 +314,7 @@ export function ConnectGate({
               onClick={() => void connectTo(target)}
               disabled={connected || (!connecting && !canConnect)}
             >
-              {connecting ? t.gate.connecting : screen === "failed" ? t.gate.tryAgain : t.gate.connect}
+              {connecting ? t.gate.connecting : t.gate.connect}
             </Button>
           )}
           <span className="inline-flex items-center gap-[7px] text-[12px] text-neutral-500">
@@ -311,21 +339,12 @@ export function ConnectGate({
             {t.gate.refreshAdapters}
           </Button>
         )}
-        {screen === "failed" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setChoosing(true);
-              void refreshDevices();
-            }}
-          >
-            {t.gate.chooseAnotherDevice}
-          </Button>
-        )}
-
+        {/* Only the two things the list itself can get wrong stay inline.
+            A failed connection goes to the toast below instead — it is the
+            one message that used to move this column while the user was
+            already reaching for Connect. */}
         <AnimatePresence initial={false}>
-          {(saveError || devices.error || failure || (conn.detail && conn.state === "disconnected")) && (
+          {(saveError || devices.error) && (
             <motion.p
               initial="hidden"
               animate="visible"
@@ -334,9 +353,7 @@ export function ConnectGate({
               className="max-w-[46ch] text-center text-[12px] leading-snug text-stop"
               role="alert"
             >
-              {saveError ??
-                devices.error ??
-                (failure ? t.gate.failedAt(stageLabel(failure.stage), failure.reason) : conn.detail)}
+              {saveError ?? devices.error}
             </motion.p>
           )}
         </AnimatePresence>
@@ -347,6 +364,40 @@ export function ConnectGate({
           </Button>
         )}
       </div>
+
+      <Toast
+        open={failureOpen && failureCopy != null}
+        onClose={dismissFailure}
+        icon={AlertTriangle}
+        title={failureCopy ? t.gate.failure[failureCopy.message] : ""}
+        dismissLabel={t.common.close}
+        detailsLabel={t.gate.failureDetails}
+        // The technical text a support screenshot needs, one click away and
+        // never the first thing read. It is in the log file either way.
+        details={shownFailure ? `${stageLabel(shownFailure.stage)}: ${shownFailure.reason}` : null}
+        actions={
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={PlugZap}
+              disabled={!canConnect}
+              onClick={() => void connectTo(target)}
+            >
+              {t.gate.tryAgain}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={chooseAnotherDevice}>
+              {t.gate.chooseAnotherDevice}
+            </Button>
+          </>
+        }
+      >
+        {failureCopy?.hint && (
+          <p className="text-[12px] leading-snug text-neutral-500">
+            {t.gate.failureHints[failureCopy.hint]}
+          </p>
+        )}
+      </Toast>
     </motion.div>
   );
 }

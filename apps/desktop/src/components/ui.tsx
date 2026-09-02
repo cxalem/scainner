@@ -9,9 +9,9 @@
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, type LucideIcon } from "lucide-react";
+import { ChevronDown, Loader2, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { backdropVariants, modalPanelVariants } from "@/motion";
+import { backdropVariants, fadeVariants, modalPanelVariants, toastVariants } from "@/motion";
 
 // ---------- Surfaces ----------
 /** A white surface on the paper background. `flush` removes the padding
@@ -684,6 +684,150 @@ export function Dialog({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ---------- Toast ----------
+/** A message that arrives OVER the layout instead of inside it: bottom
+ *  centre, fixed, nothing under it moves. That is the whole reason it
+ *  exists — a failure reported inline pushes the screen around under the
+ *  pointer at the exact moment the user is reaching for the next button.
+ *
+ *  It carries its own recovery actions, and an optional `details`
+ *  disclosure so the technical text is one click away for a support
+ *  screenshot without being the first thing anyone reads.
+ *
+ *  It dismisses itself after `autoDismissMs`, but not while it is being
+ *  read: the countdown stops under the pointer, under keyboard focus, and
+ *  while the details are open. Escape closes it. */
+export function Toast({
+  open,
+  onClose,
+  icon: Icon,
+  tone = "stop",
+  title,
+  children,
+  actions,
+  details,
+  detailsLabel,
+  dismissLabel,
+  autoDismissMs = 8000,
+}: {
+  open: boolean;
+  onClose: () => void;
+  icon?: LucideIcon;
+  tone?: "stop" | "warn" | "ok";
+  title: React.ReactNode;
+  /** The secondary line, when there is something useful to add. */
+  children?: React.ReactNode;
+  actions?: React.ReactNode;
+  /** Raw technical text, hidden behind `detailsLabel`. */
+  details?: string | null;
+  detailsLabel?: string;
+  dismissLabel: string;
+  autoDismissMs?: number;
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+  const [held, setHeld] = useState(false);
+
+  // Reset on the way IN, not out: a toast that is still fading out should
+  // not visibly collapse its details first.
+  useEffect(() => {
+    if (open) {
+      setShowDetails(false);
+      setHeld(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || held || showDetails || autoDismissMs <= 0) return;
+    const id = setTimeout(onClose, autoDismissMs);
+    return () => clearTimeout(id);
+  }, [open, held, showDetails, autoDismissMs, onClose]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const iconTone = { stop: "text-stop", warn: "text-warn", ok: "text-ok" }[tone];
+  const lineTone = { stop: "border-stop-line", warn: "border-warn-line", ok: "border-ok-line" }[tone];
+
+  return (
+    // The rail is always mounted: it never catches the pointer, so the
+    // screen underneath stays fully usable, and it is the live region, so a
+    // toast inserted into it is actually announced (a live region that
+    // appears together with its content usually is not).
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 bottom-6 z-[70] flex justify-center px-4"
+    >
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className={cn(
+              "pointer-events-auto flex w-full max-w-[420px] flex-col gap-2 rounded-md border bg-surface p-3 shadow-lg",
+              lineTone,
+            )}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={toastVariants}
+            onPointerEnter={() => setHeld(true)}
+            onPointerLeave={() => setHeld(false)}
+            onFocusCapture={() => setHeld(true)}
+            onBlurCapture={() => setHeld(false)}
+          >
+            <div className="flex items-start gap-2.5">
+              {Icon && <Icon className={cn("mt-px h-4 w-4 shrink-0", iconTone)} aria-hidden="true" />}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="text-[13px] leading-snug text-text">{title}</p>
+                {children}
+              </div>
+              <IconButton icon={X} label={dismissLabel} onClick={onClose} className="-mr-0.5 -mt-0.5" />
+            </div>
+
+            {(actions || (details && detailsLabel)) && (
+              <div className="flex flex-wrap items-center gap-2 pl-[26px]">
+                {actions}
+                {details && detailsLabel && (
+                  <ExpanderButton
+                    open={showDetails}
+                    onClick={() => setShowDetails((v) => !v)}
+                    className="ml-auto text-[11.5px]"
+                  >
+                    {detailsLabel}
+                    <ChevronDown
+                      className={cn("h-3.5 w-3.5 transition-transform duration-150 motion-reduce:transition-none", showDetails && "rotate-180")}
+                      aria-hidden="true"
+                    />
+                  </ExpanderButton>
+                )}
+              </div>
+            )}
+
+            <AnimatePresence initial={false}>
+              {showDetails && details && (
+                <motion.p
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  variants={fadeVariants}
+                  className="num break-words border-t border-divider pl-[26px] pt-2 text-[11px] leading-snug text-neutral-500"
+                >
+                  {details}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 

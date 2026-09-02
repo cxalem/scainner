@@ -13,9 +13,23 @@
 //
 //   <Swap k={state}>  the same slot showing different content per state
 //                     (idle → running → done) — cross-fades instead of cutting
-import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
-import type { ReactNode } from "react";
-import { appearVariants, fadeVariants, layoutTransition, pageBlock, pageContainer, staggerContainer, staggerItem } from "./index";
+//
+//   <Grow when={x}>   a group that OPENS: it grows from nothing to whatever
+//                     its content measures, and keeps following that
+//                     measurement, so everything below it is pushed down by
+//                     the growth itself instead of jumping out of the way
+import { AnimatePresence, motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  appearVariants,
+  fadeVariants,
+  growTransition,
+  layoutTransition,
+  pageBlock,
+  pageContainer,
+  staggerContainer,
+  staggerItem,
+} from "./index";
 
 type DivProps = Omit<HTMLMotionProps<"div">, "variants" | "initial" | "animate" | "exit">;
 
@@ -64,6 +78,77 @@ export function Reveal({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/** A group that opens by growing out of nothing, for the case <Reveal> does
+ *  not cover: content that appears ABOVE a list the user is already looking
+ *  at. Reveal fades a block in at its full height and lets the siblings
+ *  below FLIP into their new places; Grow animates the box itself, so the
+ *  rows below are carried down by ordinary layout — no `layout` prop on
+ *  anything, no second measurement fighting the first.
+ *
+ *  It keeps measuring after it has opened, so a line inside it changing (a
+ *  countdown becoming a result, a field opening on a row) resizes the group
+ *  smoothly too instead of snapping.
+ *
+ *  Under prefers-reduced-motion it just cuts: MotionConfig's
+ *  reducedMotion="user" only neutralises transforms, and height is not one.
+ *
+ *  `className` styles the measured content, not the animating box — put the
+ *  group's own spacing there so it collapses with the group. */
+export function Grow({
+  when,
+  children,
+  className,
+  ...rest
+}: DivProps & { when: boolean; children: ReactNode; className?: string }) {
+  return (
+    <AnimatePresence initial={false}>
+      {when && (
+        <GrowBox className={className} {...rest}>
+          {children}
+        </GrowBox>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function GrowBox({
+  children,
+  className,
+  ...rest
+}: DivProps & { children: ReactNode; className?: string }) {
+  const reduced = useReducedMotion();
+  const inner = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  // Measured, never guessed: the content's own height is the target, read
+  // before paint on mount and again whenever it changes.
+  useLayoutEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    setHeight(el.getBoundingClientRect().height);
+    const observer = new ResizeObserver(([entry]) => {
+      setHeight(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      style={{ overflow: "hidden" }}
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height, opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={reduced ? { duration: 0 } : growTransition}
+      {...rest}
+    >
+      <div ref={inner} className={className}>
+        {children}
+      </div>
+    </motion.div>
   );
 }
 

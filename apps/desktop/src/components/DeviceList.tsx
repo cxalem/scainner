@@ -15,15 +15,25 @@
 // the field only appears when the radio itself asks — the backend's
 // `pin_required` answer — and the attempt is then retried with the code.
 //
+// The Nearby group OPENS rather than appears (Brief M, 2026-09-02): it
+// grows from nothing to its own measured height, so the paired rows below
+// are carried down by the growth instead of being shoved. The same
+// measurement keeps following the group afterwards, so the countdown
+// becoming a result — or a PIN field opening on a row — resizes it smoothly
+// too. See <Grow> in motion/components.tsx.
+//
 // Presentational on purpose — the gate owns the selection, because it also
 // needs the chosen device's name for the connecting screen and its path
 // for the profile it saves.
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Bluetooth, Cable, Loader2, Radar, Usb } from "lucide-react";
 import { Effect } from "effect";
 import { AdapterProfile, DeviceService } from "@scainner/core";
 import { runPromise } from "@/core/runtime";
 import { Button, Kicker, Pill, inputClass } from "@/components/ui";
+import { fadeVariants } from "@/motion";
+import { Grow, Item, List } from "@/motion/components";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_PIN,
@@ -273,7 +283,7 @@ export function DeviceList({
   discovery: Discovery;
 }) {
   const t = useT();
-  const sections = listSections(discovery.scan);
+  const showNearby = listSections(discovery.scan).includes("nearby");
 
   return (
     <div className="flex h-full flex-col">
@@ -294,15 +304,17 @@ export function DeviceList({
         </Button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
-        {sections.map((section) =>
-          section === "nearby" ? (
-            <NearbyGroup key="nearby" discovery={discovery} />
-          ) : rows.length > 0 ? (
-            <PairedRows key="paired" rows={rows} selectedId={selectedId} onSelect={onSelect} />
-          ) : (
-            <EmptyDevices key="paired" loading={loading} compact={sections.length > 1} />
-          ),
+      {/* No `gap` on this column: the space under the Nearby group belongs
+          to the group, so it collapses with it instead of leaving a gap
+          behind when the group closes. */}
+      <div className="flex flex-1 flex-col overflow-y-auto p-3">
+        <Grow when={showNearby} className="pb-3">
+          <NearbyGroup discovery={discovery} />
+        </Grow>
+        {rows.length > 0 ? (
+          <PairedRows rows={rows} selectedId={selectedId} onSelect={onSelect} />
+        ) : (
+          <EmptyDevices loading={loading} compact={showNearby} />
         )}
       </div>
     </div>
@@ -393,7 +405,7 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
   const t = useT();
   const { nearby, scan, secondsLeft, pairingAddr, pinAddr } = discovery;
   const status = scanRow(scan);
-  const statusRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLElement>(null);
 
   // A list taller than the 230 px card would otherwise hide the very thing
   // the click just started. Bring the scan's own row into view instead.
@@ -405,6 +417,23 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
     });
   }, [scan.scanning]);
 
+  // The one line the scan owns. Keyed by `status`, so the countdown ticking
+  // down redraws in place and only a real change of state cross-fades.
+  const note =
+    status === "scanning" ? (
+      <>
+        <Loader2
+          className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
+          aria-hidden="true"
+        />
+        {secondsLeft > 0 ? t.gate.scanningSeconds(secondsLeft) : t.gate.scanning}
+      </>
+    ) : status === "error" ? (
+      scan.error
+    ) : status === "empty" ? (
+      t.gate.noNearby
+    ) : null;
+
   return (
     <section
       ref={statusRef}
@@ -412,55 +441,65 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
     >
       <h2 className="text-[11px] uppercase tracking-[0.1em] text-neutral-500">{t.gate.nearby}</h2>
 
-      <div aria-live="polite">
-        {status === "scanning" && (
-          <p className="flex items-center gap-2 text-[12px] text-neutral-400">
-            <Loader2
-              className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
-              aria-hidden="true"
-            />
-            {secondsLeft > 0 ? t.gate.scanningSeconds(secondsLeft) : t.gate.scanning}
-          </p>
-        )}
-        {status === "error" && (
-          <p className="text-[12px] leading-snug text-neutral-400">{scan.error}</p>
-        )}
-        {status === "empty" && (
-          <p className="text-[12px] leading-snug text-neutral-500">{t.gate.noNearby}</p>
-        )}
+      {/* One grid cell for every state of the line, so the countdown and
+          what replaces it cross-fade over each other rather than one
+          pushing the other down. The group's own height follows. */}
+      <div className="grid empty:hidden" aria-live="polite">
+        <AnimatePresence initial={false}>
+          {note && (
+            <motion.p
+              key={status}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={fadeVariants}
+              className={cn(
+                "col-start-1 row-start-1 flex items-center gap-2 text-[12px] leading-snug",
+                status === "empty" ? "text-neutral-500" : "text-neutral-400",
+              )}
+            >
+              {note}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
-      {nearby.map((row) => (
-        <div key={row.addr} className="flex flex-col gap-2 rounded-md border border-divider bg-bg px-3 py-2.5">
-          <div className="flex items-center gap-3">
-            <Bluetooth className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] text-text">{row.label}</span>
-              <span className="num block truncate text-[11px] text-neutral-500">{row.addr}</span>
-            </span>
-            <Button
-              size="sm"
-              busy={pairingAddr === row.addr}
-              disabled={pairingAddr != null}
-              onClick={() => void discovery.pair(row.addr)}
-            >
-              {pairingAddr === row.addr ? t.gate.pairing : t.gate.pair}
-            </Button>
-          </div>
+      <List className="flex flex-col gap-2 empty:hidden">
+        {nearby.map((row) => (
+          <Item
+            key={row.addr}
+            className="flex flex-col gap-2 rounded-md border border-divider bg-bg px-3 py-2.5"
+          >
+            <div className="flex items-center gap-3">
+              <Bluetooth className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] text-text">{row.label}</span>
+                <span className="num block truncate text-[11px] text-neutral-500">{row.addr}</span>
+              </span>
+              <Button
+                size="sm"
+                busy={pairingAddr === row.addr}
+                disabled={pairingAddr != null}
+                onClick={() => void discovery.pair(row.addr)}
+              >
+                {pairingAddr === row.addr ? t.gate.pairing : t.gate.pair}
+              </Button>
+            </div>
 
-          {pinAddr === row.addr && (
-            <PinField
-              addr={row.addr}
-              pin={discovery.pin}
-              onPin={discovery.setPin}
-              pairing={pairingAddr === row.addr}
-              error={discovery.pairError}
-              onConfirm={() => void discovery.confirmPair()}
-              onCancel={discovery.cancelPair}
-            />
-          )}
-        </div>
-      ))}
+            {pinAddr === row.addr && (
+              <PinField
+                addr={row.addr}
+                pin={discovery.pin}
+                onPin={discovery.setPin}
+                pairing={pairingAddr === row.addr}
+                error={discovery.pairError}
+                onConfirm={() => void discovery.confirmPair()}
+                onCancel={discovery.cancelPair}
+              />
+            )}
+          </Item>
+        ))}
+      </List>
     </section>
   );
 }

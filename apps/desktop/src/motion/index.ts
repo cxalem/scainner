@@ -34,6 +34,14 @@ export const riseTransition: Transition = { duration: DURATION.slow, ease: EASE_
 export const pageTransition: Transition = { duration: DURATION.page, ease: EASE_OUT };
 /** For `layout="position"` slides when a sibling mounts/unmounts. */
 export const layoutTransition: Transition = { duration: 0.34, ease: EASE_OUT };
+/** For a group that opens by GROWING (see <Grow>): the height carries the
+ *  motion at a rise's pace, the opacity only takes the edge off it. Height
+ *  is the one non-transform property this app animates — it is what moves
+ *  the rows below out of the way, and no transform does that. */
+export const growTransition: Transition = {
+  height: { duration: DURATION.slow, ease: EASE_OUT },
+  opacity: { duration: DURATION.base, ease: EASE_OUT },
+};
 
 // --- Modals -----------------------------------------------------------------
 // Backdrop: fade only — the dimming is the cue, motion on it would be noise.
@@ -91,6 +99,16 @@ export const pageBlock: Variants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: pageTransition },
   exit: { opacity: 0, transition: fadeTransition },
+};
+
+// --- Messages over the layout ------------------------------------------------
+/** A toast: it arrives from the edge it sits on and leaves the same way,
+ *  with a hair of scale so it reads as landing rather than sliding past.
+ *  Nothing under it moves — the whole point of a toast. */
+export const toastVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: riseTransition },
+  exit: { opacity: 0, y: 8, scale: 0.98, transition: fadeTransition },
 };
 
 /** Full-screen gate ↔ gate ↔ shell handoff: cross-fade with a tiny rise. */
