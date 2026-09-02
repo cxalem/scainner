@@ -1,7 +1,10 @@
 # Research: Windows release artifact
 
-Date: 2026-08-31. Base: `origin/main@c612e1b`. Existing unpushed build reviewed:
-`ws/windows-ci-build@473a5b5` (base `c0cee6e`).
+Date: 2026-09-02. Base: `origin/main@6a5710e060c885df13306bdb7263b8f8cfdfd5be`.
+Existing unpushed build reviewed historically: `ws/windows-ci-build@473a5b5`
+(base `c0cee6e`).
+Status: reconciliation complete; specification accepted for implementation, with
+the Windows CI dependency and release verification gates still open.
 
 ## Scope
 
@@ -12,10 +15,11 @@ scanner exists. It must not imply USB, Bluetooth or vehicle diagnostics work.
 ## Verified repository facts
 
 - Current `release.yml` builds one universal macOS draft on `v*` tags or manual
-  dispatch. The branch commit adds a serialized Windows x86_64 MSVC job and shared
-  release notes; it changes no Rust, frontend or bundle configuration.
-- The branch is seven commits behind current `origin/main`. Triggering it would build
-  an outdated application snapshot even though the workflow file has no merge conflict.
+  dispatch. Current `origin/main` has no Windows release job; the historical branch
+  commit adds one, changes only the workflow, and is not the implementation source.
+- `473a5b5` is based on `c0cee6e` and is behind current `origin/main`. Triggering it
+  would build an outdated application snapshot even though the workflow file has no
+  merge conflict.
 - PR CI runs on Ubuntu only. A Windows compiler/bundler failure is first discovered
   after a tag or manual release trigger.
 - `tauri.conf.json`, Cargo and desktop package metadata all say `0.1.0`; the workflow
@@ -26,8 +30,8 @@ scanner exists. It must not imply USB, Bluetooth or vehicle diagnostics work.
   while holding release-write permission and receiving the updater private key.
 - The Windows installer has no Authenticode certificate. Updater signatures prove an
   update came from Scainner's updater key; they do not remove Windows SmartScreen.
-- Backlogs still call Windows release output deferred. The branch intentionally left
-  them stale, so task routing and repository truth disagree.
+- The backlog and task notes still contain historical deferred wording and must be
+  corrected only after the workflow lands; this reconciliation does not edit them.
 
 ## Independent assessment of Claude's build
 

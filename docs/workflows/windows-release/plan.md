@@ -1,7 +1,8 @@
 # Plan: Windows internal release artifact
 
-Research base: `origin/main@c612e1b`. No workflow implementation begins before
-Alejandro approves this plan. Existing commit `473a5b5` is review evidence only.
+Research base: `origin/main@6a5710e060c885df13306bdb7263b8f8cfdfd5be`. Human gate
+accepted 2026-09-02 through José's relay. Existing commit `473a5b5` is review
+evidence only; implementation must be recreated from current main.
 
 ## Goal
 
@@ -9,24 +10,22 @@ Produce a draft x86_64 Windows installer from current main that launches without
 scanner, while preserving the macOS release and updater manifest. Call it an internal
 Windows launch artifact, not a completed Windows port.
 
-## Human gate
+## Human gate (accepted 2026-09-02)
 
-1. Approve design A: sequential native builds with one reviewed SHA-pinned Tauri
-   action and mandatory final manifest inspection. Recommended: yes.
-2. Use version-tag triggers only; remove unsafe input-less manual dispatch.
-   Recommended: yes.
-3. Keep unsigned Windows artifacts draft/internal until Authenticode is separately
-   approved. Recommended: yes.
-4. Rebuild the workflow change from current `origin/main`; do not rebase and ship
-   `473a5b5` without applying the review findings. Recommended: yes.
+José relayed Alejandro's approval of all four decisions: (1) Design A, sequential
+native builds with one reviewed SHA-pinned Tauri action and mandatory final manifest
+inspection; (2) version-tag-only triggers, with unsafe input-less manual dispatch
+removed; (3) unsigned Windows artifacts remain draft/internal pending a separate
+Authenticode decision; and (4) recreate the workflow from current `origin/main`,
+never ship `473a5b5`.
 
 ## Dependencies
 
 - SCAINNER-01's `ws/windows-rust-ci` stream should land first so Windows compilation
   is a PR gate rather than a release-day discovery.
-- Alejandro must grant repository write access before José can push any branch or tag.
-- The updater signing secrets must already exist; never print, rotate or duplicate them
-  as part of this task.
+- José's repository write access is available. The updater signing secrets are verified
+  to exist (`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`);
+  never print, read, rotate or duplicate their values.
 
 ## Future implementation PR
 

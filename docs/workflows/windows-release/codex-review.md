@@ -1,7 +1,14 @@
 # Codex cross-exam: Windows release specification
 
 Date: 2026-08-31. Scope: `research.md`, `plan.md`, `review-report.md`, current
-`origin/main@c612e1b` and existing implementation evidence `473a5b5`.
+`origin/main@c612e1b` at review time and existing implementation evidence `473a5b5`.
+
+## Reconciliation status (2026-09-02)
+
+José relayed Alejandro's acceptance of the four human-gate decisions. Residual
+implementation gates remain: `ws/windows-rust-ci` must land, the workflow must be
+rebuilt from current main, and the protected draft, manifest, installer-hash and
+authorized Windows launch checks must pass. No workflow implementation exists here.
 
 ## Result
 
@@ -34,5 +41,5 @@ this pass. It does not approve or rehabilitate the existing implementation commi
 
 ## Verdict
 
-**Spec: pass to human gate. Existing build `473a5b5`: request changes.** No builder
-starts until Alejandro chooses the four decisions in `plan.md`.
+**Spec: pass to implementation under the accepted gate. Existing build `473a5b5`:
+request changes.** The historical verdict does not approve any workflow implementation.

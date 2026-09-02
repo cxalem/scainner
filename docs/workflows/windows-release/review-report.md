@@ -1,7 +1,14 @@
 # Independent review: `ws/windows-ci-build@473a5b5`
 
 Review date: 2026-08-31. Reviewer: Codex, independently cross-examined by a read-only
-review agent. Compared with its parent and current `origin/main@c612e1b`.
+review agent. Compared with its parent and current `origin/main@c612e1b` at the time
+of review.
+
+## Reconciliation status (2026-09-02)
+
+This remains historical evidence about `473a5b5`, not a review of current
+implementation. The build remains rejected. Any implementation must follow the
+approved plan and be recreated from `origin/main@6a5710e0`.
 
 ## Verdict
 
