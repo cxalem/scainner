@@ -384,12 +384,13 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   // the day rendered flat with no shading detail. Both are resolved as of
   // 2026-09-02 and are registered below. The porsche defect turned out to be
   // orientation, not art: that batch exports some badges face-down, so a
-  // camera on +Z sees the back of the extrusion. The half-turn is now baked
-  // into the .glb itself (scripts/rotate-emblem-glb.mjs) rather than
-  // corrected per-consumer, so this canvas and the PNG pipeline agree.
-  // Jaguar is a different, re-meshed file — a solid leaper with real
-  // extrusion, not the paper-thin shell with punched-through cutouts that
-  // was rejected.
+  // camera on +Z sees the back of the extrusion and the mark reads mirrored
+  // or upside down. Jaguar is a different, re-meshed file (a solid leaper
+  // with real extrusion, not the paper-thin shell with punched-through
+  // cutouts that was rejected) and it had the same face-down export. Both
+  // carry a half-turn about X baked into the .glb itself
+  // (scripts/rotate-emblem-glb.mjs) rather than corrected per-consumer, so
+  // this canvas and the PNG pipeline agree.
   //
   // suzuki stays out: its source geometry is genuinely broken (torn,
   // sawtooth edges and a bowed face — unrecognizable as the real mark), and
