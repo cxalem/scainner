@@ -376,9 +376,9 @@ lists backlog ids only.
 
 | Id | What | Evidence | Size | Depends on |
 |---|---|---|---|---|
-| DA-14 | Wire the correlation engine: timestamps in `correlation_capture`, a production writer for `hypothesis_samples`, `discovery::learn` calling `analyze`, and write `vehicle_fit` back. | F5, `uds.rs:826-888`, `db.rs:2342-2356`, `correlation/mod.rs:24` | L | DA-6 |
+| DA-14 | **Done 2026-09-02:** recorded rides write timestamped `hypothesis_samples` with timestamped references, run `discovery::learn` analysis at ride end, and persist shape, correlations, confidence and inherited `vehicle_fit`. | F5, `supervisor.rs`, `discovery/learn.rs`, `correlation/mod.rs` | L | DA-6 |
 | DA-15 | Event-fit gate becomes `clean_aba >= 3`. | F13, `sanity.rs:299`, `events.rs:68` | S | none |
-| DA-16 | Learning cohort scheduler: module rotation, retirement, 20 % occupancy measurement and self-suspend. | §4 S5 L314-344 | L | DA-14, DA-17 |
+| DA-16 | **Partially done 2026-09-02:** bounded cohort, module rotation, sample/constant/refusal retirement, and 60 s occupancy self-suspend are wired; adaptive information-value scoring remains. | §4 S5 L314-344 | L | DA-14, DA-17 |
 
 ### Sensor pipeline
 
