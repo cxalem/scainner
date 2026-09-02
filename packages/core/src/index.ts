@@ -1,7 +1,3 @@
-// Public surface of @scainner/core: the Effect-based domain schemas and
-// service contracts shared by every app in the monorepo. Concrete Live
-// layers for transport-specific services (DeviceService today) live in the
-// consuming app, not here — see services/device-service.ts's own comment.
 export * from "./errors";
 
 export * from "./schema/connection";

@@ -1,8 +1,3 @@
-// Wraps ai.ts's one direct `fetch()` (the Anthropic API call, outside
-// `invoke` entirely) in the same wrap-and-validate shape as DeviceService
-// (research.md section 2) — call mechanics only. Key handling (localStorage,
-// never SQLite) stays in ai.ts unchanged; this service takes the key as a
-// plain argument, so this file has no reason to know where it's stored.
 import { Context, Effect, Layer, Schema } from "effect";
 import { ApiError } from "../errors";
 
