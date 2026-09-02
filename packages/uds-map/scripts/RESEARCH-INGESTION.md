@@ -136,6 +136,9 @@ Then add one line for the new runtime pack to
 - Add one test asserting the new brand's candidates actually surface from
   `routes_for_context` — a silent zero-route result is the most likely
   failure mode (rule 1) and nothing else will catch it.
-- No `packages/uds-map` (TypeScript/vitest) changes are needed — research
-  packs are Rust-only, not part of the `@scainner/uds-map` npm package or its
-  lint/coverage scripts.
+- `pnpm --filter @scainner/uds-map research:validate <dir>` must pass before
+  compiling (the compiler runs it first); `pnpm --filter @scainner/uds-map test`
+  covers the validator, and `COVERAGE.md` carries a Research section, so run
+  `pnpm coverage` after adding a pack. The compiler also writes
+  `platform-proposals.json` beside the projection report for platforms the
+  trusted map lacks.
