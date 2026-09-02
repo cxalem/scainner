@@ -1,6 +1,6 @@
 # uds-map coverage
 
-Generated from `data/uds-map.json` v9 (2026-08-28) by `pnpm coverage` — do not edit by hand; CI fails when this file is stale.
+Generated from `data/uds-map.json` v10 (2026-09-02) by `pnpm coverage` — do not edit by hand; CI fails when this file is stale.
 
 Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented address pairs (29-bit in brackets) · **DIDs** known DIDs · **Decodable** DIDs with at least one decode · **Bound** DIDs bound to an exact module (unknown-binding entries in brackets) · **Families** ECU families seen on the brand · **Decodes** decode values (DIDs with an evidence note) · **On vehicle** DIDs decoded from this project's own captures · **Read svc** read services represented in data · **Identity** identity block · **Platforms** platform entries (with a VIN-selectable pattern in brackets) · **Level** `profiled_level` · **Gateway** silence semantics · **Conf** brand confidence.
 
@@ -40,8 +40,8 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 
 ## Decode shapes
 
-- `be`: 225
-- `be/signed`: 7
+- `be`: 223
+- `be/signed`: 9
 - `bitfield[0+4]`: 1
 
 ## Read services and routes

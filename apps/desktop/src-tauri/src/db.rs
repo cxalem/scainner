@@ -2880,16 +2880,15 @@ impl Db {
         signed: bool,
     ) -> bool {
         let conn = self.0.lock().unwrap();
-        let existing: Option<(i64, String)> = conn
+        let discovery_id: Option<i64> = conn
             .query_row(
-                "SELECT id, origin FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3 ORDER BY origin = 'manual' DESC LIMIT 1",
+                "SELECT id FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3 AND origin = 'discovery' LIMIT 1",
                 params![vehicle_id, module, did as i64],
-                |r| Ok((r.get(0)?, r.get(1)?)),
+                |r| r.get(0),
             )
             .ok();
-        match existing {
-            Some((_id, origin)) if origin == "manual" => false,
-            Some((id, _)) => {
+        match discovery_id {
+            Some(id) => {
                 let _ = conn.execute(
                     "UPDATE uds_probes SET label = ?1, unit = ?2, offset = ?3, len = ?4, scale = ?5, bias = ?6, signed = ?7 WHERE id = ?8",
                     params![label, unit, offset as i64, len as i64, scale, bias, signed, id],
@@ -2897,6 +2896,16 @@ impl Db {
                 false
             }
             None => {
+                let manual_exists: bool = conn
+                    .query_row(
+                        "SELECT EXISTS(SELECT 1 FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3 AND origin = 'manual')",
+                        params![vehicle_id, module, did as i64],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(false);
+                if manual_exists {
+                    return false;
+                }
                 let _ = conn.execute(
                     "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, cloud_id, signed)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10, ?11)",
@@ -4172,6 +4181,33 @@ mod tests {
         assert_eq!(probes[0].label, "Battery voltage (refined)");
         assert_eq!(probes[0].scale, 0.02);
         assert_eq!(probes[0].origin, "discovery");
+    }
+
+    #[test]
+    fn discovery_rematerialisation_updates_signed_without_touching_manual_probe() {
+        let db = test_db();
+        let (vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
+        assert!(db.upsert_probe_from_discovery(
+            vehicle, "eps", 0xD40D, "Angle", "°", 0, 2, 0.1, 0.0, false,
+        ));
+        let mut manual = db.list_probes(Some(vehicle))[0].clone();
+        manual.id = 0;
+        manual.origin = "manual".into();
+        manual.signed = false;
+        let manual_id = db.add_probe(&manual, Some(vehicle));
+
+        assert!(!db.upsert_probe_from_discovery(
+            vehicle, "eps", 0xD40D, "Angle", "°", 0, 2, 0.1, 0.0, true,
+        ));
+
+        let probes = db.list_probes(Some(vehicle));
+        let discovery = probes
+            .iter()
+            .find(|probe| probe.origin == "discovery")
+            .unwrap();
+        let manual = probes.iter().find(|probe| probe.id == manual_id).unwrap();
+        assert!(discovery.signed);
+        assert!(!manual.signed);
     }
 
     #[test]
