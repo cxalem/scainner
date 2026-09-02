@@ -921,6 +921,7 @@ export const es: Dictionary = {
     discoveryUnavailable:
       "La búsqueda por Bluetooth no está disponible en este equipo. Empareja el adaptador en los ajustes de Bluetooth del sistema.",
     pairFailed: "No se pudo emparejar. Comprueba que el adaptador tenga corriente y esté cerca, e inténtalo otra vez.",
+    paired: (name) => `${name} emparejado`,
     chooseAnotherDevice: "Elegir otro dispositivo",
     deviceListFailed: "No se pudieron listar los dispositivos.",
     adapterSaveFailed: "No se pudo guardar el adaptador.",

@@ -178,6 +178,10 @@ pnpm tauri dev
 Requires Rust + the [Tauri prerequisites](https://tauri.app/start/prerequisites/)
 for your platform, and an ELM327-compatible OBD2 adapter.
 
+The whole frontend also runs in a plain browser tab against mock data — no
+Rust, no adapter, no car — with knobs for slowing the demo down enough to
+inspect a state. See [`apps/desktop/README.md`](./apps/desktop/README.md).
+
 ### Debugging
 
 Console output is quiet by default (`info` level and above). For the

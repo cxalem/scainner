@@ -32,6 +32,7 @@ import { Effect } from "effect";
 import { AdapterProfile, DeviceService } from "@scainner/core";
 import { runPromise } from "@/core/runtime";
 import { Button, Kicker, Pill, inputClass } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { fadeVariants } from "@/motion";
 import { Grow, Item, List } from "@/motion/components";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,7 @@ export type Discovery = ReturnType<typeof useDeviceList>["discovery"];
  *  own the scan/pair state that sits under it. */
 export function useDeviceList() {
   const t = useT();
+  const toast = useToast();
   const [rows, setRows] = useState<DeviceRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,6 +177,10 @@ export function useDeviceList() {
    *  failed retry *with* a code is an ordinary failure: the code was wrong. */
   const attempt = useCallback(
     async (addr: string, code: string | null) => {
+      // Read before the scan results are cleared: after the refresh below
+      // the radio is an ordinary row and the name it was found under is
+      // gone.
+      const pairedName = nearby.find((row) => row.addr === addr)?.label ?? null;
       setPairingAddr(addr);
       setPairError(null);
       try {
@@ -185,6 +191,9 @@ export function useDeviceList() {
         // Re-enumerate: the paired radio is a device row now, and the scan
         // results it came from are stale.
         await refresh(addr);
+        // Say so. The row it became is one of several in a list the user is
+        // not looking at yet, so the confirmation goes over the top.
+        toast.show("success", t.gate.paired(pairedName ?? addr));
       } catch (failure) {
         if (code === null && isPinRequired(failure)) {
           setPinAddr(addr);
@@ -198,7 +207,7 @@ export function useDeviceList() {
         setPairingAddr(null);
       }
     },
-    [refresh, rememberedPin, t.gate.pairFailed],
+    [nearby, refresh, rememberedPin, t, toast],
   );
 
   const pair = useCallback((addr: string) => attempt(addr, null), [attempt]);

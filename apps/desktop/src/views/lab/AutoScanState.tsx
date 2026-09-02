@@ -6,9 +6,11 @@
 // silently, and a car being scanned right now shows empty gauges with no
 // explanation (owner, 2026-09-01). This card is where the honest answer
 // lives, and Overview's banner and Live's notice both point here.
+import { useEffect } from "react";
 import { Radar } from "lucide-react";
 import type { DiscoveryStatus } from "@scainner/core";
 import { Button, Card, Note, ProgressBar } from "@/components/ui";
+import { useToast } from "@/components/toast";
 import { Reveal } from "@/motion/components";
 import { useRunDiscovery } from "@/features/lab/queries";
 import { discoveryPercent } from "@/lib/discovery-notice";
@@ -29,6 +31,7 @@ export function AutoScanState({
   discovery?: DiscoveryStatus | null;
 }) {
   const t = useT();
+  const toast = useToast();
   const { locale } = useLocale();
   const a = t.autoScan.lab;
   const scanAgain = useRunDiscovery();
@@ -53,6 +56,13 @@ export function AutoScanState({
   // than look like it did nothing.
   const queued = scanAgain.data != null && !scanAgain.data.triggered;
 
+  // …and it says so over the layout rather than under the card. The answer
+  // arrives on a click, which is exactly when a line appearing inside the
+  // card would push everything below it — the reason the toast exists.
+  useEffect(() => {
+    if (queued) toast.show("info", a.queued);
+  }, [queued, a.queued, toast]);
+
   return (
     <Card className="gap-2.5">
       <div className="flex items-start gap-2.5">
@@ -75,9 +85,6 @@ export function AutoScanState({
         <ProgressBar value={discoveryPercent(discovery)} height={2} />
       </Reveal>
       <Note className="text-[11.5px]">{a.explainer}</Note>
-      <Reveal when={queued} mode="fade">
-        <Note className="text-[11.5px] text-neutral-400">{a.queued}</Note>
-      </Reveal>
       <Reveal when={scanAgain.isError} mode="fade">
         <p className="text-[12px] text-stop">{a.failed}</p>
       </Reveal>
