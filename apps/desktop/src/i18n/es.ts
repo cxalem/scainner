@@ -513,6 +513,8 @@ export const es: Dictionary = {
     },
     probeManager: {
       newProbeTitle: (did, module) => `Sonda nueva del DID ${did} en ${module}`,
+      signed: "Con signo",
+      signedHint: "Marca esto si el valor puede ser negativo (complemento a dos).",
       saving: "Guardando…",
       saveProbe: "Guardar sonda",
       recordedCardTitle: "Sondas guardadas (leídas cada ~30 s mientras estás conectado)",

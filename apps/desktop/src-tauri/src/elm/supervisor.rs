@@ -70,6 +70,122 @@ pub struct ConnCtx {
     pub vehicle_id: Option<i64>,
 }
 
+/// `app_settings` key an agent (or the Lab) sets to pin how often the
+/// poller reads UDS probes, in ~250 ms ticks.
+pub const PROBE_INTERVAL_SETTING: &str = "probe_interval_ticks";
+/// `app_settings` key for how often the poller runs its own standard
+/// fault-code scan, in the same ticks.
+pub const DTC_SCAN_INTERVAL_SETTING: &str = "dtc_scan_interval_ticks";
+
+/// ~30-60 s between probe sweeps: enough to trend a value, cheap on the bus.
+const PROBE_INTERVAL_DEFAULT: u64 = 120;
+/// ~2 s while a learning state is on. A 15-minute drive at the standing
+/// default produced seven samples (2026-09-01 ride) — too few to correlate
+/// a probe against anything the car was doing. Learning is the user saying
+/// "I am here to find out what this DID means", so the sampling rate is
+/// what that actually needs.
+const PROBE_INTERVAL_LEARNING_DEFAULT: u64 = 8;
+const PROBE_INTERVAL_MIN: u64 = 4;
+const PROBE_INTERVAL_MAX: u64 = 2400;
+
+/// ~5 min between fault-code scans.
+const DTC_SCAN_INTERVAL_DEFAULT: u64 = 1200;
+/// ~1 min: below this a scan's own mode 03/07/0A round trips start eating
+/// the live PID sweep.
+const DTC_SCAN_INTERVAL_MIN: u64 = 240;
+/// ~1 h.
+const DTC_SCAN_INTERVAL_MAX: u64 = 14400;
+
+/// How often probes are polled, given the stored setting (None when no row
+/// exists) and whether a learning state is on.
+///
+/// An explicit row wins in both states — someone who set a number meant it.
+/// Otherwise the learning state picks the default: fast while learning,
+/// the standing rate when not.
+pub fn probe_interval_ticks(setting: Option<&str>, learning_on: bool) -> u64 {
+    let default = if learning_on {
+        PROBE_INTERVAL_LEARNING_DEFAULT
+    } else {
+        PROBE_INTERVAL_DEFAULT
+    };
+    setting
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .map(|v| v.clamp(PROBE_INTERVAL_MIN, PROBE_INTERVAL_MAX))
+        .unwrap_or(default)
+}
+
+/// How often the poller scans for fault codes, given the stored setting.
+pub fn dtc_scan_interval_ticks(setting: Option<&str>) -> u64 {
+    setting
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .map(|v| v.clamp(DTC_SCAN_INTERVAL_MIN, DTC_SCAN_INTERVAL_MAX))
+        .unwrap_or(DTC_SCAN_INTERVAL_DEFAULT)
+}
+
+/// When the poller runs a fault-code scan of its own.
+///
+/// Counted from the last scan actually recorded, not from a fixed grid, so
+/// a manual scan mid-drive resets the clock instead of being doubled a
+/// tick later, and the session's closing scan is skipped when one has just
+/// been taken. Nothing here starts a scan while a request is queued — the
+/// caller drains the queue first, which is what keeps a five-second scan
+/// from sitting in front of a button the user just pressed.
+struct DtcScanSchedule {
+    interval: u64,
+    /// None until the first scan of this session.
+    last_scan_tick: Option<u64>,
+}
+
+impl DtcScanSchedule {
+    fn new(interval: u64) -> Self {
+        Self {
+            interval,
+            last_scan_tick: None,
+        }
+    }
+
+    fn due(&self, tick: u64) -> bool {
+        tick > 0 && tick.saturating_sub(self.last_scan_tick.unwrap_or(0)) >= self.interval
+    }
+
+    /// The session is ending: worth one last look unless this tick already
+    /// took one.
+    fn due_at_session_end(&self, tick: u64) -> bool {
+        self.last_scan_tick != Some(tick)
+    }
+
+    fn record(&mut self, tick: u64) {
+        self.last_scan_tick = Some(tick);
+    }
+}
+
+/// One standard mode 03 fault-code scan, recorded exactly the way a manual
+/// scan is — one function, so the periodic scan and `Request::ScanDtcs` can
+/// never drift into recording different things. Standard OBD only: no UDS
+/// `19 02` per-module read, which needs a diagnostic session on every ECU.
+fn record_dtc_scan(drv: &mut ElmDriver, db: &Db, ctx: ConnCtx) -> Result<obd::DtcResult, String> {
+    obd::scan_dtcs(drv).map(|r| {
+        db.insert_dtc_scan(
+            Some(ctx.connection_id),
+            ctx.vehicle_id,
+            r.mil_on,
+            &r.stored,
+            &r.pending,
+            &r.permanent,
+            r.voltage,
+            r.freeze.as_ref(),
+        );
+        r
+    })
+}
+
+/// Tells the UI a scan landed in history. The Diagnose view refreshes its
+/// fault-code list on this, so a scan the poller ran on its own shows up
+/// the same way one the user pressed does.
+fn announce_dtc_scan(app: &tauri::AppHandle, result: &obd::DtcResult) {
+    let _ = app.emit("dtc-scan", result);
+}
+
 pub enum Request {
     ScanDtcs(Sender<Result<obd::DtcResult, String>>),
     ClearDtcs(Sender<Result<obd::ObdClearOutcome, String>>),
@@ -374,7 +490,10 @@ fn run_loop(
 
         let mut consecutive_failures = 0u32;
         let mut tick: u64 = 0;
-        let mut probe_interval: u64 = 120;
+        // 0 is a sentinel, not a rate: the first settings read below always
+        // differs from it, so every session logs the interval it settled on.
+        let mut probe_interval: u64 = 0;
+        let mut dtc_schedule = DtcScanSchedule::new(DTC_SCAN_INTERVAL_DEFAULT);
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
 
@@ -393,6 +512,26 @@ fn run_loop(
                 while let Ok(req) = rx.try_recv() {
                     match req {
                         Request::Stop => {
+                            // A clean disconnect is the end of a drive, and
+                            // the drive is when faults are set. Before the
+                            // 2026-09-01 ride nothing scanned unless asked,
+                            // so a whole session could pass with the last
+                            // recorded scan days old.
+                            if dtc_schedule.due_at_session_end(tick) {
+                                match record_dtc_scan(&mut drv, &db, ctx) {
+                                    Ok(result) => {
+                                        log::info!(
+                                            "closing fault-code scan: {} stored, {} pending, MIL {}",
+                                            result.stored.len(),
+                                            result.pending.len(),
+                                            if result.mil_on { "on" } else { "off" }
+                                        );
+                                        announce_dtc_scan(&app, &result);
+                                    }
+                                    Err(e) => log::warn!("closing fault-code scan failed: {e}"),
+                                }
+                                dtc_schedule.record(tick);
+                            }
                             db.end_connection(ctx.connection_id);
                             set_status(
                                 &app,
@@ -431,6 +570,18 @@ fn run_loop(
                                 );
                                 let _ = tx.send(Ok(id));
                             }
+                        }
+                        // Inline (like NameVehicle) because a manual scan
+                        // resets the poller's own scan clock: pressing
+                        // "scan" must not be followed by a duplicate a
+                        // tick later.
+                        Request::ScanDtcs(tx) => {
+                            let res = record_dtc_scan(&mut drv, &db, ctx);
+                            dtc_schedule.record(tick);
+                            if let Ok(result) = &res {
+                                announce_dtc_scan(&app, result);
+                            }
+                            let _ = tx.send(res);
                         }
                         req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx, &status),
                     }
@@ -473,6 +624,26 @@ fn run_loop(
                             // The link is gone mid-session: one more
                             // pipeline run, and if that fails the thread
                             // ends with the stage and reason on the status.
+                            // The closing scan is attempted here too — it
+                            // costs a few timeouts on a link that really is
+                            // dead, and saves the drive's fault codes when
+                            // the dongle merely blinked.
+                            if dtc_schedule.due_at_session_end(tick) {
+                                match record_dtc_scan(&mut drv, &db, ctx) {
+                                    Ok(result) => {
+                                        log::info!(
+                                            "closing fault-code scan after a dropped link: {} stored, {} pending",
+                                            result.stored.len(),
+                                            result.pending.len()
+                                        );
+                                        announce_dtc_scan(&app, &result);
+                                    }
+                                    Err(e) => log::warn!(
+                                        "closing fault-code scan after a dropped link failed: {e}"
+                                    ),
+                                }
+                                dtc_schedule.record(tick);
+                            }
                             db.end_connection(ctx.connection_id);
                             continue 'outer;
                         }
@@ -518,17 +689,37 @@ fn run_loop(
                     low_voltage_streak = 0;
                 }
             }
-            // User-defined UDS probes every `probe_interval_ticks` ticks
-            // (default 120 ≈ 30–60 s). An agent running a physical test can
-            // lower it through the API settings route (minimum 4 ≈ 1 s);
-            // the value is re-read every 40 ticks so a change applies without
-            // reconnecting.
+            // User-defined UDS probes every `probe_interval_ticks` ticks.
+            // An agent running a physical test can pin it through the API
+            // settings route (4..2400); with no row, a learning state picks
+            // the rate instead. Both intervals are re-read every 40 ticks
+            // so a change applies without reconnecting.
             if tick % 40 == 0 {
-                probe_interval = db
-                    .setting_get("probe_interval_ticks")
-                    .and_then(|v| v.trim().parse::<u64>().ok())
-                    .map(|v| v.clamp(4, 2400))
-                    .unwrap_or(120);
+                let learning_on = db
+                    .setting_get(discovery::state::LEARNING_STATE_SETTING)
+                    .map(|v| v == "on")
+                    .unwrap_or(false);
+                let resolved = probe_interval_ticks(
+                    db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
+                    learning_on,
+                );
+                if resolved != probe_interval {
+                    log::info!(
+                        "probe polling every {resolved} ticks (~{:.1} s), learning state {}",
+                        resolved as f64 * 0.25,
+                        if learning_on { "on" } else { "off" }
+                    );
+                    probe_interval = resolved;
+                }
+                let resolved_scan =
+                    dtc_scan_interval_ticks(db.setting_get(DTC_SCAN_INTERVAL_SETTING).as_deref());
+                if resolved_scan != dtc_schedule.interval {
+                    log::info!(
+                        "fault-code scan every {resolved_scan} ticks (~{:.0} s)",
+                        resolved_scan as f64 * 0.25
+                    );
+                    dtc_schedule.interval = resolved_scan;
+                }
             }
             if tick > 0 && tick % probe_interval == 0 {
                 let uds_values = uds::poll_probes(&mut drv, &db, ctx);
@@ -552,6 +743,34 @@ fn run_loop(
                         }
                     }
                 }
+            }
+
+            // Fault codes every `dtc_scan_interval_ticks`. The MIL watch
+            // above only asks whether the lamp is lit; this is the scan
+            // that actually records which codes are stored, so a drive is
+            // no longer a blank in the history (2026-09-01 ride: no scan
+            // ran during or after it, the newest one was days old).
+            if dtc_schedule.due(tick) {
+                // Drain first: a queued request must never wait behind a
+                // scan the user did not ask for — and if one of them WAS a
+                // scan, the schedule it just reset says so, and this tick
+                // has nothing left to do.
+                service_requests!();
+            }
+            if dtc_schedule.due(tick) {
+                match record_dtc_scan(&mut drv, &db, ctx) {
+                    Ok(result) => {
+                        log::info!(
+                            "periodic fault-code scan: {} stored, {} pending, MIL {}",
+                            result.stored.len(),
+                            result.pending.len(),
+                            if result.mil_on { "on" } else { "off" }
+                        );
+                        announce_dtc_scan(&app, &result);
+                    }
+                    Err(e) => log::warn!("periodic fault-code scan failed: {e}"),
+                }
+                dtc_schedule.record(tick);
             }
 
             if !values.is_empty() {
@@ -657,21 +876,11 @@ fn handle_request(
     status: &Arc<Mutex<ConnStatus>>,
 ) {
     match req {
+        // Handled inline in the polling loop (it resets the loop's own scan
+        // schedule); reaching here would be a dispatch bug, so answer
+        // honestly rather than silently scanning on a second clock.
         Request::ScanDtcs(tx) => {
-            let res = obd::scan_dtcs(drv).map(|r| {
-                db.insert_dtc_scan(
-                    Some(ctx.connection_id),
-                    ctx.vehicle_id,
-                    r.mil_on,
-                    &r.stored,
-                    &r.pending,
-                    &r.permanent,
-                    r.voltage,
-                    r.freeze.as_ref(),
-                );
-                r
-            });
-            let _ = tx.send(res);
+            let _ = tx.send(Err("fault-code scans are run by the connection loop".into()));
         }
         Request::ClearDtcs(tx) => {
             // Write safety rail: read before, clear, read after, and ALWAYS
@@ -991,5 +1200,149 @@ fn handle_request(
             let _ = tx.send(Err("naming is handled by the connection loop".into()));
         }
         Request::Stop => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::elm::discovery::state::LEARNING_STATE_SETTING;
+    use std::path::Path;
+
+    fn test_db() -> Db {
+        Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    #[test]
+    fn a_learning_state_speeds_probe_sampling_up_and_off_again() {
+        // The 2026-09-01 ride sampled every ~118 s: seven points in a
+        // quarter of an hour, which correlates with nothing.
+        assert_eq!(probe_interval_ticks(None, false), 120);
+        assert_eq!(probe_interval_ticks(None, true), 8);
+    }
+
+    #[test]
+    fn an_explicit_probe_interval_wins_in_either_state() {
+        assert_eq!(probe_interval_ticks(Some("60"), false), 60);
+        assert_eq!(probe_interval_ticks(Some("60"), true), 60);
+        // Whitespace from a settings route is not a reason to ignore it.
+        assert_eq!(probe_interval_ticks(Some(" 60 "), true), 60);
+        // Out of range is clamped, not refused.
+        assert_eq!(probe_interval_ticks(Some("1"), false), 4);
+        assert_eq!(probe_interval_ticks(Some("99999"), false), 2400);
+        // A row nobody can read is not an instruction; the state decides.
+        assert_eq!(probe_interval_ticks(Some("fast"), true), 8);
+    }
+
+    #[test]
+    fn the_fault_code_scan_interval_defaults_to_five_minutes_and_clamps() {
+        assert_eq!(dtc_scan_interval_ticks(None), 1200);
+        assert_eq!(dtc_scan_interval_ticks(Some("600")), 600);
+        assert_eq!(dtc_scan_interval_ticks(Some("10")), 240);
+        assert_eq!(dtc_scan_interval_ticks(Some("999999")), 14400);
+    }
+
+    #[test]
+    fn the_settings_row_reaches_the_resolver_from_the_database() {
+        let db = test_db();
+        assert_eq!(
+            probe_interval_ticks(db.setting_get(PROBE_INTERVAL_SETTING).as_deref(), false),
+            120
+        );
+        db.setting_set(LEARNING_STATE_SETTING, "on");
+        let learning_on = db
+            .setting_get(LEARNING_STATE_SETTING)
+            .map(|v| v == "on")
+            .unwrap_or(false);
+        assert!(learning_on);
+        assert_eq!(
+            probe_interval_ticks(
+                db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
+                learning_on
+            ),
+            8
+        );
+        db.setting_set(PROBE_INTERVAL_SETTING, "40");
+        assert_eq!(
+            probe_interval_ticks(
+                db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
+                learning_on
+            ),
+            40
+        );
+    }
+
+    #[test]
+    fn no_fault_code_scan_runs_inside_the_first_interval() {
+        let schedule = DtcScanSchedule::new(1200);
+        for tick in [0u64, 1, 120, 1199] {
+            assert!(!schedule.due(tick), "a scan fired at tick {tick}");
+        }
+        assert!(schedule.due(1200));
+    }
+
+    #[test]
+    fn the_poller_scans_once_per_interval() {
+        let mut schedule = DtcScanSchedule::new(1200);
+        assert!(schedule.due(1200));
+        schedule.record(1200);
+        assert!(!schedule.due(1201));
+        assert!(!schedule.due(2399));
+        assert!(schedule.due(2400));
+    }
+
+    #[test]
+    fn a_manual_scan_resets_the_pollers_own_clock() {
+        // Pressing "scan" at tick 1000 must not be followed by an
+        // identical scan 200 ticks later.
+        let mut schedule = DtcScanSchedule::new(1200);
+        schedule.record(1000);
+        assert!(!schedule.due(1200));
+        assert!(schedule.due(2200));
+    }
+
+    #[test]
+    fn a_session_that_ends_gets_one_closing_scan_and_never_two() {
+        let mut schedule = DtcScanSchedule::new(1200);
+        // Disconnecting mid-interval: still worth a look.
+        assert!(schedule.due_at_session_end(300));
+        schedule.record(300);
+        assert!(!schedule.due_at_session_end(300));
+        // A later tick is a different moment and scans again.
+        assert!(schedule.due_at_session_end(301));
+    }
+
+    /// A replay of the exact standard scan the manual path runs, proving
+    /// the shared helper records a row (mode 03 only — no UDS `19 02`).
+    #[test]
+    fn a_recorded_scan_lands_in_history_the_way_a_manual_one_does() {
+        let raw = r#"{
+            "schema_version": 1,
+            "name": "standard-dtc-scan",
+            "contains_vehicle_identifiers": false,
+            "steps": [
+                {"command": "0101", "response": "41 01 00 00 00 00\r>"},
+                {"command": "03", "response": "43 00\r>"},
+                {"command": "07", "response": "47 00\r>"},
+                {"command": "0A", "response": "4A 00\r>"},
+                {"command": "ATRV", "response": "12.4V\r>"}
+            ]
+        }"#;
+        let mut drv = ElmDriver::from_replay_json(raw).expect("fixture");
+        let db = test_db();
+        let connection_id = db.start_connection("ELM327 v1.5", "test");
+        let ctx = ConnCtx {
+            connection_id,
+            vehicle_id: None,
+        };
+
+        let result = record_dtc_scan(&mut drv, &db, ctx).expect("the scan completes");
+        drv.assert_replay_complete();
+
+        assert!(!result.mil_on);
+        assert!(result.stored.is_empty());
+        let history = db.dtc_history(None, 10);
+        assert_eq!(history.len(), 1, "the scan was recorded, not just returned");
+        assert_eq!(history[0].voltage, Some(12.4));
     }
 }

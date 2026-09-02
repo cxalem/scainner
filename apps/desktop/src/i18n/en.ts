@@ -504,6 +504,8 @@ export const en: Dictionary = {
     },
     probeManager: {
       newProbeTitle: (did, module) => `New probe from DID ${did} on ${module}`,
+      signed: "Signed",
+      signedHint: "Tick when the value can go negative (two's complement).",
       saving: "Saving…",
       saveProbe: "Save probe",
       recordedCardTitle: "Recorded probes (polled every ~30 s while connected)",

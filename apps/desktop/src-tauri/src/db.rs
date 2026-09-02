@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 13;
+const SCHEMA_VERSION: i64 = 14;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -359,6 +359,11 @@ pub struct UdsProbe {
     /// linked probe is polled whatever its origin says.
     #[serde(default)]
     pub hypothesis_id: Option<i64>,
+    /// The window is two's complement (schema v14). False — an unsigned
+    /// big-endian read — is what every probe saved before v14 meant, and
+    /// stays the default for anything that does not say otherwise.
+    #[serde(default)]
+    pub signed: bool,
 }
 
 impl UdsProbe {
@@ -791,7 +796,8 @@ impl Db {
                 bias REAL NOT NULL DEFAULT 0.0,
                 enabled INTEGER NOT NULL DEFAULT 1,
                 origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual','discovery')),
-                hypothesis_id INTEGER REFERENCES hypotheses(id)
+                hypothesis_id INTEGER REFERENCES hypotheses(id),
+                signed INTEGER NOT NULL DEFAULT 0
             );
             -- Auto-discovery shape (product-plan.md): no writer yet, the
             -- discovery-engine stream is later — tables exist so the shape
@@ -1095,6 +1101,15 @@ impl Db {
         // probes created before v13 keep their old `origin` semantics.
         let _ = conn.execute(
             "ALTER TABLE uds_probes ADD COLUMN hypothesis_id INTEGER REFERENCES hypotheses(id)",
+            [],
+        );
+        // v14: a probe's window may be two's complement. Without this the
+        // decoder read every window as unsigned, so a small negative angle
+        // came back as its wrapped positive twin (−2.0° reported as
+        // 6551.6° on the 2026-09-01 ride). 0 on every existing row: an
+        // unsigned read is exactly what those probes were saved meaning.
+        let _ = conn.execute(
+            "ALTER TABLE uds_probes ADD COLUMN signed INTEGER NOT NULL DEFAULT 0",
             [],
         );
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
@@ -2871,7 +2886,7 @@ impl Db {
         let mut stmt = conn
             .prepare(
                 "SELECT id, vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled,
-                        origin, hypothesis_id
+                        origin, hypothesis_id, signed
                  FROM uds_probes WHERE vehicle_id IS ?1 OR vehicle_id IS NULL ORDER BY id",
             )
             .unwrap();
@@ -2890,6 +2905,7 @@ impl Db {
                 enabled: r.get(10)?,
                 origin: r.get(11)?,
                 hypothesis_id: r.get(12)?,
+                signed: r.get(13)?,
             })
         })
         .unwrap()
@@ -2900,9 +2916,9 @@ impl Db {
     pub fn add_probe(&self, p: &UdsProbe, vehicle_id: Option<i64>) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, hypothesis_id, cloud_id)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual', NULL, ?11)",
-            params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled, Self::new_cloud_id()],
+            "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, hypothesis_id, cloud_id, signed)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'manual', NULL, ?11, ?12)",
+            params![vehicle_id, p.module, p.did as i64, p.label, p.unit, p.offset as i64, p.len as i64, p.scale, p.bias, p.enabled, Self::new_cloud_id(), p.signed],
         )
         .ok();
         conn.last_insert_rowid()
@@ -2924,6 +2940,7 @@ impl Db {
         len: usize,
         scale: f64,
         bias: f64,
+        signed: bool,
     ) -> bool {
         let conn = self.0.lock().unwrap();
         let existing: Option<(i64, String)> = conn
@@ -2939,16 +2956,16 @@ impl Db {
             Some((_id, origin)) if origin == "manual" => false,
             Some((id, _)) => {
                 let _ = conn.execute(
-                    "UPDATE uds_probes SET label = ?1, unit = ?2, offset = ?3, len = ?4, scale = ?5, bias = ?6 WHERE id = ?7",
-                    params![label, unit, offset as i64, len as i64, scale, bias, id],
+                    "UPDATE uds_probes SET label = ?1, unit = ?2, offset = ?3, len = ?4, scale = ?5, bias = ?6, signed = ?7 WHERE id = ?8",
+                    params![label, unit, offset as i64, len as i64, scale, bias, signed, id],
                 );
                 false
             }
             None => {
                 let _ = conn.execute(
-                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, cloud_id)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10)",
-                    params![vehicle_id, module, did as i64, label, unit, offset as i64, len as i64, scale, bias, Self::new_cloud_id()],
+                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, cloud_id, signed)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10, ?11)",
+                    params![vehicle_id, module, did as i64, label, unit, offset as i64, len as i64, scale, bias, Self::new_cloud_id(), signed],
                 );
                 true
             }
@@ -2982,7 +2999,7 @@ impl Db {
         let conn = self.0.lock().unwrap();
         conn.execute(
             "UPDATE uds_probes SET module = ?2, did = ?3, label = ?4, unit = ?5, offset = ?6,
-                 len = ?7, scale = ?8, bias = ?9, enabled = ?10 WHERE id = ?1",
+                 len = ?7, scale = ?8, bias = ?9, enabled = ?10, signed = ?11 WHERE id = ?1",
             params![
                 id,
                 p.module,
@@ -2993,7 +3010,8 @@ impl Db {
                 p.len as i64,
                 p.scale,
                 p.bias,
-                p.enabled
+                p.enabled,
+                p.signed
             ],
         )
         .map(|n| n > 0)
@@ -3039,8 +3057,8 @@ impl Db {
             }
             None => {
                 let _ = conn.execute(
-                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, hypothesis_id, cloud_id)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10, ?11)",
+                    "INSERT INTO uds_probes (vehicle_id, module, did, label, unit, offset, len, scale, bias, enabled, origin, hypothesis_id, cloud_id, signed)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, 'discovery', ?10, ?11, ?12)",
                     params![
                         vehicle_id,
                         p.module,
@@ -3052,7 +3070,8 @@ impl Db {
                         p.scale,
                         p.bias,
                         hypothesis_id,
-                        Self::new_cloud_id()
+                        Self::new_cloud_id(),
+                        p.signed
                     ],
                 );
                 conn.last_insert_rowid()
@@ -3942,6 +3961,7 @@ mod tests {
             enabled: true,
             origin: "manual".into(),
             hypothesis_id: None,
+            signed: false,
         };
         let probe_id = db.add_probe(&probe, Some(vehicle));
         db.insert_reading(conn_id, Some(vehicle), "voltage", 12.6);
@@ -4088,6 +4108,7 @@ mod tests {
             enabled: true,
             origin: "manual".into(),
             hypothesis_id: None,
+            signed: false,
         };
         db.add_probe(&probe, Some(citroen));
         let citroen_probes = db.list_probes(Some(citroen));
@@ -4120,6 +4141,7 @@ mod tests {
             enabled: true,
             origin: "manual".into(),
             hypothesis_id: None,
+            signed: false,
         };
         db.add_probe(&probe, None); // legacy path: no vehicle scope
         assert_eq!(db.list_probes(Some(citroen)).len(), 1);
@@ -4143,6 +4165,7 @@ mod tests {
             2,
             0.01,
             0.0,
+            false,
         );
         let second = db.upsert_probe_from_discovery(
             citroen,
@@ -4154,6 +4177,7 @@ mod tests {
             2,
             0.02,
             0.0,
+            false,
         );
         assert!(first, "first pass should insert");
         assert!(!second, "second pass should update, not insert");
@@ -4308,6 +4332,7 @@ mod tests {
             enabled: true,
             origin: "manual".into(),
             hypothesis_id: None,
+            signed: false,
         };
         let id = db.add_probe(&manual, Some(citroen));
 
@@ -4320,7 +4345,8 @@ mod tests {
             0,
             2,
             0.01,
-            0.0
+            0.0,
+            false
         ));
         assert!(!db.delete_discovery_probe(id));
         let probes = db.list_probes(Some(citroen));
@@ -4342,7 +4368,8 @@ mod tests {
             0,
             2,
             0.01,
-            0.0
+            0.0,
+            false
         ));
         let auto = db.list_probes(Some(citroen)).pop().unwrap();
         assert_eq!(auto.origin, "discovery");
@@ -4460,6 +4487,7 @@ mod tests {
             2,
             0.01,
             0.0,
+            false,
         );
         db.create_diagnostic_case(v, "MIL illuminated", Some(128_400), Some("Alex"))
             .unwrap();
@@ -4797,6 +4825,50 @@ mod tests {
                 )
                 .unwrap();
         assert!(stored.is_none());
+    }
+
+    /// A database written before v14 gains the signed column with every
+    /// stored probe still meaning what it meant: an unsigned big-endian
+    /// read, exactly what the decoder did before the flag existed.
+    #[test]
+    fn a_pre_v14_database_gains_an_unsigned_default_on_existing_probes() {
+        let path =
+            std::env::temp_dir().join(format!("scainner-v13-{}.sqlite3", uuid::Uuid::new_v4()));
+        {
+            let db = Db::open(&path).expect("fresh db");
+            let conn = db.0.lock().unwrap();
+            // Wind the file back to the v13 shape.
+            conn.execute_batch(
+                "ALTER TABLE uds_probes DROP COLUMN signed;
+                 INSERT INTO uds_probes (module, did, label, unit, offset, len, scale, bias, cloud_id)
+                     VALUES ('engine', 54306, 'Steering angle', 'deg', 0, 2, 0.1, 0.0, 'pre-v14');
+                 PRAGMA user_version = 13;",
+            )
+            .unwrap();
+        }
+        let db = Db::open(&path).expect("a v13 database must open, not be refused");
+        let version: i64 =
+            db.0.lock()
+                .unwrap()
+                .query_row("PRAGMA user_version", [], |r| r.get(0))
+                .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
+        let probes = db.list_probes(None);
+        assert_eq!(probes.len(), 1, "the existing probe survived the migration");
+        assert_eq!(probes[0].label, "Steering angle");
+        assert!(
+            !probes[0].signed,
+            "a probe saved before the flag existed keeps reading unsigned"
+        );
+        // And the flag is writable from here on.
+        let mut edited = probes[0].clone();
+        edited.signed = true;
+        assert!(db.update_probe_decode(edited.id, &edited));
+        assert!(db.list_probes(None)[0].signed);
+        drop(db);
+        for suffix in ["", "-wal", "-shm"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", path.display()));
+        }
     }
 
     /// A database written before v12 opens with the evidence column and with
