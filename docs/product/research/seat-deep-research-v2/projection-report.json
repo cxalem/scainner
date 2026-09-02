@@ -34,7 +34,7 @@
   "archived_files": [
     {
       "path": "index.json",
-      "sha256": "666e16e87678b8bdd712649a428ee406fd0a5b6e629ce0a51dfde7cf012c05a0"
+      "sha256": "543db43c5c5c148fe4c8988d9b7911103790db0294702e6071a316934b532c73"
     },
     {
       "path": "README.md",
@@ -54,7 +54,7 @@
     },
     {
       "path": "did-candidates.json",
-      "sha256": "1cf4511c91bdd0f1328df9dd21484cb0755b5babb246bcdd399b5ece4e589a46"
+      "sha256": "79f80338c2e7224aef6ace28e5675426e22add8b1bede41ac035c00f2659ab79"
     },
     {
       "path": "ecu-family-hypotheses.json",
@@ -62,7 +62,7 @@
     },
     {
       "path": "ecu-routes.json",
-      "sha256": "9cb41bc5881b0dab8ccb406ad243f06accb6b44efa38830dea099992e61e5582"
+      "sha256": "f2e825d7005d5416fbc50ec009e0602e85535d81425f4f30fb8cf1986eca2308"
     },
     {
       "path": "observed-module-inventories.json",
@@ -74,7 +74,7 @@
     },
     {
       "path": "seat-profile-overlay.json",
-      "sha256": "7f8bd323857ac39e75537d665f6881c9c35fc990d7e8aa142458c9c6dd7f3a3f"
+      "sha256": "45126b58d743bb530b6accdeff8725192bc40bae4ed2b0ebfe21075fb5082e94"
     },
     {
       "path": "source-ledger.json",

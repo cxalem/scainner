@@ -38,7 +38,7 @@
   "archived_files": [
     {
       "path": "index.json",
-      "sha256": "787d2e1bef84994db7264c4d0e29a45ede7835778bb2bbbe41715287df600a07"
+      "sha256": "4b55cf7fd551ef2bc02103c92b380c22959c65a7d221b1e5cc67f8dec0f23c0a"
     },
     {
       "path": "README.md",
@@ -58,7 +58,7 @@
     },
     {
       "path": "did-candidates.json",
-      "sha256": "d3b849daab21b53ed5100a3e061579a497f7f4bbd50c5ae8fbde6ffc2de45b13"
+      "sha256": "baf47fc812c3de28b5ad6e96bace475f608c8840c9e97c97a5bfff19ac6961a3"
     },
     {
       "path": "ecu-family-hypotheses.json",
@@ -66,7 +66,7 @@
     },
     {
       "path": "ecu-routes.json",
-      "sha256": "34fb69d6c760f18e776bb7672dadd62115d0dfa36376e951b5d229c2fd5c9f9c"
+      "sha256": "510ebe62a4eaf7c41987964d607660a464bf5036c095c4d5fd9da87a0012a808"
     },
     {
       "path": "observed-module-inventories.json",
@@ -86,7 +86,7 @@
     },
     {
       "path": "vag-profile-overlay.json",
-      "sha256": "6172149d5fa00b38c05b65664b1e16fd0a2d6c3eac38dd56b90ac11033271bad"
+      "sha256": "372830e7c1bab091ed603f551921bcb8da29329536144e2a27f8345021fb9b49"
     },
     {
       "path": "validation-plan.json",

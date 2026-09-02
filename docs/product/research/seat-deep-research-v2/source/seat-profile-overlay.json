@@ -153,7 +153,7 @@
     {
       "claim_id": "seat.s05.opendbc_platform_classification",
       "exact_claim": "opendbc's manufacturer-group platform module classifies platform generations and firmware-query behavior, useful for fingerprinting which platform branch a connected vehicle is on.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": {
@@ -178,7 +178,7 @@
     {
       "claim_id": "seat.s06.mii_electric_ovms_header",
       "exact_claim": "OVMS's shared small-EV module defines exact UDS module routes and DIDs for that shared platform, in production use in a real vehicle telemetry project.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": {
@@ -206,7 +206,7 @@
     {
       "claim_id": "seat.s07.mii_electric_ovms_decoder",
       "exact_claim": "OVMS's shared small-EV decoder implementation shows the same shared-platform DIDs in live polling use, corroborating the header's route/DID list and supplying the decode arithmetic.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": {

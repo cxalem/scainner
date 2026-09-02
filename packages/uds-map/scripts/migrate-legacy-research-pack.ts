@@ -181,7 +181,7 @@ const CONFIG: Record<string, BrandConfig> = {
       {
         claim_id: "seat.s05.opendbc_platform_classification",
         exact_claim: "opendbc's manufacturer-group platform module classifies platform generations and firmware-query behavior, useful for fingerprinting which platform branch a connected vehicle is on.",
-        knowledge_state: "community_verified",
+        knowledge_state: "community_reported",
         source_fidelity: "high",
         vehicle_applicability: "untested_by_project",
         scope: { brand_ids: ["seat"], marques: ["seat"] },
@@ -194,7 +194,7 @@ const CONFIG: Record<string, BrandConfig> = {
       {
         claim_id: "seat.s06.mii_electric_ovms_header",
         exact_claim: "OVMS's shared small-EV module defines exact UDS module routes and DIDs for that shared platform, in production use in a real vehicle telemetry project.",
-        knowledge_state: "community_verified",
+        knowledge_state: "community_reported",
         source_fidelity: "high",
         vehicle_applicability: "untested_by_project",
         scope: { brand_ids: ["seat"], marques: ["seat"], platform_ids: ["seat_mii_electric_shared_up"] },
@@ -207,7 +207,7 @@ const CONFIG: Record<string, BrandConfig> = {
       {
         claim_id: "seat.s07.mii_electric_ovms_decoder",
         exact_claim: "OVMS's shared small-EV decoder implementation shows the same shared-platform DIDs in live polling use, corroborating the header's route/DID list and supplying the decode arithmetic.",
-        knowledge_state: "community_verified",
+        knowledge_state: "community_reported",
         source_fidelity: "high",
         vehicle_applicability: "untested_by_project",
         scope: { brand_ids: ["seat"], marques: ["seat"], platform_ids: ["seat_mii_electric_shared_up"] },
@@ -250,7 +250,7 @@ const CONFIG: Record<string, BrandConfig> = {
       {
         claim_id: "vag.s01.opendbc_platform_classification",
         exact_claim: "opendbc's manufacturer-group platform module classifies platform generations, WMI/chassis and firmware-query behavior, useful for fingerprinting which platform branch a connected vehicle is on.",
-        knowledge_state: "community_verified",
+        knowledge_state: "community_reported",
         source_fidelity: "high",
         vehicle_applicability: "untested_by_project",
         scope: { brand_ids: ["vag"], marques: ["volkswagen", "audi"] },
@@ -315,7 +315,7 @@ const CONFIG: Record<string, BrandConfig> = {
       {
         claim_id: "vag.s06.longitudinal_2015_command_support",
         exact_claim: "An OBDb test fixture records a physical command-support matrix for a 2015 longitudinal-platform vehicle: dense engine/transmission UDS/OBD support, and no evidence that transverse or electric body routes apply.",
-        knowledge_state: "community_verified",
+        knowledge_state: "community_reported",
         source_fidelity: "high",
         vehicle_applicability: "untested_by_project",
         scope: { brand_ids: ["vag"], marques: ["audi"], platform_ids: ["audi_mlb"], years: { from: 2015, to: 2015 } },
@@ -328,7 +328,7 @@ const CONFIG: Record<string, BrandConfig> = {
       {
         claim_id: "vag.s07.performance_ev_2022_command_support",
         exact_claim: "An OBDb test fixture records a physical command-support matrix for a 2022 performance-EV platform vehicle, including explicit rejections of many generic group make-level route candidates.",
-        knowledge_state: "community_verified",
+        knowledge_state: "community_reported",
         source_fidelity: "high",
         vehicle_applicability: "untested_by_project",
         scope: { brand_ids: ["vag"], marques: ["audi"], platform_ids: ["audi_j1"], years: { from: 2022, to: 2022 } },
@@ -370,23 +370,43 @@ const slug = (value: string): string =>
 /** `normalized_vehicle_fact` in research.rs, so model ids match what the runtime compares. */
 const modelId = (value: string): string => slug(value);
 
-/** Legacy vocabulary -> specification §4 `knowledge_state`. */
+/**
+ * Legacy vocabulary -> specification §4 `knowledge_state`.
+ *
+ * Nothing here maps to `community_verified`: that state means the same
+ * finding reproduced across two or more vehicles, which only the fleet
+ * promotion gate can establish. A source being operational, exact or
+ * physically tested by its own author says how good the source is, not how
+ * widely the finding was reproduced, so it stays `community_reported` and
+ * the quality lives in `reliability` / `source_fidelity`. The validator
+ * rejects the state outright, and `assertNoFleetPromotion` below is the
+ * migrator's own guard.
+ */
 const KNOWLEDGE_STATE: Record<string, string> = {
   source_confirmed: "community_reported",
   source_confirmed_model_scoped: "community_reported",
-  source_confirmed_platform_scoped: "community_verified",
-  source_confirmed_platform_route: "community_verified",
+  source_confirmed_platform_scoped: "community_reported",
+  source_confirmed_platform_route: "community_reported",
   research_candidate_make_level: "research_candidate",
   shared_make_level_research_candidate: "research_candidate",
   vag_group_route_candidate: "research_candidate",
-  physically_supported_model_scoped: "community_verified",
-  negative_physical_evidence_model_scoped: "community_verified",
+  physically_supported_model_scoped: "community_reported",
+  negative_physical_evidence_model_scoped: "community_reported",
   transport_normalization_required: "unknown",
   family_hypothesis: "research_candidate",
   family_candidate: "research_candidate",
   cross_model_family_candidate: "research_candidate",
   oem_confirmed: "oem_confirmed",
 };
+
+/** No authored record may claim fleet verification. */
+function assertNoFleetPromotion(records: Json[], kind: string): void {
+  for (const record of records) {
+    if (record.knowledge_state === "community_verified") {
+      throw new Error(`${kind} ${record.route_id ?? record.candidate_id ?? record.platform_id ?? record.ecu_family_id ?? record.claim_id} asserts community_verified, which only fleet evidence may set`);
+    }
+  }
+}
 const knowledgeState = (legacy: string | undefined, fallback = "research_candidate"): string =>
   (legacy && KNOWLEDGE_STATE[legacy]) || fallback;
 
@@ -921,7 +941,7 @@ function main(): void {
         readServices: [hex(record.service ?? "0x22")],
         sourceRefs: record.source_refs ?? [],
         confidence: record.confidence ?? "high",
-        knowledge: knowledgeState(record.knowledge_state, "community_verified"),
+        knowledge: knowledgeState(record.knowledge_state, "community_reported"),
         executableInLegacy: true,
         boundary: record.non_generalization_boundary ?? "One tested vehicle only.",
         derivedFrom: "command-support-evidence.json",
@@ -1218,6 +1238,10 @@ function main(): void {
 
   rmSync(output, { recursive: true, force: true });
   mkdirSync(output, { recursive: true });
+
+  for (const [kind, records] of [["route", routes], ["candidate", candidates], ["platform", platforms], ["ecu family", families], ["claim", config.claims]] as Array<[string, Json[]]>) {
+    assertNoFleetPromotion(records, kind);
+  }
 
   const files: Array<[string, unknown]> = [
     [`${args.get("brand")}-profile-overlay.json`, overlay],

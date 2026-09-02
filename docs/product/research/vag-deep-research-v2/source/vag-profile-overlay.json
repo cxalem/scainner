@@ -64,7 +64,7 @@
     {
       "claim_id": "vag.s01.opendbc_platform_classification",
       "exact_claim": "opendbc's manufacturer-group platform module classifies platform generations, WMI/chassis and firmware-query behavior, useful for fingerprinting which platform branch a connected vehicle is on.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": {
@@ -194,7 +194,7 @@
     {
       "claim_id": "vag.s06.longitudinal_2015_command_support",
       "exact_claim": "An OBDb test fixture records a physical command-support matrix for a 2015 longitudinal-platform vehicle: dense engine/transmission UDS/OBD support, and no evidence that transverse or electric body routes apply.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": {
@@ -226,7 +226,7 @@
     {
       "claim_id": "vag.s07.performance_ev_2022_command_support",
       "exact_claim": "An OBDb test fixture records a physical command-support matrix for a 2022 performance-EV platform vehicle, including explicit rejections of many generic group make-level route candidates.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": {
