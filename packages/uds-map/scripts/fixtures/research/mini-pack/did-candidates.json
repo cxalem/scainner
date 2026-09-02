@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "candidates": [
+    {
+      "candidate_id": "examplebrand.gen1.gateway.2a53",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "platform_ids": [
+          "examplebrand_gen1"
+        ],
+        "models": [
+          "one"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "route_id": "examplebrand_gen1_gateway_710_77a",
+      "service": "22",
+      "session": "default",
+      "did": "2A53",
+      "semantic": "low-voltage supply",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S01-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "low-voltage supply"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 20
+          },
+          "source_refs": [
+            "S01"
+          ]
+        }
+      ],
+      "validation_recipe_id": "voltage_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "confidence": "medium",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S01"
+      ],
+      "non_generalization_boundary": "First generation gateway only."
+    }
+  ],
+  "declared_count": 1
+}

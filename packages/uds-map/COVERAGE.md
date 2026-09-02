@@ -71,6 +71,45 @@ Known DIDs whose module the research does not name (`modules: []`, `binding: "un
 
 - `obdb-citroen` v2 (CC-BY-SA-4.0): psa — 1 module(s), 5 DID(s), 13 decode(s)
 
+## Research
+
+Research candidates are evidence about *where to look*, never trusted knowledge: no row here decodes a value or labels a module. Counted from the runtime packs listed in `data/research-packs.json`. Columns: **Packs** research packs carrying a profile for the brand · **Routes** candidate routes (platform-scoped in brackets) · **Exploration** routes offered only to explicit parked exploration · **Candidate DIDs** identifiers a reached route may ask for · **Negative** candidates the research itself marks never-to-request (unsupported, or disproven on a test vehicle).
+
+| Brand | Packs | Routes | Exploration | Candidate DIDs | Negative |
+|---|---|---:|---:|---:|---:|
+| bmw | 1 | 0 | 0 | 0 | 0 |
+| byd | 1 | 1 (1 platform-scoped) | 0 | 6 | 0 |
+| ferrari | 1 | 0 | 0 | 0 | 0 |
+| gm | 1 | 0 | 0 | 0 | 0 |
+| honda | 1 | 0 | 0 | 0 | 0 |
+| hyundai_kia | 1 | 0 | 0 | 0 | 0 |
+| jlr | 1 | 3 (3 platform-scoped) | 0 | 0 | 0 |
+| livan_maple | 1 | 0 | 0 | 0 | 0 |
+| lucid | 1 | 0 | 0 | 0 | 0 |
+| maxus | 1 | 2 (2 platform-scoped) | 0 | 6 | 0 |
+| mazda | 1 | 1 | 0 | 0 | 0 |
+| mg | 1 | 1 (1 platform-scoped) | 0 | 2 | 0 |
+| mitsubishi | 1 | 0 | 0 | 0 | 0 |
+| nissan | 1 | 0 | 0 | 0 | 0 |
+| omoda | 1 | 0 | 0 | 0 | 0 |
+| porsche | 1 | 1 (1 platform-scoped) | 0 | 2 | 0 |
+| psa | 2 | 53 (53 platform-scoped) | 49 | 7 | 0 |
+| renault | 1 | 76 (76 platform-scoped) | 0 | 23 | 0 |
+| rivian | 1 | 0 | 0 | 0 | 0 |
+| seat | 1 | 100 (12 platform-scoped) | 0 | 323 | 0 |
+| skoda | 1 | 3 | 0 | 0 | 0 |
+| subaru | 1 | 2 | 0 | 0 | 0 |
+| suzuki | 1 | 2 | 0 | 1 | 0 |
+| tesla | 1 | 0 | 0 | 0 | 0 |
+| vag | 1 | 104 (14 platform-scoped) | 0 | 235 | 18 |
+| volvo | 1 | 0 | 0 | 0 | 0 |
+| **total** | 4 packs | 349 (163 platform-scoped) | 49 | 605 | 18 |
+
+- `new-brand-research-v2` v2 (2026-08-29): byd, ferrari, jlr, livan_maple, lucid, maxus, mg, omoda, porsche, rivian, suzuki
+- `existing-brand-hypotheses-v3-delta` v5 (2026-08-31): bmw, gm, honda, hyundai_kia, mazda, mitsubishi, nissan, psa, seat, skoda, subaru, tesla, vag, volvo
+- `renault-deep-research-runtime-v1` v1 (2026-08-31): renault
+- `psa-deep-research-runtime-v1` v1 (2026-08-31): psa
+
 ## Sources
 
 | Source | Type | Licence | Brands |

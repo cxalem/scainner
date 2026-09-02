@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "ecu_family_id": "examplebrand_gen1_gateway",
+      "role": "gateway",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "platform_ids": [
+          "examplebrand_gen1"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "observed_route_ids": [
+        "examplebrand_gen1_gateway_710_77a"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "proposed_candidate_ids": [
+        "examplebrand.gen1.gateway.2a53"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "promotion_test": "Reproduce a compatible fingerprint and decoder on two vehicles.",
+      "non_generalization_boundary": "First generation only."
+    }
+  ],
+  "declared_count": 1
+}

@@ -20,9 +20,14 @@
     "psa_mmc_ev_ion_czero"
   ],
   "warnings": [
+    "route psa_c41_engine_6a8_688: authorized without an immutable source, accepted only because the trusted map already carries 6A8/688",
+    "route psa_c41_abs_esc_6ad_68d: authorized without an immutable source, accepted only because the trusted map already carries 6AD/68D",
+    "route psa_c41_eps_6b5_695: authorized without an immutable source, accepted only because the trusted map already carries 6B5/695",
+    "route psa_c41_front_camera_or_cvm_74a_64a: authorized without an immutable source, accepted only because the trusted map already carries 74A/64A",
     "psa_c41_front_camera_or_cvm_74a_64a is locally confirmed but missing from command-support evidence",
     "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
   ],
+  "platform_proposals": 7,
   "confirmed_routes": [
     {
       "route_id": "psa_c41_engine_6a8_688",

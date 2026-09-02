@@ -118,3 +118,65 @@ export function brandStats(map: UdsMap, b: Brand): BrandStats {
 export function decodeShape(d: Decode): string {
   return `${d.encoding}${d.signed ? "/signed" : ""}${d.encoding === "bitfield" ? `[${d.bit_offset}+${d.bit_len}]` : ""}`;
 }
+
+// ---- research candidate packs (data/research/*.json, listed by data/research-packs.json)
+// Research is evidence about where to look, never trusted knowledge, so it is
+// counted separately from the map above and never merged into `brandStats`.
+
+export type ResearchPack = {
+  pack_id: string;
+  version: number;
+  research_date: string;
+  profiles: Array<{
+    brand_id: string;
+    platforms?: Array<{ platform_id: string }>;
+    routes: Array<{
+      platform: string;
+      exploration_only?: boolean;
+      candidate_dids?: Array<string | { support_status?: string; automatic_execution_authorized?: boolean }>;
+    }>;
+  }>;
+};
+
+export type ResearchBrandStats = {
+  id: string;
+  packs: string[];
+  routes: number;
+  explorationRoutes: number;
+  platformScopedRoutes: number;
+  candidateDids: number;
+  negativeEvidence: number;
+};
+
+export function loadResearchPacks(): ResearchPack[] {
+  const index = JSON.parse(readFileSync(join(PKG_DIR, "data", "research-packs.json"), "utf-8")) as { packs: string[] };
+  return index.packs.map((name) => JSON.parse(readFileSync(join(PKG_DIR, "data", name), "utf-8")) as ResearchPack);
+}
+
+/** A candidate the pack itself marks as never-to-be-requested: preserved evidence, not a read. */
+function isNegativeEvidence(did: string | { support_status?: string; automatic_execution_authorized?: boolean }): boolean {
+  if (typeof did === "string") return false;
+  return did.automatic_execution_authorized === false || did.support_status === "unsupported" || did.support_status === "explicitly_unsupported_on_test_vehicle";
+}
+
+/** Per-brand research totals, keyed by brand id, in the packs' listed order. */
+export function researchStats(packs: ResearchPack[] = loadResearchPacks()): Map<string, ResearchBrandStats> {
+  const stats = new Map<string, ResearchBrandStats>();
+  for (const pack of packs) {
+    for (const profile of pack.profiles ?? []) {
+      const entry = stats.get(profile.brand_id) ?? { id: profile.brand_id, packs: [], routes: 0, explorationRoutes: 0, platformScopedRoutes: 0, candidateDids: 0, negativeEvidence: 0 };
+      if (!entry.packs.includes(pack.pack_id)) entry.packs.push(pack.pack_id);
+      for (const route of profile.routes ?? []) {
+        entry.routes += 1;
+        if (route.exploration_only) entry.explorationRoutes += 1;
+        if (route.platform !== "unknown") entry.platformScopedRoutes += 1;
+        for (const did of route.candidate_dids ?? []) {
+          entry.candidateDids += 1;
+          if (isNegativeEvidence(did)) entry.negativeEvidence += 1;
+        }
+      }
+      stats.set(profile.brand_id, entry);
+    }
+  }
+  return stats;
+}

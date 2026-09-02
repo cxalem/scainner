@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "artifact_type": "research_profile_overlay",
+  "authoring_contract": "docs/uds/brand-research-pack-specification.md",
+  "brand_ids": [
+    "examplebrand"
+  ],
+  "marques": [
+    "examplebrand"
+  ],
+  "research_date": "2026-09-01",
+  "merge_mode": "additive_only",
+  "knowledge_dimensions": {
+    "knowledge_state": "research_candidate/community_reported/inherited/locally_confirmed/community_verified/oem_confirmed/unknown",
+    "vehicle_fit": "untested/matched/conflicted/insufficient",
+    "route_state": "reached/refused/silent/transport_failed/closed",
+    "identity_fit": "provisional/stable/conflicted",
+    "activation": "disabled/learning/enabled"
+  },
+  "claims": [
+    {
+      "claim_id": "examplebrand.gen1.gateway_route_grammar",
+      "exact_claim": "The fictional source set defines one gateway request/response pair 710/77A on the first generation.",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "platform_ids": [
+          "examplebrand_gen1"
+        ],
+        "models": [
+          "one"
+        ]
+      },
+      "source_refs": [
+        "S01"
+      ],
+      "vehicle_applicability": "untested_by_project",
+      "action_if_connected": "Probe the route for presence and identity before reading any candidate identifier.",
+      "promotion_test": "Reproduce the route and identity on two vehicles of the same generation.",
+      "non_generalization_boundary": "First generation only."
+    }
+  ]
+}

@@ -15,6 +15,7 @@
 //! - `packs`    — overlay packs enumerated from `data/packs.json`
 //! - `research` — untrusted research candidates used only to prioritize discovery
 //! - `plan`     — the parked-verification plan generator
+//! - `request`  — the de-identified research request generated from vehicle evidence
 //! - `knowledge` — the knowledge version key and the run-once gate over it
 //! - `auto`     — the automatic census → identity → join → coverage run
 
@@ -27,6 +28,7 @@ pub mod knowledge;
 pub mod pack_ext;
 pub mod packs;
 pub mod plan;
+pub mod request;
 pub mod research;
 pub mod state;
 

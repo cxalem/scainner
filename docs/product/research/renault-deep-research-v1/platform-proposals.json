@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "pack_id": "renault-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-08-31",
+  "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+  "proposals": [
+    {
+      "platform_id": "dacia_cmf_a_ev",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "dacia"
+      ],
+      "models": [
+        "spring"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "CMF-A-derived Dacia Spring EV branch.",
+      "transport_candidates": [],
+      "confidence": "medium_high",
+      "knowledge_state": "oem_confirmed",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S12",
+          "url": "https://github.com/OBDb/Dacia-Spring/blob/main/signalsets/v3/default.json",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "source_state_only"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "dacia_cmf_b",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "dacia"
+      ],
+      "models": [
+        "sandero_3",
+        "logan_3",
+        "jogger",
+        "duster_3",
+        "bigster"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "lpg"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Dacia CMF-B family.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S17",
+          "url": "https://media.dacia.com/more-duster-still-duster-2/?lang=eng",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_ampr_medium",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "megane_e_tech",
+        "scenic_e_tech"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "AmpR Medium, formerly CMF-EV.",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S13",
+          "url": "https://www.renaultgroup.com/en/magazine/energy-and-powertrains/the-cmf-ev-platform-advances-the-new-generation-of-electric-vehicles/",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S14",
+          "url": "https://media.renault.com/world-premiere-all-new-renault-megane-e-tech-100-electric-36825?lang=eng",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S15",
+          "url": "https://media.renault.com/scenic-e-tech-electric-voted-the-car-of-the-year-2024?lang=eng",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S11",
+          "url": "https://github.com/OBDb/Renault-Megane-E-Tech/blob/main/signalsets/v3/default.json",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "source_state_only"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_ampr_small",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "renault_5",
+        "renault_4"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "AmpR Small with SWEET400 E/E architecture.",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S16",
+          "url": "https://www.renaultgroup.com/en/magazine/energy-and-powertrains/this-is-more-than-a-platform-to-build-electric-vehicles/",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_cmf_b",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "clio_5",
+        "captur_2"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "phev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "CMF-B Renault B-segment architecture.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "related_existing_keys": [],
+      "sources": [],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_cmf_cd",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "megane"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "phev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Renault C/D family represented here by combustion/hybrid Megane diagnostic evidence.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S07",
+          "url": "https://github.com/OBDb/Renault-Megane/blob/dc9a1616841979e9bd1acf27c617e77eee695e13/signalsets/v3/default.json",
+          "revision": "dc9a1616841979e9bd1acf27c617e77eee695e13",
+          "retrieved_at": "2026-08-31",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "medium_high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_cmf_cd_gen3",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "austral"
+      ],
+      "powertrains": [
+        "hev",
+        "mhev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Third-generation CMF-CD.",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "oem_confirmed",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S18",
+          "url": "https://be.media.renaultgroup.com/nouveau-renault-austral-le-suv-techno-de-la-nouvelle-vague/?lang=bel",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_legacy_project_code",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault",
+        "dacia"
+      ],
+      "models": [],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Pre-modern Renault project-code families with mixed ISO9141/KWP2000/CAN diagnostics.",
+      "transport_candidates": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_twingo3_ph2",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "twingo_3"
+      ],
+      "powertrains": [
+        "ice",
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Twingo III Phase 2 mixed powertrain architecture with explicit CAN routes and S-GW3.",
+      "transport_candidates": [
+        "can11_500",
+        "can29_normal_fixed"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S05",
+          "url": "https://github.com/fesch/CanZE/blob/8c516e6af39206a14a51770a2a9c8293e1bb66ca/app/src/main/assets/Twingo_3_Ph2/_Ecus.csv",
+          "revision": "8c516e6af39206a14a51770a2a9c8293e1bb66ca",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0-or-later",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_twizy",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "twizy"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Twizy EV diagnostic subset.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S06",
+          "url": "https://github.com/fesch/CanZE/blob/710add8d4fca5aaf4720ca6a429b1fdc712649bf/app/src/main/assets/Twizy/_Ecus.csv",
+          "revision": "710add8d4fca5aaf4720ca6a429b1fdc712649bf",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0-or-later",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_zoe_ph1",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "zoe"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Zoe Phase 1 ZE diagnostic architecture.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [
+        "zoe"
+      ],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE/_Ecus.csv",
+          "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0-or-later",
+          "reliability": "high"
+        },
+        {
+          "ref": "S02",
+          "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE/EVC_Fields.csv",
+          "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0-or-later",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "renault_zoe_ph2",
+      "brand_ids": [
+        "renault"
+      ],
+      "marques": [
+        "renault"
+      ],
+      "models": [
+        "zoe"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Zoe Phase 2 mixed 11-bit and exact normal-fixed 29-bit diagnostic architecture.",
+      "transport_candidates": [
+        "can11_500",
+        "can29_normal_fixed"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [
+        "zoe"
+      ],
+      "sources": [
+        {
+          "ref": "S03",
+          "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE_Ph2/_Ecus.csv",
+          "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0-or-later",
+          "reliability": "high"
+        },
+        {
+          "ref": "S04",
+          "url": "https://github.com/fesch/CanZE/blob/ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2/app/src/main/assets/ZOE_Ph2/LBC_Fields.csv",
+          "revision": "ce7d40cd98d5e0b14fd3c96ccee47c06f5de9ae2",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0-or-later",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    }
+  ]
+}

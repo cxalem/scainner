@@ -260,6 +260,7 @@ pub fn run(
             state,
             route_json.as_deref(),
             outcome.detail.as_deref(),
+            outcome.nrc,
         );
         match state {
             "reached" | "refused" => {

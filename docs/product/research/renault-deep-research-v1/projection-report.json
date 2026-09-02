@@ -26,8 +26,11 @@
     "renault_ampr_small"
   ],
   "warnings": [
+    "candidate renault.megane.abs.4b35 variant S07-a: bitfield signal 0 has no bit_offset/bit_len, so the variant stays documentation-only",
+    "candidate renault.megane.abs.4b35 variant S07-a: bitfield signal 1 has no bit_offset/bit_len, so the variant stays documentation-only",
     "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
   ],
+  "platform_proposals": 12,
   "confirmed_routes": [],
   "archived_files": [
     {

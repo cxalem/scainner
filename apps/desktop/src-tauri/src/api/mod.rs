@@ -331,6 +331,10 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/vehicles/{id}/parked-plan", get(vehicle_parked_plan))
         .route("/vehicles/{id}/guided-steps", get(vehicle_guided_steps))
         .route("/vehicles/{id}/hypotheses", get(vehicle_hypotheses))
+        .route(
+            "/vehicles/{id}/research-request",
+            get(vehicle_research_request),
+        )
         .route("/vehicles/{id}/join", post(vehicle_join))
         .route("/vehicles/{id}/discovery/run", post(vehicle_discovery_run))
         .route("/knowledge/candidates", get(knowledge_candidates))
@@ -852,6 +856,19 @@ async fn vehicle_hypotheses(State(api): State<Arc<ApiState>>, Path(id): Path<i64
         return Err(no_vehicle(id));
     }
     ok(ops::list_hypotheses(&api.state, id))
+}
+
+/// What this car said, de-identified, for the next research round: WMI (no
+/// VIN), module fingerprints (no serial), route outcomes with their NRCs,
+/// unlabelled identifiers and the questions they raise.
+async fn vehicle_research_request(
+    State(api): State<Arc<ApiState>>,
+    Path(id): Path<i64>,
+) -> ApiResult {
+    match ops::research_request(&api.state, id) {
+        Some(request) => ok(request),
+        None => Err(no_vehicle(id)),
+    }
 }
 
 async fn vehicle_join(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
@@ -1577,6 +1594,50 @@ mod tests {
     /// car, an operator confirmation wherever the gearbox matters, and a
     /// plan version composed from the pack revision.
     #[tokio::test]
+    async fn the_research_request_is_de_identified_and_asks_about_what_stayed_quiet() {
+        let (api, db) = test_api();
+        let seeded = crate::elm::discovery::join::fixtures::seed_c4(&db);
+        let vehicle = seeded.vehicle_id;
+        let vin = db.vehicle(vehicle).unwrap().vin.unwrap();
+
+        let (status, _) = call(
+            &api,
+            "GET",
+            "/vehicles/999/research-request",
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+
+        db.record_route_outcome(vehicle, None, "752/652", "silent", None, None, None);
+        db.record_route_outcome(vehicle, None, "752/652", "silent", None, None, None);
+        let (status, body) = call(
+            &api,
+            "GET",
+            &format!("/vehicles/{vehicle}/research-request"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["schema_version"], 1);
+        assert_eq!(body["wmi"], vin[..3].to_string());
+        assert!(!body["knowledge_key"].as_str().unwrap().is_empty());
+        assert!(!body["modules"].as_array().unwrap().is_empty());
+        assert!(body["questions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|question| question.as_str().unwrap().contains("752/652")));
+
+        // The whole document, not one field: nothing owner-specific may
+        // survive into a file meant for a research prompt.
+        let serialized = serde_json::to_string(&body).unwrap();
+        assert!(!serialized.contains(&vin), "{serialized}");
+    }
+
+    #[tokio::test]
     async fn guided_steps_are_generated_from_open_hypotheses() {
         let (api, db) = test_api();
         let seeded = crate::elm::discovery::join::fixtures::seed_c4(&db);
@@ -2035,6 +2096,7 @@ mod tests {
             "/vehicles/{id}/evidence-map",
             "/vehicles/{id}/coverage",
             "/vehicles/{id}/hypotheses",
+            "/vehicles/{id}/research-request",
             "/vehicles/{id}/guided-steps",
             "/vehicles/{id}/join",
             "/hypotheses/{id}",

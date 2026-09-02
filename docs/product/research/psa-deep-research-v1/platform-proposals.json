@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "pack_id": "psa-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-08-31",
+  "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+  "proposals": [
+    {
+      "platform_id": "psa_aee2001_legacy",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "peugeot",
+        "citroen",
+        "ds"
+      ],
+      "models": [],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "AEE2001: first-generation VAN+CAN architecture; main nodes on CAN, comfort/body on VAN; K-line also part of the architecture.",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S02",
+          "url": "https://github.com/prototux/PSA-RE/blob/74294e99bd8f4decbfcdceabb11c7413dd977f4d/architectures.yml",
+          "revision": "74294e99bd8f4decbfcdceabb11c7413dd977f4d",
+          "retrieved_at": "2026-08-31",
+          "licence": "Apache-2.0",
+          "reliability": "high_for_architecture"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "psa_aee2004_fullcan",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "peugeot",
+        "citroen",
+        "ds"
+      ],
+      "models": [],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "AEE2004: first full-CAN generation; 500 kbit/s HS inter-systems CAN, 125 kbit/s low-speed comfort/body CAN, LIN; source lists UDS/EOBD.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S02",
+          "url": "https://github.com/prototux/PSA-RE/blob/74294e99bd8f4decbfcdceabb11c7413dd977f4d/architectures.yml",
+          "revision": "74294e99bd8f4decbfcdceabb11c7413dd977f4d",
+          "retrieved_at": "2026-08-31",
+          "licence": "Apache-2.0",
+          "reliability": "high_for_architecture"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "psa_aee2010_fullcan",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "peugeot",
+        "citroen",
+        "ds"
+      ],
+      "models": [],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "AEE2010: second full-CAN generation with HS inter-systems/LAS, multiple low-speed domains and LIN; full/eco/EV variants documented at architecture level.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S02",
+          "url": "https://github.com/prototux/PSA-RE/blob/74294e99bd8f4decbfcdceabb11c7413dd977f4d/architectures.yml",
+          "revision": "74294e99bd8f4decbfcdceabb11c7413dd977f4d",
+          "retrieved_at": "2026-08-31",
+          "licence": "Apache-2.0",
+          "reliability": "high_for_architecture"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "psa_c41_project_observed",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "citroen"
+      ],
+      "models": [
+        "c4_iii"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2020,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Citroën C4 III / project C41; project-observed modern PSA CAN diagnostic branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "locally_confirmed",
+      "related_existing_keys": [
+        "c41"
+      ],
+      "sources": [
+        {
+          "ref": "S00",
+          "url": "local:/mnt/data/uds-map.json",
+          "revision": "v9",
+          "retrieved_at": "2026-08-31",
+          "licence": "project_internal",
+          "reliability": "project_baseline"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "psa_ecmp_e208",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "peugeot"
+      ],
+      "models": [
+        "e_208"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Peugeot e-208 modern Stellantis/PSA EV branch with exact source-backed CAN11 enhanced routes.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S03",
+          "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/peugeot/e-208.json",
+          "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0",
+          "reliability": "high_model_scoped"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "psa_mmc_ev_ion_czero",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "peugeot",
+        "citroen"
+      ],
+      "models": [
+        "ion",
+        "c_zero"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Mitsubishi-derived i-MiEV sibling EV branch used by Peugeot iOn and Citroën C-Zero.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_verified",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S04",
+          "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/peugeot/ion.json",
+          "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0",
+          "reliability": "high_model_scoped"
+        },
+        {
+          "ref": "S05",
+          "url": "https://github.com/meatpiHQ/wican-fw/blob/bc3ae6d4ad09f32b96ca101b31950e4fbf56b825/vehicle_profiles/citroen/c-zero.json",
+          "revision": "bc3ae6d4ad09f32b96ca101b31950e4fbf56b825",
+          "retrieved_at": "2026-08-31",
+          "licence": "GPL-3.0",
+          "reliability": "high_model_scoped"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "psa_new_architecture_route_incomplete",
+      "brand_ids": [
+        "psa"
+      ],
+      "marques": [
+        "peugeot",
+        "citroen",
+        "ds"
+      ],
+      "models": [],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Placeholder for newer PSA/Stellantis electrical generations not safely normalized by this research pass.",
+      "transport_candidates": [],
+      "confidence": "low",
+      "knowledge_state": "unknown",
+      "related_existing_keys": [],
+      "sources": [],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "validation_recipes": [
+    {
+      "validation_recipe_id": "voltage_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "record the candidate value",
+        "compare with a trusted voltage reference"
+      ],
+      "expected_behavior": [
+        "difference stays within measurement tolerance"
+      ],
+      "reference_signals": [
+        "trusted_voltage_reference"
+      ],
+      "promotion_result": "vehicle_fit_matched"
+    }
+  ],
+  "declared_count": 1
+}

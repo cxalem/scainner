@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "brand_ids": [
+    "examplebrand"
+  ],
+  "central_policy_relationship": "Brand pack may only reduce central limits.",
+  "automatic_discovery": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "passive_capture": "attempt only if the adapter reliably monitors the active pins"
+  },
+  "never_automatic_services": [
+    "10_non_default",
+    "11",
+    "14",
+    "27",
+    "28",
+    "2E",
+    "2F",
+    "31",
+    "34",
+    "35",
+    "36",
+    "37",
+    "3D"
+  ],
+  "brand_budget_reductions": {
+    "S0_standard_handshake_seconds": 30,
+    "S1_census_plus_S2_identity_seconds": 120,
+    "S4_bounded_parked_sweep_seconds": 200,
+    "whole_automatic_connection_seconds": 500,
+    "learning_drive_max_link_occupancy_percent": 10
+  },
+  "29bit_policy": {
+    "generic_enumeration_authorized": false,
+    "exact_platform_routes_authorized": [],
+    "conditions": [],
+    "not_authorized_by": [
+      "11-bit silence"
+    ]
+  },
+  "session_policy": {
+    "product": "default_only",
+    "security_access_after_extended_session": false
+  },
+  "nrc_policy": {
+    "78": "bounded wait without resend",
+    "security_related": "terminate path"
+  }
+}

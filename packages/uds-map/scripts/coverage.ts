@@ -7,7 +7,7 @@
 // No brand is named here: every row comes from data.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { brandStats, decodeShape, loadMap, loadPacks, PKG_DIR } from "./pack.ts";
+import { brandStats, decodeShape, loadMap, loadPacks, loadResearchPacks, PKG_DIR, researchStats } from "./pack.ts";
 
 export function renderCoverage(): string {
   const map = loadMap();
@@ -83,6 +83,28 @@ export function renderCoverage(): string {
     const dids = p.brands.reduce((n, b) => n + (b.known_dids ?? []).length, 0);
     const decodes = p.brands.reduce((n, b) => n + (b.known_dids ?? []).reduce((m, k) => m + (k.decodes ?? []).length, 0), 0);
     lines.push(`- \`${p.id}\` v${p.version} (${p.license}): ${p.brands.map((b) => b.id).join(", ")} — ${p.brands.reduce((n, b) => n + (b.modules ?? []).length, 0)} module(s), ${dids} DID(s), ${decodes} decode(s)`);
+  }
+  lines.push("");
+
+  lines.push("## Research");
+  lines.push("");
+  lines.push(
+    "Research candidates are evidence about *where to look*, never trusted knowledge: no row here decodes a value or labels a module. Counted from the runtime packs listed in `data/research-packs.json`. Columns: **Packs** research packs carrying a profile for the brand · **Routes** candidate routes (platform-scoped in brackets) · **Exploration** routes offered only to explicit parked exploration · **Candidate DIDs** identifiers a reached route may ask for · **Negative** candidates the research itself marks never-to-request (unsupported, or disproven on a test vehicle).",
+  );
+  lines.push("");
+  const research = researchStats(loadResearchPacks());
+  lines.push("| Brand | Packs | Routes | Exploration | Candidate DIDs | Negative |");
+  lines.push("|---|---|---:|---:|---:|---:|");
+  for (const r of [...research.values()].sort((a, b) => a.id.localeCompare(b.id))) {
+    lines.push(`| ${r.id} | ${r.packs.length} | ${r.routes}${r.platformScopedRoutes ? ` (${r.platformScopedRoutes} platform-scoped)` : ""} | ${r.explorationRoutes} | ${r.candidateDids} | ${r.negativeEvidence} |`);
+  }
+  const totals = [...research.values()];
+  lines.push(
+    `| **total** | ${new Set(totals.flatMap((r) => r.packs)).size} packs | ${totals.reduce((n, r) => n + r.routes, 0)} (${totals.reduce((n, r) => n + r.platformScopedRoutes, 0)} platform-scoped) | ${totals.reduce((n, r) => n + r.explorationRoutes, 0)} | ${totals.reduce((n, r) => n + r.candidateDids, 0)} | ${totals.reduce((n, r) => n + r.negativeEvidence, 0)} |`,
+  );
+  lines.push("");
+  for (const pack of loadResearchPacks()) {
+    lines.push(`- \`${pack.pack_id}\` v${pack.version} (${pack.research_date}): ${pack.profiles.map((p) => p.brand_id).sort().join(", ")}`);
   }
   lines.push("");
 

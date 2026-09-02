@@ -248,6 +248,17 @@ def evidence_map(vehicle_id: int) -> dict:
 
 @mcp.tool()
 @guarded
+def research_request(vehicle_id: int) -> dict:
+    """De-identified "what the car said" for the next deep-research prompt: WMI
+    (never the VIN), platform and knowledge keys, module fingerprints (never a
+    serial), route outcomes with NRC and attempt counts, unlabeled DIDs with
+    byte length and shape class, identity conflicts, open-hypothesis counts and
+    generated questions. Local, no car traffic."""
+    return api().research_request(vehicle_id)
+
+
+@mcp.tool()
+@guarded
 def probes(vehicle_id: int | None = None) -> list | dict:
     """Decode definitions (module, did, offset, len, scale, bias, unit, enabled)."""
     return api().probes(vehicle_id=vehicle_id)
