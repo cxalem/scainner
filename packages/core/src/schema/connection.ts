@@ -36,6 +36,14 @@ export const DiscoveryStatus = Schema.Struct({
 });
 export type DiscoveryStatus = typeof DiscoveryStatus.Type;
 
+export const LearningStatus = Schema.Struct({
+  cohort: Schema.Number,
+  module: Schema.optional(Schema.NullOr(Schema.String)),
+  samples_this_ride: Schema.Number,
+  suspended: Schema.Boolean,
+});
+export type LearningStatus = typeof LearningStatus.Type;
+
 export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   state: Schema.String,
   stage: Schema.optional(Schema.NullOr(ConnectStage)),
@@ -49,6 +57,7 @@ export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   scanning: Schema.optional(Schema.Boolean),
   discovery: Schema.optional(Schema.NullOr(DiscoveryStatus)),
   ride: Schema.optional(Schema.NullOr(RideStatus)),
+  learning: Schema.optional(Schema.NullOr(LearningStatus)),
 }) {}
 
 export type Live = Record<string, number>;

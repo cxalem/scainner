@@ -3062,6 +3062,28 @@ impl Db {
             .collect()
     }
 
+    pub fn write_hypothesis_analysis(
+        &self,
+        hypothesis_id: i64,
+        shape_json: &str,
+        interpretations_json: &str,
+        confidence: f64,
+        vehicle_fit: Option<&str>,
+    ) {
+        let conn = self.0.lock().unwrap();
+        let _ = conn.execute(
+            "UPDATE hypotheses SET shape_json=?1, interpretations_json=?2, confidence=?3,
+             vehicle_fit=COALESCE(?4, vehicle_fit), updated_at=datetime('now') WHERE id=?5",
+            params![
+                shape_json,
+                interpretations_json,
+                confidence,
+                vehicle_fit,
+                hypothesis_id
+            ],
+        );
+    }
+
     pub fn add_uds_module(
         &self,
         key: &str,
