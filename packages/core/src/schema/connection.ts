@@ -18,6 +18,42 @@ export const ConnectFailure = Schema.Struct({
 });
 export type ConnectFailure = typeof ConnectFailure.Type;
 
+// What the automatic sensor run (the backend's S1-S3 pass) is doing on
+// this connection. It rides the same conn-status broadcast as `scanning`
+// because it answers the same question from the user's side: live data is
+// paused, and this is why (owner, 2026-09-01).
+export const DiscoveryRunState = Schema.Literal("idle", "running", "skipped", "done");
+export type DiscoveryRunState = typeof DiscoveryRunState.Type;
+
+// Why the run happened or did not. A token, not a sentence: the copy is
+// the app's, in the user's language (i18n dictionary t.discovery.reason).
+export const DiscoveryReason = Schema.Literal(
+  "never_run",
+  "knowledge_changed",
+  "requested",
+  "knowledge_unchanged",
+);
+export type DiscoveryReason = typeof DiscoveryReason.Type;
+
+// The four stages the protocol names, in the order they run.
+export const DiscoveryStage = Schema.Literal("census", "identity", "join", "coverage");
+export type DiscoveryStage = typeof DiscoveryStage.Type;
+
+export const DiscoveryStatus = Schema.Struct({
+  state: DiscoveryRunState,
+  reason: Schema.optional(Schema.NullOr(DiscoveryReason)),
+  stage: Schema.optional(Schema.NullOr(DiscoveryStage)),
+  stage_done: Schema.optional(Schema.NullOr(Schema.Number)),
+  stage_total: Schema.optional(Schema.NullOr(Schema.Number)),
+  // When THIS run started; when the last completed run finished.
+  started_at: Schema.optional(Schema.NullOr(Schema.String)),
+  last_run_at: Schema.optional(Schema.NullOr(Schema.String)),
+  // The maps this build ships. Same key twice = the same run would find
+  // the same things, which is exactly why it is skipped.
+  knowledge_key: Schema.String,
+});
+export type DiscoveryStatus = typeof DiscoveryStatus.Type;
+
 export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   state: Schema.String,
   // Set while `state` is "connecting": which stage is running right now.
@@ -44,6 +80,9 @@ export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   // view already listens to, so any tab can show an honest "scanning"
   // state instead of a silently frozen one (owner, 2026-08-24).
   scanning: Schema.optional(Schema.Boolean),
+  // Absent until the connect phase has decided (and on a disconnected
+  // status): "we don't know yet", not "idle".
+  discovery: Schema.optional(Schema.NullOr(DiscoveryStatus)),
 }) {}
 
 // Live-event payload (from `listen("live-update", ...)`, not `invoke`) —

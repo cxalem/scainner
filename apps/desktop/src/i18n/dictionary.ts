@@ -372,6 +372,34 @@ export type Dictionary = {
       estimateNote: string;
     };
   };
+  // The automatic sensor run, as the user meets it: a banner on Overview
+  // while it blocks live data, a notice on Live saying why the gauges are
+  // empty, and its state plus a "Scan again" button in the Lab (owner,
+  // 2026-09-01: "nothing says so").
+  autoScan: {
+    banner: { title: string; line: string; action: string; dismiss: string };
+    live: { title: string; body: string; action: string };
+    lab: {
+      title: string;
+      explainer: string;
+      runningLine: (stage: string) => string;
+      skippedLine: (when: string) => string;
+      doneLine: (when: string) => string;
+      idleLine: string;
+      unknownLine: string;
+      scanAgain: string;
+      scanning: string;
+      queued: string;
+      failed: string;
+      stages: { census: string; identity: string; join: string; coverage: string };
+      reason: {
+        never_run: string;
+        knowledge_changed: string;
+        requested: string;
+        knowledge_unchanged: string;
+      };
+    };
+  };
   lab: {
     discovery: {
       cardTitle: string;

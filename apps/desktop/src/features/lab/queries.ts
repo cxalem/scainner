@@ -85,6 +85,21 @@ export function useDiscoveredModules(vehicleId: number | null) {
   });
 }
 
+/// "Scan again": clears this vehicle's stored knowledge key (so its next
+/// connection runs the automatic pass) and runs the pass now when it is
+/// the connected car. Minutes on a live car — the state line follows
+/// conn-status meanwhile, not this mutation.
+export function useRunDiscovery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { vehicleId: number }) => run((device) => device.runDiscovery(vars.vehicleId)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["discovered_modules"] });
+      void qc.invalidateQueries({ queryKey: ["vehicle_evidence_map"] });
+    },
+  });
+}
+
 export function useFingerprintExperiment() {
   return useQuery({
     queryKey: ["fingerprint_experiment"],

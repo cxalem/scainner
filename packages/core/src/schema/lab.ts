@@ -224,3 +224,16 @@ export class FingerprintExperimentReport extends Schema.Class<FingerprintExperim
   match_groups: Schema.mutable(Schema.Array(FingerprintMatchGroup)),
   observations: Schema.mutable(Schema.Array(FingerprintObservation)),
 }) {}
+
+// The answer to "Scan again". Two independent facts, because they answer
+// two questions: `triggered` is "is it running right now" (only possible
+// on the connected car), `cleared` is "will the next connection run it".
+// The backend also returns the run's `summary`; the app reads its result
+// from the same queries a connect-time run refreshes, so it is not decoded
+// here (Schema.Struct ignores keys it does not name).
+export class DiscoveryRun extends Schema.Class<DiscoveryRun>("DiscoveryRun")({
+  triggered: Schema.Boolean,
+  cleared: Schema.Boolean,
+  knowledge_key: Schema.String,
+  detail: Schema.String,
+}) {}
