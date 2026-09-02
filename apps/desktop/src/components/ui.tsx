@@ -80,8 +80,8 @@ export function PageHeader({
   aside?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-4">
-      <div className="flex flex-1 flex-col gap-[3px]">
+    <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+      <div className="flex min-w-[20rem] flex-1 flex-col gap-[3px]">
         <Kicker className="tracking-[0.12em]">{kicker}</Kicker>
         <h1 className="text-[22px]">{title}</h1>
         {lede && <p className="mt-0.5 max-w-[64ch] text-[13px] leading-[1.55] text-neutral-500">{lede}</p>}

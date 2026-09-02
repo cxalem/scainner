@@ -7,11 +7,15 @@ import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../sch
 import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, DiscoveryRun, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
 import type { HistoryPoint, ReadingKey } from "../schema/history";
+import type { Ride } from "../schema/ride";
 
 export class DeviceService extends Context.Tag("DeviceService")<
   DeviceService,
   {
     readonly connStatus: () => Effect.Effect<ConnStatus, InvokeError | ParseResult.ParseError>;
+    readonly startRide: () => Effect.Effect<Ride, InvokeError | ParseResult.ParseError>;
+    readonly stopRide: (id: number) => Effect.Effect<Ride, InvokeError | ParseResult.ParseError>;
+    readonly listRides: (vehicleId: number) => Effect.Effect<Ride[], InvokeError | ParseResult.ParseError>;
     readonly connect: () => Effect.Effect<void, InvokeError>;
     readonly disconnect: () => Effect.Effect<void, InvokeError>;
     readonly listAdapters: () => Effect.Effect<AdapterCandidate[], InvokeError | ParseResult.ParseError>;

@@ -27,6 +27,14 @@ pub struct ConnStatus {
     pub vehicle_is_new: bool,
     pub scanning: bool,
     pub discovery: Option<DiscoveryStatus>,
+    pub ride: Option<RideStatus>,
+}
+
+#[derive(Clone, Serialize, Debug, PartialEq)]
+pub struct RideStatus {
+    pub id: i64,
+    pub started_at: String,
+    pub sample_count: i64,
 }
 
 #[derive(Clone, Serialize, Debug, Default, PartialEq)]
@@ -173,6 +181,11 @@ pub enum Request {
     NameVehicle {
         name: String,
         tx: Sender<Result<i64, String>>,
+    },
+    StartRide(Sender<Result<crate::db::Ride, String>>),
+    StopRide {
+        id: i64,
+        tx: Sender<Result<crate::db::Ride, String>>,
     },
     Stop,
 }
@@ -377,6 +390,7 @@ fn run_loop(
         let mut dtc_schedule = DtcScanSchedule::new(DTC_SCAN_INTERVAL_DEFAULT);
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
+        let mut ride = db.active_ride();
 
         macro_rules! service_requests {
             () => {
@@ -397,6 +411,9 @@ fn run_loop(
                                     Err(e) => log::warn!("closing fault-code scan failed: {e}"),
                                 }
                                 dtc_schedule.record(tick);
+                            }
+                            if let Some(active) = ride.take() {
+                                let _ = db.stop_ride(active.id);
                             }
                             db.end_connection(ctx.connection_id);
                             set_status(
@@ -443,6 +460,42 @@ fn run_loop(
                                 announce_dtc_scan(&app, result);
                             }
                             let _ = tx.send(res);
+                        }
+                        Request::StartRide(tx) => {
+                            let result = ctx.vehicle_id.ok_or_else(|| "not connected to an identified vehicle".to_string()).and_then(|vehicle_id| db.start_ride(vehicle_id, ctx.connection_id));
+                            if let Ok(started) = &result {
+                                ride = Some(started.clone());
+                                let snapshot = {
+                                    let mut guard = status.lock().unwrap();
+                                    guard.ride = Some(RideStatus { id: started.id, started_at: started.started_at.clone(), sample_count: 0 });
+                                    guard.clone()
+                                };
+                                let _ = app.emit("conn-status", &snapshot);
+                                probe_interval = PROBE_INTERVAL_LEARNING_DEFAULT;
+                            }
+                            let _ = tx.send(result);
+                        }
+                        Request::StopRide { id, tx } => {
+                            let result = match ride.as_ref().filter(|active| active.id == id) {
+                                None => Err("ride is not active".into()),
+                                Some(_) => {
+                                    let scan = record_dtc_scan(&mut drv, &db, ctx);
+                                    dtc_schedule.record(tick);
+                                    if let Ok(value) = &scan { announce_dtc_scan(&app, value); }
+                                    scan.and_then(|_| db.stop_ride(id))
+                                }
+                            };
+                            if result.is_ok() {
+                                ride = None;
+                                let snapshot = {
+                                    let mut guard = status.lock().unwrap();
+                                    guard.ride = None;
+                                    guard.clone()
+                                };
+                                let _ = app.emit("conn-status", &snapshot);
+                                probe_interval = 0;
+                            }
+                            let _ = tx.send(result);
                         }
                         req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx, &status),
                     }
@@ -498,6 +551,9 @@ fn run_loop(
                                 }
                                 dtc_schedule.record(tick);
                             }
+                            if let Some(active) = ride.take() {
+                                let _ = db.stop_ride(active.id);
+                            }
                             db.end_connection(ctx.connection_id);
                             continue 'outer;
                         }
@@ -541,10 +597,11 @@ fn run_loop(
                 }
             }
             if tick % 40 == 0 {
-                let learning_on = db
-                    .setting_get(discovery::state::LEARNING_STATE_SETTING)
-                    .map(|v| v == "on")
-                    .unwrap_or(false);
+                let learning_on = ride.is_some()
+                    || db
+                        .setting_get(discovery::state::LEARNING_STATE_SETTING)
+                        .map(|v| v == "on")
+                        .unwrap_or(false);
                 let resolved = probe_interval_ticks(
                     db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
                     learning_on,
@@ -571,6 +628,24 @@ fn run_loop(
                 let uds_values = uds::poll_probes(&mut drv, &db, ctx);
                 for (k, v) in uds_values {
                     values.insert(k, v);
+                }
+            }
+            if tick % 20 == 0 {
+                if let Some(active) = ride.as_mut() {
+                    if let Some(current) = db.ride(active.id) {
+                        let count = db.ride_sample_count(active.id);
+                        active.sample_count = count;
+                        let snapshot = {
+                            let mut guard = status.lock().unwrap();
+                            guard.ride = Some(RideStatus {
+                                id: current.id,
+                                started_at: current.started_at,
+                                sample_count: count,
+                            });
+                            guard.clone()
+                        };
+                        let _ = app.emit("conn-status", &snapshot);
+                    }
                 }
             }
 
@@ -1133,6 +1208,12 @@ fn handle_request(
         }
         Request::NameVehicle { tx, .. } => {
             let _ = tx.send(Err("naming is handled by the connection loop".into()));
+        }
+        Request::StartRide(tx) => {
+            let _ = tx.send(Err("ride request reached the wrong handler".into()));
+        }
+        Request::StopRide { tx, .. } => {
+            let _ = tx.send(Err("ride request reached the wrong handler".into()));
         }
         Request::Stop => {}
     }

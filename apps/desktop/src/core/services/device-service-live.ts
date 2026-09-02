@@ -28,6 +28,7 @@ import {
   SensorReading,
   HistoryPoint,
   ReadingKey,
+  Ride,
 } from "@scainner/core";
 
 function call<T>(command: string, args?: Record<string, unknown>): Effect.Effect<T, InvokeError> {
@@ -47,6 +48,9 @@ function decoded<A, I>(
 
 export const DeviceServiceLive = Layer.succeed(DeviceService, {
   connStatus: () => decoded(ConnStatus, "conn_status"),
+  startRide: () => decoded(Ride, "start_ride"),
+  stopRide: (id) => decoded(Ride, "stop_ride", { id }),
+  listRides: (vehicleId) => decoded(Schema.mutable(Schema.Array(Ride)), "list_rides", { vehicleId }),
   connect: () => call<void>("connect"),
   disconnect: () => call<void>("disconnect"),
   listAdapters: () => decoded(Schema.mutable(Schema.Array(AdapterCandidate)), "list_adapters"),

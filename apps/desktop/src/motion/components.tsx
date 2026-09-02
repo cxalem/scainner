@@ -59,12 +59,13 @@ export function Grow({
   when,
   children,
   className,
+  boxClassName,
   ...rest
-}: DivProps & { when: boolean; children: ReactNode; className?: string }) {
+}: DivProps & { when: boolean; children: ReactNode; className?: string; boxClassName?: string }) {
   return (
     <AnimatePresence initial={false}>
       {when && (
-        <GrowBox className={className} {...rest}>
+        <GrowBox className={className} boxClassName={boxClassName} {...rest}>
           {children}
         </GrowBox>
       )}
@@ -75,8 +76,9 @@ export function Grow({
 function GrowBox({
   children,
   className,
+  boxClassName,
   ...rest
-}: DivProps & { children: ReactNode; className?: string }) {
+}: DivProps & { children: ReactNode; className?: string; boxClassName?: string }) {
   const reduced = useReducedMotion();
   const inner = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
@@ -94,6 +96,7 @@ function GrowBox({
 
   return (
     <motion.div
+      className={boxClassName}
       style={growBoxStyle}
       initial={{ height: 0, opacity: 0 }}
       animate={{ height, opacity: 1 }}

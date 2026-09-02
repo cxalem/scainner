@@ -6,6 +6,7 @@ import type { ClearOutcome, UdsModule, UdsProbe } from "@scainner/core";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@scainner/core";
 import type { HistoryPoint } from "@scainner/core";
 import type { SensorReading } from "@scainner/core";
+import type { Ride } from "@scainner/core";
 import udsMap from "../../../../packages/uds-map/data/uds-map.json";
 
 
@@ -100,6 +101,10 @@ export function mockListen<T>(event: string, cb: Listener<T>): Promise<() => voi
 
 
 let connState: ConnStatus = { state: "disconnected" };
+let mockRide: Ride | null = null;
+let mockRideDone: Ride[] = [];
+let mockRideSeq = 0;
+let mockRideTimer: number | null = null;
 let adapterProfile: AdapterProfile = {
   kind: "elm_serial",
   path: null,
@@ -687,7 +692,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           return undefined as T;
         }
       }
-      const isNew = !discovered;
+      const isNew = !discovered && previewQuery().get("mock_skip_discovery") !== "1";
       connState = {
         state: "connected",
         elm_version: "STN2100 · demo data",
@@ -716,11 +721,42 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       return undefined as T;
     }
     case "disconnect": {
+      if (mockRideTimer != null) window.clearInterval(mockRideTimer);
+      mockRideTimer = null;
+      mockRide = null;
+      mockRideDone = [];
       stopLiveTicking();
       connState = { state: "disconnected" };
       emit("conn-status", connState);
       return undefined as T;
     }
+    case "start_ride": {
+      if (connState.state !== "connected" || mockRide) throw new Error("ride cannot start");
+      mockRideSeq += 1;
+      mockRide = { id: mockRideSeq, cloud_id: `mock-ride-${mockRideSeq}`, vehicle_id: CONNECTED.id, connection_id: 1, started_at: new Date().toISOString(), ended_at: null, sample_count: 0, sensor_count: 0, dtc_events_count: 0, dtc_codes_appeared: 0, max_speed: null, max_coolant: null, min_voltage: null, notes: null };
+      connState = { ...connState, ride: { id: mockRide.id, started_at: mockRide.started_at, sample_count: 0 } };
+      emit("conn-status", connState);
+      mockRideTimer = window.setInterval(() => {
+        if (!mockRide) return;
+        mockRide = { ...mockRide, sample_count: mockRide.sample_count + 8 };
+        connState = { ...connState, ride: { id: mockRide.id, started_at: mockRide.started_at, sample_count: mockRide.sample_count } };
+        emit("conn-status", connState);
+      }, 1000);
+      return mockRide as T;
+    }
+    case "stop_ride": {
+      if (!mockRide || mockRide.id !== Number(args?.id)) throw new Error("ride is not active");
+      if (mockRideTimer != null) window.clearInterval(mockRideTimer);
+      mockRideTimer = null;
+      const finished: Ride = { ...mockRide, ended_at: new Date().toISOString(), sensor_count: 12, dtc_events_count: 1, dtc_codes_appeared: previewQuery().get("mock_ride_dtc") === "1" ? 1 : 0, max_speed: 83, max_coolant: 91, min_voltage: 13.7 };
+      mockRideDone = [finished, ...mockRideDone];
+      mockRide = null;
+      connState = { ...connState, ride: null };
+      emit("conn-status", connState);
+      return finished as T;
+    }
+    case "list_rides":
+      return mockRideDone as T;
     case "list_adapters":
       return [
         ...pairedInPreview,

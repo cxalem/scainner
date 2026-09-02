@@ -19,6 +19,7 @@ import { useNameCurrentVehicle, useVehicleReport, useVehicles } from "@/features
 import { buildVerdicts } from "@/views/overview/buildVerdicts";
 import { FuelCard } from "@/views/overview/FuelCard";
 import { useLocale, useT } from "@/i18n";
+import { Button as RideButton } from "@/components/ui/button";
 import { discoveryRunId, showDiscoveryBanner } from "@/lib/discovery-notice";
 import type { DiscoveryStatus } from "@scainner/core";
 
@@ -50,12 +51,16 @@ export function Overview({
   vin = null,
   discovery = null,
   onNavigate,
+  onStartRide,
+  canStartRide = false,
 }: {
   connState?: string;
   vehicleId?: number | null;
   vin?: string | null;
   discovery?: DiscoveryStatus | null;
   onNavigate?: (view: "diagnose" | "live" | "lab") => void;
+  onStartRide?: () => void;
+  canStartRide?: boolean;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -293,7 +298,8 @@ export function Overview({
             )}
           </div>
           {onNavigate && (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {canStartRide ? <RideButton size="sm" className="px-2.5 text-[12px]" onClick={onStartRide}>{t.ride.record}</RideButton> : null}
               <Button variant="primary" size="sm" onClick={() => onNavigate("diagnose")}>
                 {t.overview.verdict.openFaults}
               </Button>

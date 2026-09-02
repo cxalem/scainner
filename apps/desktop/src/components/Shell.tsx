@@ -18,7 +18,10 @@ import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { Wordmark } from "@/brand";
 import { Banner, Button, Dot, LiveChip, PageHeader, Pill, Seg, useCyclingLabel } from "@/components/ui";
+import { Button as RideButton } from "@/components/ui/button";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { RideBanner } from "@/components/RideBanner";
+import type { Ride } from "@scainner/core";
 import { Page, Reveal } from "@/motion/components";
 import { appearVariants } from "@/motion";
 import type { ConnStatus } from "@scainner/core";
@@ -44,6 +47,12 @@ export function Shell({
   onNavigate,
   conn,
   recording,
+  completedRide,
+  stoppingRide,
+  onStopRide,
+  onDismissRide,
+  onStartRide,
+  canStartRide = false,
   onConnect,
   onDisconnect,
   vehicles = [],
@@ -60,6 +69,12 @@ export function Shell({
   onNavigate: (v: ViewKey) => void;
   conn: ConnStatus;
   recording: boolean;
+  completedRide: Ride | null;
+  stoppingRide: boolean;
+  onStopRide: () => void;
+  onDismissRide: () => void;
+  onStartRide?: () => void;
+  canStartRide?: boolean;
   onConnect: () => void;
   onDisconnect: () => Promise<unknown>;
   vehicles?: VehicleOption[];
@@ -77,6 +92,9 @@ export function Shell({
   const connected = conn.state === "connected";
   const connecting = conn.state === "connecting";
   const connectLabel = useCyclingLabel(t.shell.connectPhrases, connecting, 700);
+  const headerAction = view === "live" && canStartRide
+    ? <RideButton size="sm" className="h-[30px] px-3 text-[12px]" onClick={onStartRide}>{t.ride.record}</RideButton>
+    : null;
   const [disconnecting, setDisconnecting] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
@@ -277,6 +295,7 @@ export function Shell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <UpdateBanner />
+        <RideBanner ride={conn.ride ?? null} completed={completedRide} stopping={stoppingRide} onStop={onStopRide} onDone={onDismissRide} />
         <Reveal when={browsing} mode="fade">
           <Banner
             tone="warn"
@@ -299,7 +318,14 @@ export function Shell({
               kicker={page.kicker}
               title={page.title}
               lede={page.lede(t.shell.appName)}
-              aside={liveLabel ? <LiveChip>{liveLabel}</LiveChip> : undefined}
+              aside={
+                liveLabel || headerAction ? (
+                  <div className="flex shrink-0 items-center gap-2.5">
+                    {liveLabel && <LiveChip>{liveLabel}</LiveChip>}
+                    {headerAction}
+                  </div>
+                ) : undefined
+              }
             />
             <AnimatePresence mode="wait" initial={false}>
               <Page key={view} className="flex flex-col gap-4">

@@ -253,6 +253,9 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/dtc/scan", post(dtc_scan))
         .route("/dtc/clear", post(dtc_clear))
         .route("/dtc/history", get(dtc_history))
+        .route("/rides", get(rides).post(start_ride))
+        .route("/rides/{id}", get(ride))
+        .route("/rides/{id}/stop", post(stop_ride))
         .route("/ecu-info", get(ecu_info))
         .route("/readiness", get(readiness))
         .route("/sensors", get(sensors))
@@ -331,6 +334,42 @@ async fn health(State(api): State<Arc<ApiState>>) -> ApiResult {
         "version": env!("CARGO_PKG_VERSION"),
         "connection": ops::conn_status(&api.state).state,
     }))
+}
+
+#[derive(Deserialize)]
+struct RidesQuery {
+    vehicle_id: i64,
+}
+
+async fn start_ride(State(api): State<Arc<ApiState>>) -> ApiResult {
+    ops::start_ride(&api.state)
+        .await
+        .map_err(|error| {
+            let status = if error.contains("already active") || error.contains("not connected") {
+                StatusCode::CONFLICT
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            };
+            ApiError::msg(status, error)
+        })
+        .and_then(ok)
+}
+
+async fn stop_ride(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ops::stop_ride(&api.state, id)
+        .await
+        .map_err(op_err)
+        .and_then(ok)
+}
+
+async fn rides(State(api): State<Arc<ApiState>>, Query(query): Query<RidesQuery>) -> ApiResult {
+    ok(ops::list_rides(&api.state, query.vehicle_id))
+}
+
+async fn ride(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    ops::ride(&api.state, id)
+        .map(ok)
+        .unwrap_or_else(|| Err(ApiError::msg(StatusCode::NOT_FOUND, "ride not found")))
 }
 
 async fn index(State(api): State<Arc<ApiState>>) -> Response {

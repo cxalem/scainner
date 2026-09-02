@@ -6,7 +6,25 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 16;
+const SCHEMA_VERSION: i64 = 17;
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct Ride {
+    pub id: i64,
+    pub cloud_id: String,
+    pub vehicle_id: i64,
+    pub connection_id: i64,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub sample_count: i64,
+    pub sensor_count: i64,
+    pub dtc_events_count: i64,
+    pub dtc_codes_appeared: i64,
+    pub max_speed: Option<f64>,
+    pub max_coolant: Option<f64>,
+    pub min_voltage: Option<f64>,
+    pub notes: Option<String>,
+}
 
 #[derive(Serialize, Clone)]
 pub struct DiagnosticCase {
@@ -545,6 +563,23 @@ pub struct SyncReading {
 }
 
 #[derive(Serialize)]
+pub struct SyncRide {
+    pub cloud_id: String,
+    pub vehicle_cloud_id: String,
+    pub connection_cloud_id: String,
+    pub started_at: String,
+    pub ended_at: String,
+    pub sample_count: i64,
+    pub sensor_count: i64,
+    pub dtc_events_count: i64,
+    pub dtc_codes_appeared: i64,
+    pub max_speed: Option<f64>,
+    pub max_coolant: Option<f64>,
+    pub min_voltage: Option<f64>,
+    pub notes: Option<String>,
+}
+
+#[derive(Serialize)]
 pub struct SyncProbe {
     pub cloud_id: String,
     pub vehicle_cloud_id: String,
@@ -610,6 +645,7 @@ pub struct SyncBatch {
     pub scan_events: Vec<SyncScanEvent>,
     pub writes: Vec<SyncWrite>,
     pub readings: Vec<SyncReading>,
+    pub rides: Vec<SyncRide>,
     pub probes: Vec<SyncProbe>,
     pub discovered_modules: Vec<SyncDiscoveredModule>,
     pub knowledge_candidates: Vec<KnowledgeCandidateRow>,
@@ -688,6 +724,25 @@ impl Db {
                 status TEXT NOT NULL CHECK (status IN ('stored','pending','permanent'))
             );
             CREATE INDEX IF NOT EXISTS idx_dtc_codes_event ON dtc_codes(scan_event_id);
+            CREATE TABLE IF NOT EXISTS rides (
+                id INTEGER PRIMARY KEY,
+                cloud_id TEXT NOT NULL UNIQUE,
+                vehicle_id INTEGER NOT NULL REFERENCES vehicles(id),
+                connection_id INTEGER NOT NULL REFERENCES connections(id),
+                started_at TEXT NOT NULL DEFAULT (datetime('now')),
+                ended_at TEXT,
+                sample_count INTEGER NOT NULL DEFAULT 0,
+                sensor_count INTEGER NOT NULL DEFAULT 0,
+                dtc_events_count INTEGER NOT NULL DEFAULT 0,
+                dtc_codes_appeared INTEGER NOT NULL DEFAULT 0,
+                max_speed REAL,
+                max_coolant REAL,
+                min_voltage REAL,
+                notes TEXT
+                ,start_reading_id INTEGER NOT NULL DEFAULT 0
+                ,end_reading_id INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_rides_vehicle_started ON rides(vehicle_id, started_at DESC);
             CREATE TABLE IF NOT EXISTS writes_log (
                 id INTEGER PRIMARY KEY,
                 connection_id INTEGER REFERENCES connections(id),
@@ -1022,6 +1077,7 @@ impl Db {
             "ALTER TABLE route_outcomes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1",
             [],
         );
+        conn.execute_batch("UPDATE rides SET ended_at = datetime('now') WHERE ended_at IS NULL;")?;
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
         Ok(Self(Mutex::new(conn)))
     }
@@ -1362,6 +1418,114 @@ impl Db {
             params![id],
         )
         .ok();
+    }
+
+    pub fn start_ride(&self, vehicle_id: i64, connection_id: i64) -> Result<Ride, String> {
+        let mut conn = self.0.lock().unwrap();
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        let active: i64 = tx
+            .query_row(
+                "SELECT COUNT(*) FROM rides WHERE ended_at IS NULL",
+                [],
+                |r| r.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        if active > 0 {
+            return Err("a ride is already active".into());
+        }
+        let linked: i64 = tx
+            .query_row(
+                "SELECT COUNT(*) FROM connections WHERE id=?1 AND vehicle_id=?2 AND ended_at IS NULL",
+                params![connection_id, vehicle_id],
+                |r| r.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        if linked == 0 {
+            return Err("not connected to this vehicle".into());
+        }
+        let cloud_id = uuid::Uuid::new_v4().to_string();
+        tx.execute(
+            "INSERT INTO rides (cloud_id, vehicle_id, connection_id, start_reading_id) VALUES (?1,?2,?3,(SELECT COALESCE(MAX(id),0) FROM readings))",
+            params![cloud_id, vehicle_id, connection_id],
+        )
+        .map_err(|e| e.to_string())?;
+        let id = tx.last_insert_rowid();
+        tx.execute(
+            "UPDATE connections SET upload_readings=1 WHERE id=?1",
+            [connection_id],
+        )
+        .map_err(|e| e.to_string())?;
+        tx.commit().map_err(|e| e.to_string())?;
+        drop(conn);
+        self.ride(id)
+            .ok_or_else(|| "ride could not be loaded".into())
+    }
+
+    pub fn stop_ride(&self, id: i64) -> Result<Ride, String> {
+        let conn = self.0.lock().unwrap();
+        let changed = conn.execute(
+            "UPDATE rides SET
+                ended_at=datetime('now'),
+                end_reading_id=(SELECT COALESCE(MAX(id),start_reading_id) FROM readings),
+                sample_count=(SELECT COUNT(*) FROM readings r WHERE r.connection_id=rides.connection_id AND r.id > rides.start_reading_id),
+                sensor_count=(SELECT COUNT(DISTINCT key) FROM readings r WHERE r.connection_id=rides.connection_id AND r.id > rides.start_reading_id),
+                dtc_events_count=(SELECT COUNT(*) FROM dtc_scan_events e WHERE e.connection_id=rides.connection_id AND e.ts BETWEEN rides.started_at AND datetime('now')),
+                dtc_codes_appeared=(SELECT COUNT(DISTINCT c.code) FROM dtc_codes c JOIN dtc_scan_events e ON e.id=c.scan_event_id WHERE e.connection_id=rides.connection_id AND e.ts BETWEEN rides.started_at AND datetime('now')),
+                max_speed=(SELECT MAX(value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='speed' AND r.id > rides.start_reading_id),
+                max_coolant=(SELECT MAX(value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='coolant' AND r.id > rides.start_reading_id),
+                min_voltage=(SELECT MIN(value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='voltage' AND r.id > rides.start_reading_id)
+             WHERE id=?1 AND ended_at IS NULL",
+            [id],
+        ).map_err(|e| e.to_string())?;
+        if changed == 0 {
+            return Err("ride is not active".into());
+        }
+        drop(conn);
+        self.ride(id)
+            .ok_or_else(|| "ride could not be loaded".into())
+    }
+
+    fn map_ride(r: &rusqlite::Row<'_>) -> rusqlite::Result<Ride> {
+        Ok(Ride {
+            id: r.get(0)?,
+            cloud_id: r.get(1)?,
+            vehicle_id: r.get(2)?,
+            connection_id: r.get(3)?,
+            started_at: r.get(4)?,
+            ended_at: r.get(5)?,
+            sample_count: r.get(6)?,
+            sensor_count: r.get(7)?,
+            dtc_events_count: r.get(8)?,
+            dtc_codes_appeared: r.get(9)?,
+            max_speed: r.get(10)?,
+            max_coolant: r.get(11)?,
+            min_voltage: r.get(12)?,
+            notes: r.get(13)?,
+        })
+    }
+
+    pub fn ride(&self, id: i64) -> Option<Ride> {
+        self.0.lock().unwrap().query_row("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes FROM rides WHERE id=?1", [id], Self::map_ride).ok()
+    }
+
+    pub fn active_ride(&self) -> Option<Ride> {
+        self.0.lock().unwrap().query_row("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes FROM rides WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1", [], Self::map_ride).ok()
+    }
+
+    pub fn rides(&self, vehicle_id: i64) -> Vec<Ride> {
+        let conn = self.0.lock().unwrap();
+        let mut q = conn.prepare("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes FROM rides WHERE vehicle_id=?1 ORDER BY started_at DESC").unwrap();
+        q.query_map([vehicle_id], Self::map_ride)
+            .unwrap()
+            .flatten()
+            .collect()
+    }
+
+    pub fn ride_sample_count(&self, id: i64) -> i64 {
+        self.0.lock().unwrap().query_row(
+            "SELECT COUNT(*) FROM readings r JOIN rides x ON x.connection_id=r.connection_id WHERE x.id=?1 AND r.id > x.start_reading_id AND (x.end_reading_id IS NULL OR r.id <= x.end_reading_id)",
+            [id], |r| r.get(0),
+        ).unwrap_or(0)
     }
 
     pub fn set_connection_protocol(&self, id: i64, protocol: &str) {
@@ -3261,7 +3425,9 @@ impl Db {
                      FROM readings r
                      JOIN connections c ON c.id = r.connection_id
                      JOIN vehicles v ON v.id = r.vehicle_id
+                     JOIN rides x ON x.connection_id = r.connection_id
                      WHERE r.id > ?1 AND c.upload_readings = 1
+                       AND x.ended_at IS NOT NULL AND r.id > x.start_reading_id AND r.id <= x.end_reading_id
                        AND c.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL
                      ORDER BY r.id LIMIT ?2",
                 )
@@ -3281,6 +3447,33 @@ impl Db {
                 last_reading_id = max;
             }
             list
+        };
+        let rides = {
+            let mut stmt = conn.prepare(
+                "SELECT x.cloud_id,v.cloud_id,c.cloud_id,x.started_at,x.ended_at,x.sample_count,x.sensor_count,x.dtc_events_count,x.dtc_codes_appeared,x.max_speed,x.max_coolant,x.min_voltage,x.notes
+                 FROM rides x JOIN connections c ON c.id=x.connection_id JOIN vehicles v ON v.id=x.vehicle_id
+                 WHERE c.upload_readings=1 AND x.ended_at IS NOT NULL AND c.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL"
+            ).unwrap();
+            stmt.query_map([], |r| {
+                Ok(SyncRide {
+                    cloud_id: r.get(0)?,
+                    vehicle_cloud_id: r.get(1)?,
+                    connection_cloud_id: r.get(2)?,
+                    started_at: r.get(3)?,
+                    ended_at: r.get(4)?,
+                    sample_count: r.get(5)?,
+                    sensor_count: r.get(6)?,
+                    dtc_events_count: r.get(7)?,
+                    dtc_codes_appeared: r.get(8)?,
+                    max_speed: r.get(9)?,
+                    max_coolant: r.get(10)?,
+                    min_voltage: r.get(11)?,
+                    notes: r.get(12)?,
+                })
+            })
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect()
         };
         let probes = {
             let mut stmt = conn
@@ -3401,6 +3594,7 @@ impl Db {
             scan_events,
             writes,
             readings,
+            rides,
             probes,
             discovered_modules,
             knowledge_candidates,
@@ -3550,6 +3744,47 @@ mod tests {
 
     fn test_db() -> Db {
         Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    #[test]
+    fn ride_start_stop_summarizes_window_and_gates_sync() {
+        let db = test_db();
+        let (vehicle_id, _) = db.ensure_vehicle("VF7RIDE0000000001");
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        db.insert_reading(connection_id, Some(vehicle_id), "speed", 9.0);
+
+        let ride = db.start_ride(vehicle_id, connection_id).unwrap();
+        assert_eq!(db.active_ride().unwrap().id, ride.id);
+        assert!(db.start_ride(vehicle_id, connection_id).is_err());
+        db.insert_reading(connection_id, Some(vehicle_id), "speed", 82.0);
+        db.insert_reading(connection_id, Some(vehicle_id), "coolant", 91.0);
+        db.insert_reading(connection_id, Some(vehicle_id), "voltage", 13.7);
+        db.insert_dtc_scan(
+            Some(connection_id),
+            Some(vehicle_id),
+            true,
+            &["P0301".into()],
+            &[],
+            &[],
+            Some(13.7),
+            None,
+        );
+
+        let stopped = db.stop_ride(ride.id).unwrap();
+        assert_eq!(stopped.sample_count, 3);
+        assert_eq!(stopped.sensor_count, 3);
+        assert_eq!(stopped.dtc_events_count, 1);
+        assert_eq!(stopped.dtc_codes_appeared, 1);
+        assert_eq!(stopped.max_speed, Some(82.0));
+        assert_eq!(stopped.max_coolant, Some(91.0));
+        assert_eq!(stopped.min_voltage, Some(13.7));
+        assert!(db.active_ride().is_none());
+
+        db.insert_reading(connection_id, Some(vehicle_id), "speed", 12.0);
+        let batch = db.sync_batch(0, 100);
+        assert_eq!(batch.rides.len(), 1);
+        assert_eq!(batch.readings.len(), 3);
     }
 
     #[test]
@@ -4250,13 +4485,10 @@ mod tests {
         let local_only = db.sync_batch(0, 100);
         assert!(local_only.readings.is_empty());
         assert_eq!(local_only.last_reading_id, 0);
-        db.0.lock()
-            .unwrap()
-            .execute(
-                "UPDATE connections SET upload_readings = 1 WHERE id = ?1",
-                params![c],
-            )
-            .unwrap();
+        let ride = db.start_ride(v, c).unwrap();
+        db.insert_reading(c, Some(v), "rpm", 820.0);
+        db.insert_reading(c, Some(v), "rpm", 830.0);
+        db.stop_ride(ride.id).unwrap();
         let batch = db.sync_batch(0, 100);
         assert_eq!(batch.vehicles.len(), 1);
         assert_eq!(batch.connections.len(), 1);

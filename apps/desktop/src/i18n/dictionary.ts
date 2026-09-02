@@ -1,4 +1,18 @@
 export type Dictionary = {
+  ride: {
+    record: string;
+    recording: string;
+    stop: string;
+    samples: (count: number) => string;
+    saved: {
+      none: (minutes: number, sensors: number) => string;
+      one: (minutes: number, sensors: number) => string;
+      many: (minutes: number, sensors: number, codes: number) => string;
+    };
+    location: string;
+    report: (price: string) => string;
+    done: string;
+  };
   common: {
     cancel: string;
     retry: string;
