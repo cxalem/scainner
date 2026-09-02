@@ -210,6 +210,14 @@ describe("listSections", () => {
     expect(listSections({ ...idle, scanning: true })).toEqual(["nearby", "paired"]);
   });
 
+  it("has the group open and the spinner inside it on the click's own frame", () => {
+    // Nothing has come back yet — not the scan, not a result. Both halves of
+    // what the user must see are decided from this one state.
+    const firstFrame: ScanState = { ...idle, scanning: true };
+    expect(listSections(firstFrame)[0]).toBe("nearby");
+    expect(scanRow(firstFrame)).toBe("scanning");
+  });
+
   it("keeps Nearby on top while its results are on screen", () => {
     expect(listSections({ ...idle, scanned: true, found: 2 })).toEqual(["nearby", "paired"]);
     expect(listSections({ ...idle, scanned: true })).toEqual(["nearby", "paired"]);

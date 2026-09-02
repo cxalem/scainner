@@ -23,6 +23,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   appearVariants,
   fadeVariants,
+  growBoxStyle,
   growTransition,
   layoutTransition,
   pageBlock,
@@ -138,7 +139,7 @@ function GrowBox({
 
   return (
     <motion.div
-      style={{ overflow: "hidden" }}
+      style={growBoxStyle}
       initial={{ height: 0, opacity: 0 }}
       animate={{ height, opacity: 1 }}
       exit={{ height: 0, opacity: 0 }}
