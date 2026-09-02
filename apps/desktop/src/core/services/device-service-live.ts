@@ -1,9 +1,3 @@
-// The desktop (Tauri) implementation of `DeviceService` (packages/core).
-// Split out from the shared contract on the monorepo move: the Tag lives in
-// @scainner/core, the concrete Live layer — which talks to Tauri's `invoke`
-// specifically — lives here, next to the app that owns that transport. A
-// future mobile transport gets its own Live layer next to apps/mobile
-// instead of a branch in this file.
 import { Effect, Layer, Schema, type ParseResult } from "effect";
 import { invoke } from "@/lib/tauri";
 import {
@@ -36,9 +30,6 @@ import {
   ReadingKey,
 } from "@scainner/core";
 
-// Collapses the try/promise/catch boilerplate every hand-written call site
-// used to repeat (research.md section 2). `decoded` adds a Schema parse on
-// top for commands with a structured response.
 function call<T>(command: string, args?: Record<string, unknown>): Effect.Effect<T, InvokeError> {
   return Effect.tryPromise({
     try: () => invoke<T>(command, args),

@@ -67,7 +67,6 @@ describe("buildSensorGroups", () => {
     const { groups, hiddenCount } = buildSensorGroups(KEYS, options());
     expect(hiddenCount).toBe(2);
     expect(groups.flatMap((g) => g.rows.map((r) => r.key))).toEqual(["voltage", "uds_wheel_speed_fl", "uds_steering_angle"]);
-    // The count beside a group name still describes every matching key.
     expect(groups.find((g) => g.name === "ABS / ESP")!.total).toBe(2);
   });
 

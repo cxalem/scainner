@@ -1,7 +1,3 @@
-// Vehicle — identity, where every fact came from, and your data.
-// Presentation over the same queries as before (vehicle_info, evidence
-// map, db path, ECU re-read, exports); the only write is the connected
-// car's display name (the one fact the backend lets the person set).
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
@@ -94,7 +90,6 @@ export function Vehicle({ connected, vehicleId = null }: { connected: boolean; v
     { id: "30d", label: t.vehicle.data.copyRawJson30d, icon: FileCode, go: () => copyExport(24 * 30, "30d") },
   ];
 
-  // Identity, from what the row actually holds.
   const brand = brandFromVin(vehicle?.vin);
   const make = vehicle?.make ?? brand?.name ?? null;
   const headline = [make, vehicle?.model].filter(Boolean).join(" ") || vehicle?.display_name || t.vehicle.identity.unnamed;

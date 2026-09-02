@@ -1,24 +1,3 @@
-// The cloud sync engine: pushes the local SQLite record up to Supabase
-// under the signed-in user's JWT, in idempotent batches.
-//
-// Design (docs/workflows/data-core/plan.md, sync section):
-// - Local SQLite stays the source of record; the app works fully offline
-//   forever. This loop only runs when a user is signed in AND online —
-//   sign-in enables sync, it never gates the app.
-// - Leak-free by construction: every request goes through supabase-js with
-//   the user's JWT; Postgres RLS decides row by row. There is no write
-//   path that bypasses it.
-// - Idempotent by construction: vehicles/connections/scan_events carry
-//   client-generated uuids as their cloud PRIMARY KEYS; readings conflict
-//   on (connection_id, local_id); dtc_codes on (event, code, status);
-//   writes_log on client_uuid. A retried batch upserts into a no-op.
-// - Low-volume tables (vehicles/connections/events/writes) re-push wholly
-//   every cycle (tens of rows, and it doubles as repair); readings are
-//   incremental behind a watermark persisted in app_settings.
-// - Unidentified rows (no vehicle) are EXCLUDED by the Rust feed — the
-//   cloud's RLS rejects them by design. Naming a car back-stamps them,
-//   and resetSyncWatermark() makes the next cycle re-scan from zero so
-//   the newly claimed readings ship too.
 import { invoke, MOCK_MODE } from "@/lib/tauri";
 import { supabase } from "@/lib/supabase";
 
@@ -100,7 +79,6 @@ export type SyncStatus = {
   phase: "signed_out" | "idle" | "syncing" | "error";
   lastSyncAt: number | null;
   lastError: string | null;
-  /** Total readings pushed this app session. */
   pushedReadings: number;
 };
 
@@ -118,7 +96,6 @@ function setStatus(next: Partial<SyncStatus>) {
   listeners.forEach((l) => l());
 }
 
-// useSyncExternalStore-compatible pair for the Account card.
 export function subscribeSyncStatus(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -127,8 +104,6 @@ export function getSyncStatus(): SyncStatus {
   return status;
 }
 
-/** SQLite's `datetime('now')` is UTC without a timezone marker; Postgres
- * must not re-interpret it in some other zone. */
 const toIso = (ts: string) => `${ts.replace(" ", "T")}Z`;
 
 async function getWatermark(): Promise<number> {
@@ -137,10 +112,6 @@ async function getWatermark(): Promise<number> {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Called after naming a VIN-less car: its already-recorded readings just
- * got back-stamped with the new vehicle, and they live BEHIND the current
- * watermark — rescan from zero (idempotent, so re-pushing is a no-op for
- * everything already uploaded). */
 export async function resetSyncWatermark(): Promise<void> {
   await invoke<void>("app_setting_set", { key: WATERMARK_KEY, value: "0" });
 }
@@ -153,7 +124,7 @@ async function runSyncOnce(): Promise<void> {
     setStatus({ phase: "signed_out" });
     return;
   }
-  if (!navigator.onLine) return; // quiet skip — offline is a normal state
+  if (!navigator.onLine) return;
   running = true;
   setStatus({ phase: "syncing", lastError: null });
   try {
@@ -327,13 +298,10 @@ async function runSyncOnce(): Promise<void> {
   }
 }
 
-/** Kick a sync now (the Account card's button, and post-sign-in). */
 export function requestSync(): void {
   void runSyncOnce();
 }
 
-/** Idempotent — App.tsx calls this once on mount. No-op in the browser
- * preview (no Tauri backend to pull batches from). */
 export function startSyncLoop(): void {
   if (MOCK_MODE || timer != null) return;
   timer = window.setInterval(() => void runSyncOnce(), INTERVAL_MS);

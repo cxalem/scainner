@@ -212,8 +212,6 @@ describe("listSections", () => {
   });
 
   it("has the group open and the spinner inside it on the click's own frame", () => {
-    // Nothing has come back yet — not the scan, not a result. Both halves of
-    // what the user must see are decided from this one state.
     const firstFrame: ScanState = { ...idle, scanning: true };
     expect(listSections(firstFrame)[0]).toBe("nearby");
     expect(scanRow(firstFrame)).toBe("scanning");
@@ -234,8 +232,6 @@ describe("isPinRequired", () => {
   it("leaves every other failure to the user", () => {
     expect(isPinRequired(new Error("pair_adapter failed: pairing aa-bb failed: Page Timeout"))).toBe(false);
     expect(isPinRequired(new Error("manual pairing required: …"))).toBe(false);
-    // Nothing here asks for anything: a device whose name happens to
-    // contain the word must not open a PIN field.
     expect(isPinRequired(new Error('pairing failed for "pin_required_device"'))).toBe(false);
   });
 });

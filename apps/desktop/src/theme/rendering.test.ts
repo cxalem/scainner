@@ -1,12 +1,3 @@
-// Proves the theme module's own shape: every 3D-layer constant that used to
-// be a hardcoded literal inside VehicleScene.tsx / emblems.tsx /
-// EmblemStarfield.tsx is present here, correctly typed, and byte-identical
-// to the value it replaced. This is what patterns/engineering.md rule 1's
-// exception clause still asks be tested even when the migration's *visual*
-// result needs a live check instead (see the commit history / builder
-// report for that check) — the "did every value actually move over intact"
-// claim is exactly the kind of thing a type-level/value-level test can
-// verify completely, so it does not fall back to a screenshot.
 import { describe, expect, it } from "vitest";
 import {
   CHROME_MATERIAL,
@@ -16,11 +7,6 @@ import {
   VEHICLE_MATERIALS,
 } from "./rendering";
 
-// Every value below is transcribed directly from the pre-migration source
-// (git history: VehicleScene.tsx, emblems.tsx, EmblemStarfield.tsx before
-// this stream's migration commit), not re-derived — a test that re-derives
-// the "expected" value from the same place the constant now lives would
-// prove nothing.
 describe("CHROME_MATERIAL (emblems.tsx's former EMBLEM_CHROME)", () => {
   it("matches the original chrome material physics byte-for-byte", () => {
     expect(CHROME_MATERIAL).toEqual({

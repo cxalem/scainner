@@ -1,8 +1,3 @@
-// Spanish labels for GAUGES/MONITOR_LABELS (gauges.ts) — same key-based
-// lookup pattern as lib/dtc.ts's localizedSystem/etc: the English data
-// stays the stable default, this is a parallel label map consulted only
-// for display. Units (km/h, °C, %, kPa, L/h, V, rpm) are NOT translated —
-// they're the same abbreviations in Spanish.
 export const GAUGE_LABELS_ES: Record<string, string> = {
   rpm: "RPM",
   speed: "Velocidad",

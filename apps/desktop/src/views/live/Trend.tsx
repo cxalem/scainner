@@ -1,10 +1,3 @@
-// "Over time": a browsable list of every sensor this car has stored on the
-// left, one sensor's trend on the right, a compare strip of up to four small
-// multiples under it, and the min/avg/max table for the chosen window.
-//
-// The list used to be a flat chip row of every reading key; the browser
-// (./SensorBrowser.tsx, list logic in ./sensor-browser.ts) groups the same
-// keys by the module that answers them and shows which ones hold data.
 import { Suspense, lazy, useCallback, useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import type { ReadingKey } from "@scainner/core";
@@ -20,13 +13,10 @@ const TrendLineChart = lazy(() => import("@/components/charts").then((m) => ({ d
 
 type RangeKey = "1h" | "24h" | "7d" | "30d";
 const RANGE_HOURS: Record<RangeKey, number> = Object.fromEntries(RANGES.map((r) => [r.label, r.hours])) as Record<RangeKey, number>;
-/** Four small multiples fit the column without shrinking past reading size. */
 const MAX_COMPARE = 4;
 
-/** The raw key with `uds_` and underscores dropped — the last-resort name. */
 const plainKey = (key: string) => key.replace(/^uds_/, "").replace(/_/g, " ");
 
-/** Points thinned to ~600 samples, with the axis label recharts wants. */
 function chartData(points: readonly { ts: string; value: number }[]) {
   const step = Math.max(1, Math.floor(points.length / 600));
   return points.filter((_, i) => i % step === 0).map((p) => ({ ...p, t: p.ts.slice(5, 16) }));
@@ -92,7 +82,6 @@ export function Trend({
   onSelectKey,
 }: {
   vehicleId: number | null;
-  /** Lifted to Live.tsx so a "Now" row can open its own sensor here. */
   sensorKey: string;
   onSelectKey: (key: string) => void;
 }) {
@@ -107,8 +96,6 @@ export function Trend({
   const keys = useMemo(() => keysQuery.data ?? [], [keysQuery.data]);
   const byKey = useMemo(() => new Map(keys.map((k) => [k.key, k])), [keys]);
 
-  // Labels come from the enriched keys; the gauge table names the standard
-  // ones, and a key with neither gets its raw form tidied up.
   const labelOf = useCallback(
     (entry: ReadingKey) =>
       entry.label ?? (GAUGES.some((g) => g.key === entry.key) ? gaugeLabel(entry.key, locale) : plainKey(entry.key)),

@@ -2,14 +2,6 @@ import { Eraser } from "lucide-react";
 import { Button, Dialog } from "@/components/ui";
 import { useT } from "@/i18n";
 
-// The one confirmation pattern every write action goes through. Part 1 of
-// the write-caps hard rule (confirmation + logged before/after + documented
-// reversal path). The dialog always states what will change, on which
-// module, and whether it can be undone; `reversal` is required on purpose.
-// Overlay, never inline, so confirming never shifts the layout.
-//
-// The backend refuses writes without `confirmed: true`; the confirm button
-// here is the only place the frontend sets that flag.
 export function ConfirmWrite({
   open = true,
   title,
@@ -34,8 +26,6 @@ export function ConfirmWrite({
   busy?: boolean;
   busyLabel?: string;
   cancelLabel?: string;
-  /** Optional Now / After summary box (what the car reports before and
-   *  what it will report after). */
   nowLine?: string;
   afterLine?: string;
   onConfirm: () => void;

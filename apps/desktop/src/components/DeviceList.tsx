@@ -25,17 +25,10 @@ import {
 } from "@/lib/device-list";
 import { useT } from "@/i18n";
 
-/** How long the radio inquiry runs. The backend clamps to 3..15; 8 s is
- *  long enough for a dongle that has just been powered up and short enough
- *  to wait through. */
 const DISCOVER_SECONDS = 8;
 
-/** Everything the Nearby group needs, so the gate passes one object down
- *  instead of a dozen props. */
 export type Discovery = ReturnType<typeof useDeviceList>["discovery"];
 
-/** Load the device list, keeping the user's selection across a refresh, and
- *  own the scan/pair state that sits under it. */
 export function useDeviceList() {
   const t = useT();
   const toast = useToast();
@@ -44,22 +37,16 @@ export function useDeviceList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Scan results live only as long as the list they were found against.
   const [nearby, setNearby] = useState<NearbyRow[]>([]);
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  // The address a pairing attempt is out on, and the one whose radio asked
-  // for a PIN — two different things, so a device can be pairing without a
-  // field open and holding a field open without an attempt running.
   const [pairingAddr, setPairingAddr] = useState<string | null>(null);
   const [pinAddr, setPinAddr] = useState<string | null>(null);
   const [pin, setPin] = useState(DEFAULT_PIN);
   const [pairError, setPairError] = useState<string | null>(null);
 
-  /** `preferBtAddr` is the radio just paired: it should be the selected row
-   *  the moment the OS exposes its serial node. */
   const refresh = useCallback(
     async (preferBtAddr?: string) => {
       setLoading(true);
@@ -100,9 +87,6 @@ export function useDeviceList() {
     void refresh();
   }, [refresh]);
 
-  // The countdown under the spinner. Costs one interval while the inquiry
-  // is out and nothing at all the rest of the time — a scan the user can
-  // see the end of is a scan they will wait through.
   useEffect(() => {
     if (!scanning) return;
     setSecondsLeft(DISCOVER_SECONDS);
@@ -110,9 +94,6 @@ export function useDeviceList() {
     return () => clearInterval(id);
   }, [scanning]);
 
-  /** Scan the air for radios that are not paired yet. Runs alongside the
-   *  list rather than replacing it — the paired rows stay usable while the
-   *  8 s inquiry is out. */
   const discover = useCallback(async () => {
     setScanning(true);
     setScanError(null);
@@ -132,8 +113,6 @@ export function useDeviceList() {
     }
   }, [rows, t.gate.discoveryUnavailable]);
 
-  /** The PIN that worked for the last dongle is a better opening guess than
-   *  the generic default, and it costs one read to know it. */
   const rememberedPin = useCallback(async () => {
     try {
       const profile = await runPromise(
@@ -145,15 +124,8 @@ export function useDeviceList() {
     }
   }, []);
 
-  /** One pairing attempt. `code` is null for the first try — which is all
-   *  Secure Simple Pairing needs — and the radio asking for a PIN is the
-   *  only failure that opens the field instead of reporting an error. A
-   *  failed retry *with* a code is an ordinary failure: the code was wrong. */
   const attempt = useCallback(
     async (addr: string, code: string | null) => {
-      // Read before the scan results are cleared: after the refresh below
-      // the radio is an ordinary row and the name it was found under is
-      // gone.
       const pairedName = nearby.find((row) => row.addr === addr)?.label ?? null;
       setPairingAddr(addr);
       setPairError(null);
@@ -162,19 +134,13 @@ export function useDeviceList() {
           Effect.flatMap(DeviceService, (device) => device.pairAdapter(addr, code)),
         );
         if (code) await savePairingPin(code);
-        // Re-enumerate: the paired radio is a device row now, and the scan
-        // results it came from are stale.
         await refresh(addr);
-        // Say so. The row it became is one of several in a list the user is
-        // not looking at yet, so the confirmation goes over the top.
         toast.show("success", t.gate.paired(pairedName ?? addr));
       } catch (failure) {
         if (code === null && isPinRequired(failure)) {
           setPinAddr(addr);
           setPin(await rememberedPin());
         } else {
-          // The field stays open on the failing row so the PIN can be
-          // retried without scanning again.
           setPairError(t.gate.pairFailed);
         }
       } finally {
@@ -221,10 +187,6 @@ export function useDeviceList() {
   };
 }
 
-/** Save the chosen device as the adapter profile, keeping every field the
- *  picker does not own (pin, baud, timing). The connect pipeline brings
- *  `bt_addr`'s link up when the platform reports it down; nothing pairs or
- *  unpairs anything. */
 export async function saveDeviceProfile(row: DeviceRow) {
   const profile = await runPromise(
     Effect.flatMap(DeviceService, (device) => device.adapterProfile()),
@@ -238,9 +200,6 @@ export async function saveDeviceProfile(row: DeviceRow) {
   );
 }
 
-/** Remember the PIN a pairing actually accepted, so the connect pipeline
- *  and the next dongle out of the same box both start from it. A merge over
- *  the current profile: nothing else here is the picker's to change. */
 async function savePairingPin(pin: string) {
   const profile = await runPromise(
     Effect.flatMap(DeviceService, (device) => device.adapterProfile()),
@@ -298,7 +257,6 @@ export function DeviceList({
   );
 }
 
-/** The devices the machine already has: the only rows Connect can act on. */
 function PairedRows({
   rows,
   selectedId,
@@ -316,8 +274,6 @@ function PairedRows({
   };
 
   return (
-    // shrink-0 for the same reason the Grow box carries it: this column
-    // scrolls, so nothing in it should be compressed to make room.
     <div className="flex shrink-0 flex-col gap-2" role="listbox" aria-label={t.gate.chooseDeviceTitle}>
       {rows.map((row) => {
         const selected = row.id === selectedId;
@@ -357,8 +313,6 @@ function PairedRows({
   );
 }
 
-/** Nothing paired yet. The way out is the Discover button in the header
- *  above, which is why this says what it says. */
 function EmptyDevices({ loading, compact }: { loading: boolean; compact: boolean }) {
   const t = useT();
   return (
@@ -377,16 +331,11 @@ function EmptyDevices({ loading, compact }: { loading: boolean; compact: boolean
   );
 }
 
-/** The scan's own group: quieter than the paired rows (a dashed rule, no
- *  accent) because nothing in it is connectable yet — but above them, so
- *  the spinner and then the results are where the click was. */
 function NearbyGroup({ discovery }: { discovery: Discovery }) {
   const t = useT();
   const { nearby, scan, secondsLeft, pairingAddr, pinAddr } = discovery;
   const status = scanRow(scan);
 
-  // The one line the scan owns. Keyed by `status`, so the countdown ticking
-  // down redraws in place and only a real change of state cross-fades.
   const note =
     status === "scanning" ? (
       <>
@@ -406,9 +355,6 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
     <section className="flex flex-col gap-2 rounded-md border border-dashed border-divider p-2.5">
       <h2 className="text-[11px] uppercase tracking-[0.1em] text-neutral-500">{t.gate.nearby}</h2>
 
-      {/* One grid cell for every state of the line, so the countdown and
-          what replaces it cross-fade over each other rather than one
-          pushing the other down. The group's own height follows. */}
       <div className="grid empty:hidden" aria-live="polite">
         <AnimatePresence initial={false}>
           {note && (
@@ -469,9 +415,6 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
   );
 }
 
-/** The PIN step, opened only by a radio that asked for one. Enter pairs,
- *  Escape closes — the row is small enough that reaching for the buttons
- *  should be optional. */
 function PinField({
   addr,
   pin,

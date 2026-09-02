@@ -4,9 +4,6 @@ import { useWritesLog } from "@/features/diagnose/queries";
 import type { WriteLogRow } from "@scainner/core";
 import { useT, type Dictionary } from "@/i18n";
 
-// The visible half of the write audit trail (writes_log table): every
-// change this app has sent to the car, with what was there before and
-// after. Part 2 of the write-caps hard rule.
 function codeCount(state: unknown): number | null {
   if (Array.isArray(state)) return state.length;
   if (state && typeof state === "object") {

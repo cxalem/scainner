@@ -1,4 +1,3 @@
-// Pinned sensors: a per-vehicle UI preference, stored in localStorage.
 import { useCallback, useEffect, useState } from "react";
 
 const keyFor = (vehicleId: number | null) => `live.pins.${vehicleId ?? "none"}`;
@@ -23,7 +22,6 @@ export function usePins(vehicleId: number | null) {
         try {
           window.localStorage.setItem(keyFor(vehicleId), JSON.stringify(next));
         } catch {
-          // preference only — losing it is harmless
         }
         return next;
       });

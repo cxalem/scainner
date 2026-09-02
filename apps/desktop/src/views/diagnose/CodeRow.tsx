@@ -9,11 +9,6 @@ import { useLocale, useT } from "@/i18n";
 
 export type CodeStatus = "stored" | "pending" | "permanent";
 
-// Drivability, not repair cost — and only what the app can honestly say:
-// pending = the car saw it once and has not confirmed it; stored/permanent
-// = confirmed, worth a look. Nothing here claims "stop driving": the
-// library has no severity field, and a guessed one would be a judgment
-// the app can't back (owner call, 2026-08-21).
 export function severityOf(status: CodeStatus): "watch" | "info" {
   return status === "pending" ? "info" : "watch";
 }
@@ -30,10 +25,6 @@ function freezeSummary(freeze: Record<string, unknown>, locale: "en" | "es"): st
     .join(" · ");
 }
 
-// One fault code: a row that opens into what it means, what usually causes
-// it, what you'd notice, and the evidence the car itself gave. Every claim
-// comes from the offline library or from the scan; where the library has
-// nothing, the section is simply absent.
 export function CodeRow({
   code,
   status,
@@ -85,9 +76,6 @@ export function CodeRow({
         )}
       >
         <span className={cn("h-[30px] w-[3px] shrink-0 rounded-[2px]", sev === "watch" ? "bg-warn-line" : "bg-neutral-700")} aria-hidden="true" />
-        {/* min-w: standard DTCs are a fixed 5 chars, but a manufacturer UDS
-            fault code isn't guaranteed to be — never let a fixed w risk
-            painting over the title column beside it. */}
         <Mono className="min-w-[62px] shrink-0 text-[14px]">{code}</Mono>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-[13.5px]">{info?.title ?? (structure ? localizedSystem(structure.system, locale) : t.diagnose.groups.notInLibrary)}</span>

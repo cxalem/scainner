@@ -1,11 +1,3 @@
-// The "Over time" sensor browser: one scrollable column of every key this
-// car has stored, searchable and grouped by the module that answers it.
-// Replaces the flat chip row, which listed ~60 raw keys with no grouping and
-// no sign of which ones held data.
-//
-// The list logic (filter, group, sort, the up/down walk) is pure and lives
-// in ./sensor-browser.ts; this file is the surface over it. On screens under
-// 900px the column is replaced by a select carrying the same groups.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import type { ReadingKey } from "@scainner/core";
@@ -33,8 +25,6 @@ function useGroups(props: BrowserProps, query: string, showAll: boolean) {
       buildSensorGroups(props.keys, {
         query,
         rangeHours: props.rangeHours,
-        // Read when the list is built: "in this range" has to be right then,
-        // not on a timer.
         now: Date.now(),
         showAll,
         keepKey: props.selected,
@@ -76,11 +66,8 @@ export function SensorBrowser(props: BrowserProps) {
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const { groups, hiddenCount } = useGroups(props, query, showAll);
   const walkable = useMemo(() => flattenKeys(groups, collapsed), [groups, collapsed]);
-  // Tab lands on the selected row, or on the first one when a search has
-  // filtered the selection out — the list is never unreachable by keyboard.
   const focusKey = walkable.includes(props.selected) ? props.selected : walkable[0];
 
-  // A group the search just emptied should not stay collapsed underneath it.
   useEffect(() => {
     if (query.trim()) setCollapsed(new Set());
   }, [query]);
@@ -212,7 +199,6 @@ export function SensorBrowser(props: BrowserProps) {
   );
 }
 
-/// The same list under 900px: one select, groups kept as optgroups.
 export function SensorSelect(props: BrowserProps) {
   const t = useT();
   const { groups } = useGroups(props, "", true);

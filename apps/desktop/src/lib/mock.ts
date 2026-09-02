@@ -1,7 +1,3 @@
-// Mock data + a tiny event bus, used only when the app is running outside a
-// real Tauri window (e.g. `pnpm dev` opened in a plain browser tab, with no
-// dongle attached). Lets the UI be previewed and iterated on without a car.
-// See `src/lib/tauri.ts` for how this is switched in.
 
 import { PIN_REQUIRED } from "@scainner/core";
 import type { AdapterProfile, ConnStatus, Live as LiveMap } from "@scainner/core";
@@ -10,13 +6,8 @@ import type { ClearOutcome, UdsModule, UdsProbe } from "@scainner/core";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@scainner/core";
 import type { HistoryPoint } from "@scainner/core";
 import type { SensorReading } from "@scainner/core";
-// The UDS knowledge pack (packages/uds-map/data/uds-map.json). Every demo
-// vehicle, module address, DID and plan name below is derived from it at
-// module-load time, so the demo carries no brand-specific literals. mock.ts
-// is only ever loaded in the browser preview, never in the Tauri bundle.
 import udsMap from "../../../../packages/uds-map/data/uds-map.json";
 
-// ---------- pack-derived demo vehicles ----------
 
 type PackModule = { req: string; resp: string; name: string };
 type PackDid = {
@@ -54,7 +45,6 @@ const parseHex = (s: string) => parseInt(s, 16);
 const slug = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "condition";
 
-// ISO 14229 identity DIDs (standard, brand-independent).
 const ISO_IDENTITY: { did: number; purpose: string }[] = [
   { did: 0xf186, purpose: "active diagnostic session" },
   { did: 0xf187, purpose: "spare part number" },
@@ -90,7 +80,6 @@ const didText = (d: PackDid) => d.discriminating_test ?? d.decodes?.find((x) => 
 const didsBoundTo = (brand: PackBrand, m: PackModule) =>
   (brand.known_dids ?? []).filter((d) => d.modules?.some((x) => x.req === m.req && x.resp === m.resp));
 
-// ---------- tiny event bus (mirrors @tauri-apps/api/event's listen shape) ----------
 
 type Listener<T> = (e: { event: string; id: number; payload: T }) => void;
 const bus = new Map<string, Set<Listener<unknown>>>();
@@ -109,7 +98,6 @@ export function mockListen<T>(event: string, cb: Listener<T>): Promise<() => voi
   });
 }
 
-// ---------- fake "the car is idling" live loop ----------
 
 let connState: ConnStatus = { state: "disconnected" };
 let adapterProfile: AdapterProfile = {
@@ -122,58 +110,19 @@ let adapterProfile: AdapterProfile = {
   baud: 115200,
   timing: "default",
 };
-// The two radios a scan "finds" in the preview: one with a friendly name,
-// one that answered without one (so the UI's address fallback is visible).
-// They pair differently on purpose — the named one does Secure Simple
-// Pairing and needs no code, the unnamed one asks for a PIN the first time,
-// so both halves of the pair flow are reachable in the preview.
 const NEARBY_IN_PREVIEW = [
   { addr: "aa-bb-cc-dd-ee-11", name: "OBD Reader 4821", paired: false },
   { addr: "aa-bb-cc-dd-ee-12", name: null, paired: false },
 ];
-/** The preview's PIN-less radio: `--pair` alone is enough for this one. */
 const PAIRS_WITHOUT_PIN = "aa-bb-cc-dd-ee-11";
-/** Addresses that have already been asked for a code this session, so the
- *  request happens once and the retry with the PIN succeeds. */
 const askedForPin = new Set<string>();
-// What the preview has paired this session — appended to list_adapters so
-// a paired device becomes an ordinary row, exactly as it does for real.
 const pairedInPreview: Record<string, unknown>[] = [];
-// Starts undiscovered on purpose — mock mode's default scenario is "no
-// vehicle yet," so the first connect walks through the real discovery flow
-// (see DiscoveryFlow.tsx) instead of dropping straight into a populated
-// dashboard. After that first connect, report_cars()/car_info() reveal the
-// same seeded history as before — a pragmatic demo choice, not a claim that
-// a freshly discovered car would already have 47 sessions of history.
 let discovered = false;
-// The knowledge key the preview pretends to ship, and whether the demo car
-// has already been scanned with it — the run-once gate, mocked, so the
-// second demo connect exercises the "skipped" state the way a real second
-// connect does.
 const MOCK_KNOWLEDGE_KEY = "k1;map=9@2026-08-28;research=demo@1;packs=demo@1;plan=1";
 let autoScanDoneAt: string | null = null;
 
 const sqlNow = () => new Date().toISOString().slice(0, 19).replace("T", " ");
 
-// ---------- preview pacing ----------
-// The demo walks its stages faster than anyone can look at them, which
-// makes three real states unverifiable in the browser preview: Overview's
-// scan banner, Live's "the gauges are paused" notice, and the Lab card's
-// progress bar (owner, 2026-09-02 — "the scanning process is too fast").
-//
-// So the pace is a knob, read fresh on every stage rather than captured at
-// load, and the URL wins over the env var because the URL is what you can
-// change without restarting the dev server:
-//
-//   ?mock_discovery_ms=6000     6 s per discovery stage (default 900)
-//   ?mock_connect_ms=2000       2 s per connect stage   (default 300)
-//   ?mock_discovery_hold=join   park the run ON that stage, indefinitely
-//   ?mock_connect_fail=handshake  fail the connect at that stage
-//
-// and, as env defaults for a session, VITE_MOCK_DISCOVERY_MS /
-// VITE_MOCK_CONNECT_MS. All of it is preview-only by construction: this
-// module is loaded only when the app is running outside a Tauri window
-// (see tauri.ts).
 
 const DISCOVERY_STAGE_MS = 900;
 const CONNECT_STAGE_MS = 300;
@@ -181,9 +130,6 @@ const CONNECT_STAGE_MS = 300;
 const previewQuery = (): URLSearchParams =>
   new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
 
-/** URL query > env var > the default. A value that is not a non-negative
- *  number is ignored rather than obeyed — a typo should not freeze the
- *  preview. */
 function pacedMs(param: string, envValue: string | undefined, fallback: number): number {
   const raw = previewQuery().get(param) ?? envValue;
   if (raw == null || raw === "") return fallback;
@@ -196,19 +142,8 @@ const discoveryStageMs = () =>
 const connectStageMs = () =>
   pacedMs("mock_connect_ms", import.meta.env.VITE_MOCK_CONNECT_MS, CONNECT_STAGE_MS);
 
-/** Set by `window.__sonda_mock.release()`. Cleared when a run starts, so a
- *  hold that was released stays released for that run only. */
 let holdReleased = false;
 
-/**
- * Park the run on `stage` for as long as `?mock_discovery_hold=<stage>` says
- * so — the knob that actually makes a state inspectable, because it holds
- * still while you read it, take a screenshot, or open devtools.
- *
- * Two ways out, and it polls for both: `window.__sonda_mock.release()` from
- * the console, or the query parameter going away (`history.replaceState`,
- * which is how you drop it without reloading and losing the run).
- */
 async function holdAtStage(stage: string): Promise<void> {
   if (previewQuery().get("mock_discovery_hold") !== stage) return;
   while (!holdReleased && previewQuery().get("mock_discovery_hold") === stage) {
@@ -216,15 +151,12 @@ async function holdAtStage(stage: string): Promise<void> {
   }
 }
 
-/** The preview's console handle. Documented in apps/desktop/README.md. */
 function installMockHandle(): void {
   if (typeof window === "undefined") return;
   (window as unknown as Record<string, unknown>).__sonda_mock = {
-    /** Let a held discovery run carry on. */
     release: () => {
       holdReleased = true;
     },
-    /** Hold (or stop holding) a stage without reloading the page. */
     hold: (stage: string | null) => {
       const url = new URL(window.location.href);
       if (stage) url.searchParams.set("mock_discovery_hold", stage);
@@ -232,13 +164,11 @@ function installMockHandle(): void {
       window.history.replaceState(null, "", url);
       holdReleased = false;
     },
-    /** What the pacing currently resolves to, in ms per stage. */
     pacing: () => ({ discovery: discoveryStageMs(), connect: connectStageMs() }),
   };
 }
 installMockHandle();
 
-/** Walks the four protocol stages on conn-status, then records the run. */
 async function runMockAutoScan(): Promise<void> {
   const started_at = sqlNow();
   holdReleased = false;
@@ -282,7 +212,7 @@ async function runMockAutoScan(): Promise<void> {
   emit("conn-status", connState);
 }
 let fuelPrice = 1.62;
-let fuelLevel = 57; // %, drains gently over a demo session
+let fuelLevel = 57;
 let liveTimer: number | null = null;
 let tick = 0;
 
@@ -291,7 +221,6 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 function genTick(): LiveMap {
   tick++;
-  // Gentle idle with the occasional light rev, like a car sitting in a driveway.
   const revving = tick % 23 > 18;
   const rpm = revving ? jitter(1800, 400) : jitter(840, 60);
   const load = revving ? jitter(38, 10) : jitter(14, 4);
@@ -327,7 +256,6 @@ function stopLiveTicking() {
   }
 }
 
-// ---------- mock car report (Overview / History) ----------
 
 function buildDailyVoltage() {
   const days: { day: string; min: number; avg: number; max: number }[] = [];
@@ -347,8 +275,6 @@ function buildDailyVoltage() {
 }
 
 function buildCarReport(v: DemoVehicle): CarReport {
-  // Vehicle 1 carries the full seeded history; the others scale it down so
-  // switching vehicles visibly changes the numbers.
   const f = 1 / v.id;
   const statsAll: KeyStat[] = [
     { key: "rpm", n: 48213, min: 720, avg: 1840, max: 5200 },
@@ -394,7 +320,7 @@ function buildCarReport(v: DemoVehicle): CarReport {
     first: "2026-06-02T08:14:00Z",
     last: "2026-08-19T07:40:00Z",
     scans_total: v.id === CONNECTED.id ? 6 : 1,
-    scans_clean: v.id === CONNECTED.id ? 4 : 1, // vehicle 1 matches DTC_HISTORY's story: P0420 stored + P0301 pending on recent scans
+    scans_clean: v.id === CONNECTED.id ? 4 : 1,
     sessions: Array.from({ length: Math.min(8, sessionCount) }, (_, i) => ({
       id: sessionCount - i,
       started_at: `2026-08-${String(19 - i).padStart(2, "0")}T07:4${i}:00Z`,
@@ -411,7 +337,6 @@ function buildCarReport(v: DemoVehicle): CarReport {
   };
 }
 
-// ---------- mock "all sensors" full scan ----------
 
 const ALL_SENSORS: SensorReading[] = [
   { pid: "0104", key: "load", label: "Engine load", unit: "%", value: 14.5 },
@@ -433,7 +358,6 @@ const ALL_SENSORS: SensorReading[] = [
   { pid: "015E", key: "fuel_rate", label: "Fuel rate", unit: "L/h", value: 0.55 },
 ];
 
-// ---------- mock history points ----------
 
 function buildHistory(key: string, hours: number): HistoryPoint[] {
   const base: Record<string, number> = {
@@ -452,12 +376,7 @@ function buildHistory(key: string, hours: number): HistoryPoint[] {
   });
 }
 
-// ---------- reading keys (the Over-time sensor browser) ----------
 
-// One row per key the demo car has ever recorded: the standard gauges, then
-// a probe key per pack-known DID on each of its modules. `last_ts` is spread
-// across the last few weeks so the browser's "in this range" dot and the
-// "show all" tail both have something to show.
 type MockReadingKey = {
   key: string;
   label: string | null;
@@ -490,7 +409,6 @@ function readingKeyDetails(args?: Record<string, unknown>): MockReadingKey[] {
       .slice(0, 5)
       .map((d) => {
         probeId += 1;
-        // Every third key last answered weeks ago, so it sits in the tail.
         const age = probeId % 3 === 0 ? 60 * 24 * 20 + probeId : probeId * 37;
         return {
           key: `uds_${slug(d.label)}`,
@@ -507,22 +425,13 @@ function readingKeyDetails(args?: Record<string, unknown>): MockReadingKey[] {
   return [...standard, ...probes];
 }
 
-// ---------- diagnose ----------
 
-// Seeded with a realistic fault story, not all-clean — so the Diagnose UI
-// demonstrates what codes actually look like: a misfire appeared as pending
-// in July, matured into a stored P0420 (catalyst efficiency) with the MIL
-// on by mid-August, and older scans were clean.
 const DTC_HISTORY: DtcScanRow[] = [
   { id: 6, ts: "2026-08-14 12:03:11", mil_on: true, dtc_count: 1, stored: ["P0420"], pending: ["P0301"], permanent: [], voltage: 13.1 },
   { id: 5, ts: "2026-07-30 09:41:02", mil_on: false, dtc_count: 0, stored: [], pending: ["P0301"], permanent: [], voltage: 12.9 },
   { id: 4, ts: "2026-07-11 18:22:47", mil_on: false, dtc_count: 0, stored: [], pending: [], permanent: [], voltage: 13.4 },
 ];
 
-// Live demo fault state — STATEFUL on purpose: "Scan for codes" finds these,
-// "Clear codes" genuinely erases them, and the verification re-scan then
-// comes back clean, so the full two-way flow (this is not a read-only tool)
-// can be exercised end to end in demo mode. Reset by reloading the page.
 let demoFaults: { stored: string[]; pending: string[]; permanent: string[] } = {
   stored: ["P0420"],
   pending: ["P0301"],
@@ -538,12 +447,7 @@ type MockDiagnosticCase = {
 };
 const DIAGNOSTIC_CASES: MockDiagnosticCase[] = [];
 
-// ---------- write safety rail (mirrors the backend's writes_log) ----------
 
-// Module faults for the Lab's ModuleFaults card, stateful like demoFaults:
-// read shows them, a confirmed clear erases them. Keyed by the connected
-// vehicle's pack-derived module keys (first module: a powertrain-style code,
-// second: network codes).
 const demoModuleFaults: Record<string, string[]> = Object.fromEntries(
   CONNECTED.uds_modules.slice(0, 2).map((m, i) => [m.key, i === 0 ? ["P0420"] : ["U1109", "U1213"]]),
 );
@@ -552,8 +456,6 @@ const MODULE_LABELS: Record<string, string> = Object.fromEntries(
   DEMO_VEHICLES.flatMap((v) => v.uds_modules.map((m) => [m.key, m.label])),
 );
 
-// In-memory stand-in for the writes_log table, so the Write history card
-// works in the browser demo. Reset by reloading the page.
 const WRITES: WriteLogRow[] = [];
 let nextWriteId = 1;
 
@@ -565,16 +467,12 @@ function logMockWrite(row: Omit<WriteLogRow, "id" | "ts">) {
   });
 }
 
-// Mirrors the backend's command-boundary guard: writes without
-// `confirmed: true` refuse before touching anything.
 function requireConfirmed(args?: Record<string, unknown>) {
   if (args?.confirmed !== true) {
     throw new Error("Write not confirmed. This action changes the car, so the app must show the confirmation step first.");
   }
 }
 
-// Freeze frame captured "when P0420 tripped" — moderate-load warm cruise,
-// the classic catalyst-efficiency scenario. Keys match GAUGES in meta.ts.
 const DEMO_FREEZE: Record<string, unknown> = {
   trigger_dtc: "P0420",
   rpm: 2260,
@@ -586,7 +484,6 @@ const DEMO_FREEZE: Record<string, unknown> = {
   ltft: -1.0,
 };
 
-// ---------- pack-derived Lab payloads ----------
 
 const DEMO_IDENTITY = {
   spare_part_number: "DEMO-PART-0001",
@@ -731,8 +628,6 @@ function buildGuidedSteps(v: DemoVehicle) {
     };
   };
 
-  // One independent triplet per experiment, chained in order (same shape
-  // as the backend's generator): before-baseline, input, after-baseline.
   const steps: GuidedStep[] = [];
   picked.forEach((d, i) => {
     const n = i + 1;
@@ -767,9 +662,6 @@ function buildEvidenceModule(v: DemoVehicle) {
   };
 }
 
-// ---------- entry point ----------
-// (mock-mode detection itself now lives in tauri.ts, so this module can stay
-// out of the eager bundle when it isn't needed — see tauri.ts for why.)
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -780,16 +672,11 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "conn_status":
       return connState as T;
     case "connect": {
-      // The same four stages the backend pipeline walks, so the gate's
-      // stage labels are exercised in the browser preview too.
       const failAt = previewQuery().get("mock_connect_fail");
       for (const stage of ["link", "open", "handshake", "bus"] as const) {
         connState = { state: "connecting", stage };
         emit("conn-status", connState);
         await delay(connectStageMs());
-        // The one failure path the preview can reach, so the gate's failure
-        // toast — its copy, its two actions, its Details — is verifiable
-        // without unplugging a real dongle mid-handshake.
         if (failAt === stage) {
           connState = {
             state: "disconnected",
@@ -799,8 +686,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           return undefined as T;
         }
       }
-      // First demo connect reports vehicle_is_new (schema v2), so the
-      // discovery flow runs in the browser preview too.
       const isNew = !discovered;
       connState = {
         state: "connected",
@@ -813,8 +698,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       emit("conn-status", connState);
       startLiveTicking();
       discovered = true;
-      // Same gate as the backend's: the first connect scans, every later
-      // one skips because the maps have not moved.
       if (autoScanDoneAt == null) {
         void runMockAutoScan();
       } else {
@@ -838,10 +721,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       return undefined as T;
     }
     case "list_adapters":
-      // Shaped like the enriched backend payload: one row per physical
-      // device, a Bluetooth node, a bare USB node, one radio the OS has
-      // not exposed a serial node for — and anything paired from the
-      // device screen during this preview session.
       return [
         ...pairedInPreview,
         {
@@ -882,8 +761,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         },
       ] as T;
     case "discover_adapters": {
-      // The real inquiry blocks for about 8 s; 2 s is enough to see the
-      // scanning row without making the preview tedious.
       await delay(2000);
       return NEARBY_IN_PREVIEW.filter(
         (device) => !pairedInPreview.some((row) => row.bt_addr === device.addr),
@@ -895,16 +772,11 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       const pin = args?.pin == null ? null : String(args.pin);
       const found = NEARBY_IN_PREVIEW.find((device) => device.addr === addr);
       if (!found) throw new Error(`no device at ${addr}`);
-      // The backend's two failures, in the shape the UI reads them: a radio
-      // that wants a code says so once (and only for the attempt that
-      // carried none), and a wrong code is an ordinary failure.
       if (pin === null && addr !== PAIRS_WITHOUT_PIN && !askedForPin.has(addr)) {
         askedForPin.add(addr);
         throw new Error(`${PIN_REQUIRED}: Type pin code (up to 16 characters) for "${addr}"`);
       }
       if (pin !== null && pin !== "1234") throw new Error(`pairing ${addr} failed`);
-      // Pairing gives the OS a serial node, so the device joins the list
-      // as an ordinary connectable row rather than a paired-only one.
       pairedInPreview.push({
         kind: "serial",
         id: `/dev/cu.${(found.name ?? addr).replace(/[^A-Za-z0-9]/g, "")}`,
@@ -990,7 +862,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         voltage: 13.1,
         freeze: mil ? DEMO_FREEZE : null,
       };
-      // Every scan lands in history, same as the real backend.
       DTC_HISTORY.unshift({
         ...scan,
         freeze: undefined,
@@ -1013,10 +884,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         egr_vvt: true,
       } as T;
     case "clear_dtcs": {
-      // Full safety-rail parity with the backend: refuses unconfirmed calls,
-      // returns a verified before/after, logs the write. A real clear erases
-      // stored+pending (permanent codes only self-erase after the car
-      // verifies the fix — none in the demo).
       requireConfirmed(args);
       await delay(600);
       const snapshot = (): DtcResult => ({
@@ -1031,7 +898,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       const before = snapshot();
       demoFaults = { stored: [], pending: [], permanent: [] };
       const after = snapshot();
-      // The backend's verification scan lands in dtc_scans history; mirror it.
       DTC_HISTORY.unshift({
         ...after,
         freeze: undefined,
@@ -1091,8 +957,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       const first = v.modules[0];
       const bound = didsBoundTo(v.brand, first).map((d) => parseHex(d.did));
       const dids = a.dids && a.dids.length > 0 ? a.dids : bound.slice(0, 5);
-      // The DID that visibly "moves" under a non-baseline condition: the first
-      // known DID bound to this module, else whatever was asked for first.
       const movedDid = bound[0] ?? dids[0];
       return {
         run_id: 21,
@@ -1126,8 +990,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       } as T;
     }
     case "discover_sensors": {
-      // Mirror the backend's global status broadcast so switching between
-      // Lab and Live during a demo scan exercises the real architecture.
       connState = { ...connState, scanning: true };
       emit("conn-status", connState);
       await delay(600);
@@ -1218,8 +1080,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       } as T;
     }
     case "uds_read_many": {
-      // Reference reads for a guided step: every asked DID answers with a
-      // stable placeholder payload.
       const dids = ((args?.dids as number[] | undefined) ?? []).slice(0, 64);
       return dids.map((did) => ({ did, hex: "00 00", ascii: ".." })) as T;
     }
@@ -1229,9 +1089,6 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       await delay(500);
       return [...(demoModuleFaults[String(args?.module ?? "")] ?? [])] as T;
     case "uds_clear": {
-      // Same rail as the real backend. This used to return `{ cleared: 0 }`,
-      // which was never the ClearOutcome shape ModuleFaults expects — a mock
-      // parity bug (engineering.md rule 3), fixed as part of this stream.
       requireConfirmed(args);
       await delay(800);
       const key = String(args?.module ?? "");

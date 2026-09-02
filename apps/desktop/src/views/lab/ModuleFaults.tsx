@@ -1,8 +1,3 @@
-// Faults stored on the module itself (as opposed to the standard engine
-// DTCs in Diagnose). Clearing is a real write, so it goes through the full
-// safety rail: the shared ConfirmWrite modal, `confirmed: true` at the
-// command boundary, and a persisted before/after row in the write history.
-// The clear is verified: read, clear, read again.
 import { useState } from "react";
 import { Effect } from "effect";
 import { useQueryClient } from "@tanstack/react-query";

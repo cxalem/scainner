@@ -1,7 +1,3 @@
-// First-connect onboarding: shown once, the first time a VIN the app has
-// never seen finishes connecting. Walks through the same steps the backend
-// actually performs — VIN/identity read, then a fault-code check — so what
-// is shown is always true of the car that just connected.
 import { useEffect, useRef, useState } from "react";
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";
@@ -18,8 +14,6 @@ import { useT } from "@/i18n";
 
 type Step = "discovering" | "scanning" | "results";
 
-// Each field crossfades from the spinner to its value as the backend
-// finishes that read — no hard cut, no width jump.
 function Row({ label, value, pending, readingAriaLabel }: { label: string; value: string | null; pending: boolean; readingAriaLabel: string }) {
   return (
     <motion.div variants={staggerItem} className="flex items-center justify-between gap-3 text-[13px]">
@@ -57,8 +51,6 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
         setEcu(info);
         yield* Effect.sleep("700 millis");
         setStep("scanning");
-        // The full sensor sweep stays manual (Live → read everything once);
-        // connecting never interrogates every PID behind the user's back.
         const dtc = yield* device.scanDtcs().pipe(Effect.catchAll(() => Effect.succeed(null)));
         setScan(dtc);
         setStep("results");
@@ -71,11 +63,6 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
   const brand = brandFromVin(vin);
   const modelYear = decodeModelYear(vin);
 
-  // In practice ConnectGate already preloaded this brand's GLB (its own
-  // brand resolves from the same conn.vin just before this overlay
-  // mounts) — this covers the case discovery mounts on its own, without
-  // going through the gate first, so the emblem doesn't rely on that
-  // earlier preload having happened.
   useEffect(() => {
     if (!brand) return;
     void import("@/components/VehicleScene").then((m) => m.preloadEmblem(brand.key));
@@ -84,32 +71,14 @@ export function DiscoveryFlow({ vin, onDone }: { vin: string; onDone: () => void
   const subtitle = step === "discovering" ? t.discoveryFlow.step.discoveringSubtitle : step === "scanning" ? t.discoveryFlow.step.scanningSubtitle : t.discoveryFlow.step.resultsSubtitle;
 
   return (
-    // backdropVariants, not screenVariants: this is an OVERLAY on top of
-    // an already-painted Shell, not a screen replacing another screen with
-    // nothing behind either. screenVariants' slow 0.5s fade+rise meant the
-    // dashboard was fully visible THROUGH this semi-transparent backdrop
-    // for a good chunk of that half-second — exactly the "see the
-    // dashboard, then the scanning state" flash reported live (2026-08-30).
-    // backdropVariants is opacity-only and fast (150ms), so the covering
-    // background is effectively opaque almost immediately.
     <motion.div
       className="fixed inset-0 z-50 flex overflow-y-auto p-6 text-text"
       style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
-      // initial={false}, not "hidden": this backdrop's whole job is to
-      // cover the connect→dashboard handoff, so it mounts fully opaque
-      // from its first frame — even backdropVariants' fast 150ms fade left
-      // a residual pale frame where Shell's still-loading page could show
-      // through before this reached full opacity (caught in a rapid-fire
-      // capture after the first fix, 2026-08-30). The card content below
-      // still animates in via its own stagger; only this covering layer
-      // skips the entrance fade. exit stays wired for if this is ever
-      // wrapped in AnimatePresence.
       initial={false}
       animate="visible"
       exit="exit"
       variants={backdropVariants}
     >
-      {/* m-auto, not items-center: content taller than the viewport still scrolls. */}
       <div className="m-auto flex w-full max-w-[520px] flex-col gap-5 py-8">
         <div className="overflow-hidden rounded-md border border-divider bg-surface shadow-md">
           <VehicleScene status={sceneStatus} vin={vin} className="h-[230px] rounded-none" />

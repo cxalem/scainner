@@ -1,21 +1,9 @@
-// Slow-drifting dust behind the emblem card — same technique as the
-// starfield note in the knowledge base (3-Resources/starfield-header/
-// technique.md, cloned from ai.manz.dev): typed arrays for particle state,
-// weighted size/color pools instead of per-particle randomness, wrap-around
-// edges, one rAF loop. Adapted here to: fill a resizable container instead
-// of a fixed-height header, use fillRect alpha instead of a flat color list
-// (softer, since this sits behind a chrome badge rather than plain text),
-// and run far slower — this is ambient dust, not a hyperspace effect.
 import { useEffect, useRef } from "react";
 import { PARTICLE_PALETTE, PARTICLE_PALETTE_LIGHT } from "@/theme";
 
 const COLOR_WEIGHTS = [0.3, 0.4, 0.3];
-const SIZE_WEIGHTS = [0.62, 0.24, 0.09, 0.05]; // fraction of particles at each size below
+const SIZE_WEIGHTS = [0.62, 0.24, 0.09, 0.05];
 const SIZES = [1, 1.6, 2.3, 3];
-// Light tone's dots read at lower alpha than dark's — the bolder accent
-// fleck (palette index 2) stays punchy, the two faint tints stay faint,
-// so the mix looks like the reference (mostly-quiet dust, occasional
-// bolder purple speck) rather than a uniformly saturated confetti field.
 const SIZE_ALPHA_DARK = [0.4, 0.65, 0.85, 0.95];
 const SIZE_ALPHA_LIGHT = [0.25, 0.4, 0.55, 0.7];
 
@@ -26,12 +14,6 @@ export function EmblemStarfield({
 }: {
   total?: number;
   tone?: "dark" | "light";
-  /** false: transparent canvas, dust dots only, no background gradient
-   *  fill. For a surface that already has its own background one shade
-   *  off from the dust palette's own gradient (the login panel's purple
-   *  vs. the dust field's near-black) — filling anyway painted a visibly
-   *  different rectangle on top of it instead of one continuous panel
-   *  (2026-08-30). */
   fill?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,8 +53,6 @@ export function EmblemStarfield({
         const k = i * 2;
         pos[k] = Math.random() * width;
         pos[k + 1] = Math.random() * height;
-        // Slow ambient dust, not a hyperspace field: 0.02-0.06 px/frame
-        // drifting left, with a much smaller vertical wobble.
         const speed = 0.02 + Math.random() * 0.04;
         vel[k] = -speed;
         vel[k + 1] = (Math.random() - 0.4) * 0.012;
@@ -130,7 +110,7 @@ export function EmblemStarfield({
       if (!reduced) raf = requestAnimationFrame(tick);
     }
 
-    tick(); // draws one frame even when reduced-motion stops the loop after
+    tick();
 
     return () => {
       ro.disconnect();

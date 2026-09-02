@@ -1,6 +1,3 @@
-// Live — the same sensors on two time scales. "Now" is the standing gauge
-// set plus whatever this car's probes push, grouped and pinnable; "Over
-// time" is the stored history of the same keys (views/live/Trend.tsx).
 import { useMemo, useRef, useState } from "react";
 import { Activity, ChartLine, ListFilter, Pin, PinOff, Radar } from "lucide-react";
 import {
@@ -45,10 +42,6 @@ type SensorDef = {
   range: { lo: number; hi: number } | null;
 };
 
-// A probe's live key is not spelled out anywhere the frontend can read, so
-// match the two ways the backend has named them; anything unmatched is
-// shown as a plain standard reading rather than given a state it may not
-// have earned.
 function probeFor(key: string, probes: readonly UdsProbe[]): UdsProbe | null {
   const k = key.toLowerCase();
   return (
@@ -77,9 +70,7 @@ function SensorCard({
   live: boolean;
   pinned: boolean;
   onPin: () => void;
-  /** Opens this same sensor in "Over time" (views/live/Trend.tsx). */
   onOpenTrend: () => void;
-  /** Running min/max for keys with no declared range. */
   seen: Map<string, { lo: number; hi: number }>;
 }) {
   const t = useT();
@@ -202,9 +193,7 @@ export function Live({
 }: {
   live: LiveMap;
   connected: boolean;
-  /** A UDS scan pauses standard polling; say so instead of going stale. */
   scanning?: boolean;
-  /** The automatic sensor run, off the conn-status broadcast. */
   discovery?: DiscoveryStatus | null;
   connState?: string;
   vehicleId?: number | null;
@@ -213,7 +202,6 @@ export function Live({
   const t = useT();
   const { locale } = useLocale();
   const [mode, setMode] = useState<"now" | "trend">("now");
-  // Lifted here so a "Now" card can open its own sensor in "Over time".
   const [trendKey, setTrendKey] = useState("voltage");
   const { pins, toggle } = usePins(vehicleId);
   const probesQuery = useListProbes(vehicleId);
@@ -259,9 +247,6 @@ export function Live({
   }, [defs, pins, t]);
 
   const note = mode === "trend" ? t.live.noteStored : scanning ? t.live.noteScanning : connected ? t.live.noteLive : t.live.noteOffline;
-  // A whole grid of dashes is not an honest empty state while the car is
-  // being scanned — it reads as broken. Say what is happening and where to
-  // watch it instead (owner, 2026-09-01).
   const scanNotice = showLiveDiscoveryNotice(discovery, mode);
 
   return (
@@ -279,8 +264,6 @@ export function Live({
         <span className="flex-1 text-[12px] text-neutral-500">{note}</span>
       </Block>
 
-      {/* The notice is its own Swap key, so the gauges cross-fade back in
-          when the scan ends instead of snapping. */}
       <Swap k={scanNotice ? "scanning" : mode} className="flex flex-col gap-4">
         {scanNotice ? (
           <Card>

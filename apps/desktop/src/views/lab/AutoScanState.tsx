@@ -1,11 +1,3 @@
-// What the automatic sensor run did on this connection, and the one button
-// that makes it run again.
-//
-// The run happens on connect without anyone asking, and until now nothing
-// said so: a car that was already scanned with the same maps skips it
-// silently, and a car being scanned right now shows empty gauges with no
-// explanation (owner, 2026-09-01). This card is where the honest answer
-// lives, and Overview's banner and Live's notice both point here.
 import { useEffect } from "react";
 import { Radar } from "lucide-react";
 import type { DiscoveryStatus } from "@scainner/core";
@@ -16,7 +8,6 @@ import { useRunDiscovery } from "@/features/lab/queries";
 import { discoveryPercent } from "@/lib/discovery-notice";
 import { useLocale, useT } from "@/i18n";
 
-/** SQLite `datetime('now')` text, in the reader's locale. */
 function formatWhen(stamp: string, locale: string): string {
   const d = new Date(stamp);
   if (Number.isNaN(d.getTime())) return stamp;
@@ -51,14 +42,8 @@ export function AutoScanState({
     }
   })();
 
-  // Answered by the mutation, not the broadcast: a car that is not the
-  // connected one runs nothing now, and the button has to say so rather
-  // than look like it did nothing.
   const queued = scanAgain.data != null && !scanAgain.data.triggered;
 
-  // …and it says so over the layout rather than under the card. The answer
-  // arrives on a click, which is exactly when a line appearing inside the
-  // card would push everything below it — the reason the toast exists.
   useEffect(() => {
     if (queued) toast.show("info", a.queued);
   }, [queued, a.queued, toast]);

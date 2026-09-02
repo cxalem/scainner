@@ -1,4 +1,3 @@
-// Read one identifier (service 22) on the selected module by hand.
 import { useState } from "react";
 import { Effect } from "effect";
 import { runPromise } from "@/core/runtime";

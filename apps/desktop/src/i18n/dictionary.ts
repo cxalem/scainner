@@ -1,26 +1,3 @@
-// The shape every locale must implement exactly — en.ts and es.ts are both
-// typed against this, so a key missing (or extra) in either fails `tsc
-// --noEmit`, which is already a mandated pipeline gate. See
-// docs/workflows/i18n/plan.md for why a typed dictionary instead of a
-// framework: exactly two locales, no plural-grammar need beyond the
-// hand-written ternaries already in the code.
-//
-// This covers UI chrome — buttons, headings, banners, short labels.
-// DTC content (a fault code's title/meaning/causes/symptoms, the
-// structural system/origin/subsystem names, sensor/monitor labels) is
-// translated separately, in lib/dtc-codes.es.ts and
-// shared/domain/gauges.es.ts — that's curated automotive content, not
-// interface copy, so it gets its own locale-keyed data files (same
-// key-safety pattern as this dictionary) instead of living in here.
-// Content translated there is an AI-assisted first draft; per
-// docs/workflows/i18n/plan.md it still wants a native-speaker review pass
-// on the automotive terminology before it's fully trusted, same caution
-// as any technical translation, not a defect specific to this app.
-//
-// The one thing still deliberately untranslated: detectVoltageCluster()'s
-// generated note sentence (lib/dtc-grouping.ts) — its exact English text
-// is asserted by dtc-grouping.test.ts, so translating it needs the same
-// display-layer-only treatment as decodeDtc's strings, not done yet.
 export type Dictionary = {
   common: {
     cancel: string;
@@ -36,7 +13,6 @@ export type Dictionary = {
     demoData: string;
     cloudSignInPrompt: string;
     demoDataTooltip: string;
-    // Sidebar nav group labels and the vehicle switcher's status lines.
     navGroups: { primary: string; advanced: string };
     switcher: {
       onCable: string;
@@ -69,18 +45,12 @@ export type Dictionary = {
     disconnect: string;
     disconnecting: string;
     language: string;
-    // Shared by Shell's own Connect button and ConnectGate (the pre-first-
-    // connect screen) — same cycling label, two call sites.
     connectPhrases: [string, string];
-    // App-wide vehicle switcher (multi-brand plan P4.5): shown when the
-    // database holds more than one vehicle or nothing is connected.
     vehicleSwitcher: {
       label: string;
       connectedSuffix: string;
       unnamed: (id: number) => string;
     };
-    // Shown while a car is connected but another vehicle is being browsed:
-    // every view is an archive then, live controls are off.
     archive: {
       browsing: (name: string) => string;
       returnToConnected: string;
@@ -105,7 +75,6 @@ export type Dictionary = {
     emptyTitle: string;
     emptyBody: string;
     unknownVehicle: (id: number) => string;
-    // Hi-Fi v2 workshop screen
     closeForm: string;
     filterOpen: string;
     filterClosed: string;
@@ -130,9 +99,6 @@ export type Dictionary = {
       clickCodeHint: string;
       noFaultCodesTitle: string;
       noFaultCodesExplainer: string;
-      // Whole sentences, not fragments glued together — word order
-      // differs across languages, so each locale owns the full sentence
-      // rather than the component concatenating locale-specific pieces.
       clearedVerified: (before: number) => string;
       clearedButCameBack: (after: number) => string;
       resetNote: string;
@@ -210,7 +176,6 @@ export type Dictionary = {
       codesBeforeUnread: (before: number) => string;
       codesBeforeAfter: (before: number, after: number) => string;
     };
-    // Hi-Fi v2 surface (one console, expandable rows, written report).
     v2: {
       scanForFaults: string;
       scanning: string;
@@ -292,8 +257,6 @@ export type Dictionary = {
     noDataYetExplainer: string;
     unknownVehicle: string;
     unknownVehicleExplainer: string;
-    // The "name this car" flow: a VIN-less vehicle (pre-Mode-09 ECU) gets
-    // its identity from the user instead — see data-core plan.md.
     nameVehicleLabel: string;
     nameVehiclePlaceholder: string;
     nameVehicleAction: string;
@@ -312,7 +275,6 @@ export type Dictionary = {
       scansCleanValue: (clean: number, total: number) => string;
       scansCleanNote: string;
     };
-    // The verdict card: one chip, one headline, then the health lines.
     verdict: {
       chipGood: string;
       chipWatch: string;
@@ -372,10 +334,6 @@ export type Dictionary = {
       estimateNote: string;
     };
   };
-  // The automatic sensor run, as the user meets it: a banner on Overview
-  // while it blocks live data, a notice on Live saying why the gauges are
-  // empty, and its state plus a "Scan again" button in the Lab (owner,
-  // 2026-09-01: "nothing says so").
   autoScan: {
     banner: { title: string; line: string; action: string; dismiss: string };
     live: { title: string; body: string; action: string };
@@ -442,7 +400,6 @@ export type Dictionary = {
       title: string;
       explainer: string;
     };
-    // Hi-Fi v2 Lab surface: three ways to run one investigation.
     modes: {
       auto: { label: string; note: string };
       plan: { label: string; note: string };
@@ -644,8 +601,6 @@ export type Dictionary = {
       unknownYear: string;
       firstConnected: (date: string) => string;
     };
-    // The details form + the fact/source table. Only what the backend can
-    // persist is editable (the connected car's display name).
     facts: {
       formTitle: string;
       nameLabel: string;
@@ -751,7 +706,6 @@ export type Dictionary = {
     groupDiscovered: string;
     pin: string;
     unpin: string;
-    // "Now" rows open the same sensor in "Over time" — the label is the link.
     viewOverTime: string;
     state: { standard: string; verified: string; inherited: string; candidate: string };
     allSensors: {
@@ -780,8 +734,6 @@ export type Dictionary = {
       noDataForRange: string;
       voltageReferenceNote: string;
       ranges: Record<"1h" | "24h" | "7d" | "30d", string>;
-      // The sensor browser beside the chart: search, module groups, and the
-      // toggle for keys with nothing in the selected range.
       browser: {
         title: string;
         searchPlaceholder: string;
@@ -796,7 +748,6 @@ export type Dictionary = {
         empty: string;
         couldNotLoad: string;
       };
-      // The compare strip under the stats: up to four sensors side by side.
       compare: {
         title: string;
         add: string;
@@ -817,9 +768,7 @@ export type Dictionary = {
       samples: string;
     };
   };
-  // Page heads: kicker / title / one-line lede per view.
   pages: Record<"overview" | "diagnose" | "live" | "workshop" | "lab" | "vehicle", { kicker: string; title: string; lede: (app: string) => string }>;
-  // A1 — sign-in gate.
   login: {
     headline: string;
     sub: (brands: number) => string;
@@ -841,7 +790,6 @@ export type Dictionary = {
     localNote: (app: string) => string;
     shareNote: string;
   };
-  // A2 — connect gate.
   gate: {
     plugInBody: (app: string) => string;
     reading: string;
@@ -855,12 +803,7 @@ export type Dictionary = {
     connect: string;
     connecting: string;
     tryAgain: string;
-    // The connect pipeline's stages, named while each one runs.
     stages: { link: string; open: string; handshake: string; bus: string };
-    // What a failed attempt says in the toast: one headline per stage the
-    // pipeline can stop at, and a second line only where the reason carries
-    // something the user can act on. Keyed by lib/device-list's
-    // `stageMessage`; the raw transport error goes behind `failureDetails`.
     failure: { link: string; open: string; handshake: string; bus: string; unknown: string };
     failureHints: {
       link: string;
@@ -870,9 +813,6 @@ export type Dictionary = {
       bus: string;
     };
     failureDetails: string;
-    // The device screen: the gate's opening state, one row per device the
-    // machine can see. The backend names them; the UI writes the secondary
-    // line from a `device_kind` plus the path, so it stays translatable.
     chooseDeviceTitle: string;
     lastUsed: string;
     pairedNotConnected: string;
@@ -882,26 +822,19 @@ export type Dictionary = {
     lookingForDevices: string;
     noDevices: string;
     pairFirst: string;
-    // The device card's own header, where the scan action lives.
     devicesHeading: string;
-    // Discovery: finding and pairing a dongle that the OS has never seen,
-    // without leaving the device screen for system Bluetooth settings.
     discoverDevices: string;
     scanning: string;
-    // The same line while the inquiry counts itself down.
     scanningSeconds: (seconds: number) => string;
     nearby: string;
     pair: string;
     pairing: string;
-    // Why a PIN field appeared at all: the radio asked for one. Pairing
-    // never asks up front (Brief K) — see DeviceList.tsx.
     pinRequired: string;
     pinLabel: string;
     pinHint: string;
     noNearby: string;
     discoveryUnavailable: string;
     pairFailed: string;
-    /** The receipt after a radio pairs: it is a row in the list now. */
     paired: (name: string) => string;
     chooseAnotherDevice: string;
     deviceListFailed: string;
