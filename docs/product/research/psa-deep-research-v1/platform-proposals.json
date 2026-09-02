@@ -23,7 +23,7 @@
       "architecture": "AEE2001: first-generation VAN+CAN architecture; main nodes on CAN, comfort/body on VAN; K-line also part of the architecture.",
       "transport_candidates": [],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {
@@ -57,7 +57,7 @@
         "can11_500"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {
@@ -91,7 +91,7 @@
         "can11_500"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {
@@ -166,7 +166,7 @@
         "can11_500"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {
@@ -204,7 +204,7 @@
         "can11_500"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {

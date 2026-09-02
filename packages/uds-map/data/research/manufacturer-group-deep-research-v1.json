@@ -1445,7 +1445,7 @@
               "decode_status": "candidate"
             }
           ],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1480,7 +1480,7 @@
               "decode_status": "unknown"
             }
           ],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1549,7 +1549,7 @@
               "decode_status": "unknown"
             }
           ],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1621,7 +1621,7 @@
               "decode_status": "candidate"
             }
           ],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"

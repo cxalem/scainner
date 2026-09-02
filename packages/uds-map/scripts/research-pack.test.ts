@@ -59,6 +59,19 @@ describe("the valid mini pack", () => {
   });
 });
 
+describe("knowledge promotion ownership", () => {
+  it("rejects fleet verification authored by research", () => {
+    rejects(
+      fixture(({ read, write }) => {
+        const routes = read("ecu-routes.json");
+        routes.routes[0].knowledge_state = "community_verified";
+        write("ecu-routes.json", routes);
+      }),
+      /research cannot assert community_verified; only fleet evidence from two or more vehicles may set it/,
+    );
+  });
+});
+
 describe("manifest integrity", () => {
   it("rejects a hash mismatch", () => {
     rejects(

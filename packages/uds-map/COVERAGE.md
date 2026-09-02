@@ -101,14 +101,16 @@ Research candidates are evidence about *where to look*, never trusted knowledge:
 | subaru | 1 | 2 | 0 | 0 | 0 |
 | suzuki | 1 | 2 | 0 | 1 | 0 |
 | tesla | 1 | 0 | 0 | 0 | 0 |
+| toyota | 1 | 8 (8 platform-scoped) | 0 | 9 | 0 |
 | vag | 1 | 104 (14 platform-scoped) | 0 | 235 | 18 |
 | volvo | 1 | 0 | 0 | 0 | 0 |
-| **total** | 4 packs | 349 (163 platform-scoped) | 49 | 605 | 18 |
+| **total** | 5 packs | 357 (171 platform-scoped) | 49 | 614 | 18 |
 
 - `new-brand-research-v2` v2 (2026-08-29): byd, ferrari, jlr, livan_maple, lucid, maxus, mg, omoda, porsche, rivian, suzuki
 - `existing-brand-hypotheses-v3-delta` v5 (2026-08-31): bmw, gm, honda, hyundai_kia, mazda, mitsubishi, nissan, psa, seat, skoda, subaru, tesla, vag, volvo
 - `renault-deep-research-runtime-v1` v1 (2026-08-31): renault
 - `psa-deep-research-runtime-v1` v1 (2026-08-31): psa
+- `toyota-deep-research-runtime-v1` v1 (2026-09-02): toyota
 
 ## Sources
 

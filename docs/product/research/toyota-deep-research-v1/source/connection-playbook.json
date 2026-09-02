@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "brand_ids": ["toyota"],
+  "planner_contract": "evidence_aware_candidate_planner",
+  "projection_rules": [
+    {"research_fact": "exact model/year immutable route", "runtime_projection": "presence_and_identity_candidate"},
+    {"research_fact": "candidate DID", "runtime_projection": "read only after route reached"},
+    {"research_fact": "proposed decoder", "runtime_projection": "disabled until vehicle_fit matched"},
+    {"research_fact": "extended addressing not represented canonically", "runtime_projection": "gap only; no request"}
+  ],
+  "planning_phases": [
+    {"phase": "brand_and_platform_selection", "actions": ["Select Toyota/Lexus by WMI.", "Require a generation-qualified normalized model fact because the current planner does not consume model year and no accepted VDS patterns exist.", "Keep plain Prius/RX and other ambiguous branches inert."]},
+    {"phase": "transport_detection", "actions": ["Use supported OBD-II transport detection.", "Record passive_capture_unavailable when adapter monitoring is unreliable.", "Never interpret source extended-address notation as a plain 11-bit route."]},
+    {"phase": "route_census", "actions": ["Try trusted-map routes first.", "Add only exact model/year research routes.", "Do not generically enumerate 29-bit targets or extended addresses."]},
+    {"phase": "identity", "actions": ["Read preferred ISO identity where service 22 supports it.", "For service-21 branches, preserve identity-unreadable as an outcome rather than changing session.", "Repeat identity on an independent connection before family matching."]},
+    {"phase": "candidate_reads", "actions": ["Read candidates only after route response.", "Keep decoders disabled until guided validation matches.", "Preserve NRC, timeout and transport failure separately."]},
+    {"phase": "stop", "actions": ["Stop on safety, budget, cancellation or low information gain.", "Use platform_known_route_knowledge_incomplete when model classification exists without an applicable route."]}
+  ],
+  "priority_model": "exact model/year + immutable source + reached route + user value - traffic cost - ambiguity",
+  "brand_specific_priority": ["explicit Prius/Lexus RX generation branch", "identity before proprietary data", "high-value cross-checkable battery/chassis signals", "no source-wide sweep"]
+}

@@ -59,7 +59,9 @@ for (const recipe of recipesOf(pack)) {
 const sourceClaims = [...sources.values()].filter(immutableSource).map((source) => ({
   claim_id: `${index.pack_id}.source.${source.ref.toLowerCase()}`,
   exact_claim: `${source.title} supplies research evidence scoped to ${source.scope}.`,
-  knowledge_state: source.reliability === "high" ? "community_verified" : "community_reported",
+  // Source quality and fleet reproduction are independent dimensions.
+  // Only the vehicle-evidence promotion gate may grant community_verified.
+  knowledge_state: "community_reported",
   source_fidelity: source.reliability,
   vehicle_applicability: "untested_by_project",
   scope: source.scope,

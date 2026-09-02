@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "pack_id": "toyota-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-09-02",
+  "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+  "proposals": [
+    {
+      "platform_id": "lexus_rx_al10",
+      "brand_ids": [
+        "toyota"
+      ],
+      "marques": [
+        "lexus"
+      ],
+      "models": [
+        "lexus_rx_al10"
+      ],
+      "powertrains": [
+        "ice",
+        "hev"
+      ],
+      "years": {
+        "from": 2010,
+        "to": 2015
+      },
+      "vds_patterns": [
+        "^ZB1BA",
+        "^ZB11A",
+        "^BC1BA",
+        "^BC11A"
+      ],
+      "vin_selectable": true,
+      "architecture": "Lexus RX AL10-era service-21 diagnostic branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S03",
+          "url": "https://github.com/OBDb/Lexus-RX/blob/9d3e76d70e91152e90acf4cd7c16dfe20fa48a37/signalsets/v3/default.json",
+          "revision": "9d3e76d70e91152e90acf4cd7c16dfe20fa48a37",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S08",
+          "url": "https://techinfo.toyota.com/techInfoPortal/staticcontent/en/techinfo/html/prelogin/docs/rx450h_erg.pdf",
+          "revision": "2010 RX 450h ERG",
+          "retrieved_at": "2026-09-02",
+          "licence": "Toyota public technical information",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "lexus_rx_al30",
+      "brand_ids": [
+        "toyota"
+      ],
+      "marques": [
+        "lexus"
+      ],
+      "models": [
+        "lexus_rx_al30"
+      ],
+      "powertrains": [
+        "hev",
+        "phev"
+      ],
+      "years": {
+        "from": 2023,
+        "to": null
+      },
+      "vds_patterns": [
+        "^C[BCJNFMDLE]BAZ"
+      ],
+      "vin_selectable": true,
+      "architecture": "Current Lexus RX hybrid service-22 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S03",
+          "url": "https://github.com/OBDb/Lexus-RX/blob/9d3e76d70e91152e90acf4cd7c16dfe20fa48a37/signalsets/v3/default.json",
+          "revision": "9d3e76d70e91152e90acf4cd7c16dfe20fa48a37",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S09",
+          "url": "https://techinfo.toyota.com/t3Portal/document/dm/L-DM-018-D/pdf/L-DM-018-D.pdf",
+          "revision": "L-DM-018-D",
+          "retrieved_at": "2026-09-02",
+          "licence": "Toyota public technical information",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "toyota_prius_xw30",
+      "brand_ids": [
+        "toyota"
+      ],
+      "marques": [
+        "toyota"
+      ],
+      "models": [
+        "prius_xw30"
+      ],
+      "powertrains": [
+        "hev"
+      ],
+      "years": {
+        "from": 2010,
+        "to": 2015
+      },
+      "vds_patterns": [
+        "^KN3DU",
+        "^KN36U"
+      ],
+      "vin_selectable": true,
+      "architecture": "Prius XW30-era hybrid diagnostic branch with service-21 local identifiers.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/OBDb/Toyota-Prius/blob/0a8c4ec72be860861548a3aeb2be007eecd83941/signalsets/v3/default.json",
+          "revision": "0a8c4ec72be860861548a3aeb2be007eecd83941",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S05",
+          "url": "https://techinfo.toyota.com/techInfoPortal/staticcontent/en/techinfo/html/prelogin/docs/3rdprius.pdf",
+          "revision": "2010 Prius ERG",
+          "retrieved_at": "2026-09-02",
+          "licence": "Toyota public technical information",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "toyota_ths5",
+      "brand_ids": [
+        "toyota"
+      ],
+      "marques": [
+        "toyota"
+      ],
+      "models": [
+        "prius_xw60"
+      ],
+      "powertrains": [
+        "hev",
+        "phev"
+      ],
+      "years": {
+        "from": 2023,
+        "to": null
+      },
+      "vds_patterns": [
+        "^A[CDE]AAU"
+      ],
+      "vin_selectable": true,
+      "architecture": "Fifth-generation Toyota Hybrid System branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/OBDb/Toyota-Prius/blob/0a8c4ec72be860861548a3aeb2be007eecd83941/signalsets/v3/default.json",
+          "revision": "0a8c4ec72be860861548a3aeb2be007eecd83941",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S06",
+          "url": "https://www.toyota-tech.eu/HYBRID/HVDM/EN/hvdm%20Prius%202023_%20MXH61.pdf",
+          "revision": "MXH61",
+          "retrieved_at": "2026-09-02",
+          "licence": "Toyota public technical information",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "toyota_tnga_hybrid",
+      "brand_ids": [
+        "toyota"
+      ],
+      "marques": [
+        "toyota"
+      ],
+      "models": [
+        "camry_hybrid"
+      ],
+      "powertrains": [
+        "hev"
+      ],
+      "years": {
+        "from": 2018,
+        "to": null
+      },
+      "vds_patterns": [
+        "^B[2375TAD]1HK"
+      ],
+      "vin_selectable": true,
+      "architecture": "Modern Toyota hybrid service-22 diagnostic branch represented by Prius and Camry sources.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/OBDb/Toyota-Prius/blob/0a8c4ec72be860861548a3aeb2be007eecd83941/signalsets/v3/default.json",
+          "revision": "0a8c4ec72be860861548a3aeb2be007eecd83941",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S02",
+          "url": "https://github.com/OBDb/Toyota-Camry/blob/3c1fc0cd77f27cdc4291b71e9a7a93fe525889b2/signalsets/v3/default.json",
+          "revision": "3c1fc0cd77f27cdc4291b71e9a7a93fe525889b2",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "medium_high"
+        },
+        {
+          "ref": "S07",
+          "url": "https://www.toyota-tech.eu/HYBRID/HVDM/EN/Camry%20Hybrid.pdf",
+          "revision": "Camry Hybrid A25A-FXS",
+          "retrieved_at": "2026-09-02",
+          "licence": "Toyota public technical information",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    }
+  ]
+}
