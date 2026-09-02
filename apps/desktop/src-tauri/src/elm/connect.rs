@@ -257,6 +257,10 @@ mod tests {
                 "the connect pipeline must not pair".into(),
             ))
         }
+        fn forget(&self, addr: &str) -> Result<(), String> {
+            self.calls.lock().unwrap().push(format!("forget {addr}"));
+            Err("the connect pipeline must not forget".into())
+        }
     }
 
     const ADDR: &str = "aa-bb-cc-dd-ee-ff";
@@ -525,7 +529,14 @@ mod tests {
                 pairs.push(path.display().to_string());
             }
         });
-        assert!(unpairs.is_empty(), "unpairing is back in {unpairs:?}");
+        let stray_unpairs: Vec<&String> = unpairs
+            .iter()
+            .filter(|p| !p.ends_with("transport/bluetooth.rs"))
+            .collect();
+        assert!(
+            stray_unpairs.is_empty() && unpairs.len() == 1,
+            "unpairing belongs to BluetoothControl::forget only: {unpairs:?}"
+        );
         let stray: Vec<&String> = pairs
             .iter()
             .filter(|p| !p.ends_with("transport/bluetooth.rs"))

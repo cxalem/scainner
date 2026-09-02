@@ -62,6 +62,7 @@ pub trait BluetoothControl: Send + Sync {
     fn paired(&self) -> Vec<PairedDevice>;
     fn discover(&self, seconds: u8) -> Result<Vec<NearbyDevice>, String>;
     fn pair(&self, addr: &str, pin: Option<&str>) -> Result<(), PairFailure>;
+    fn forget(&self, addr: &str) -> Result<(), String>;
 }
 
 pub fn platform() -> Box<dyn BluetoothControl> {
@@ -100,6 +101,9 @@ impl BluetoothControl for Unsupported {
     }
     fn pair(&self, _addr: &str, _pin: Option<&str>) -> Result<(), PairFailure> {
         Err(PairFailure::Other(MANUAL_PAIRING_REQUIRED.into()))
+    }
+    fn forget(&self, _addr: &str) -> Result<(), String> {
+        Err(MANUAL_PAIRING_REQUIRED.into())
     }
 }
 
@@ -217,6 +221,22 @@ impl BluetoothControl for MacosBlueutil {
             format!("pairing {addr} failed: {detail}")
         }))
     }
+
+    fn forget(&self, addr: &str) -> Result<(), String> {
+        let out = Self::command()
+            .args(["--unpair", addr])
+            .output()
+            .map_err(|e| format!("blueutil not runnable (brew install blueutil): {e}"))?;
+        if out.status.success() {
+            return Ok(());
+        }
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        Err(if stderr.is_empty() {
+            format!("forgetting {addr} failed")
+        } else {
+            format!("forgetting {addr} failed: {stderr}")
+        })
+    }
 }
 
 pub fn parse_blueutil_paired(text: &str) -> Vec<PairedDevice> {
@@ -298,6 +318,14 @@ mod tests {
         assert!(
             !failure.is_pin_required(),
             "no scriptable stack is not a PIN prompt"
+        );
+    }
+
+    #[test]
+    fn the_no_op_control_asks_for_manual_pairing_when_forgetting() {
+        assert_eq!(
+            Unsupported.forget("aa-bb-cc-dd-ee-ff").unwrap_err(),
+            MANUAL_PAIRING_REQUIRED
         );
     }
 

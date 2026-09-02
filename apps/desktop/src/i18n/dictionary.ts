@@ -830,6 +830,7 @@ export type Dictionary = {
     failureDetails: string;
     chooseDeviceTitle: string;
     lastUsed: string;
+    preparingAdapter: string;
     pairedNotConnected: string;
     transportBluetooth: string;
     transportUsb: string;
@@ -851,6 +852,18 @@ export type Dictionary = {
     discoveryUnavailable: string;
     pairFailed: string;
     paired: (name: string) => string;
+    pairedPortPending: string;
+    forget: string;
+    removeSavedAdapter: string;
+    forgetTitle: (name: string) => string;
+    forgetDescription: string;
+    removeSavedTitle: (name: string) => string;
+    removeSavedDescription: (app: string) => string;
+    forgetConfirm: string;
+    removeConfirm: string;
+    cancelForget: string;
+    forgot: (name: string) => string;
+    disconnectBeforeForget: string;
     chooseAnotherDevice: string;
     deviceListFailed: string;
     adapterSaveFailed: string;

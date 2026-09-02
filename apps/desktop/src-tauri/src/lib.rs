@@ -51,6 +51,13 @@ async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn forget_adapter(state: State<'_>, addr: String) -> Result<(), String> {
+    ops::forget_adapter(&state, addr.trim().to_string())
+        .await
+        .map_err(|failure| failure.to_string())
+}
+
+#[tauri::command]
 fn get_adapter_profile(state: State) -> elm::transport::AdapterProfile {
     ops::adapter_profile(&state)
 }
@@ -458,6 +465,7 @@ pub fn run() {
             list_adapters,
             discover_adapters,
             pair_adapter,
+            forget_adapter,
             get_adapter_profile,
             set_adapter_profile,
             conn_status,

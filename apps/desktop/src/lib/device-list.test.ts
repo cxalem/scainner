@@ -3,11 +3,13 @@ import type { AdapterCandidate, NearbyDevice } from "@scainner/core";
 import {
   DEFAULT_PIN,
   defaultPin,
+  deviceRowAction,
   deviceRows,
   deviceScrollColumnClass,
   gateScreen,
   isPinRequired,
   listSections,
+  mergePairedRow,
   nearbyRows,
   preselectedDevice,
   scanRow,
@@ -80,6 +82,72 @@ describe("deviceRows", () => {
       btAddr: "aa-bb-cc-dd-ee-03",
       selectable: false,
     });
+  });
+});
+
+describe("mergePairedRow", () => {
+  const optimistic = {
+    id: "aa-bb-cc-dd-ee-11",
+    name: "OBD Reader 4821",
+    kind: "paired_only" as const,
+    path: null,
+    btAddr: "aa-bb-cc-dd-ee-11",
+    lastUsed: false,
+    selectable: false,
+    preparing: true,
+  };
+
+  it("inserts the optimistic row at the paired-only boundary", () => {
+    const rows = deviceRows([
+      candidate({ id: "/dev/cu.usb", name: "cu.usb", device_kind: "usb_serial", path: "/dev/cu.usb" }),
+      candidate({ kind: "bluetooth", id: "cc-dd", name: "Other", device_kind: "paired_only", path: null, bt_addr: "cc-dd" }),
+    ]);
+    expect(mergePairedRow(optimistic, rows).map((row) => row.id)).toEqual([
+      "/dev/cu.usb",
+      optimistic.id,
+      "cc-dd",
+    ]);
+  });
+
+  it("keeps preparing while enumeration only reports the paired radio", () => {
+    const rows = deviceRows([
+      candidate({ kind: "bluetooth", id: optimistic.id, name: optimistic.name, device_kind: "paired_only", path: null, bt_addr: optimistic.btAddr }),
+    ]);
+    expect(mergePairedRow(optimistic, rows)).toEqual([optimistic]);
+  });
+
+  it("lets the serial-backed row replace the optimistic row", () => {
+    const rows = deviceRows([
+      candidate({ id: "/dev/cu.OBDReader4821", name: "cu.OBDReader4821", display_name: optimistic.name, device_kind: "bluetooth_serial", path: "/dev/cu.OBDReader4821", bt_addr: optimistic.btAddr }),
+    ]);
+    expect(mergePairedRow(optimistic, rows)).toEqual(rows);
+    expect(rows[0]).toMatchObject({ selectable: true, preparing: false });
+  });
+
+  it("returns the real paired-only row after optimistic settling ends", () => {
+    const rows = deviceRows([
+      candidate({ kind: "bluetooth", id: optimistic.id, name: optimistic.name, device_kind: "paired_only", path: null, bt_addr: optimistic.btAddr }),
+    ]);
+    expect(mergePairedRow(null, rows)).toEqual(rows);
+    expect(rows[0]).toMatchObject({ selectable: false, preparing: false });
+  });
+});
+
+describe("deviceRowAction", () => {
+  it("forgets every paired Bluetooth row", () => {
+    const rows = deviceRows([
+      candidate({ kind: "bluetooth", id: "aa-bb", name: "Radio", bt_addr: "aa-bb" }),
+      candidate({ id: "/dev/cu.Radio", name: "cu.Radio", bt_addr: "cc-dd", last_used: true }),
+    ]);
+    expect(rows.map(deviceRowAction)).toEqual(["forget", "forget"]);
+  });
+
+  it("only removes a USB row when it is the saved profile", () => {
+    const rows = deviceRows([
+      candidate({ id: "/dev/cu.saved", name: "cu.saved", last_used: true }),
+      candidate({ id: "/dev/cu.other", name: "cu.other", last_used: false }),
+    ]);
+    expect(rows.map(deviceRowAction)).toEqual(["remove_saved", null]);
   });
 });
 

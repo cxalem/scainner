@@ -14,6 +14,7 @@ pub struct AppState {
     pub db: Arc<Db>,
     pub supervisor: Mutex<Option<Supervisor>>,
     pub db_path: PathBuf,
+    pub bluetooth: Mutex<Option<Arc<dyn elm::transport::bluetooth::BluetoothControl>>>,
 }
 
 impl AppState {
@@ -22,6 +23,7 @@ impl AppState {
             db,
             supervisor: Mutex::new(None),
             db_path,
+            bluetooth: Mutex::new(None),
         }
     }
 }
@@ -515,6 +517,72 @@ pub async fn pair_adapter(
     })
     .await
     .map_err(|e| elm::transport::bluetooth::PairFailure::Other(format!("worker join error: {e}")))?
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ForgetFailure {
+    DisconnectFirst,
+    Other(String),
+}
+
+impl std::fmt::Display for ForgetFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DisconnectFirst => f.write_str("disconnect_first"),
+            Self::Other(message) => f.write_str(message),
+        }
+    }
+}
+
+fn clear_saved_adapter(state: &AppState) {
+    let mut profile = adapter_profile(state);
+    profile.path = None;
+    profile.bt_addr = None;
+    profile.pin.clear();
+    for (key, value) in profile.to_settings() {
+        state.db.setting_set(key, &value);
+    }
+}
+
+pub async fn forget_adapter(state: &AppState, addr: String) -> Result<(), ForgetFailure> {
+    let addr = if addr.starts_with('/') {
+        addr
+    } else {
+        addr.to_ascii_lowercase()
+    };
+    let profile = adapter_profile(state);
+    let saved_bluetooth = profile
+        .bt_addr
+        .as_deref()
+        .is_some_and(|saved| saved.eq_ignore_ascii_case(&addr));
+    let saved_usb = profile.bt_addr.is_none() && profile.path.as_deref() == Some(addr.as_str());
+    if conn_status(state).state != "disconnected" && (saved_bluetooth || saved_usb) {
+        return Err(ForgetFailure::DisconnectFirst);
+    }
+    if saved_usb {
+        clear_saved_adapter(state);
+        return Ok(());
+    }
+    let control = lock_or_recover(&state.bluetooth)
+        .clone()
+        .unwrap_or_else(|| Arc::from(elm::transport::bluetooth::platform()));
+    let forget_addr = addr.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        if control
+            .paired()
+            .iter()
+            .any(|device| device.connected && device.addr.eq_ignore_ascii_case(&forget_addr))
+        {
+            return Err(ForgetFailure::DisconnectFirst);
+        }
+        control.forget(&forget_addr).map_err(ForgetFailure::Other)
+    })
+    .await
+    .map_err(|e| ForgetFailure::Other(format!("worker join error: {e}")))??;
+    if saved_bluetooth {
+        clear_saved_adapter(state);
+    }
+    Ok(())
 }
 
 pub fn adapter_profile(state: &AppState) -> elm::transport::AdapterProfile {
