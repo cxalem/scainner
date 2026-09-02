@@ -693,6 +693,15 @@ pub fn list_hypotheses(state: &AppState, vehicle_id: i64) -> Vec<db::HypothesisR
     state.db.list_hypotheses(vehicle_id)
 }
 
+/// The de-identified "what the car said" document that goes into the next
+/// deep-research prompt. Local, no car traffic, no VIN and no serial.
+pub fn research_request(
+    state: &AppState,
+    vehicle_id: i64,
+) -> Option<discovery::request::ResearchRequest> {
+    discovery::request::research_request(&state.db, vehicle_id)
+}
+
 pub fn learning_state(state: &AppState) -> bool {
     state
         .db

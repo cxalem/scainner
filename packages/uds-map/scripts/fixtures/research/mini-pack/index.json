@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "pack_id": "examplebrand-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-09-01",
+  "brand_ids": [
+    "examplebrand"
+  ],
+  "marques": [
+    "examplebrand"
+  ],
+  "self_hash_policy": "index.json is self-excluded to avoid recursive hashing.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "b8ecfb1b83ddc17dc902a0a05d2f9bdcd0f3eca343541eb316bfa728387917a5"
+    },
+    {
+      "path": "examplebrand-profile-overlay.json",
+      "sha256": "fa0e5255c1d0d48b6cf3e8843d5eeac32a21559af92acdf2b6521cad4d7e963b"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "4198c81ac3bd7274c9962e303166c2b48b45a931329189d5fb1b3343c9d02d48"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "cf2745b5896ab5c6459100d2568ea6ecef258c7792ed0d04a44476e306b38b72"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "6e5d72ab524b188e728fc666727d9e57701b9b70c5c30cfd26866f376cbe4ee1"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "5ff7f9cf401c23c33d1e172c61e89a7c424aff7c98ce3e7697f414e60e645ca6"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "b8b9c269cdfc438ebbf71b8968a60067ab7f7f8026d57ba8da318d4cb8ead2d4"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "abae2d22f49117e1312bd88045cc886780775dd9a62a92a4b91404576a5c16a5"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "e630866fc5ccac1fdd7b309147d84d222bcd14347aa1c7e43abd07da381c4fe3"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "d7c52eb9fb2cc83b1ba01a8fbb106b2bd0946f55d8dcfbaf662debb89ff30bcc"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "5a72e9f9c057474eb33e050d5fe1aaf9c070098ed4bea9c17eea49056fccc56e"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "0585727c8fede13f1f2eed2c624c62ce28d3b36e68891dc53a56b902dd80d5e2"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "b425b62c9a2b45626adc0513083d5ba2305ea0255293c9f552a66d361853fc38"
+    }
+  ],
+  "declared_counts": {
+    "sources": 1,
+    "platforms": 1,
+    "routes": 2,
+    "did_candidates": 1,
+    "command_evidence": 1,
+    "ecu_families": 1,
+    "module_inventories": 1,
+    "validation_recipes": 1,
+    "claims": 1,
+    "conflicts": 1,
+    "gaps": 1
+  },
+  "validation": {
+    "status": "valid",
+    "errors": [],
+    "warnings": []
+  }
+}

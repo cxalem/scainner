@@ -475,6 +475,7 @@ mod tests {
                 "reached",
                 None,
                 None,
+                None,
             );
         }
         db.record_route_outcome(
@@ -482,6 +483,7 @@ mod tests {
             Some(connection),
             "752/652",
             "silent",
+            None,
             None,
             None,
         );
@@ -492,6 +494,7 @@ mod tests {
             "refused",
             None,
             Some("7F 22 11"),
+            Some(0x11),
         );
         join_vehicle(&db, uds_map::map(), c4.vehicle_id);
 
@@ -605,7 +608,15 @@ mod tests {
     fn a_second_brand_reports_its_own_routes_and_nothing_inherited() {
         let db = Db::open(std::path::Path::new(":memory:")).unwrap();
         let second = seed_second_brand(&db);
-        db.record_route_outcome(second.vehicle_id, None, "7E0/7E8", "reached", None, None);
+        db.record_route_outcome(
+            second.vehicle_id,
+            None,
+            "7E0/7E8",
+            "reached",
+            None,
+            None,
+            None,
+        );
         db.record_route_outcome(
             second.vehicle_id,
             None,
@@ -613,8 +624,17 @@ mod tests {
             "reached",
             None,
             None,
+            None,
         );
-        db.record_route_outcome(second.vehicle_id, None, "7E1/7E9", "silent", None, None);
+        db.record_route_outcome(
+            second.vehicle_id,
+            None,
+            "7E1/7E9",
+            "silent",
+            None,
+            None,
+            None,
+        );
         join_vehicle(&db, uds_map::map(), second.vehicle_id);
         let report = coverage(&db, uds_map::map(), second.vehicle_id).unwrap();
         assert_eq!(

@@ -220,6 +220,11 @@ class Client:
         return self.post(f"/vehicles/{vehicle_id}/join")
     def coverage(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/coverage")
     def hypotheses(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/hypotheses")
+    def research_request(self, vehicle_id: int):
+        """De-identified evidence for the next research round: WMI (never the
+        VIN), module fingerprints (never a serial), route outcomes, unlabeled
+        DIDs and the questions they raise."""
+        return self.get(f"/vehicles/{vehicle_id}/research-request")
     def parked_plan(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/parked-plan")
     def guided_steps(self, vehicle_id: int):
         """The guided-correlation state tree generated from the vehicle's open

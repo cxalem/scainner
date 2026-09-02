@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "evidence_id": "examplebrand-gen1-2022-gateway-2a54",
+      "scope": {
+        "platform_ids": [
+          "examplebrand_gen1"
+        ],
+        "models": [
+          "one"
+        ],
+        "years": {
+          "from": 2022,
+          "to": 2022
+        }
+      },
+      "ecu_fingerprint": null,
+      "route_id": "examplebrand_gen1_gateway_710_77a",
+      "service": "22",
+      "session": "default",
+      "did": "2A54",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "ignition_on_stationary",
+      "attempts": 1,
+      "outcome": {
+        "status": "refused",
+        "nrc": 49,
+        "payload_hex": null,
+        "raw_response_ref": "source:S01"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S01"
+      ],
+      "non_generalization_boundary": "One fictional vehicle only."
+    }
+  ],
+  "declared_count": 1
+}

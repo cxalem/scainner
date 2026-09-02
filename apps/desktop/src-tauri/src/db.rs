@@ -23,7 +23,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 14;
+const SCHEMA_VERSION: i64 = 15;
 
 /// A workshop repair order / diagnostic investigation. Cases are deliberately
 /// separate from connections: one job can span several adapter sessions,
@@ -98,6 +98,10 @@ pub struct RouteOutcomeRow {
     pub route_state: String,
     pub route_json: Option<String>,
     pub detail: Option<String>,
+    /// Negative response code when the route refused; `None` otherwise.
+    pub nrc: Option<i64>,
+    /// How many censuses have asked this address on this vehicle.
+    pub attempts: i64,
     pub observed_at: String,
 }
 
@@ -966,6 +970,11 @@ impl Db {
                 route_state TEXT NOT NULL,
                 route_json TEXT,
                 detail TEXT,
+                -- The negative response code when the route refused, and how
+                -- many censuses have asked this address: both are what a
+                -- research request needs to say "silent on N connections".
+                nrc INTEGER,
+                attempts INTEGER NOT NULL DEFAULT 1,
                 observed_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_route_outcomes_vehicle_address
@@ -1110,6 +1119,16 @@ impl Db {
         // unsigned read is exactly what those probes were saved meaning.
         let _ = conn.execute(
             "ALTER TABLE uds_probes ADD COLUMN signed INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+        // v15: a census outcome keeps the refusal's NRC and how many
+        // censuses have asked that address, so a research request can say
+        // "refused with 0x31" and "silent on N connections" instead of
+        // "silent, once, at some point". NULL / 1 on every existing row:
+        // one recorded observation is exactly what those rows mean.
+        let _ = conn.execute("ALTER TABLE route_outcomes ADD COLUMN nrc INTEGER", []);
+        let _ = conn.execute(
+            "ALTER TABLE route_outcomes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1",
             [],
         );
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
@@ -2110,18 +2129,29 @@ impl Db {
         route_state: &str,
         route_json: Option<&str>,
         detail: Option<&str>,
+        nrc: Option<u8>,
     ) {
         let conn = self.0.lock().unwrap();
         let _ = conn.execute(
-            "INSERT INTO route_outcomes (vehicle_id, connection_id, module_address, route_state, route_json, detail)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            "INSERT INTO route_outcomes (vehicle_id, connection_id, module_address, route_state, route_json, detail, nrc)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT(vehicle_id, module_address) DO UPDATE SET
                connection_id = excluded.connection_id,
                route_state = excluded.route_state,
                route_json = COALESCE(excluded.route_json, route_outcomes.route_json),
                detail = excluded.detail,
+               nrc = excluded.nrc,
+               attempts = route_outcomes.attempts + 1,
                observed_at = datetime('now')",
-            params![vehicle_id, connection_id, address, route_state, route_json, detail],
+            params![
+                vehicle_id,
+                connection_id,
+                address,
+                route_state,
+                route_json,
+                detail,
+                nrc.map(i64::from)
+            ],
         );
     }
 
@@ -2130,7 +2160,7 @@ impl Db {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
-                "SELECT id, vehicle_id, connection_id, module_address, route_state, route_json, detail, observed_at
+                "SELECT id, vehicle_id, connection_id, module_address, route_state, route_json, detail, nrc, attempts, observed_at
                  FROM route_outcomes WHERE vehicle_id = ?1 ORDER BY module_address",
             )
             .unwrap();
@@ -2143,7 +2173,9 @@ impl Db {
                 route_state: r.get(4)?,
                 route_json: r.get(5)?,
                 detail: r.get(6)?,
-                observed_at: r.get(7)?,
+                nrc: r.get(7)?,
+                attempts: r.get(8)?,
+                observed_at: r.get(9)?,
             })
         })
         .unwrap()
