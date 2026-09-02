@@ -38,7 +38,7 @@
         "renault.zoe_ph2.lbc.9008"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "vehicle_fit": "untested",
       "identity_fit": "provisional",
       "activation": "disabled",

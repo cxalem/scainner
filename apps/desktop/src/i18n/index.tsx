@@ -1,5 +1,3 @@
-// Runtime half of the typed-dictionary i18n system — dictionary.ts is the
-// shape, en.ts/es.ts are the two locales. See docs/workflows/i18n/plan.md.
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { en } from "./en";
 import { es } from "./es";
@@ -11,10 +9,6 @@ export type Locale = "en" | "es";
 const DICTIONARIES: Record<Locale, Dictionary> = { en, es };
 const STORAGE_KEY = "scainner.locale";
 
-// Pure on purpose (no window access hidden inside a hook) so this is
-// directly unit-testable — see index.test.ts. Detection order: an explicit
-// stored preference wins, then a best-effort guess from the browser/OS
-// locale, then English.
 export function detectLocale(storedValue: string | null, navigatorLanguage: string | null | undefined): Locale {
   if (storedValue === "en" || storedValue === "es") return storedValue;
   const lang = (navigatorLanguage ?? "").toLowerCase();
@@ -50,10 +44,6 @@ function useI18nContext(): I18nContextValue {
   return ctx;
 }
 
-/** The translated dictionary for the current locale — `t.diagnose.console.scan`,
- * not `t("diagnose.console.scan")`: a typo or a locale missing a key is a
- * `tsc` error, not a silent runtime fallback (research.md's whole case for
- * a typed dictionary over a string-key library). */
 export function useT(): Dictionary {
   return useI18nContext().t;
 }

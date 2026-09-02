@@ -1,6 +1,3 @@
-// Presentation metadata for the Live gauge bars: the span each standard
-// PID's bar is drawn against. Display only — never used for any verdict.
-// A reading outside its span just pins the bar at an end.
 export const GAUGE_RANGES: Record<string, { lo: number; hi: number }> = {
   rpm: { lo: 0, hi: 6000 },
   speed: { lo: 0, hi: 200 },

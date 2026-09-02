@@ -1,7 +1,3 @@
-// Polled probes: turns a DID found by hand into a recorded probe (polled
-// every ~30 s while connected, written to readings like any standard
-// sensor) and manages the ones already saved. Only probes the user created
-// explicitly — auto-discovered definitions are inventory, not telemetry.
 import { useEffect, useState } from "react";
 import { Button, Card, Input, Mono, Note, Skeleton } from "@/components/ui";
 import { List, Item, Reveal } from "@/motion/components";
@@ -10,8 +6,6 @@ import type { UdsHit, UdsProbe } from "@scainner/core";
 import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/features/lab/queries";
 import { useT } from "@/i18n";
 
-// Raw UdsProbe schema field names, untranslated on purpose (same idiom as
-// hex CAN IDs/DIDs).
 const PROBE_FIELDS = [
   ["label", "text"],
   ["unit", "text"],
@@ -44,7 +38,7 @@ export function ProbeManager({
   const [rowError, setRowError] = useState<{ id: number; msg: string } | null>(null);
 
   useEffect(() => {
-    if (candidate) setDraft({ did: candidate.did, len: 1, offset: 0, scale: 1, bias: 0 });
+    if (candidate) setDraft({ did: candidate.did, len: 1, offset: 0, scale: 1, bias: 0, signed: false });
   }, [candidate]);
 
   const save = () => {
@@ -55,6 +49,7 @@ export function ProbeManager({
         probe: {
           id: 0, module, did: draft.did ?? 0, label: draft.label, unit: draft.unit ?? "",
           offset: draft.offset ?? 0, len: draft.len ?? 1, scale: draft.scale ?? 1, bias: draft.bias ?? 0, enabled: true,
+          signed: draft.signed ?? false,
         },
         vehicleId,
       },
@@ -101,6 +96,15 @@ export function ProbeManager({
                 </label>
               ))}
             </div>
+            <label className="flex items-center gap-1.5 text-[11.5px] text-neutral-500">
+              <input
+                type="checkbox"
+                checked={draft.signed ?? false}
+                onChange={(e) => setDraft({ ...draft, signed: e.target.checked })}
+              />
+              {p.signed}
+              <span className="text-neutral-600">{p.signedHint}</span>
+            </label>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={cancel} disabled={addProbe.isPending}>
                 {t.common.cancel}
@@ -138,7 +142,7 @@ export function ProbeManager({
                   <Mono className="text-[11.5px] text-neutral-500">{probe.module}/22{hex4(probe.did)}</Mono>
                   <span className={`min-w-0 flex-1 truncate ${probe.enabled ? "" : "text-neutral-500"}`}>{probe.label}</span>
                   <Mono className="text-[11px] text-neutral-500">
-                    [{probe.offset}..{probe.offset + probe.len}] ×{probe.scale}+{probe.bias} {probe.unit}
+                    [{probe.offset}..{probe.offset + probe.len}]{probe.signed ? " ±" : ""} ×{probe.scale}+{probe.bias} {probe.unit}
                   </Mono>
                   <Button variant="ghost" size="sm" onClick={() => toggle(probe)} busy={togglePending}>
                     {probe.enabled ? p.disable : p.enable}

@@ -1,17 +1,13 @@
-// Manufacturer diagnostics beyond the standard set: one investigation
-// surface, three ways to run it (auto sweep, the backend's verification
-// plan, guided steps), and a drawer of by-hand tools for research use.
-// Every mode keeps its own backend capability; this file only owns the
-// mode switch, the module the by-hand tools address, and the drawer.
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Hand, ListChecks, Wand2 } from "lucide-react";
-import type { UdsHit } from "@scainner/core";
+import type { DiscoveryStatus, UdsHit } from "@scainner/core";
 import { useUdsModules } from "@/features/lab/queries";
 import { Card, ChoiceCard, ExpanderButton, Select } from "@/components/ui";
 import { Block, Reveal, Swap } from "@/motion/components";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";
 import { AutoDiscovery } from "@/views/lab/AutoDiscovery";
+import { AutoScanState } from "@/views/lab/AutoScanState";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
 import { ProbeManager } from "@/views/lab/ProbeManager";
 import { RangeScanner } from "@/views/lab/RangeScanner";
@@ -26,10 +22,12 @@ export function Lab({
   connected,
   vehicleId = null,
   scanning = false,
+  discovery = null,
 }: {
   connected: boolean;
   vehicleId?: number | null;
   scanning?: boolean;
+  discovery?: DiscoveryStatus | null;
 }) {
   const t = useT();
   const [mode, setMode] = useState<Mode>("auto");
@@ -37,8 +35,6 @@ export function Lab({
 
   const modulesQuery = useUdsModules();
   const modules = modulesQuery.data ?? [];
-  // No module key is a code constant: the default is the first module the
-  // knowledge map documents for the connected VIN, else the first custom.
   const firstModule = (modules.find((m) => m.builtin) ?? modules[0])?.key ?? "";
   const [mod, setMod] = useState("");
   useEffect(() => {
@@ -57,14 +53,16 @@ export function Lab({
   return (
     <>
       <Block>
+        <AutoScanState vehicleId={vehicleId} discovery={discovery} />
+      </Block>
+
+      <Block>
         <Card flush>
           <div className="flex gap-[9px] px-[17px] pt-[15px]">
             {modes.map((m) => (
               <ChoiceCard key={m.id} active={mode === m.id} icon={m.icon} label={m.label} note={m.note} onClick={() => setMode(m.id)} />
             ))}
           </div>
-          {/* Each mode renders its own run row (inside the header block) and
-              its body — the mode keeps its logic, the card keeps one shape. */}
           <Swap k={mode}>
             {mode === "auto" && <AutoDiscovery connected={connected} vehicleId={vehicleId} scanning={scanning} />}
             {mode === "plan" && <ParkedVerification connected={connected} vehicleId={vehicleId} />}

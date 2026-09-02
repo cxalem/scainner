@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "authoring_contract": {
+    "title": "UDS brand research pack specification",
+    "version": "1.0",
+    "source": "docs/uds/brand-research-pack-specification.md"
+  },
+  "brand_ids": [
+    "vag"
+  ],
+  "marques": [
+    "volkswagen",
+    "audi"
+  ],
+  "research_date": "2026-09-02",
+  "original_research_date": "2026-08-31",
+  "migrated_from": "vag-deep-research-v1",
+  "baseline_reference": {
+    "map_version": 9,
+    "map_generated": "2026-08-28",
+    "brand_id": "vag",
+    "brand_name": "Volkswagen Group (VW, Audi)",
+    "wmis": [
+      "WVW",
+      "WV1",
+      "WV2",
+      "WV3",
+      "WVG",
+      "1VW",
+      "3VW",
+      "9BW",
+      "AAV",
+      "WAU",
+      "WA1",
+      "WUA",
+      "WU1",
+      "TRU",
+      "93U"
+    ],
+    "known_module_count": 20,
+    "known_did_count": 31,
+    "platform_count": 3,
+    "existing_profiled_level": "routes_sourced",
+    "merge_rule": "REFERENCE ONLY. Additive overlay; never overwrite project vehicle/family-confirmed knowledge."
+  },
+  "merge_mode": "additive_only",
+  "knowledge_dimensions": {
+    "knowledge_state": "research_candidate/community_reported/inherited/locally_confirmed/community_verified/oem_confirmed/unknown",
+    "vehicle_fit": "untested/matched/conflicted/insufficient",
+    "route_state": "reached/refused/silent/transport_failed/closed",
+    "identity_fit": "provisional/stable/conflicted",
+    "activation": "disabled/learning/enabled"
+  },
+  "runtime_recommendation": {
+    "platform_first": true,
+    "known_routes_before_enumeration": true,
+    "identity_before_proprietary_decode": true,
+    "generic_11bit": "late bounded fallback",
+    "generic_29bit": "disabled",
+    "negative_evidence": "platform scoped"
+  },
+  "claims": [
+    {
+      "claim_id": "vag.s01.opendbc_platform_classification",
+      "exact_claim": "opendbc's manufacturer-group platform module classifies platform generations, WMI/chassis and firmware-query behavior, useful for fingerprinting which platform branch a connected vehicle is on.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ]
+      },
+      "source_refs": [
+        "S01"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use only to help classify which platform branch a connected vehicle is on; never as a route or DID source directly.",
+      "promotion_test": "Supporting classification context only; confirm any platform assignment it suggests against gateway identity before acting on it.",
+      "non_generalization_boundary": "Platform classification and firmware query logic; not a route or DID source."
+    },
+    {
+      "claim_id": "vag.s02.group_uds_route_catalogue",
+      "exact_claim": "A community extraction of the manufacturer group's diagnostic database catalogues UDS module request/response CAN ID pairs shared across the group's platform family.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ]
+      },
+      "source_refs": [
+        "S02"
+      ],
+      "validation": {
+        "source_validation_status": "community_extraction",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Treat as a presence probe only: attempt the route, and if it answers, fingerprint before trusting any associated DID.",
+      "promotion_test": "Confirm the route answers on a physical vehicle, fingerprint the responding ECU, and cross-check against a second group-family vehicle before treating it as marque-confirmed rather than group-inherited.",
+      "non_generalization_boundary": "A route existing in this catalogue is not proof that a given vehicle carries that ECU."
+    },
+    {
+      "claim_id": "vag.s03.first_marque_make_level_signalset",
+      "exact_claim": "OBDb's make-level signalset for the group's volume marque aggregates command definitions across its models into one make-wide UDS reference.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium_high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ]
+      },
+      "source_refs": [
+        "S03"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use only as a last-resort candidate after platform-specific and model-specific routes are exhausted; never let a make-level guess overwrite a platform-scoped or project-confirmed finding.",
+      "promotion_test": "Fingerprint the responding ECU (F187/F191/F195) and reproduce the same route+DID+decoder on a second vehicle of the same platform before promoting to uds-map.json.",
+      "non_generalization_boundary": "Make-level fallback mixing platform decoders; not one universal truth for the marque."
+    },
+    {
+      "claim_id": "vag.s04.second_marque_make_level_signalset",
+      "exact_claim": "OBDb's make-level signalset for the group's premium marque aggregates command definitions across its models into one make-wide UDS reference.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium_high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ]
+      },
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use only as a last-resort candidate after platform-specific and model-specific routes are exhausted; never let a make-level guess overwrite a platform-scoped or project-confirmed finding.",
+      "promotion_test": "Fingerprint the responding ECU (F187/F191/F195) and reproduce the same route+DID+decoder on a second vehicle of the same platform before promoting to uds-map.json.",
+      "non_generalization_boundary": "Make-level fallback mixing transverse, longitudinal and electric platform decoders; not one universal truth for the marque."
+    },
+    {
+      "claim_id": "vag.s05.meb_gen1_model_signalset",
+      "exact_claim": "OBDb's signalset for the group's first high-volume electric model documents model and platform-specific UDS routes and DIDs for the first-generation electric platform, including gateway energy-management and charging data.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "platform_ids": [
+          "vw_meb_gen1"
+        ]
+      },
+      "source_refs": [
+        "S05"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Prioritize over make-level candidates on a confirmed vehicle of this platform; still treat DIDs as unverified until read on project hardware.",
+      "promotion_test": "Read each candidate DID on a physical vehicle of this platform in the default session, record the raw payload, and confirm the source decode formula against a reference measurement before promoting.",
+      "non_generalization_boundary": "First-generation electric platform only; the source's own year filters apply."
+    },
+    {
+      "claim_id": "vag.s06.longitudinal_2015_command_support",
+      "exact_claim": "An OBDb test fixture records a physical command-support matrix for a 2015 longitudinal-platform vehicle: dense engine/transmission UDS/OBD support, and no evidence that transverse or electric body routes apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_mlb"
+        ],
+        "years": {
+          "from": 2015,
+          "to": 2015
+        }
+      },
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "physical_command_support_matrix",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Treat as physically-observed evidence for this exact platform; still confirm independently on project hardware before trusting a decode.",
+      "promotion_test": "Reproduce the same route/DID responses on a physical longitudinal-platform vehicle and compare payloads before promoting.",
+      "non_generalization_boundary": "One tested 2015 longitudinal vehicle only."
+    },
+    {
+      "claim_id": "vag.s07.performance_ev_2022_command_support",
+      "exact_claim": "An OBDb test fixture records a physical command-support matrix for a 2022 performance-EV platform vehicle, including explicit rejections of many generic group make-level route candidates.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "years": {
+          "from": 2022,
+          "to": 2022
+        }
+      },
+      "source_refs": [
+        "S07"
+      ],
+      "validation": {
+        "source_validation_status": "physical_command_support_matrix",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Treat rejected DIDs as evidence to skip on a confirmed vehicle of this platform; treat supported DIDs as physically-observed evidence, still unverified on project hardware.",
+      "promotion_test": "Reproduce the same route/DID responses (or the same rejections) on a physical vehicle of this platform before promoting either direction.",
+      "non_generalization_boundary": "One tested 2022 performance-EV vehicle only. Rejections do not generalize beyond it."
+    },
+    {
+      "claim_id": "vag.s08.premium_meb_model_signalset",
+      "exact_claim": "OBDb's signalset for the premium marque's electric compact SUV documents model and platform-specific UDS routes and DIDs for that marque's implementation of the shared electric platform.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_meb"
+        ]
+      },
+      "source_refs": [
+        "S08"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Prioritize over make-level candidates on a confirmed vehicle of this platform; still treat DIDs as unverified until read on project hardware.",
+      "promotion_test": "Read each candidate DID on a physical vehicle of this platform in the default session, record the raw payload, and confirm the source decode formula against a reference measurement before promoting.",
+      "non_generalization_boundary": "One marque's implementation of the shared electric platform; the source default was sparse at this revision."
+    }
+  ]
+}

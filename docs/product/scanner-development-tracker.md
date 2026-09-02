@@ -246,6 +246,25 @@ Acceptance criteria:
 - Missing module DTC evidence is visibly different from a verified clean scan.
 - Full repository CI passes.
 
+## Discovery protocol audit
+
+The Universal Discovery Protocol was audited against the current tree on
+2026-09-01. Findings F1 to F14 and backlog DA-1 to DA-28 are in
+`docs/product/discovery-protocol-audit-2026-09-01.md`. Three items to schedule
+first:
+
+- DA-1: the `uds_discover` sweep opens an extended diagnostic session (`10 03`)
+  on every module the map marks `default_then_extended`, with no parked,
+  voltage or confirmation gate. The connect-time automatic run stays in the
+  default session. Move extended-session identity to an explicit, confirmed,
+  module-specific operation recorded as its own run.
+- DA-6: knowledge-state promotion is ungated, and unevidenced states are
+  projected into `knowledge_candidates`. Add transition rules and require
+  evidence on every patch.
+- DA-10: the S4 sweep picks the module with the most live-data evidence already
+  in the map (`elm/discovery/plan.rs:368-376`) instead of the module with the
+  fewest inherited decodes, so the sweep repeatedly re-explores known ground.
+
 ## Product gates
 
 The implementation remains on course only if it eventually demonstrates:

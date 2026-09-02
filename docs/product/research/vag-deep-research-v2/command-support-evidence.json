@@ -1,0 +1,1083 @@
+{
+  "schema_version": 1,
+  "evidence": [
+    {
+      "evidence_id": "audi_j1_tpms_18a0",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "tpms"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": "18A0",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "unresolved_response_address": "70B",
+      "note": "The source never resolved a response address for this request, so the record cannot bind to a route.",
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_tpms_18a1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "tpms"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": "18A1",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "unresolved_response_address": "70B",
+      "note": "The source never resolved a response address for this request, so the record cannot bind to a route.",
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_tpms_18a2",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "tpms"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": "18A2",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "unresolved_response_address": "70B",
+      "note": "The source never resolved a response address for this request, so the record cannot bind to a route.",
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_tpms_18a3",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "tpms"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": "18A3",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "unresolved_response_address": "70B",
+      "note": "The source never resolved a response address for this request, so the record cannot bind to a route.",
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_central_electronics_1945",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "central_electronics"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_central_electronics_70e_778",
+      "service": "22",
+      "session": "default",
+      "did": "1945",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_awd_control_08a7",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_awd_control_70f_779",
+      "service": "22",
+      "session": "default",
+      "did": "08A7",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_awd_control_0c0a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_awd_control_70f_779",
+      "service": "22",
+      "session": "default",
+      "did": "0C0A",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_awd_control_2b1b",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_awd_control_70f_779",
+      "service": "22",
+      "session": "default",
+      "did": "2B1B",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_awd_control_2b1c",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_awd_control_70f_779",
+      "service": "22",
+      "session": "default",
+      "did": "2B1C",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_awd_control_2b1d",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_awd_control_70f_779",
+      "service": "22",
+      "session": "default",
+      "did": "2B1D",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_awd_control_2b1e",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_awd_control_70f_779",
+      "service": "22",
+      "session": "default",
+      "did": "2B1E",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_steering_assist_1812",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "steering_assist"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_steering_assist_712_77c",
+      "service": "22",
+      "session": "default",
+      "did": "1812",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_brakes_abs_esc_1800",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "service": "22",
+      "session": "default",
+      "did": "1800",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_brakes_abs_esc_1801",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "service": "22",
+      "session": "default",
+      "did": "1801",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_brakes_abs_esc_1802",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "service": "22",
+      "session": "default",
+      "did": "1802",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_brakes_abs_esc_1803",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "service": "22",
+      "session": "default",
+      "did": "1803",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_brakes_abs_esc_1816",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "service": "22",
+      "session": "default",
+      "did": "1816",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_brakes_abs_esc_1821",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "service": "22",
+      "session": "default",
+      "did": "1821",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_instrument_cluster_202f",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "instrument_cluster"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_instrument_cluster_714_77e",
+      "service": "22",
+      "session": "default",
+      "did": "202F",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_instrument_cluster_2203",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "instrument_cluster"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_instrument_cluster_714_77e",
+      "service": "22",
+      "session": "default",
+      "did": "2203",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_instrument_cluster_2294",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "instrument_cluster"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_instrument_cluster_714_77e",
+      "service": "22",
+      "session": "default",
+      "did": "2294",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_j1_instrument_cluster_229a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "instrument_cluster"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": "audi_j1_instrument_cluster_714_77e",
+      "service": "22",
+      "session": "default",
+      "did": "229A",
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "unsupported",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "explicitly_unsupported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle."
+    },
+    {
+      "evidence_id": "audi_q5_2015_supported_route_families",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": null,
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S06"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S06"
+      ],
+      "supported_route_families": [
+        "0x7E0->0x7E8",
+        "0x7E1->0x7E9"
+      ],
+      "interpretation": "Longitudinal Audi supports dense engine/transmission UDS/OBD; do not assume MQB/MEB body/EV routes.",
+      "non_generalization_boundary": "One tested vehicle; a supported route family is not a supported identifier."
+    },
+    {
+      "evidence_id": "audi_rs_etron_gt_2022_supported_route_families",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": null,
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S07"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S07"
+      ],
+      "supported_route_families": [
+        "0x710->0x77A",
+        "0x713->0x77D",
+        "0x714->0x77E",
+        "0x71E->0x788",
+        "0x742->0x7AC",
+        "0x744->0x7AE",
+        "0x746->0x7B0",
+        "0x767->0x7D1",
+        "0x7E0",
+        "0x7E1",
+        "0x7E5->0x7ED"
+      ],
+      "interpretation": "J1 supports gateway, charger, HVAC, BMS and selected brakes/cluster data, while many generic VAG candidates are explicitly rejected.",
+      "non_generalization_boundary": "One tested vehicle; a supported route family is not a supported identifier."
+    },
+    {
+      "evidence_id": "vw_id4_supported_route_families",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ]
+      },
+      "ecu_fingerprint": null,
+      "route_id": null,
+      "service": "22",
+      "session": "default",
+      "did": null,
+      "adapter": {
+        "model": "source-test-tool",
+        "firmware": null
+      },
+      "vehicle_state": "not_recorded_by_source",
+      "attempts": null,
+      "outcome": {
+        "status": "answered",
+        "nrc": null,
+        "payload_hex": null,
+        "raw_response_ref": "source:S05"
+      },
+      "support_status": "physically_supported_on_test_vehicle",
+      "source_refs": [
+        "S05"
+      ],
+      "supported_route_families": [],
+      "interpretation": "MEB has rich 0x710/0x77A energy-management and 0x744/0x7AE charging data.",
+      "non_generalization_boundary": "One tested vehicle; a supported route family is not a supported identifier."
+    }
+  ],
+  "declared_count": 25
+}

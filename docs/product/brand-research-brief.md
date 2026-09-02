@@ -300,8 +300,8 @@ group brands, the diagnostic-routing layer) with
 `apps/desktop/src/data/wmi.json` (the generated per-marque badge table,
 built by `pnpm wmi-table` from `uds-map.json` + the overlay source
 `apps/desktop/src/data/wmi-marques.json`) and
-`apps/desktop/src/components/emblems.tsx`'s `EMBLEMS` registry (25 keys with
-real modeled 3D geometry). **38 distinct marque keys** exist in the current
+`apps/desktop/src/components/emblems.tsx`'s `EMBLEMS` registry (34 keys with
+real modeled 3D geometry, as of 2026-09-02). **38 distinct marque keys** exist in the current
 `wmi.json`; 7 of them (`byd`, `chery`, `geely`, `jaguar`, `land-rover`,
 `porsche`, `suzuki`) have a WMI/badge entry but **no `uds-map` brand
 routing** (`brand: null` — no diagnostic profile at all, standard OBD-II
@@ -371,10 +371,10 @@ same file).
 | **Tesla** | | | | | | | |
 | Tesla | `tesla` | 5 codes | yes | 0 | 0 (0) | high (negative finding) | `standard_only` — no request/response server on OBD-port addresses (§6) |
 | **Badge-only, no `uds-map` routing (`brand: null`)** | | | | | | | |
-| Porsche | *(none)* | WP0, WP1 | **nameplate — rejected** | — | — | — | 3D geometry rejected 2026-08-30: text rendered mirrored/backward |
-| Jaguar | *(none)* | SAJ | **nameplate — rejected** | — | — | — | 3D geometry rejected: flat, no shading detail |
-| Suzuki | *(none)* | JS2 | **nameplate — rejected** | — | — | — | 3D geometry rejected: jagged, unrecognizable |
-| Land Rover | *(none)* | SAL | **yes — accepted** | — | — | — | emblem accepted 2026-08-30; still no diagnostic profile |
+| Porsche | *(none)* | WP0, WP1 | **yes (accepted)** | — | — | — | emblem accepted 2026-09-02: the 2026-08-30 mirrored/backward defect was a face-down export, fixed by a half-turn about X baked into the `.glb`; still no diagnostic profile |
+| Jaguar | *(none)* | SAJ | **yes (accepted)** | — | — | — | emblem accepted 2026-09-02: re-meshed solid leaper replacing the flat shell, same baked orientation fix; still no diagnostic profile |
+| Suzuki | *(none)* | JS2 | **nameplate (excluded)** | — | — | — | source geometry genuinely broken (torn edges, bowed face); `.glb` removed, not just unregistered; needs re-sourcing from a clean batch |
+| Land Rover | *(none)* | SAL | **yes (accepted)** | — | — | — | emblem accepted 2026-08-30; still no diagnostic profile |
 | BYD | *(none)* | LGX | yes | — | — | — | badge + emblem only, no diagnostic profile |
 | Chery | *(none)* | LVV | yes | — | — | — | badge + emblem only, no diagnostic profile |
 | Geely | *(none)* | LB3 | yes | — | — | — | badge + emblem only, no diagnostic profile |
@@ -430,12 +430,14 @@ the whole file, and squarely in scope for this pass.
   DID decodes.
 
 **Brands with WMI recognition but literally no `uds-map` entry** (badge/
-emblem only, standard OBD-II diagnostics only): **Porsche, Jaguar, Suzuki**
-(all three had 3D emblem geometry sourced and then visually rejected this
-session for broken/mirrored/flat rendering — re-sourcing the assets is a
-separate task from the diagnostic research), **Land Rover** (emblem
-accepted, no diagnostic profile), **BYD, Chery, Geely** (emblem present,
-no diagnostic profile). Any of these seven is a from-scratch brand: no
+emblem only, standard OBD-II diagnostics only): **Porsche, Jaguar** (3D
+emblems accepted 2026-09-02; both earlier rejections were a face-down export,
+now corrected by a half-turn baked into the `.glb`, and Jaguar is a re-meshed
+file), **Suzuki** (still excluded: its source geometry is broken, so the
+asset needs re-sourcing, which is a separate task from the diagnostic
+research), **Land Rover** (emblem accepted, no diagnostic profile), **BYD,
+Chery, Geely** (emblem present, no diagnostic profile). The emblem work
+changes none of the diagnostics. Any of these seven is a from-scratch brand: no
 `did_bands`, no `known_dids`, no identity block beyond the ISO default.
 
 **Marque badges that don't exist yet despite the group brand covering them.**

@@ -1,8 +1,3 @@
-// The app frame once you're in: a fixed sidebar (brand, vehicle switcher,
-// grouped nav, connection card, locale, sign-out) and a scrolling content
-// pane with the page head and the view. Every view change replays the page
-// entrance (Page keyed by view), so switching tabs is a continuous motion,
-// not a cut.
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -67,17 +62,13 @@ export function Shell({
   recording: boolean;
   onConnect: () => void;
   onDisconnect: () => Promise<unknown>;
-  /** Every vehicle the database knows; the connected car is the default. */
   vehicles?: VehicleOption[];
   activeVehicleId?: number | null;
   onSelectVehicle?: (id: number | null) => void;
-  /** Archive mode: the selected car is not the one on the cable. */
   browsing?: boolean;
   onReturnConnected?: () => void;
-  /** Small counts next to a nav item (e.g. stored faults on Diagnose). */
   badges?: Partial<Record<ViewKey, number>>;
   onSignOut?: () => void;
-  /** Text for the "this car · live" chip on the page head; null hides it. */
   liveLabel?: string | null;
   children: ReactNode;
 }) {
@@ -155,7 +146,6 @@ export function Shell({
           )}
         </div>
 
-        {/* Vehicle switcher */}
         <div className="px-3 pb-3">
           <button
             type="button"
@@ -303,8 +293,6 @@ export function Shell({
             {t.shell.archive.browsing(active ? vehicleName(active) : "")}
           </Banner>
         </Reveal>
-        {/* overflow-y-scroll, not auto: the gutter is always reserved so the
-            content never shifts sideways when a page grows past the fold. */}
         <main className="min-h-0 flex-1 overflow-y-scroll px-[26px] pb-11 pt-6">
           <div className="mx-auto flex w-full flex-col gap-[18px]" style={{ maxWidth: "var(--content-max-width)" }}>
             <PageHeader

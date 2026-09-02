@@ -1,27 +1,9 @@
-/* Design tokens — the single source of truth for how the app looks.
- *
- * Every visual decision (color, type, radius, elevation, motion timing)
- * lives here as a CSS custom property. Components never carry a raw hex,
- * px-radius or easing of their own: they consume these through the
- * Tailwind utilities mapped in ../index.css (`bg-surface`, `text-accent`,
- * `rounded-md`, …) or, for the few JS-runtime consumers (Three.js,
- * Canvas), through ./rendering.ts. Retune a value here and the whole app
- * follows.
- *
- * Values come from the Hi-Fi v2 handoff (light theme, one accent voice).
- * Ramps: 100 is the DARKEST step and 900 the lightest — same convention
- * for neutral and accent, so "accent-900" is always the palest tint and
- * "neutral-100" is always near-ink.
- */
 :root {
-  /* — surfaces and text — */
   --bg: #f7f6fb;
   --surface: #ffffff;
   --text: #1d1a33;
   --divider: #e4e0f0;
 
-  /* The one dark ground in the app (login's left panel) and the tints
-     that only exist on it. */
   --section: #221d47;
   --section-text: #efedfa;
   --section-headline: #f4f2fc;
@@ -29,8 +11,12 @@
   --section-chip-text: #f2effd;
   --section-chip-border: rgba(183, 171, 240, 0.75);
   --section-chip-bg: rgba(145, 132, 217, 0.22);
+  --section-muted: rgba(239, 237, 250, 0.8);
+  --section-faint: rgba(239, 237, 250, 0.42);
+  --section-divider: rgba(214, 207, 242, 0.28);
+  --section-accent: #b7abf0;
+  --section-accent-strong: #d6cff2;
 
-  /* — accent (blurple) and its ramp — */
   --accent: #4634a8;
   --accent-100: #f6f4fd;
   --accent-200: #efebfb;
@@ -41,11 +27,9 @@
   --accent-700: #d6cff2;
   --accent-800: #e8e3f8;
   --accent-900: #f4f1fd;
-  /* Secondary accent: only for "candidate, unproven" — never decorative. */
   --accent-2-400: #7a5ea8;
   --accent-2-600: #b09ed0;
 
-  /* — neutral ramp — */
   --neutral-100: #14121f;
   --neutral-200: #24213a;
   --neutral-300: #3a3556;
@@ -56,7 +40,6 @@
   --neutral-800: #e8e6f0;
   --neutral-900: #f2f0f7;
 
-  /* — semantic status (meaning, never decoration) — */
   --ok: oklch(0.48 0.09 155);
   --ok-bg: oklch(0.96 0.03 155);
   --ok-line: oklch(0.86 0.05 155);
@@ -67,33 +50,95 @@
   --stop-bg: oklch(0.96 0.04 25);
   --stop-line: oklch(0.87 0.08 25);
 
-  /* — elevation — */
   --shadow-sm: 0 1px 2px rgba(29, 26, 51, 0.06);
   --shadow-md: 0 10px 28px -12px rgba(29, 26, 51, 0.18);
   --shadow-lg: 0 30px 70px -26px rgba(29, 26, 51, 0.28);
 
-  /* — shape — */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 14px;
   --radius-full: 999px;
 
-  /* — type — */
   --font-body: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-heading: var(--font-body);
   --font-heading-weight: 500;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* — layout — */
   --sidebar-width: 232px;
   --content-max-width: 1000px;
 
-  /* — motion — mirrored in ../motion/index.ts for framer-motion; keep in
-     sync. The one easing is a soft decelerate: content settles, never
-     snaps. */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-fast: 150ms;
   --dur-base: 220ms;
   --dur-slow: 320ms;
   --dur-page: 360ms;
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--surface);
+  --secondary: var(--neutral-900);
+  --secondary-foreground: var(--neutral-200);
+  --muted: var(--neutral-900);
+  --muted-foreground: var(--neutral-500);
+  --accent-foreground: var(--surface);
+  --destructive: var(--stop);
+  --destructive-foreground: var(--surface);
+  --border: var(--divider);
+  --input: var(--divider);
+  --ring: var(--accent);
+  --radius: var(--radius-md);
+  --chart-1: var(--accent-400);
+  --chart-2: var(--accent-600);
+  --chart-3: var(--accent-2-400);
+  --chart-4: var(--accent-2-600);
+  --chart-5: var(--neutral-600);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--surface);
+  --sidebar-accent: var(--accent-900);
+  --sidebar-accent-foreground: var(--accent-300);
+  --sidebar-border: var(--divider);
+  --sidebar-ring: var(--accent);
 }
+
+.dark {
+  color-scheme: dark;
+  --background: var(--section);
+  --foreground: var(--section-text);
+  --card: var(--section);
+  --card-foreground: var(--section-headline);
+  --popover: var(--section);
+  --popover-foreground: var(--section-text);
+  --primary: var(--section-accent);
+  --primary-foreground: var(--section);
+  --secondary: var(--section-chip-bg);
+  --secondary-foreground: var(--section-chip-text);
+  --muted: var(--section-chip-bg);
+  --muted-foreground: var(--section-muted);
+  --accent-foreground: var(--section);
+  --destructive: var(--stop-line);
+  --destructive-foreground: var(--section);
+  --border: var(--section-divider);
+  --input: var(--section-divider);
+  --ring: var(--section-accent);
+  --chart-1: var(--section-accent);
+  --chart-2: var(--section-accent-strong);
+  --chart-3: var(--accent-2-600);
+  --chart-4: var(--accent-600);
+  --chart-5: var(--section-faint);
+  --sidebar: var(--section);
+  --sidebar-foreground: var(--section-text);
+  --sidebar-primary: var(--section-accent);
+  --sidebar-primary-foreground: var(--section);
+  --sidebar-accent: var(--section-chip-bg);
+  --sidebar-accent-foreground: var(--section-chip-text);
+  --sidebar-border: var(--section-divider);
+  --sidebar-ring: var(--section-accent);
+}
+

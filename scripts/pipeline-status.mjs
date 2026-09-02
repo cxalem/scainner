@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-// Pipeline dashboard: shows every workflow stream, its current stage, its
-// artifacts, and its branch state, straight from the repo. No deps.
-//
-//   node scripts/pipeline-status.mjs           one snapshot
-//   node scripts/pipeline-status.mjs --watch   live view, refreshes every 5s
-//
-// Data sources, all plain files (the whole pipeline is file-based on
-// purpose so it can be inspected without any tooling):
-//   docs/workflows/<stream>/status.json   written by the orchestrator
-//   docs/workflows/<stream>/*.md          stage artifacts + decision logs
-//   git branches ws/<stream>              builder output
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
@@ -59,7 +48,6 @@ function render() {
       }
     }
 
-    // Stage progress bar from which artifacts exist
     const have = (f) => fs.existsSync(path.join(dir, f));
     const marks = {
       research: have("research.md"),

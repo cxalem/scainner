@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "examplebrand_gen1",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "marques": [
+          "examplebrand"
+        ],
+        "models": [
+          "one"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "years": {
+          "from": 2021,
+          "to": null
+        }
+      },
+      "architecture": "First fictional generation with a single CAN diagnostic bus.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [
+        "kwp2000"
+      ],
+      "gateway_architecture": "one gateway route",
+      "security_behavior": [],
+      "classification_evidence": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01"
+      ],
+      "non_generalization_boundary": "Do not apply to any later generation without classification evidence."
+    }
+  ],
+  "declared_count": 1
+}

@@ -1,26 +1,19 @@
-// Motion building blocks. Views compose these instead of touching
-// framer-motion directly, so every appear/leave in the app uses the shared
-// vocabulary from ./index.ts and the "no layout shift" rule is enforced by
-// construction:
-//
-//   <Page>            the screen's stagger container; every direct child
-//     <Block>         rises in on mount and SLIDES (never jumps) when a
-//     <Block>         sibling above it appears or disappears
-//     <Reveal when={x}>   a block that exists only while `when` is true —
-//        …             rises in, fades out, and pushes siblings smoothly
-//     </Reveal>
-//   </Page>
-//
-//   <Swap k={state}>  the same slot showing different content per state
-//                     (idle → running → done) — cross-fades instead of cutting
-import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
-import type { ReactNode } from "react";
-import { appearVariants, fadeVariants, layoutTransition, pageBlock, pageContainer, staggerContainer, staggerItem } from "./index";
+import { AnimatePresence, motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  appearVariants,
+  fadeVariants,
+  growBoxStyle,
+  growTransition,
+  layoutTransition,
+  pageBlock,
+  pageContainer,
+  staggerContainer,
+  staggerItem,
+} from "./index";
 
 type DivProps = Omit<HTMLMotionProps<"div">, "variants" | "initial" | "animate" | "exit">;
 
-/** The stagger container for one screen. Re-key it (`key={view}`) to replay
- *  the entrance when the screen changes. */
 export function Page({ children, ...rest }: DivProps & { children: ReactNode }) {
   return (
     <motion.div initial="hidden" animate="visible" exit="exit" variants={pageContainer} {...rest}>
@@ -29,9 +22,6 @@ export function Page({ children, ...rest }: DivProps & { children: ReactNode }) 
   );
 }
 
-/** One top-level block of a screen. Rises in with the page's stagger; slides
- *  to its new place when siblings change (layout="position", never bare
- *  `layout`). */
 export function Block({ children, ...rest }: DivProps & { children: ReactNode }) {
   return (
     <motion.div layout="position" transition={layoutTransition} variants={pageBlock} {...rest}>
@@ -40,8 +30,6 @@ export function Block({ children, ...rest }: DivProps & { children: ReactNode })
   );
 }
 
-/** Conditional content that animates in and out and pushes its siblings
- *  smoothly. Use for expanders, forms that open, results that land. */
 export function Reveal({
   when,
   children,
@@ -67,8 +55,60 @@ export function Reveal({
   );
 }
 
-/** One slot, many states: the child for the current `k` cross-fades in as
- *  the previous one fades out ("wait" mode, so the two never overlap). */
+export function Grow({
+  when,
+  children,
+  className,
+  ...rest
+}: DivProps & { when: boolean; children: ReactNode; className?: string }) {
+  return (
+    <AnimatePresence initial={false}>
+      {when && (
+        <GrowBox className={className} {...rest}>
+          {children}
+        </GrowBox>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function GrowBox({
+  children,
+  className,
+  ...rest
+}: DivProps & { children: ReactNode; className?: string }) {
+  const reduced = useReducedMotion();
+  const inner = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    setHeight(el.getBoundingClientRect().height);
+    const observer = new ResizeObserver(([entry]) => {
+      setHeight(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      style={growBoxStyle}
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height, opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      // MotionConfig reducedMotion="user" neutralises transforms but not height animation.
+      transition={reduced ? { duration: 0 } : growTransition}
+      {...rest}
+    >
+      <div ref={inner} className={className}>
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
 export function Swap({ k, children, ...rest }: DivProps & { k: string; children: ReactNode }) {
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -79,7 +119,6 @@ export function Swap({ k, children, ...rest }: DivProps & { k: string; children:
   );
 }
 
-/** A list whose rows appear one after another. Pair with <Row>. */
 export function Stagger({ children, ...rest }: DivProps & { children: ReactNode }) {
   return (
     <motion.div initial="hidden" animate="visible" variants={staggerContainer} {...rest}>
@@ -95,8 +134,6 @@ export function Row({ children, ...rest }: DivProps & { children: ReactNode }) {
   );
 }
 
-/** A list where items can be added/removed at runtime (scan results, log
- *  lines, cases): new items rise in, removed ones fade, the rest slide. */
 export function List({ children, ...rest }: DivProps & { children: ReactNode }) {
   return (
     <motion.div layout="position" {...rest}>

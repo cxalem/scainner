@@ -44,6 +44,8 @@
     "coverage:check": "node --experimental-strip-types scripts/coverage.ts --check",
     "lint:pack": "node --experimental-strip-types scripts/lint.ts",
     "research:compile": "node --experimental-strip-types scripts/compile-research-pack.ts",
+    "research:validate": "node --experimental-strip-types scripts/validate-research-pack.ts",
+    "research:snapshot": "node --experimental-strip-types scripts/research-snapshot.ts",
     "prepublishOnly": "pnpm run build && pnpm run test",
     "wmi-table": "node --experimental-strip-types scripts/wmi-table.ts",
     "wmi-table:check": "node --experimental-strip-types scripts/wmi-table.ts --check"

@@ -1,25 +1,3 @@
-//! UDS (ISO 14229 / KWP read services) access to modules beyond the
-//! standard engine ECU.
-//!
-//! Nothing brand-specific lives here (multi-brand plan, Phase 2). The
-//! modules offered for a car are the ones the knowledge map documents for
-//! its VIN (`discovery::pack_ext::profile_modules_for_vin`) plus the ones
-//! the user added through the UI (persisted in `db::UdsModuleDef`); the
-//! route to a module (bit rate, 11/29-bit scheme, target byte, address
-//! extension) and the read service it answers (`22`, `21`, `1A`) come from
-//! the map's route tuple and read-service fields. A car whose brand is not
-//! in the map gets its custom modules and the ISO standard route only.
-//!
-//! READ-ONLY by default: automatic discovery and ordinary reads only send
-//! the module's read service in the default session. Explicit manual
-//! operations may additionally request DiagnosticSessionControl (0x10 0x03)
-//! and TesterPresent (0x3E), plus ClearDiagnosticInformation (0x14) when
-//! the user explicitly asks to clear codes — the same operation every
-//! commercial diagnostic tool performs, and it can only erase stored
-//! records. No writes, no routines, no resets. Every clear that is actually
-//! sent lands in the `writes_log` audit table with the state read before
-//! and after (see db.rs and docs/workflows/write-caps/plan.md).
-
 use super::discovery::identity::{self, IdentityObservation};
 use super::discovery::plan::{self, ParkedPlan};
 use super::driver::{ElmDriver, ElmError};
@@ -34,7 +12,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 
-/// Where a module offered to the UI comes from.
 pub const SOURCE_PROFILE: &str = "profile";
 pub const SOURCE_CUSTOM: &str = "custom";
 
@@ -44,15 +21,9 @@ pub struct UdsModule {
     pub label: String,
     pub req: String,
     pub resp: String,
-    /// `"profile"` when the knowledge map documents the module for the
-    /// connected VIN, `"custom"` when the user added it.
     pub source: String,
-    /// Derived: `source == "profile"`. Kept so existing clients that read
-    /// the old flag keep working.
     pub builtin: bool,
-    /// How to reach the module (from the map, or derived from the ids).
     pub route: Route,
-    /// Which read service the module answers (from the map; `22` default).
     pub read_service: ReadService,
 }
 
@@ -84,14 +55,10 @@ impl UdsModule {
         }
     }
 
-    /// A user-added (or ad-hoc) module.
     pub fn custom(vin: Option<&str>, key: &str, label: &str, req: &str, resp: &str) -> Self {
         Self::new(vin, key, label, req, resp, SOURCE_CUSTOM)
     }
 
-    /// The read service for one identifier on this module: the pack's
-    /// per-DID override first (`read_service_for_did`: DID > module >
-    /// platform > brand > standard), else the module's service.
     pub fn service_for(&self, vin: Option<&str>, did: u16) -> ReadService {
         match (
             uds_map::can_address(&self.req),
@@ -102,7 +69,6 @@ impl UdsModule {
         }
     }
 
-    /// The module key the profile uses for an address pair.
     pub fn profile_key(req: u32, resp: u32) -> String {
         format!(
             "{}_{}",
@@ -117,16 +83,9 @@ pub struct VerificationObservation {
     pub did: String,
     pub purpose: String,
     pub outcome: DiagnosticOutcome,
-    /// Complete application payload after the echoed identifier, never a
-    /// three-byte preview. This is the evidence needed to develop and
-    /// validate decoders.
     pub payload_hex: Option<String>,
     pub printable: Option<String>,
-    /// Exact adapter response, including `NO DATA`, headers and framing.
-    /// Kept privately with the vehicle run so parser changes can be replayed.
     pub raw_response: Option<String>,
-    /// Values produced by source-proposed formulas. These remain explicitly
-    /// untrusted and retain the exact decoder and claims used to produce them.
     pub candidate_interpretations: Vec<CandidateInterpretation>,
 }
 
@@ -174,13 +133,9 @@ pub struct VerificationTargetResult {
     pub label: String,
     pub expected_family: String,
     pub route: String,
-    /// Read service the target was read with (`22` | `21` | `1A`).
     pub read_service: String,
     pub evidence_source: String,
     pub observations: Vec<VerificationObservation>,
-    /// For sweep targets: how many identifiers were tried and how each
-    /// outcome class was distributed. Individual observations only record
-    /// answered identifiers so a 768-DID sweep stays reviewable.
     pub summary: Option<String>,
 }
 
@@ -192,8 +147,6 @@ pub struct ParkedVerificationReport {
     pub targets: Vec<VerificationTargetResult>,
 }
 
-/// Modules the knowledge map documents for this VIN (brand modules,
-/// overlays, family routes). Empty for an unknown or absent VIN.
 pub fn profile_modules(vin: Option<&str>) -> Vec<UdsModule> {
     super::discovery::pack_ext::profile_modules_for_vin(uds_map::map(), vin)
         .into_iter()
@@ -212,8 +165,6 @@ pub fn profile_modules(vin: Option<&str>) -> Vec<UdsModule> {
         .collect()
 }
 
-/// Every module offered for this VIN: the profile's, then the customs that
-/// do not duplicate a profile route.
 pub fn modules_for_vin(vin: Option<&str>, custom: &[UdsModule]) -> Vec<UdsModule> {
     let mut out = profile_modules(vin);
     for module in custom {
@@ -227,9 +178,6 @@ pub fn modules_for_vin(vin: Option<&str>, custom: &[UdsModule]) -> Vec<UdsModule
     out
 }
 
-/// Look up a module by key among the profile's modules for this VIN, then
-/// the caller-supplied custom list (from `db::list_uds_modules()` — kept as a
-/// plain slice here so this function stays free of any DB dependency).
 pub fn resolve(vin: Option<&str>, key: &str, custom: &[UdsModule]) -> Option<UdsModule> {
     profile_modules(vin)
         .into_iter()
@@ -237,8 +185,6 @@ pub fn resolve(vin: Option<&str>, key: &str, custom: &[UdsModule]) -> Option<Uds
         .or_else(|| custom.iter().find(|m| m.key == key).cloned())
 }
 
-/// True when either side of a module's address pair does not fit in 11 bits,
-/// i.e. the module is addressed with 29-bit extended CAN identifiers.
 fn address_pair(m: &UdsModule) -> Result<(u32, u32, bool), ElmError> {
     address_pair_of(&m.req, &m.resp)
 }
@@ -264,16 +210,10 @@ pub(crate) fn format_can_address(address: u32) -> String {
     }
 }
 
-/// Split a 29-bit identifier into the ELM327's two halves. The ELM sets an
-/// extended header as a priority byte (`AT CP`) plus the remaining three
-/// bytes (`AT SH`) — it does not take one eight-digit value for `AT SH`.
 fn split_extended(addr: u32) -> (u8, u32) {
     (((addr >> 24) & 0xFF) as u8, addr & 0x00FF_FFFF)
 }
 
-/// The ELM protocol selector for a route: ISO 15765-4 CAN at 500 kbit/s is
-/// protocol 6 (11-bit) / 7 (29-bit), at 250 kbit/s 8 / 9. A 29-bit route
-/// on a 250 kbit/s bus is not expressible in the route tuple yet.
 fn protocol_command(route: &Route, extended: bool) -> Result<&'static str, ElmError> {
     Ok(match (route.protocol, extended) {
         (RouteProtocol::Can11_500, false) => "ATSP6",
@@ -306,12 +246,6 @@ fn protocol_command(route: &Route, extended: bool) -> Result<&'static str, ElmEr
     })
 }
 
-/// The AT command sequence that points the adapter at one route, from the
-/// route tuple: protocol/bit rate, 11-bit or 29-bit headers and receive
-/// filter, flow control, and the ISO-TP address extension (`ATCEA`) when
-/// the route carries one. `target_byte` on a normal-fixed 29-bit route is
-/// already inside the identifiers; on an 11-bit route it is the byte the
-/// address extension carries, so it never needs a command of its own.
 pub(crate) fn route_commands(
     route: &Route,
     extension_override: Option<u8>,
@@ -372,8 +306,6 @@ fn addressing_commands(m: &UdsModule) -> Result<Vec<String>, ElmError> {
     route_commands(&m.route, None)
 }
 
-/// Point the ELM at one module with physical addressing, per its route.
-/// This deliberately does not change the ECU's diagnostic session.
 pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmError> {
     for c in addressing_commands(m)? {
         drv.cmd(&c, Duration::from_secs(2))?;
@@ -382,8 +314,6 @@ pub fn setup_addressing(drv: &mut ElmDriver, m: &UdsModule) -> Result<(), ElmErr
 }
 
 fn setup_route(drv: &mut ElmDriver, route: &Route) -> Result<(), ElmError> {
-    // A prior target may have enabled extended addressing. Disable it before
-    // configuring every route so state can never leak between candidates.
     drv.cmd("ATCEA", Duration::from_secs(2))?;
     for command in route_commands(route, None)? {
         drv.cmd(&command, Duration::from_secs(2))?;
@@ -398,11 +328,6 @@ fn leave_extended_session(drv: &mut ElmDriver, extended_session_open: bool) {
     }
 }
 
-/// Read one identifier with the module's read service. Ok(Some(bytes)) on a
-/// positive response, Ok(None) on negative response / silence, Err on
-/// transport failure. Single-DID reads use a generous 1500ms; range scans
-/// pass a shorter timeout (see `read_did_timeout`) since most of a scan's
-/// time is spent waiting out silence on unsupported DIDs.
 pub fn read_did(
     drv: &mut ElmDriver,
     service: ReadService,
@@ -436,10 +361,6 @@ pub(crate) struct DidEvidence {
     pub(crate) raw_response: Option<String>,
 }
 
-/// Request bytes and positive-response header for one identifier on a
-/// read service: `22 DDDD` → `62 DDDD`; `21 GG` → `61 GG`; `1A GG` →
-/// `5A GG`. Services 21 and 1A carry a one-byte identifier, so an
-/// identifier above `FF` is not requestable on them.
 pub(crate) fn request_for(service: ReadService, did: u16) -> Option<(String, Vec<u8>)> {
     match service {
         ReadService::DataByIdentifier => Some((
@@ -528,8 +449,6 @@ pub(crate) fn observe_did_evidence(
     }
 }
 
-/// A module-bound known DID from the main map (which already consults the
-/// first overlay through the frozen contract) or any other overlay pack.
 fn known_did_any(
     vin: Option<&str>,
     req: u32,
@@ -540,7 +459,6 @@ fn known_did_any(
         .or_else(|| super::discovery::packs::overlay_known_did(vin, req, resp, did))
 }
 
-/// Routes this vehicle has reached, from its `discovered_modules` rows.
 pub fn reached_routes(db: &Db, vehicle_id: i64) -> Vec<(u32, u32)> {
     db.discovered_summary(vehicle_id)
         .iter()
@@ -554,11 +472,6 @@ pub fn reached_routes(db: &Db, vehicle_id: i64) -> Vec<(u32, u32)> {
         .collect()
 }
 
-/// The parked verification pass: the plan generated from the profile for
-/// this VIN and the routes it has reached, executed target by target. Every
-/// vehicle-facing request is the target's read service in the ECU's default
-/// session. The plan never opens 10 03, controls an actuator, starts a
-/// routine, clears a fault, or writes configuration.
 pub fn parked_verification(
     drv: &mut ElmDriver,
     vin: Option<&str>,
@@ -711,8 +624,6 @@ pub fn execute_plan(drv: &mut ElmDriver, plan: &ParkedPlan) -> ParkedVerificatio
     }
 }
 
-/// `req→resp` plus the address extension when the route carries one — the
-/// string the supervisor parses back into an address pair.
 pub fn describe_route(route: &Route) -> String {
     match &route.address_extension {
         Some(ext) => format!("{}→{} + {}", route.req, route.resp, ext),
@@ -720,13 +631,6 @@ pub fn describe_route(route: &Route) -> String {
     }
 }
 
-/// Read every identifier in the given inclusive ranges once, in the current
-/// (default) session. Answered identifiers are appended as observations with
-/// their complete payload; refusals and silence are only counted, because a
-/// 768-row table of `7F 22 31` is not evidence anyone can review. Stops early
-/// when the link itself degrades so a dead adapter cannot masquerade as 700
-/// silent identifiers, and when the sweep budget runs out (the remaining
-/// ranges carry over to the next connection).
 fn sweep_identifiers(
     drv: &mut ElmDriver,
     service: ReadService,
@@ -796,14 +700,8 @@ fn sweep_identifiers(
 #[derive(Serialize, Clone)]
 pub struct CorrelationReading {
     pub did: String,
-    /// One complete payload per repeat, `None` when that repeat did not
-    /// answer. Round-robin order (all identifiers once, then again) so a
-    /// value that drifts between repeats shows up as noise instead of being
-    /// hidden by three back-to-back reads.
     pub payloads: Vec<Option<String>>,
-    /// True when every repeat answered with the same payload.
     pub stable: bool,
-    /// Outcome of the last repeat, for refusals and timeouts.
     pub outcome: DiagnosticOutcome,
 }
 
@@ -819,10 +717,6 @@ pub struct CorrelationCapture {
     pub readings: Vec<CorrelationReading>,
 }
 
-/// One guided-correlation capture: read every identifier `repeats` times in
-/// the default session while the operator holds one physical condition. The
-/// meaning of a byte is never inferred here; this only produces the samples a
-/// diff against the baseline capture can be made from.
 pub fn correlation_capture(
     drv: &mut ElmDriver,
     vin: Option<&str>,
@@ -899,8 +793,6 @@ fn payload_bytes(observation: &VerificationObservation) -> Vec<u8> {
         .collect()
 }
 
-/// The identity observations of a verification target, for the fingerprint
-/// builder. `(req, resp)` come back parsed from the target's route string.
 pub fn target_identity_observations(
     target: &VerificationTargetResult,
 ) -> Option<((String, String), Vec<IdentityObservation>)> {
@@ -921,7 +813,6 @@ pub fn target_identity_observations(
     Some(((req.trim().to_string(), resp), observations))
 }
 
-/// Fingerprint of a verification target from this VIN's identity block.
 pub fn target_fingerprint(
     vin: Option<&str>,
     target: &VerificationTargetResult,
@@ -930,27 +821,18 @@ pub fn target_fingerprint(
     identity::fingerprint(vin, (&req, &resp), &observations)
 }
 
-/// Keep an explicitly opened extended session alive without asking the ECU
-/// to transmit a positive response for every heartbeat.
 pub fn tester_present(drv: &mut ElmDriver) {
     let _ = drv.cmd("3E80", Duration::from_millis(800));
 }
 
-/// ReadDTCInformation (0x19 0x02): report DTCs by status mask. Read-only.
-/// Response: 59 02 <availabilityMask> then 4-byte records — 3 DTC bytes
-/// (high/middle/low, where high's top 2 bits encode P/C/B/U) + 1 status byte.
 pub fn read_dtcs(drv: &mut ElmDriver) -> Result<Vec<String>, ElmError> {
-    // Mask 0xAF = testFailed | confirmed | pending | testNotCompleted bits —
-    // the set every workshop tool asks for.
     let raw = drv.cmd("1902AF", Duration::from_secs(6))?;
     let lines = parser::clean_response(&raw);
     let bytes = parser::payload_bytes(&lines, "");
     let mut out = Vec::new();
-    // Find the positive-response header 0x59 0x02.
     let Some(start) = bytes.windows(2).position(|w| w == [0x59, 0x02]) else {
-        return Ok(out); // negative response or no DTC support
+        return Ok(out);
     };
-    // Skip header + availability mask, then walk 4-byte records.
     let records = &bytes[start + 3..];
     for rec in records.chunks(4) {
         if rec.len() < 4 {
@@ -974,12 +856,6 @@ pub fn read_dtcs(drv: &mut ElmDriver) -> Result<Vec<String>, ElmError> {
     Ok(out)
 }
 
-/// ClearDiagnosticInformation (0x14), group FFFFFF = all DTCs on this module.
-/// This is the one write this codebase performs, and it's the standard,
-/// universally-safe "clear the fault memory" operation every diagnostic tool
-/// does — it cannot damage anything, it only erases stored fault records.
-/// Gate this behind an explicit user confirmation in the UI, same as the
-/// existing engine-code clear.
 #[derive(Debug, Clone, Copy)]
 enum ClearDecision {
     Accepted,
@@ -1031,27 +907,30 @@ pub fn to_hit(did: u16, data: &[u8]) -> UdsHit {
     }
 }
 
-/// Extract a numeric value out of a DID payload: big-endian integer at
-/// `offset`, `len` bytes, then value * scale + bias.
-pub fn extract(data: &[u8], offset: usize, len: usize, scale: f64, bias: f64) -> Option<f64> {
+pub fn extract(
+    data: &[u8],
+    offset: usize,
+    len: usize,
+    scale: f64,
+    bias: f64,
+    signed: bool,
+) -> Option<f64> {
     if offset + len > data.len() || len == 0 || len > 4 {
         return None;
     }
-    let mut v: u32 = 0;
+    let mut v: u64 = 0;
     for &b in &data[offset..offset + len] {
-        v = (v << 8) | b as u32;
+        v = (v << 8) | b as u64;
     }
-    Some(v as f64 * scale + bias)
+    let bits = (len * 8) as u32;
+    let magnitude = if signed && v >= (1u64 << (bits - 1)) {
+        v as f64 - (1u64 << bits) as f64
+    } else {
+        v as f64
+    };
+    Some(magnitude * scale + bias)
 }
 
-// ---------------------------------------------------------------------------
-// Orchestration: the higher-level operations built on the primitives above.
-// Everything below talks to the DB (for user-added modules and probes) and,
-// for scans, emits progress events to the UI.
-// ---------------------------------------------------------------------------
-
-/// Everything the UI needs to explain a module-clear honestly: what was
-/// there before, whether the module accepted the clear, and what's left.
 #[derive(Serialize, Clone)]
 pub struct ClearOutcome {
     pub before: Vec<String>,
@@ -1061,8 +940,6 @@ pub struct ClearOutcome {
     pub outcome: DiagnosticOutcome,
 }
 
-/// Custom modules from the DB, converted to `UdsModule`. A tiny adapter so
-/// `db.rs` doesn't need to know about this module's types.
 pub fn custom_modules(db: &Db, vin: Option<&str>) -> Vec<UdsModule> {
     db.list_uds_modules()
         .into_iter()
@@ -1070,11 +947,6 @@ pub fn custom_modules(db: &Db, vin: Option<&str>) -> Vec<UdsModule> {
         .collect()
 }
 
-/// Read → clear → read again, so the UI can show a verified before/after
-/// instead of a blind "done". Every attempt that actually sends the clear
-/// lands in `writes_log`, success or failure (the write safety rail). A
-/// failed before-read aborts WITHOUT clearing: a write whose prior state
-/// could not be captured would break the audit trail, so it must not happen.
 pub fn clear_module(
     drv: &mut ElmDriver,
     db: &Db,
@@ -1218,11 +1090,6 @@ pub fn module_dtcs(
     read_dtcs(operation.driver()).map_err(|e| e.to_string())
 }
 
-/// Read several DIDs from one module with the route configured once. A
-/// single `read_one` costs ~1.3 s through the API because addressing is
-/// set up per call; a physical test (steering, pedals, wheels) needs the
-/// whole set in well under a second. Unanswered DIDs are simply absent
-/// from the result. Read-only, default session.
 pub fn read_many(
     drv: &mut ElmDriver,
     db: &Db,
@@ -1266,22 +1133,6 @@ pub fn read_one(
         .map(|opt| opt.map(|d| to_hit(did, &d)))
 }
 
-/// Scan a DID range on one module. Capped at 256 DIDs per call to bound wall-
-/// clock time to well under the ask() timeout (see lib.rs); the UI chunks
-/// bigger ranges into repeated calls, updating its results after each one.
-///
-/// Bug fixed 2026-08-14: this used to cap at 512 DIDs with a 1500ms per-DID
-/// timeout (worst case ~13 min for one call) against a hardcoded 60s ask()
-/// timeout — a scan running long enough would blow past that ceiling, the
-/// frontend would show a "timed out" error while this function kept running
-/// to completion (or the ELM's response landed after the caller had already
-/// dropped the reply channel), and the WHOLE supervisor thread — including
-/// live gauge polling and Disconnect — was unresponsive for the entire scan,
-/// which reads as "the app crashed". Fixed by: a much shorter per-DID
-/// timeout for scans, a smaller chunk cap, a matching longer ask() ceiling
-/// (a safety net now, not the everyday UX timer), and real cancellation via
-/// `cancel_scan` so a stuck scan releases within one DID's timeout instead of
-/// running to completion regardless.
 #[allow(clippy::too_many_arguments)]
 pub fn scan_range(
     drv: &mut ElmDriver,
@@ -1307,17 +1158,12 @@ pub fn scan_range(
         "scan clamped to {from:04X}-{to:04X} ({} DIDs)",
         to - from + 1
     );
-    // A manual range scan can request an extended session, so retain the
-    // engine-start protection. Automatic discovery never opens one.
     let baseline_voltage = read_voltage(drv);
     let mut operation = ScannerOperation::new(drv);
     if let Err(e) = setup_addressing(operation.driver(), &m) {
         log::warn!("scan setup failed: {e}");
         return Err(e.to_string());
     }
-    // This is an explicit Lab operation. Request extended mode, but continue
-    // in default mode if the ECU refuses it: many useful DIDs are available
-    // there and a refusal must not turn into more session traffic.
     let extended_session_open = operation.enter_extended_session();
     let total = (to - from + 1) as u32;
     let mut hits = Vec::new();
@@ -1382,18 +1228,12 @@ pub fn scan_range(
     Ok(hits)
 }
 
-/// Poll all enabled user-defined UDS probes once; record + return values.
 pub fn poll_probes(
     drv: &mut ElmDriver,
     db: &Db,
     ctx: super::supervisor::ConnCtx,
 ) -> HashMap<String, f64> {
     let mut out = HashMap::new();
-    // Discovery is read-only inventory, not standing telemetry. Repeatedly
-    // opening diagnostic sessions on every discovered ECU while the app was
-    // merely connected caused the exact dashboard communication warnings
-    // discovery itself warns about. Only probes a user explicitly created
-    // in the advanced Lab remain eligible for periodic polling.
     let probes: Vec<_> = db
         .list_probes(ctx.vehicle_id)
         .into_iter()
@@ -1425,8 +1265,8 @@ pub fn poll_probes(
                 m.service_for(vin.as_deref(), p.did),
                 p.did,
             ) {
-                if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
-                    let key = format!("uds_{}", p.label.to_lowercase().replace(' ', "_"));
+                if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias, p.signed) {
+                    let key = p.reading_key();
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
                     out.insert(key, v);
                 }
@@ -1437,17 +1277,9 @@ pub fn poll_probes(
 }
 
 fn should_poll_probe(probe: &crate::db::UdsProbe) -> bool {
-    probe.enabled && probe.origin == "manual"
+    // Discovery enables probes without consent, so only manual or hypothesis-linked probes may poll.
+    probe.enabled && (probe.origin == "manual" || probe.hypothesis_id.is_some())
 }
-
-// ---------- auto-discovery (the "no ranges, one button" engine) ----------
-// Owner call 2026-08-23: nobody knows DID ranges, so ranges must not be a
-// user concept. Three read-only phases: enumerate module addresses → read
-// each module's STANDARD identification block (ISO 14229 F18x/F19x — the
-// one corner of UDS that is as universal as OBD PIDs) → sweep
-// brand-prioritized "hot bands" where manufacturers actually cluster their
-// data DIDs. Every finding persists to discovered_modules/discovered_dids,
-// so a pass runs once per car, ever.
 
 #[derive(Serialize, Clone)]
 pub struct ModuleProbeResult {
@@ -1459,9 +1291,6 @@ pub struct ModuleProbeResult {
     pub outcome: DiagnosticOutcome,
 }
 
-/// One ISO 14229 identity read. Keeping negative outcomes is essential: a
-/// partial fingerprint is evidence, not an assertion that every ECU exposes
-/// the whole standard identity block.
 #[derive(Serialize, Clone)]
 pub struct EcuIdentityEvidence {
     pub did: u16,
@@ -1479,12 +1308,7 @@ pub struct EcuFingerprint {
     pub hardware_version: Option<String>,
     pub software_version: Option<String>,
     pub system_name: Option<String>,
-    /// Supplier code or name when the identity block carries one; kept out
-    /// of the match key (it names the maker, not the part).
     pub supplier: Option<String>,
-    /// Stable comparison material. ECU serial number and VIN are deliberately
-    /// excluded because they identify an individual unit/vehicle and prevent
-    /// knowledge from matching the same ECU family in another car.
     pub match_key: Option<String>,
     pub fields_answered: u8,
     pub fields_total: u8,
@@ -1556,50 +1380,18 @@ fn outcome_rank(status: &DiagnosticStatus) -> u8 {
 
 #[derive(Serialize, Clone)]
 pub struct DiscoveryReport {
-    /// Stable machine-readable result shared by every diagnostic operation.
-    /// Legacy discovery fields remain during the UI migration.
     pub outcome: DiagnosticOutcome,
     pub coverage: DiscoveryCoverage,
     pub module_probes: Vec<ModuleProbeResult>,
-    /// Identity evidence from modules reached during this full pass. Fast
-    /// refreshes intentionally do not re-read the identity block.
     pub fingerprints: Vec<EcuFingerprint>,
     pub modules_found: u32,
     pub dids_found: u32,
-    /// Of `dids_found`, how many the knowledge map had a FULL decode
-    /// formula for (offset+len+scale+bias, not just a label) — those are
-    /// promoted into `uds_probes` during the same pass so their definitions
-    /// are available to the Live view. Discovery-owned probes remain off
-    /// background polling; reading them requires an explicit user action.
-    /// Everything else in `dids_found` is
-    /// unlabeled or label-only — real data, saved, but the map doesn't yet
-    /// know how to turn its bytes into a number, so it stays browsable in
-    /// the Lab rather than pretending to be a live value.
     pub sensors_added: u32,
-    /// True when the scan didn't finish — findings so far are still
-    /// saved either way. `auto_stopped_reason` says why: user-pressed-
-    /// cancel vs the safety auto-stop below have very different UI
-    /// treatments.
     pub cancelled: bool,
-    /// Some("engine_started") when the scan aborted ITSELF because
-    /// engine start was detected mid-scan (a voltage jump — see
-    /// `engine_likely_started`) — never a guess the user has to notice.
-    /// Distinct from a plain user cancel so the UI can explain why and
-    /// point at the real risk: changing vehicle state during a broad
-    /// diagnostic sweep makes bus behavior less predictable. Automatic
-    /// discovery itself stays in the default diagnostic session.
     pub auto_stopped_reason: Option<String>,
-    /// True when this pass re-probed only what a PRIOR discovery already
-    /// found on this car, instead of the full blind sweep — "a re-scan
-    /// shouldn't take that long" (owner, 2026-08-24). The UI can show a
-    /// quieter "refreshed" summary instead of the full-discovery one.
     pub was_fast_refresh: bool,
 }
 
-/// Find (or register) a custom module key for this request/response pair,
-/// so an auto-promoted probe has something to hand `uds::setup` — probes
-/// are addressed by module KEY (built-in or custom), never raw hex,
-/// matching the manual save-as-probe path exactly.
 fn ensure_module_key(
     db: &Db,
     vin: Option<&str>,
@@ -1629,25 +1421,25 @@ fn ensure_module_key(
     let label = name
         .map(str::to_string)
         .unwrap_or_else(|| format!("Discovered module {req_hex}"));
-    // A concurrent discovery pass racing to register the same key is not a
-    // realistic scenario (one connection, one scan at a time) — if it ever
-    // fails on a duplicate, the key is already usable regardless.
     let _ = db.add_uds_module(&key, &label, &req_hex, &resp_hex);
     key
 }
 
-/// Point physical addressing at one route without the full per-module
-/// session dance — used while enumerating many addresses. The protocol-level
-/// commands are only resent when the route's protocol changes.
+pub fn module_key_for_address(
+    db: &Db,
+    vin: Option<&str>,
+    address: &str,
+    name: Option<&str>,
+) -> Option<String> {
+    let (req, resp) = parse_module_address(address)?;
+    Some(ensure_module_key(db, vin, req, resp, name))
+}
+
 #[derive(Default)]
 pub(crate) struct AddressingState {
     protocol: Option<String>,
 }
 
-/// The commands `point_at` sends for a route given what the adapter is
-/// already set to (the protocol-level commands are skipped while the
-/// protocol is unchanged). Exposed so replay tests can build fixtures from
-/// the same rule.
 pub(crate) fn point_at_commands(
     route: &Route,
     state: &mut AddressingState,
@@ -1682,9 +1474,6 @@ pub(crate) fn point_at(
     Ok(())
 }
 
-/// Is anything at this address? A positive (62…) OR a negative (7F 22 …)
-/// reply both prove presence — read_did can't tell those apart from
-/// silence (it maps both non-answers to None), so classify the raw bytes.
 pub(crate) fn probe_addr(drv: &mut ElmDriver, timeout: Duration) -> DiagnosticOutcome {
     let did = uds_map::presence_probe_did();
     match drv.cmd(&format!("22{did:04X}"), timeout) {
@@ -1739,14 +1528,7 @@ pub(crate) fn hex_string(data: &[u8]) -> String {
         .join(" ")
 }
 
-/// The adapter's own battery voltage (ATRV) — a local command, answered
-/// regardless of the scan's current UDS addressing/session state, which
-/// is exactly why it's the cheap way to notice the engine started mid-scan
-/// without disturbing the scan itself.
 fn parse_voltage_response(raw: &str) -> Option<f64> {
-    // `cmd` returns the complete ELM frame, normally `12.6V\r\r>`. Parsing
-    // that string directly left the CR between the value and prompt, so the
-    // engine-start safety guard silently returned None on a real adapter.
     parser::clean_response(raw)
         .first()
         .and_then(|line| parser::decode_voltage(line))
@@ -1757,25 +1539,15 @@ fn read_voltage(drv: &mut ElmDriver) -> Option<f64> {
     parse_voltage_response(&raw)
 }
 
-/// True once voltage climbs enough above THIS scan's own starting
-/// baseline to mean the engine started (alternator now charging) — not
-/// just normal resting-battery drift. Both a floor and a relative jump
-/// are required so a healthy 12.6V-resting battery never false-triggers.
 fn engine_likely_started(current: f64, baseline: f64) -> bool {
     current > 13.2 && current > baseline + 0.6
 }
 
-/// Parses a "REQ/RESP" module_address string back into addresses — the
-/// exact format `discover()` writes via `upsert_discovered_module`.
 fn parse_module_address(addr: &str) -> Option<(u32, u32)> {
     let (req, resp) = addr.split_once('/')?;
     Some((uds_map::can_address(req)?, uds_map::can_address(resp)?))
 }
 
-/// Reconcile only probes discovery owns against the current knowledge map.
-/// This is independent of whether today's car scan happens to get a reply,
-/// so a transient timeout cannot delete a valid sensor. A probe is stale
-/// only when its module/DID no longer has a complete mapped formula.
 fn prune_stale_discovery_probes(db: &Db, vehicle_id: i64, vin: Option<&str>) {
     let custom = custom_modules(db, vin);
     for probe in db
@@ -1852,14 +1624,11 @@ fn discover_inner(
     let engine_started = |drv: &mut ElmDriver| -> bool {
         match (baseline_voltage, read_voltage(drv)) {
             (Some(base), Some(now)) => engine_likely_started(now, base),
-            _ => false, // couldn't read voltage this tick — never false-abort on a read hiccup
+            // A transient voltage read failure must not abort an otherwise safe operation.
+            _ => false,
         }
     };
 
-    // Fast re-scan (owner, 2026-08-24): a car already discovered doesn't
-    // need the full blind sweep again — re-probe exactly what was found
-    // last time. Fresh discovery (full=true, or a car with no prior data)
-    // still runs the complete three-phase pass below.
     let known = db.discovered_addresses_and_dids(vehicle_id);
     if !full && !known.is_empty() {
         return fast_refresh(
@@ -1876,9 +1645,6 @@ fn discover_inner(
         );
     }
 
-    // Phase 1 — who's on the bus? Addresses come from the map: this
-    // brand's documented modules first (a recognized car finds its real
-    // modules in seconds), then the conventional range behind them.
     let timings = &uds_map::map().standard.timings_ms;
     let addrs = uds_map::addresses_to_probe(vin.as_deref());
     let total_addrs = addrs.len() as u32;
@@ -1956,8 +1722,6 @@ fn discover_inner(
         }
     }
 
-    // Phase 2 — the brand's identity block (ISO DIDs first, vendor layouts
-    // after) per present module, read with the module's read service.
     let identity_block = uds_map::identity_block_for_vin(vin.as_deref());
     let ident_dids = super::discovery::pack_ext::identity_dids(&identity_block);
     let name_dids = uds_map::name_dids();
@@ -1971,16 +1735,12 @@ fn discover_inner(
             continue;
         }
         let service = uds_map::read_service_for_module(vin.as_deref(), *req, *resp);
-        // A name the map already documents beats anything read off the bus.
         let mut name: Option<String> = known_name.clone();
         let mut best_name_rank = usize::MAX;
         let mut ident_hits: Vec<(u16, Vec<u8>)> = Vec::new();
         let mut identity_observations = Vec::with_capacity(ident_dids.len());
         for (di, did) in ident_dids.iter().enumerate() {
             if cancel_scan.swap(false, Ordering::Relaxed) {
-                // Phase 2 (identification) never promotes probes — that
-                // only happens in phase 3's data sweep — so 0 is exact
-                // here, not a placeholder.
                 return Ok(DiscoveryReport {
                     outcome: DiagnosticOutcome::cancelled(),
                     coverage: coverage_from_probes(&module_probes, total_addrs, profile_candidates),
@@ -2087,7 +1847,6 @@ fn discover_inner(
         module_rows.push((module_id, *req, *resp));
     }
 
-    // Phase 3 — the brand's data neighborhoods, from the map.
     let bands = uds_map::bands_for_vin(vin.as_deref());
     let module_plans: Vec<_> = module_rows
         .into_iter()
@@ -2110,9 +1869,6 @@ fn discover_inner(
         if point_at(drv, &route, &mut addressing).is_err() {
             continue;
         }
-        // Identification and module enumeration above always run in the
-        // default session. Only an exact VIN + module profile may deepen
-        // the data-band sweep automatically.
         let extended_session_open = matches!(
             uds_map::discovery_session_for_module(vin.as_deref(), *req, *resp),
             uds_map::DiscoverySession::DefaultThenExtended
@@ -2171,23 +1927,11 @@ fn discover_inner(
             match read_did_timeout(drv, service, did, Duration::from_millis(timings.sweep_read)) {
                 Ok(Some(data)) => {
                     consecutive_errors = 0;
-                    // A hit the map already documents arrives named —
-                    // that is the whole point of researching the map:
-                    // discovery on a known brand yields labeled
-                    // sensors, not anonymous hex.
                     let known = known_did_any(vin.as_deref(), *req, *resp, did);
-                    // Module-aware lookup above is the primary guard;
-                    // payload shape is the independent second guard.
-                    // Never label or promote a formula that cannot
-                    // read the bytes this ECU returned, even if the
-                    // map's address binding itself is correct.
                     let known = known.filter(|k| match (k.offset, k.len) {
                         (Some(offset), Some(len)) => (offset as usize)
                             .checked_add(len as usize)
                             .is_some_and(|end| end <= data.len()),
-                        // Label-only knowledge has no byte shape to
-                        // validate, so retain its browsable label. It
-                        // can never be auto-promoted below.
                         _ => true,
                     });
                     let label = known.map(|k| k.label.clone());
@@ -2199,11 +1943,6 @@ fn discover_inner(
                         label.as_deref(),
                     );
                     dids_found += 1;
-                    // A FULL decode formula (not just a label) means
-                    // this isn't just "found," it's a real sensor —
-                    // persist its decode definition for explicit live
-                    // reads. Discovery never opts it into background
-                    // polling merely because a formula matched.
                     if let Some(k) = known {
                         if let (Some(offset), Some(len), Some(scale), Some(bias)) =
                             (k.offset, k.len, k.scale, k.bias)
@@ -2220,6 +1959,7 @@ fn discover_inner(
                                 len as usize,
                                 scale,
                                 bias,
+                                k.primary_decode().is_some_and(|d| d.signed),
                             );
                             if added {
                                 sensors_added += 1;
@@ -2230,8 +1970,6 @@ fn discover_inner(
                 Ok(None) => consecutive_errors = 0,
                 Err(_) => {
                     consecutive_errors += 1;
-                    // A module that stops responding entirely isn't worth
-                    // grinding through — move to the next one.
                     if consecutive_errors > 10 {
                         log::warn!(
                             "discovery: link degraded on {}, skipping its remaining DIDs",
@@ -2242,8 +1980,6 @@ fn discover_inner(
                 }
             }
         }
-        // Keep the adapter's discovery addressing/flow-control setup for the
-        // next module; only return this ECU to default here.
         leave_extended_session(drv, extended_session_open);
     }
 
@@ -2273,12 +2009,6 @@ fn discover_inner(
     })
 }
 
-/// Re-probe exactly what a prior discovery already found on this car —
-/// no blind bus enumeration, no full band sweep. "If we already have data
-/// from a car, a re-scan shouldn't take that long" (owner, 2026-08-24):
-/// this turns a multi-minute pass into a few seconds for a car already on
-/// file, which also directly shrinks the window the engine-start safety
-/// check above has to protect. Same voltage-based abort applies.
 #[allow(clippy::too_many_arguments)]
 fn fast_refresh(
     drv: &mut ElmDriver,
@@ -2450,6 +2180,7 @@ fn fast_refresh(
                             len as usize,
                             scale,
                             bias,
+                            k.primary_decode().is_some_and(|d| d.signed),
                         ) {
                             sensors_added += 1;
                         }
@@ -2498,19 +2229,37 @@ mod tests {
 
     #[test]
     fn extract_single_byte_percent() {
-        // e.g. SOC byte 0x50 = 80 %
-        assert_eq!(extract(&[0x50], 0, 1, 1.0, 0.0), Some(80.0));
+        assert_eq!(extract(&[0x50], 0, 1, 1.0, 0.0, false), Some(80.0));
     }
 
     #[test]
     fn extract_u16_millivolts() {
-        // 0x36B0 = 14000 mV * 0.001 = 14.0 V
-        assert_eq!(extract(&[0x36, 0xB0], 0, 2, 0.001, 0.0), Some(14.0));
+        assert_eq!(extract(&[0x36, 0xB0], 0, 2, 0.001, 0.0, false), Some(14.0));
     }
 
     #[test]
     fn extract_out_of_range() {
-        assert_eq!(extract(&[0x01], 1, 1, 1.0, 0.0), None);
+        assert_eq!(extract(&[0x01], 1, 1, 1.0, 0.0, false), None);
+    }
+
+    #[test]
+    fn extract_reads_a_signed_window_as_twos_complement() {
+        assert_eq!(extract(&[0xFF, 0xEC], 0, 2, 0.1, 0.0, true), Some(-2.0));
+        let unsigned = extract(&[0xFF, 0xEC], 0, 2, 0.1, 0.0, false).expect("in range");
+        assert!(
+            (unsigned - 6551.6).abs() < 1e-6,
+            "the unsigned read is the wrapped twin, got {unsigned}"
+        );
+    }
+
+    #[test]
+    fn a_signed_window_still_reads_positives_and_respects_its_own_width() {
+        assert_eq!(extract(&[0x00, 0xC8], 0, 2, 0.1, 0.0, true), Some(20.0));
+        assert_eq!(extract(&[0x00, 0xFF], 1, 1, 1.0, 0.0, true), Some(-1.0));
+        assert_eq!(
+            extract(&[0xFF, 0xFF, 0xFF, 0xFF], 0, 4, 1.0, 0.0, true),
+            Some(-1.0)
+        );
     }
 
     #[test]
@@ -2641,11 +2390,42 @@ mod tests {
             bias: 0.0,
             enabled: true,
             origin: "discovery".into(),
+            hypothesis_id: None,
+            signed: false,
         };
         assert!(!should_poll_probe(&probe));
         assert!(should_poll_probe(&crate::db::UdsProbe {
             origin: "manual".into(),
             ..probe
+        }));
+    }
+
+    #[test]
+    fn a_hypothesis_linked_probe_is_polled_only_while_it_is_enabled() {
+        let linked = crate::db::UdsProbe {
+            id: 1,
+            vehicle_id: Some(1),
+            module: "7e0_7e8".into(),
+            did: 0xD422,
+            label: "Battery voltage".into(),
+            unit: "V".into(),
+            offset: 0,
+            len: 2,
+            scale: 0.01,
+            bias: 0.0,
+            enabled: true,
+            origin: "discovery".into(),
+            hypothesis_id: Some(42),
+            signed: false,
+        };
+        assert!(should_poll_probe(&linked));
+        assert!(!should_poll_probe(&crate::db::UdsProbe {
+            enabled: false,
+            ..linked.clone()
+        }));
+        assert!(!should_poll_probe(&crate::db::UdsProbe {
+            hypothesis_id: None,
+            ..linked
         }));
     }
 
@@ -2690,7 +2470,6 @@ mod tests {
             route_commands(&route(RouteProtocol::Can11_500, "730", "710"), Some(0x70)).unwrap();
         assert!(cmds.iter().any(|c| c == "ATFCSD 70 30 00 00"), "{cmds:?}");
         assert_eq!(cmds.last().map(String::as_str), Some("ATCEA 70"));
-        // The same from the route tuple's own `address_extension`.
         let mut with_extension = route(RouteProtocol::Can11_500, "6F1", "612");
         with_extension.address_extension = Some("12".into());
         with_extension.target_byte = Some("12".into());
@@ -2710,7 +2489,6 @@ mod tests {
 
     #[test]
     fn twenty_nine_bit_target_byte_routes_switch_protocol_and_split_the_header() {
-        // Synthetic ISO 15765-2 normal fixed addressing, target C7.
         let cmds = route_commands(&uds_map::derive_route(0x18DAC7F1, 0x18DAF1C7), None).unwrap();
         assert_eq!(
             cmds,
@@ -2726,7 +2504,6 @@ mod tests {
                 "ATFCSM 1"
             ]
         );
-        // A custom 29-bit scheme goes through the same sequence.
         let custom = route_commands(
             &route(RouteProtocol::Can29Custom, "14DACBF1", "14DAF1CB"),
             None,
@@ -2761,8 +2538,6 @@ mod tests {
 
     #[test]
     fn a_29_bit_overlay_module_is_in_the_map_and_addressable() {
-        // The first overlay's 29-bit module must resolve for its WMI and
-        // carry a decodable DID (pressure from a 16-bit value / 1000).
         let pack = &crate::elm::discovery::packs::overlays()[0];
         let brand = &pack.brands[0];
         let vin = format!("{}EXAMPLE0000001", brand.wmi[0]);
@@ -2906,9 +2681,6 @@ mod tests {
 
     #[test]
     fn service_21_and_1a_request_and_response_shapes() {
-        // Synthetic framing (labelled): a 21 group answered with `61 GG`,
-        // a 21 group refused with `7F 21`, a 1A identification answered
-        // with `5A GG`, and a 1A refusal.
         let replay = r#"{
           "schema_version": 1,
           "name": "service 21 and 1A shapes (synthetic)",
@@ -2969,7 +2741,6 @@ mod tests {
         .unwrap();
         assert_eq!(silent.outcome.status, DiagnosticStatus::TimedOut);
         driver.assert_replay_complete();
-        // A two-byte identifier cannot be asked on a one-byte service.
         assert!(request_for(ReadService::DataByLocalIdentifier, 0xF187).is_none());
         assert!(request_for(ReadService::EcuIdentification, 0x0100).is_none());
         assert_eq!(
@@ -3038,9 +2809,6 @@ mod tests {
             .lock()
             .unwrap_or_else(|p| p.into_inner());
         crate::elm::operation::set_link_state(None);
-        // Two repeats over two identifiers on an ISO route: D435 holds,
-        // D410 drifts between repeats and must come back as noisy
-        // (stable = false), never as a change.
         let replay = r#"{
           "schema_version": 1,
           "name": "correlation round robin",
@@ -3098,7 +2866,6 @@ mod tests {
                 raw_response: None,
                 candidate_interpretations: Vec::new(),
             };
-        // Payloads this project captured on its verified vehicle (test data).
         let target = VerificationTargetResult {
             key: "abs".into(),
             label: "ABS / ESP".into(),
@@ -3151,9 +2918,6 @@ mod tests {
             .lock()
             .unwrap_or_else(|p| p.into_inner());
         crate::elm::operation::set_link_state(None);
-        // A generated two-target plan for an unknown-WMI vehicle that
-        // reached one ISO route, replayed: the presence probe and the
-        // ISO block on 22, then a sweep bounded by its budget. Synthetic.
         let plan = crate::elm::discovery::plan::ParkedPlan {
             plan_version: "unknown-unknown-v1".into(),
             brand_id: None,

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "ref": "S01",
+      "title": "Fictional open signalset used only as a test fixture",
+      "url": "https://example.invalid/exampleorg/exampleset/blob/0123456789abcdef0123456789abcdef01234567/signalsets/v3/default.json",
+      "source_type": "open_diagnostic_database",
+      "licence": "CC-BY-SA-4.0",
+      "revision": "0123456789abcdef0123456789abcdef01234567",
+      "retrieved_at": "2026-09-01",
+      "content_sha256": null,
+      "scope": "First fictional generation",
+      "reliability": "high",
+      "execution_eligible": true
+    }
+  ],
+  "declared_count": 1
+}

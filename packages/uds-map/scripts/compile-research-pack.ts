@@ -1,8 +1,19 @@
-import { createHash } from "node:crypto";
-import { copyFileSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-
-type Json = Record<string, any>;
+import {
+  candidatesOf,
+  formatValidationReport,
+  identifierOf,
+  immutableSource,
+  type Json,
+  recipesOf,
+  routesOf,
+  sha256Of,
+  sourcesOf,
+  trustedMapBrands,
+  trustedRoutePairs,
+  validateResearchPack,
+} from "./research-pack.ts";
 
 const args = new Map<string, string>();
 for (let i = 2; i < process.argv.length; i += 2) {
@@ -21,101 +32,31 @@ const output = resolve(args.get("output")!);
 const reportPath = resolve(args.get("report")!);
 const archive = resolve(args.get("archive")!);
 
-const load = (name: string): Json => JSON.parse(readFileSync(join(input, name), "utf8"));
-const sha256 = (name: string): string =>
-  createHash("sha256").update(readFileSync(join(input, name))).digest("hex");
-
-const index = load("index.json");
-const failures: string[] = [];
-const warnings: string[] = [];
-const manifestFiles: Array<{ path: string; sha256: string }> = index.files ?? [];
-const manifestPaths = new Set<string>();
-for (const file of manifestFiles) {
-  if (typeof file.path !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file.path)) {
-    failures.push(`unsafe manifest path: ${String(file.path)}`);
-    continue;
-  }
-  if (manifestPaths.has(file.path)) {
-    failures.push(`duplicate manifest path: ${file.path}`);
-    continue;
-  }
-  manifestPaths.add(file.path);
-  const stat = lstatSync(join(input, file.path));
-  if (!stat.isFile() || stat.isSymbolicLink()) {
-    failures.push(`manifest entry is not a regular file: ${file.path}`);
-    continue;
-  }
-  if (!/^[0-9a-f]{64}$/.test(file.sha256 ?? "")) {
-    failures.push(`invalid manifest hash: ${file.path}`);
-    continue;
-  }
-  if (sha256(file.path) !== file.sha256) failures.push(`hash mismatch: ${file.path}`);
-}
-const indexStat = lstatSync(join(input, "index.json"));
-if (!indexStat.isFile() || indexStat.isSymbolicLink()) {
-  failures.push("index.json is not a regular file");
+const validation = validateResearchPack(input);
+process.stdout.write(`${formatValidationReport(validation)}\n`);
+if (validation.failures.length) {
+  throw new Error(`research pack rejected by research:validate (${validation.failures.length} failure(s)); nothing was written`);
 }
 
-const overlayName = (index.files ?? [])
-  .map((file: Json) => file.path)
-  .find((path: unknown) => typeof path === "string" && path.endsWith("-profile-overlay.json"));
-if (!overlayName) throw new Error("research pack has no profile overlay");
-const overlay = load(overlayName);
-const routesFile = load("ecu-routes.json");
-const candidatesFile = load("did-candidates.json");
-const sourcesFile = load("source-ledger.json");
-const platformsFile = load("platforms.json");
-const validationFile = load("validation-plan.json");
-const safety = load("transport-session-safety-policy.json");
-const supportEvidence = load("command-support-evidence.json");
-const trustedMap: Json = JSON.parse(
-  readFileSync(join(dirname(import.meta.filename), "../data/uds-map.json"), "utf8"),
-);
+const pack = validation.pack;
+const index = pack.index;
+const warnings: string[] = [...validation.warnings];
+const manifestFiles = pack.manifestFiles;
+const overlay = pack.overlay;
+const platformsFile = pack.platforms;
+const supportEvidence = pack.supportEvidence;
 
-if (!(overlay.brand_ids ?? []).length) failures.push("profile overlay has no brand ids");
-if (safety.automatic_discovery?.read_only !== true || safety.automatic_discovery?.default_session_only !== true) {
-  failures.push("automatic discovery policy is not read-only/default-session-only");
-}
-if (safety.automatic_discovery?.max_outstanding_requests !== 1) failures.push("research policy allows concurrent requests");
-
-const sources = new Map<string, Json>((sourcesFile.sources ?? []).map((source: Json) => [source.ref, source]));
-const routes = new Map<string, Json>((routesFile.routes ?? []).map((route: Json) => [route.route_id, route]));
+const sources = new Map<string, Json>(sourcesOf(pack).map((source: Json) => [source.ref, source]));
+const routes = new Map<string, Json>(routesOf(pack).map((route: Json) => [route.route_id, route]));
 const recipes = new Map<string, Json>();
-for (const recipe of validationFile.recipes ?? validationFile.validation_recipes ?? []) {
+for (const recipe of recipesOf(pack)) {
   recipes.set(recipe.validation_recipe_id ?? recipe.recipe_id, recipe);
 }
-
-const exactHex = (value: unknown): value is string =>
-  typeof value === "string" && (/^[0-9A-F]{3}$/.test(value) || /^[0-9A-F]{8}$/.test(value));
-const exactIdentifier = (value: unknown): value is string => typeof value === "string" && /^([0-9A-F]{2}|[0-9A-F]{4})$/.test(value);
-const immutableSource = (source: Json | undefined): boolean =>
-  Boolean(
-    source?.execution_eligible === true &&
-      typeof source.revision === "string" &&
-      /^[0-9a-f]{40}$/.test(source.revision) &&
-      source.url?.includes(source.revision),
-  );
-
-for (const route of routes.values()) {
-  if (!route.route_id || !exactHex(route.route?.req) || !exactHex(route.route?.resp)) {
-    failures.push(`invalid route/address: ${route.route_id ?? "?"}`);
-  }
-  for (const ref of route.source_refs ?? []) if (!sources.has(ref)) failures.push(`${route.route_id}: unknown source ${ref}`);
-}
-for (const candidate of candidatesFile.candidates ?? []) {
-  const identifier = candidate.did ?? candidate.local_identifier;
-  if (!candidate.candidate_id || !exactIdentifier(identifier)) failures.push(`invalid candidate identifier: ${candidate.candidate_id ?? "?"}`);
-  if (!routes.has(candidate.route_id)) failures.push(`${candidate.candidate_id}: unknown route ${candidate.route_id}`);
-  if (candidate.validation_recipe_id && !recipes.has(candidate.validation_recipe_id)) {
-    failures.push(`${candidate.candidate_id}: unknown validation recipe ${candidate.validation_recipe_id}`);
-  }
-}
-if (failures.length) throw new Error(`research pack rejected:\n${failures.map((failure) => `- ${failure}`).join("\n")}`);
 
 const sourceClaims = [...sources.values()].filter(immutableSource).map((source) => ({
   claim_id: `${index.pack_id}.source.${source.ref.toLowerCase()}`,
   exact_claim: `${source.title} supplies research evidence scoped to ${source.scope}.`,
-  knowledge_state: source.reliability === "high" ? "community_verified" : "community_reported",
+  knowledge_state: "community_reported",
   source_fidelity: source.reliability,
   vehicle_applicability: "untested_by_project",
   scope: source.scope,
@@ -131,7 +72,7 @@ const sourceClaims = [...sources.values()].filter(immutableSource).map((source) 
 const claimForSource = new Map(sourceClaims.map((claim) => [claim.claim_id.split(".").at(-1)!.toUpperCase(), claim.claim_id]));
 
 const candidatesByRoute = new Map<string, Json[]>();
-for (const candidate of candidatesFile.candidates ?? []) {
+for (const candidate of candidatesOf(pack)) {
   const list = candidatesByRoute.get(candidate.route_id) ?? [];
   list.push(candidate);
   candidatesByRoute.set(candidate.route_id, list);
@@ -177,7 +118,7 @@ function projectCandidate(candidate: Json): Json | null {
   const variants = projectDecoderVariants(candidate);
   const recipe = recipes.get(candidate.validation_recipe_id);
   return {
-    did: candidate.did ?? candidate.local_identifier,
+    did: identifierOf(candidate),
     semantic: candidate.semantic ?? null,
     ...(variants.length ? { decode_format: "uds_map_v9", decoder_variants: variants } : {}),
     ...(recipe
@@ -204,13 +145,7 @@ function projectCandidate(candidate: Json): Json | null {
 
 const projectedRoutes: Json[] = [];
 const confirmedRoutes: Json[] = [];
-const trustedPairs = new Set<string>();
-for (const brand of trustedMap.brands ?? []) {
-  for (const module of brand.modules ?? []) trustedPairs.add(`${brand.id}:${module.req}:${module.resp}`);
-}
-for (const family of trustedMap.ecu_families ?? []) {
-  for (const seen of family.modules_seen_on ?? []) trustedPairs.add(`${seen.brand}:${seen.req}:${seen.resp}`);
-}
+const trustedPairs = trustedRoutePairs();
 const supportedRouteIds = new Set((supportEvidence.evidence ?? []).map((entry: Json) => entry.route_id));
 for (const route of routes.values()) {
   if (route.automatic_execution_authorized !== true) {
@@ -279,8 +214,16 @@ const projectedPlatforms = (platformsFile.platforms ?? [])
     models: platform.scope.models,
     powertrains: platform.scope.powertrains ?? [],
   }));
-const platformHasVinRule = (platform: Json): boolean =>
-  Boolean(platform.vds_patterns?.length || platform.vin_rules?.length || platform.classifier);
+const vdsPatternsOf = (platform: Json): string[] =>
+  (platform.vds_patterns ?? platform.vin_rules ?? []).filter((pattern: unknown): pattern is string => typeof pattern === "string" && pattern.length > 0);
+const platformHasVinRule = (platform: Json): boolean => Boolean(vdsPatternsOf(platform).length || platform.classifier);
+const trustedVdsPattern = (platform: Json): string | null => {
+  const patterns = vdsPatternsOf(platform);
+  if (!patterns.length) return null;
+  if (patterns.length === 1) return patterns[0];
+  // The trusted map stores one vds_pattern per platform.
+  return `^(${patterns.map((pattern) => pattern.replace(/^\^/, "")).join("|")})`;
+};
 const vinSelectablePlatforms = (platformsFile.platforms ?? []).filter(platformHasVinRule).map((platform: Json) => platform.platform_id);
 const modelCounts = new Map<string, number>();
 for (const platform of projectedPlatforms) {
@@ -290,6 +233,37 @@ const vehicleFactSelectablePlatforms = projectedPlatforms
   .filter((platform: Json) => platform.models.some((model: string) => modelCounts.get(model) === 1))
   .map((platform: Json) => platform.platform_id);
 if (!vinSelectablePlatforms.length) warnings.push("VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform");
+
+const trustedPlatformKeys = new Map<string, string[]>();
+for (const brand of trustedMapBrands()) trustedPlatformKeys.set(brand.id, (brand.platforms ?? []).map((platform: Json) => String(platform.key)));
+const packBrandIds: string[] = overlay.brand_ids ?? [];
+const knownKeys = packBrandIds.flatMap((brand) => trustedPlatformKeys.get(brand) ?? []);
+const alreadyMapped = (platformId: string): boolean =>
+  knownKeys.some((key) => key === platformId || packBrandIds.some((brand) => `${brand}_${key}` === platformId));
+const platformProposals = (platformsFile.platforms ?? [])
+  .filter((platform: Json) => !alreadyMapped(platform.platform_id))
+  .map((platform: Json) => ({
+    platform_id: platform.platform_id,
+    brand_ids: platform.scope?.brand_ids ?? packBrandIds,
+    marques: platform.scope?.marques ?? [],
+    models: platform.scope?.models ?? [],
+    powertrains: platform.scope?.powertrains ?? [],
+    years: platform.scope?.years ?? null,
+    vds_patterns: vdsPatternsOf(platform),
+    vds_pattern: trustedVdsPattern(platform),
+    vin_selectable: platformHasVinRule(platform),
+    architecture: platform.architecture ?? null,
+    transport_candidates: platform.transport_candidates ?? [],
+    confidence: platform.confidence ?? null,
+    knowledge_state: platform.knowledge_state ?? null,
+    related_existing_keys: knownKeys.filter((key) => platform.platform_id.split("_").includes(key)),
+    sources: (platform.source_refs ?? []).map((ref: string) => {
+      const source = sources.get(ref);
+      return { ref, url: source?.url ?? null, revision: source?.revision ?? null, retrieved_at: source?.retrieved_at ?? null, licence: source?.licence ?? null, reliability: source?.reliability ?? null };
+    }),
+    accept_by: "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation.",
+  }))
+  .sort((a: Json, b: Json) => a.platform_id.localeCompare(b.platform_id));
 
 const compiled = {
   schema_version: 1,
@@ -326,7 +300,7 @@ const report = {
   counts: {
     input_routes: routes.size,
     projected_routes: projectedRoutes.length,
-    input_candidates: candidatesFile.candidates?.length ?? 0,
+    input_candidates: candidatesOf(pack).length,
     projected_candidates: projectedRoutes.reduce((total, route) => total + route.candidate_dids.length, 0),
     projected_decoder_signals: projectedVariants,
     deferred: deferred.length,
@@ -335,9 +309,10 @@ const report = {
   vin_selectable_platforms: vinSelectablePlatforms,
   vehicle_fact_selectable_platforms: vehicleFactSelectablePlatforms,
   warnings,
+  platform_proposals: platformProposals.length,
   confirmed_routes: confirmedRoutes,
   archived_files: [
-    { path: "index.json", sha256: sha256("index.json") },
+    { path: "index.json", sha256: sha256Of(input, "index.json") },
     ...manifestFiles.map((file) => ({ path: file.path, sha256: file.sha256 })),
   ],
   deferred,
@@ -350,4 +325,15 @@ for (const file of manifestFiles) {
 }
 writeFileSync(output, `${JSON.stringify(compiled, null, 2)}\n`);
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+if (platformProposals.length) {
+  const proposals = {
+    schema_version: 1,
+    pack_id: index.pack_id,
+    pack_version: index.pack_version,
+    research_date: index.research_date,
+    note: "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+    proposals: platformProposals,
+  };
+  writeFileSync(join(dirname(reportPath), "platform-proposals.json"), `${JSON.stringify(proposals, null, 2)}\n`);
+}
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

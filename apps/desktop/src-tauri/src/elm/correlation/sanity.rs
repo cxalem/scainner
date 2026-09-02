@@ -1,10 +1,3 @@
-//! Physics sanity and naming (protocol §6 steps 6–7). Nothing here knows a
-//! brand: the scales a quantity may plausibly use, the reference each
-//! quantity is checked against and the labels candidates get all come from
-//! `packages/uds-map/data/scale_catalog.json` (multi-brand plan P2.6). The
-//! frozen `InheritedDecode` contract carries a unit but no `quantity`, so
-//! the catalogue's unit list is the bridge from a decode to its quantity.
-
 use super::contract::{
     ArrayMembership, Correlation, HypothesisInput, InheritedDecode, InheritedFit, Interpretation,
     Shape, Variability,
@@ -25,27 +18,21 @@ struct ScaleCatalog {
 #[derive(Deserialize)]
 pub(crate) struct QuantityScales {
     pub quantity: String,
-    /// The standard-PID / derived reference the quantity is tested against.
     pub reference: String,
     pub units: Vec<String>,
-    /// Relative window around `1/scale` a fitted slope may sit in.
     pub slope_tolerance: f64,
     pub candidates: Vec<ScaleCandidate>,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct ScaleCandidate {
-    /// Reference units per raw count.
     pub scale: f64,
     pub unit: String,
     pub label: String,
-    /// Payload byte widths the candidate is plausible for.
     pub widths: Vec<u8>,
 }
 
 impl QuantityScales {
-    /// The candidate whose `1/scale` the fitted slope (raw per reference
-    /// unit) matches within the quantity's tolerance, for this width.
     pub fn candidate_for(&self, slope: f64, width: u8) -> Option<&ScaleCandidate> {
         self.candidates.iter().find(|c| {
             let expected = 1.0 / c.scale;
@@ -64,8 +51,6 @@ pub(crate) fn scale_catalog() -> &'static [QuantityScales] {
         .quantities
 }
 
-/// The quantity a decode belongs to, by its unit (the contract carries no
-/// `quantity`). Case-insensitive on the unit string.
 pub(crate) fn quantity_for_unit(unit: &str) -> Option<&'static QuantityScales> {
     let unit = unit.trim();
     if unit.is_empty() {
@@ -100,8 +85,6 @@ pub(crate) fn inherited_fit(
     let Some(fit) = fit else {
         return InheritedFit::Insufficient;
     };
-    // A binary event can validate association and polarity, but not the
-    // decoded signal's numeric scale. Never create a scale conflict from it.
     if expected == "braking" {
         return if fit.r >= 0.7 {
             InheritedFit::Matched { r: fit.r }
@@ -175,8 +158,6 @@ pub(crate) fn candidate_interpretations(
         }
     }
 
-    // Wheel speeds: a four-value array tracking speed at a slope the
-    // catalogue lists for the quantity (raw per km/h), whatever the brand.
     let speed_quantity = quantity("speed");
     let speed = correlations.iter().find(|fit| fit.reference == "speed");
     if let (Some(speed), Some(array), Some(q)) = (speed, array, speed_quantity) {

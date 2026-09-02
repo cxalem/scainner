@@ -11,9 +11,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
 
-// Every command below is a one-line adapter over `api::ops` — the same
-// functions the embedded HTTP API (`api/mod.rs`, docs/api.md) calls, so the
-// UI and a local agent never diverge in what they do to the car or the DB.
 type State<'a> = tauri::State<'a, Arc<AppState>>;
 
 #[tauri::command]
@@ -24,6 +21,46 @@ fn connect(app: tauri::AppHandle, state: State) -> Result<(), String> {
 #[tauri::command]
 fn disconnect(state: State) -> Result<(), String> {
     ops::disconnect(&state)
+}
+
+#[tauri::command]
+fn list_adapters(state: State) -> Vec<elm::transport::enumerate::AdapterCandidate> {
+    ops::list_adapters(&state)
+}
+
+#[tauri::command]
+async fn discover_adapters(
+    seconds: Option<u8>,
+) -> Result<Vec<elm::transport::bluetooth::NearbyDevice>, String> {
+    ops::discover_adapters(
+        seconds
+            .unwrap_or(elm::transport::bluetooth::DEFAULT_DISCOVER_SECONDS)
+            .clamp(
+                *elm::transport::bluetooth::DISCOVER_SECONDS.start(),
+                *elm::transport::bluetooth::DISCOVER_SECONDS.end(),
+            ),
+    )
+    .await
+}
+
+#[tauri::command]
+async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
+    ops::pair_adapter(addr.trim().to_ascii_lowercase(), pin)
+        .await
+        .map_err(|failure| failure.to_string())
+}
+
+#[tauri::command]
+fn get_adapter_profile(state: State) -> elm::transport::AdapterProfile {
+    ops::adapter_profile(&state)
+}
+
+#[tauri::command]
+fn set_adapter_profile(
+    state: State,
+    profile: elm::transport::AdapterProfile,
+) -> Result<elm::transport::AdapterProfile, String> {
+    ops::set_adapter_profile(&state, profile)
 }
 
 #[tauri::command]
@@ -115,6 +152,14 @@ async fn discover_sensors(
     full: bool,
 ) -> Result<elm::uds::DiscoveryReport, String> {
     ops::discover_sensors(&state, full).await
+}
+
+#[tauri::command]
+async fn run_discovery(
+    state: State<'_>,
+    vehicle_id: i64,
+) -> Result<ops::DiscoveryRunOutcome, String> {
+    ops::run_discovery(&state, vehicle_id).await
 }
 
 #[tauri::command]
@@ -210,6 +255,11 @@ fn reading_keys(state: State, vehicle_id: Option<i64>) -> Vec<String> {
 }
 
 #[tauri::command]
+fn reading_key_details(state: State, vehicle_id: Option<i64>) -> Vec<db::ReadingKeyRow> {
+    ops::reading_key_details(&state, vehicle_id)
+}
+
+#[tauri::command]
 fn list_vehicles(state: State) -> Vec<db::VehicleListRow> {
     ops::list_vehicles(&state)
 }
@@ -245,7 +295,7 @@ fn list_probes(state: State, vehicle_id: Option<i64>) -> Vec<db::UdsProbe> {
 }
 
 #[tauri::command]
-fn add_probe(state: State, probe: db::UdsProbe, vehicle_id: Option<i64>) -> i64 {
+fn add_probe(state: State, probe: db::UdsProbe, vehicle_id: Option<i64>) -> Result<i64, String> {
     ops::add_probe(&state, &probe, vehicle_id)
 }
 
@@ -332,12 +382,47 @@ fn data_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
     dir.join("scainner.sqlite3")
 }
 
+struct Tee(std::fs::File);
+
+impl std::io::Write for Tee {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let _ = self.0.write_all(buf);
+        std::io::stderr().write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        let _ = self.0.flush();
+        std::io::stderr().flush()
+    }
+}
+
+fn log_file() -> Option<std::fs::File> {
+    #[cfg(target_os = "macos")]
+    {
+        let dir = std::path::PathBuf::from(std::env::var_os("HOME")?)
+            .join("Library/Logs/com.cxalem.scainner");
+        std::fs::create_dir_all(&dir).ok()?;
+        let path = dir.join("desktop.log");
+        if std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) > 2 * 1024 * 1024 {
+            std::fs::rename(&path, dir.join("desktop.log.1")).ok();
+        }
+        std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+            .ok()
+    }
+    #[cfg(not(target_os = "macos"))]
+    None
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Quiet by default — set RUST_LOG=debug (or =trace for per-DID scan
-    // detail) to see the connection/scan internals. `Info` is the default
-    // level so warnings and above always surface.
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let mut logger =
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"));
+    if let Some(file) = log_file() {
+        logger.target(env_logger::Target::Pipe(Box::new(Tee(file))));
+    }
+    logger.init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -349,14 +434,17 @@ pub fn run() {
             let db = Arc::new(Db::open(&path).expect("failed to open sqlite db"));
             let state = Arc::new(AppState::new(db, path));
             app.manage(state.clone());
-            // The agent API shares this exact state (and therefore the one
-            // serial connection) with the UI — see docs/api.md.
             api::start(app.handle().clone(), state);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             connect,
             disconnect,
+            list_adapters,
+            discover_adapters,
+            pair_adapter,
+            get_adapter_profile,
+            set_adapter_profile,
             conn_status,
             scan_dtcs,
             clear_dtcs,
@@ -380,6 +468,7 @@ pub fn run() {
             uds_scan,
             uds_cancel_scan,
             discover_sensors,
+            run_discovery,
             parked_verification,
             correlation_capture,
             uds_read_many,
@@ -394,6 +483,7 @@ pub fn run() {
             writes_log,
             list_probes,
             reading_keys,
+            reading_key_details,
             list_vehicles,
             vehicle_report,
             vehicle_info,

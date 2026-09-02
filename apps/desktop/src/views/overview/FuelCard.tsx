@@ -1,6 +1,3 @@
-// Fuel and range: the last tank reading as a big number over a gauge bar,
-// consumption figures underneath, and the editable price assumption they
-// depend on. Degrades honestly when the car reports no tank level.
 import { useState } from "react";
 import { Fuel } from "lucide-react";
 import { Button, Card, CardHead, Mono, ProgressBar, useTransientLabel } from "@/components/ui";
@@ -19,8 +16,6 @@ export function FuelCard({ vehicleId, insights: i, live = false }: { vehicleId: 
   const hasConsumption = i.fuel_lph_avg != null;
   const pct = hasLevel ? Math.max(0, Math.min(100, i.fuel_level_pct!)) : null;
 
-  // No magic default: a price that fails to parse must never silently save
-  // as a made-up number — it feeds cost-per-100km below.
   const parsedPrice = parseFloat(price);
   const isValidPrice = Number.isFinite(parsedPrice) && parsedPrice > 0;
   const eur100 = i.l_per_100km != null ? i.l_per_100km * i.fuel_price : null;

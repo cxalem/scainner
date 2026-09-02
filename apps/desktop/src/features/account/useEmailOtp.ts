@@ -1,7 +1,3 @@
-// The email one-time-code sign-in state machine, shared by every surface
-// that offers sign-in (the ConnectGate — so the account is reachable BEFORE
-// any car has ever been connected, a real gap caught live 2026-08-21 — and
-// the Vehicle tab's Account card). One hook, one behavior, no drift.
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { requestSync } from "@/lib/sync";

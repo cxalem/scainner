@@ -1,16 +1,7 @@
-//! Connection supervisor: owns the serial driver on a background thread,
-//! keeps the link alive (Bluetooth cycle on failure), polls PIDs at ~1 Hz,
-//! writes every reading to SQLite, and dispatches one-shot requests (DTC
-//! scan, UDS reads, etc.) that arrive over a command channel.
-//!
-//! This file is deliberately just the connection lifecycle and request
-//! dispatch — the actual OBD/UDS business logic lives in `obd.rs` and
-//! `uds.rs` respectively. `handle_request` is the seam between them.
-
+use super::connect::{self, ConnectError, Stage};
 use super::discovery;
 use super::driver::ElmDriver;
 use super::obd;
-use super::operation;
 use super::parser;
 use super::transport::{self, AdapterKind, AdapterProfile};
 use super::uds;
@@ -25,40 +16,112 @@ use tauri::Emitter;
 
 #[derive(Clone, Serialize, Default)]
 pub struct ConnStatus {
-    pub state: String, // "disconnected" | "connecting" | "connected"
+    pub state: String,
+    pub stage: Option<Stage>,
+    pub error: Option<ConnectError>,
     pub elm_version: Option<String>,
     pub detail: Option<String>,
-    // The CURRENT connection's own resolved identity — never a cache of a
-    // previous car (the exact bug caught live 2026-08-21: a failed VIN read
-    // on a real Peugeot left the app silently showing the Citroën's
-    // identity everywhere). `vin`/`vehicle_id` are None when this
-    // connection's vehicle couldn't be identified — the frontend renders an
-    // honest unknown-vehicle state then, with a "name this car" action that
-    // creates a VIN-less vehicles row (schema v2, db.rs). `vehicle_is_new`
-    // is true when THIS connect created the vehicles row — it replaces the
-    // frontend's old knownVins-snapshot comparison for triggering the
-    // first-connect discovery flow.
     pub vin: Option<String>,
     pub vehicle_id: Option<i64>,
     pub display_name: Option<String>,
     pub vehicle_is_new: bool,
-    // A UDS scan (auto-discovery or a manual range scan) is running —
-    // standard PID polling is paused for its duration, so live gauges go
-    // stale everywhere. Carried on the SAME global conn-status broadcast
-    // every tab already listens to, so any view (Live, Lab, Overview) can
-    // show an honest "scanning, live data will be back when finished"
-    // state instead of a silently frozen/empty one, and the state itself
-    // survives switching tabs for free (owner, 2026-08-24).
     pub scanning: bool,
+    pub discovery: Option<DiscoveryStatus>,
 }
 
-/// The live connection's identity context, threaded into every handler that
-/// records facts — schema v2's rule: every recorded fact carries
-/// `connection_id` and (when identified) `vehicle_id`.
+#[derive(Clone, Serialize, Debug, Default, PartialEq)]
+pub struct DiscoveryStatus {
+    pub state: String,
+    pub reason: Option<String>,
+    pub stage: Option<String>,
+    pub stage_done: Option<u32>,
+    pub stage_total: Option<u32>,
+    pub started_at: Option<String>,
+    pub last_run_at: Option<String>,
+    pub knowledge_key: String,
+}
+
 #[derive(Clone, Copy)]
 pub struct ConnCtx {
     pub connection_id: i64,
     pub vehicle_id: Option<i64>,
+}
+
+pub const PROBE_INTERVAL_SETTING: &str = "probe_interval_ticks";
+pub const DTC_SCAN_INTERVAL_SETTING: &str = "dtc_scan_interval_ticks";
+
+const PROBE_INTERVAL_DEFAULT: u64 = 120;
+const PROBE_INTERVAL_LEARNING_DEFAULT: u64 = 8;
+const PROBE_INTERVAL_MIN: u64 = 4;
+const PROBE_INTERVAL_MAX: u64 = 2400;
+
+const DTC_SCAN_INTERVAL_DEFAULT: u64 = 1200;
+const DTC_SCAN_INTERVAL_MIN: u64 = 240;
+const DTC_SCAN_INTERVAL_MAX: u64 = 14400;
+
+pub fn probe_interval_ticks(setting: Option<&str>, learning_on: bool) -> u64 {
+    let default = if learning_on {
+        PROBE_INTERVAL_LEARNING_DEFAULT
+    } else {
+        PROBE_INTERVAL_DEFAULT
+    };
+    setting
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .map(|v| v.clamp(PROBE_INTERVAL_MIN, PROBE_INTERVAL_MAX))
+        .unwrap_or(default)
+}
+
+pub fn dtc_scan_interval_ticks(setting: Option<&str>) -> u64 {
+    setting
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .map(|v| v.clamp(DTC_SCAN_INTERVAL_MIN, DTC_SCAN_INTERVAL_MAX))
+        .unwrap_or(DTC_SCAN_INTERVAL_DEFAULT)
+}
+
+struct DtcScanSchedule {
+    interval: u64,
+    last_scan_tick: Option<u64>,
+}
+
+impl DtcScanSchedule {
+    fn new(interval: u64) -> Self {
+        Self {
+            interval,
+            last_scan_tick: None,
+        }
+    }
+
+    fn due(&self, tick: u64) -> bool {
+        tick > 0 && tick.saturating_sub(self.last_scan_tick.unwrap_or(0)) >= self.interval
+    }
+
+    fn due_at_session_end(&self, tick: u64) -> bool {
+        self.last_scan_tick != Some(tick)
+    }
+
+    fn record(&mut self, tick: u64) {
+        self.last_scan_tick = Some(tick);
+    }
+}
+
+fn record_dtc_scan(drv: &mut ElmDriver, db: &Db, ctx: ConnCtx) -> Result<obd::DtcResult, String> {
+    obd::scan_dtcs(drv).map(|r| {
+        db.insert_dtc_scan(
+            Some(ctx.connection_id),
+            ctx.vehicle_id,
+            r.mil_on,
+            &r.stored,
+            &r.pending,
+            &r.permanent,
+            r.voltage,
+            r.freeze.as_ref(),
+        );
+        r
+    })
+}
+
+fn announce_dtc_scan(app: &tauri::AppHandle, result: &obd::DtcResult) {
+    let _ = app.emit("dtc-scan", result);
 }
 
 pub enum Request {
@@ -83,14 +146,12 @@ pub enum Request {
         to: u16,
         tx: Sender<Result<Vec<uds::UdsHit>, String>>,
     },
-    /// One-button auto-discovery: no ranges, no addresses, no user input.
     Discover {
         full: bool,
         tx: Sender<Result<uds::DiscoveryReport, String>>,
     },
     ParkedVerification(Sender<Result<uds::ParkedVerificationReport, String>>),
-    /// One guided-correlation capture (read-only, default session), saved as
-    /// a verification run carrying the operator's condition label.
+    RunAutoDiscovery(Sender<Result<discovery::auto::AutoSummary, String>>),
     CorrelationCapture {
         req: String,
         resp: String,
@@ -109,9 +170,6 @@ pub enum Request {
         module: String,
         tx: Sender<Result<Vec<String>, String>>,
     },
-    /// The "name this car" flow for VIN-less vehicles: creates the vehicles
-    /// row, links the live connection, back-stamps everything it already
-    /// recorded, and re-emits conn-status with the new identity.
     NameVehicle {
         name: String,
         tx: Sender<Result<i64, String>>,
@@ -122,9 +180,6 @@ pub enum Request {
 pub struct Supervisor {
     pub tx: Sender<Request>,
     pub status: Arc<Mutex<ConnStatus>>,
-    /// Flipped by the UI's "Cancel scan" button (or by Disconnect, so it can't
-    /// get stuck queued behind a long-running scan). Checked once per DID
-    /// inside `uds::scan_range`, so a scan aborts within one DID's timeout.
     pub cancel_scan: Arc<AtomicBool>,
 }
 
@@ -132,7 +187,7 @@ impl Supervisor {
     pub fn spawn(app: tauri::AppHandle, db: Arc<Db>) -> Self {
         let (tx, rx) = mpsc::channel::<Request>();
         let status = Arc::new(Mutex::new(ConnStatus {
-            state: "disconnected".into(),
+            state: "connecting".into(),
             ..Default::default()
         }));
         let cancel_scan = Arc::new(AtomicBool::new(false));
@@ -152,15 +207,19 @@ fn set_status(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, s: ConnSt
     let _ = app.emit("conn-status", &s);
 }
 
-/// Flips just the `scanning` flag on the current status and re-broadcasts
-/// it — used around any UDS scan (auto-discovery or the manual range
-/// scanner), both of which block standard PID polling for their duration.
-/// Every tab already listens to conn-status, so this is how "a scan is
-/// running" becomes visible everywhere for free (owner, 2026-08-24).
 fn set_scanning(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, scanning: bool) {
     let snapshot = {
         let mut guard = status.lock().unwrap();
         guard.scanning = scanning;
+        guard.clone()
+    };
+    let _ = app.emit("conn-status", &snapshot);
+}
+
+fn set_discovery(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, d: DiscoveryStatus) {
+    let snapshot = {
+        let mut guard = status.lock().unwrap();
+        guard.discovery = Some(d);
         guard.clone()
     };
     let _ = app.emit("conn-status", &snapshot);
@@ -171,10 +230,6 @@ fn notify(app: &tauri::AppHandle, title: &str, body: &str) {
     let _ = app.notification().builder().title(title).body(body).show();
 }
 
-/// The main loop: alternates between a (re)connect phase and a polling phase.
-/// Any link failure during polling (8 consecutive command failures) drops
-/// back to reconnect rather than giving up — this is what makes the app
-/// self-heal through the dongle's "sulk mode" without user intervention.
 fn run_loop(
     app: tauri::AppHandle,
     db: Arc<Db>,
@@ -183,66 +238,10 @@ fn run_loop(
     cancel_scan: Arc<AtomicBool>,
 ) {
     'outer: loop {
-        // ---- (re)connect phase ----
-        set_status(
-            &app,
-            &status,
-            ConnStatus {
-                state: "connecting".into(),
-                ..Default::default()
-            },
-        );
-        let mut drv = match connect_with_retries(&db) {
-            Ok(d) => d,
-            Err(e) => {
-                set_status(
-                    &app,
-                    &status,
-                    ConnStatus {
-                        state: "disconnected".into(),
-                        detail: Some(e),
-                        ..Default::default()
-                    },
-                );
-                // Wait a bit, but stay responsive to Stop.
-                match rx.recv_timeout(Duration::from_secs(10)) {
-                    Ok(Request::Stop) => return,
-                    Ok(req) => {
-                        answer_disconnected(req);
-                    }
-                    Err(_) => {}
-                }
-                continue;
-            }
+        let (mut drv, version) = match connect_once(&app, &db, &status) {
+            Some(connected) => connected,
+            None => return,
         };
-        let version = match drv.init() {
-            Ok(v) => v,
-            Err(e) => {
-                set_status(
-                    &app,
-                    &status,
-                    ConnStatus {
-                        state: "disconnected".into(),
-                        detail: Some(e.to_string()),
-                        ..Default::default()
-                    },
-                );
-                continue;
-            }
-        };
-        // Wake the ECU / detect protocol, then remember what the adapter
-        // settled on so every diagnostic operation restores exactly that.
-        let _ = drv.cmd("0100", Duration::from_secs(20));
-        match operation::capture_link_state(&mut drv) {
-            Some(state) => log::info!(
-                "adapter protocol {} (functional header {})",
-                state.protocol,
-                state.header
-            ),
-            None => {
-                log::warn!("ATDPN did not report a CAN protocol; cleanup falls back to auto-detect")
-            }
-        }
         let link = drv.describe();
         log::info!(
             "connected over {} {} (banner {:?}, device_kind {})",
@@ -252,15 +251,6 @@ fn run_loop(
             drv.device_kind()
         );
         let connection_id = db.start_connection(&version, &drv.device_kind());
-        // Resolve this connection's vehicle. The VIN read decides whether
-        // the app recognizes what's connected at all — retried up to 3
-        // times (the first query right after the 0100 wake-up is the one
-        // most likely to land before the bus settles), logged loudly on
-        // failure. A car whose ECU never answers Mode 09 (real case: a
-        // ~2000 Peugeot, 2026-08-21) stays unidentified: the connection
-        // records with NULL vehicle_id until the user names the car
-        // (Request::NameVehicle below) — never silently attributed to a
-        // previously-connected vehicle.
         let mut resolved_vin: Option<String> = None;
         for attempt in 1..=3 {
             match obd::query(&mut drv, "0902", "49 02 01", 15) {
@@ -306,21 +296,14 @@ fn run_loop(
             ConnStatus {
                 state: "connected".into(),
                 elm_version: Some(version.clone()),
-                detail: None,
                 vin: resolved_vin.clone(),
                 vehicle_id,
                 display_name,
                 vehicle_is_new,
-                scanning: false,
+                ..Default::default()
             },
         );
 
-        // Adaptive polling: ask the ECU once which mode-01 PIDs it supports
-        // and poll only those. The old Peugeot answers 5 of the poll set's
-        // 12 — before this, the other 7 burned a NO DATA timeout on EVERY
-        // sweep (multi-second sweeps, sluggish live data, requests queuing
-        // behind dead reads). Empty result = bitmap read failed = poll
-        // everything, the pre-existing behavior.
         let supported_pids = obd::supported_pids(&mut drv);
         if supported_pids.is_empty() {
             log::warn!("supported-PID bitmap unavailable — polling the full set");
@@ -341,95 +324,80 @@ fn run_loop(
             );
         }
 
-        // Automatic discovery on connect (protocol S1–S3; multi-brand plan
-        // P2.7): census → identity (twice) → join → coverage, read-only in
-        // the default session, within the protocol's budgets. Switched off
-        // with `app_settings.auto_discovery = off`; an unidentified car has
-        // nowhere to file findings, so it is skipped too.
-        if let Some(vehicle_id) = ctx.vehicle_id {
-            if discovery::auto::enabled(&db) {
-                discovery::auto::notify_unknown_brand(resolved_vin.as_deref(), |notice| {
-                    log::info!(
-                        "discovery profile callback: reason={}, wmi={:?}; policy={}, scan_allowed={}",
-                        notice.reason,
-                        notice.wmi,
-                        notice.fallback_policy,
-                        notice.discovery_continues
-                    );
-                    let _ = app.emit(
-                        "unknown-brand",
-                        serde_json::json!({
-                            "vehicleId": vehicle_id,
-                            "classification": notice.classification,
-                            "reason": notice.reason,
-                            "wmi": notice.wmi,
-                            "brandId": notice.brand_id,
-                            "fallbackPolicy": notice.fallback_policy,
-                            "discoveryContinues": notice.discovery_continues,
-                        }),
-                    );
-                });
-                cancel_scan.store(false, Ordering::Relaxed);
-                set_scanning(&app, &status, true);
-                let progress = |phase: &str, current: u32, total: u32, detail: &str| {
-                    let _ = app.emit(
-                        "discovery-progress",
-                        serde_json::json!({
-                            "phase": phase, "current": current, "total": total,
-                            "detail": detail, "modulesFound": 0, "didsFound": 0,
-                        }),
-                    );
-                };
-                let summary = discovery::auto::run(
-                    &mut drv,
-                    &db,
-                    vehicle_id,
-                    resolved_vin.as_deref(),
-                    connection_id,
-                    &cancel_scan,
-                    &discovery::auto::AutoConfig::default(),
-                    &progress,
-                );
-                set_scanning(&app, &status, false);
-                log::info!(
-                    "automatic discovery: {} candidates, {} reached, {} refused, {} silent; {} fingerprinted; coverage {}; {} ms{}",
-                    summary.census.candidates,
-                    summary.census.reached,
-                    summary.census.refused,
-                    summary.census.silent,
-                    summary.identity.fingerprinted,
-                    summary.coverage_status.as_deref().unwrap_or("none"),
-                    summary.elapsed_ms,
-                    summary.stopped.as_deref().map(|s| format!(" ({s})")).unwrap_or_default()
-                );
-                if let Ok(json) = serde_json::to_string(&summary) {
-                    let _ =
-                        db.insert_verification_run(vehicle_id, connection_id, "auto-s1-s3", &json);
+        let knowledge_key = discovery::knowledge_key();
+        match ctx.vehicle_id.filter(|_| discovery::auto::enabled(&db)) {
+            None => set_discovery(
+                &app,
+                &status,
+                DiscoveryStatus {
+                    state: "idle".into(),
+                    knowledge_key: knowledge_key.clone(),
+                    ..Default::default()
+                },
+            ),
+            Some(vehicle_id) => {
+                let stored = discovery::knowledge::last_auto_run(&db, vehicle_id);
+                match discovery::knowledge::decide(stored.as_ref(), &knowledge_key, false) {
+                    discovery::knowledge::RunDecision::Skip { since } => {
+                        log::info!("discovery skipped: knowledge unchanged since {since}");
+                        set_discovery(
+                            &app,
+                            &status,
+                            DiscoveryStatus {
+                                state: "skipped".into(),
+                                reason: Some(discovery::knowledge::SKIP_REASON.into()),
+                                last_run_at: Some(since),
+                                knowledge_key: knowledge_key.clone(),
+                                ..Default::default()
+                            },
+                        );
+                    }
+                    discovery::knowledge::RunDecision::Run(reason) => {
+                        log::info!("discovery running: {}", reason.explain());
+                        run_auto_discovery(
+                            &mut drv,
+                            &db,
+                            &app,
+                            &status,
+                            &cancel_scan,
+                            vehicle_id,
+                            resolved_vin.as_deref(),
+                            connection_id,
+                            reason,
+                            &knowledge_key,
+                        );
+                    }
                 }
             }
         }
 
         let mut consecutive_failures = 0u32;
         let mut tick: u64 = 0;
-        let mut probe_interval: u64 = 120;
+        let mut probe_interval: u64 = 0;
+        let mut dtc_schedule = DtcScanSchedule::new(DTC_SCAN_INTERVAL_DEFAULT);
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
 
-        // ---- polling phase ----
-        // Drains every queued one-shot request. A macro (not a fn/closure)
-        // because Stop must `return` from run_loop itself, and NameVehicle
-        // mutates the loop's own ctx and re-emits conn-status. Invoked both
-        // at the top of each tick AND between individual PID reads below —
-        // requests used to wait for a whole 12-PID sweep (seconds on a slow
-        // bus) before even starting, the second half of the "click scan,
-        // nothing happens for a beat" jank reported live 2026-08-21 (the
-        // first half was sync Tauri commands blocking the main thread, see
-        // lib.rs's ask()). Now a request waits at most one PID read.
         macro_rules! service_requests {
             () => {
                 while let Ok(req) = rx.try_recv() {
                     match req {
                         Request::Stop => {
+                            if dtc_schedule.due_at_session_end(tick) {
+                                match record_dtc_scan(&mut drv, &db, ctx) {
+                                    Ok(result) => {
+                                        log::info!(
+                                            "closing fault-code scan: {} stored, {} pending, MIL {}",
+                                            result.stored.len(),
+                                            result.pending.len(),
+                                            if result.mil_on { "on" } else { "off" }
+                                        );
+                                        announce_dtc_scan(&app, &result);
+                                    }
+                                    Err(e) => log::warn!("closing fault-code scan failed: {e}"),
+                                }
+                                dtc_schedule.record(tick);
+                            }
                             db.end_connection(ctx.connection_id);
                             set_status(
                                 &app,
@@ -459,17 +427,22 @@ fn run_loop(
                                     ConnStatus {
                                         state: "connected".into(),
                                         elm_version: Some(version.clone()),
-                                        detail: None,
-                                        vin: None,
                                         vehicle_id: Some(id),
                                         display_name: Some(trimmed.to_string()),
-                                        // Naming IS this vehicle's first appearance.
                                         vehicle_is_new: true,
-                                        scanning: false,
+                                        ..Default::default()
                                     },
                                 );
                                 let _ = tx.send(Ok(id));
                             }
+                        }
+                        Request::ScanDtcs(tx) => {
+                            let res = record_dtc_scan(&mut drv, &db, ctx);
+                            dtc_schedule.record(tick);
+                            if let Ok(result) = &res {
+                                announce_dtc_scan(&app, result);
+                            }
+                            let _ = tx.send(res);
                         }
                         req => handle_request(req, &mut drv, &db, &cancel_scan, &app, ctx, &status),
                     }
@@ -500,17 +473,37 @@ fn run_loop(
                         }
                         consecutive_failures = 0;
                     }
-                    Err(_) => {
+                    Err(error) => {
                         consecutive_failures += 1;
+                        log::warn!(
+                            "live PID {} failed ({}/9 before reconnect): {}",
+                            pid.pid,
+                            consecutive_failures,
+                            error
+                        );
                         if consecutive_failures > 8 {
-                            // Link is gone — go back to reconnect phase.
+                            if dtc_schedule.due_at_session_end(tick) {
+                                match record_dtc_scan(&mut drv, &db, ctx) {
+                                    Ok(result) => {
+                                        log::info!(
+                                            "closing fault-code scan after a dropped link: {} stored, {} pending",
+                                            result.stored.len(),
+                                            result.pending.len()
+                                        );
+                                        announce_dtc_scan(&app, &result);
+                                    }
+                                    Err(e) => log::warn!(
+                                        "closing fault-code scan after a dropped link failed: {e}"
+                                    ),
+                                }
+                                dtc_schedule.record(tick);
+                            }
                             db.end_connection(ctx.connection_id);
                             continue 'outer;
                         }
                     }
                 }
             }
-            // Voltage every ~15 ticks.
             if tick % 15 == 0 {
                 if let Ok(raw) = drv.cmd("ATRV", Duration::from_secs(3)) {
                     if let Some(v) = parser::clean_response(&raw)
@@ -523,7 +516,6 @@ fn run_loop(
                 }
             }
 
-            // ---- Alerts (once per session each) ----
             if let Some(&t) = values.get("coolant") {
                 if t > 105.0 && alerts_fired.insert("coolant") {
                     notify(
@@ -537,7 +529,6 @@ fn run_loop(
                 let running = values.get("rpm").map(|&r| r > 400.0).unwrap_or(false);
                 if running && v < 11.8 {
                     low_voltage_streak += 1;
-                    // Voltage samples come every ~20-30s; two in a row = sustained.
                     if low_voltage_streak >= 2 && alerts_fired.insert("voltage") {
                         notify(
                             &app,
@@ -549,17 +540,32 @@ fn run_loop(
                     low_voltage_streak = 0;
                 }
             }
-            // User-defined UDS probes every `probe_interval_ticks` ticks
-            // (default 120 ≈ 30–60 s). An agent running a physical test can
-            // lower it through the API settings route (minimum 4 ≈ 1 s);
-            // the value is re-read every 40 ticks so a change applies without
-            // reconnecting.
             if tick % 40 == 0 {
-                probe_interval = db
-                    .setting_get("probe_interval_ticks")
-                    .and_then(|v| v.trim().parse::<u64>().ok())
-                    .map(|v| v.clamp(4, 2400))
-                    .unwrap_or(120);
+                let learning_on = db
+                    .setting_get(discovery::state::LEARNING_STATE_SETTING)
+                    .map(|v| v == "on")
+                    .unwrap_or(false);
+                let resolved = probe_interval_ticks(
+                    db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
+                    learning_on,
+                );
+                if resolved != probe_interval {
+                    log::info!(
+                        "probe polling every {resolved} ticks (~{:.1} s), learning state {}",
+                        resolved as f64 * 0.25,
+                        if learning_on { "on" } else { "off" }
+                    );
+                    probe_interval = resolved;
+                }
+                let resolved_scan =
+                    dtc_scan_interval_ticks(db.setting_get(DTC_SCAN_INTERVAL_SETTING).as_deref());
+                if resolved_scan != dtc_schedule.interval {
+                    log::info!(
+                        "fault-code scan every {resolved_scan} ticks (~{:.0} s)",
+                        resolved_scan as f64 * 0.25
+                    );
+                    dtc_schedule.interval = resolved_scan;
+                }
             }
             if tick > 0 && tick % probe_interval == 0 {
                 let uds_values = uds::poll_probes(&mut drv, &db, ctx);
@@ -568,7 +574,6 @@ fn run_loop(
                 }
             }
 
-            // MIL watch every ~240 ticks (~1-2 min): does the check-engine light come on?
             if tick > 0 && tick % 240 == 0 {
                 if let Ok(raw) = drv.cmd("0101", Duration::from_secs(5)) {
                     let lines = parser::clean_response(&raw);
@@ -585,6 +590,26 @@ fn run_loop(
                 }
             }
 
+            if dtc_schedule.due(tick) {
+                service_requests!();
+            }
+            // Re-checking after requests lets a just-served manual scan cancel this periodic tick.
+            if dtc_schedule.due(tick) {
+                match record_dtc_scan(&mut drv, &db, ctx) {
+                    Ok(result) => {
+                        log::info!(
+                            "periodic fault-code scan: {} stored, {} pending, MIL {}",
+                            result.stored.len(),
+                            result.pending.len(),
+                            if result.mil_on { "on" } else { "off" }
+                        );
+                        announce_dtc_scan(&app, &result);
+                    }
+                    Err(e) => log::warn!("periodic fault-code scan failed: {e}"),
+                }
+                dtc_schedule.record(tick);
+            }
+
             if !values.is_empty() {
                 let _ = app.emit("live-update", &values);
             }
@@ -594,38 +619,9 @@ fn run_loop(
     }
 }
 
-/// Escalation ladder, cheapest first:
-///   attempt 0 — FAST PATH: if the port node already exists, just open it and
-///     probe. A healthy link reconnects in ~2-3s instead of the ~10s a full
-///     BT cycle costs. (The stale-port trap is real — the node can exist with
-///     a dead RFCOMM link behind it — but the probe catches that, and we only
-///     pay the escalation cost when it actually happens.)
-///   attempt 1 — plain BT disconnect/connect cycle.
-///   attempt 2 — full PIN re-pair (the dongle's sulk-state cure).
-///
-/// This is a general-purpose ladder because dongles vary: most reconnect
-/// fine at attempt 0 or 1, and always jumping straight to a full unpair/
-/// re-pair would be needlessly disruptive for them (heavier on the OS
-/// Bluetooth stack, and it uses `SCAINNER_OBD_PIN`, which may not even be
-/// the right PIN for someone else's hardware).
-///
-/// But *this specific dongle* (see driver.rs's "sulk mode") empirically
-/// needs the full repair essentially every time — so starting from scratch
-/// at attempt 0 on every single connection just burns ~10-15s on steps that
-/// are known not to work before reaching the one that does. Rather than
-/// hardcode that assumption (which would be wrong for better-behaved
-/// hardware), we learn it: the level that last succeeded is persisted
-/// (`app_settings` key `bt_connect_level:<adapter identity>`) and the ladder starts there next
-/// time. A dongle that only ever needs attempt 0 stays fast forever; one
-/// that needs attempt 2 skips straight to it after the first connection.
-fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
+fn resolve_profile(db: &Db) -> Result<AdapterProfile, ConnectError> {
     let mut profile = AdapterProfile::load(|key| db.setting_get(key));
-    if profile.kind == AdapterKind::TcpElm {
-        return connect_tcp(&profile);
-    }
-    if profile.path.is_none() {
-        // Nothing configured yet: try the one port that looks like an
-        // adapter, so a fresh install with a single dongle still connects.
+    if profile.kind == AdapterKind::ElmSerial && profile.path.is_none() {
         match transport::enumerate::guess_serial_path() {
             Some(path) => {
                 log::info!(
@@ -634,194 +630,191 @@ fn connect_with_retries(db: &Db) -> Result<ElmDriver, String> {
                 profile.path = Some(path);
             }
             None => {
-                return Err("no adapter configured: pick one under Settings → Adapter (PUT /adapter), or set SCAINNER_OBD_PORT".into());
+                return Err(ConnectError::new(
+                    Stage::Link,
+                    "no adapter configured: pick one under Settings → Adapter (PUT /adapter), or set SCAINNER_OBD_PORT",
+                ))
             }
         }
     }
-    let port = profile.path.clone().unwrap_or_default();
-    let bluetooth = transport::bluetooth::platform();
-    // Without a Bluetooth address (a USB adapter, or a profile the user has
-    // not completed) the ladder's Bluetooth steps have nothing to act on.
-    let bt_addr = profile.bt_addr.clone();
-    let cycle = |what: &str| -> Result<(), String> {
-        match &bt_addr {
-            Some(addr) => bluetooth.cycle(addr, &port),
-            None => Err(format!(
-                "{what}: port {port} is not available and no adapter.bt_addr is set to revive it (set it for a Bluetooth adapter, or plug the USB adapter back in)"
-            )),
-        }
+    Ok(profile)
+}
+
+fn connect_once(
+    app: &tauri::AppHandle,
+    db: &Db,
+    status: &Arc<Mutex<ConnStatus>>,
+) -> Option<(ElmDriver, String)> {
+    let emit = |stage: Stage| {
+        set_status(
+            app,
+            status,
+            ConnStatus {
+                state: "connecting".into(),
+                stage: Some(stage),
+                ..Default::default()
+            },
+        );
     };
-    let pin = profile.pin.clone();
-    // The learned level is per adapter (review #65): a level 2 learned on
-    // a sulking Bluetooth dongle must not make a USB adapter skip the only
-    // step that can work for it.
-    let level_key = profile.learned_level_key();
-    let start = profile.ladder_start(db.setting_get(&level_key));
-    if start > 0 {
-        log::debug!("connect: skipping to attempt {start} (learned from last successful connect)");
-    }
-    for attempt in start..3 {
-        if attempt == 0 {
-            if std::path::Path::new(&port).exists() {
-                log::debug!("connect attempt 0: fast path — port exists, probing directly");
-            } else {
-                log::debug!("connect attempt 0: no port node, bluetooth cycle...");
-                cycle("connect attempt 0")?;
-            }
-        } else if attempt == 1 {
-            log::debug!("connect attempt 1: bluetooth cycle...");
-            cycle("connect attempt 1")?;
-        } else {
-            log::debug!("connect attempt 2: full PIN re-pair...");
-            match &bt_addr {
-                Some(addr) => bluetooth.repair(addr, &pin, &port)?,
-                None => {
-                    return Err(format!(
-                        "port {port} opens but the adapter stays silent, and no adapter.bt_addr is set to re-pair it"
-                    ))
-                }
-            }
+    let bluetooth = transport::bluetooth::platform();
+    let outcome = resolve_profile(db)
+        .and_then(|profile| connect::connect(&profile, bluetooth.as_ref(), &emit));
+    match outcome {
+        Ok(driver) => {
+            let version = driver
+                .describe()
+                .banner
+                .unwrap_or_else(|| "ELM327-compatible (no banner)".to_string());
+            Some((driver, version))
         }
-        // Let the RFCOMM channel settle before opening — opening too early
-        // wedges it. Only needed after a cycle/repair; the fast path opens an
-        // already-settled link.
-        if attempt > 0 {
-            std::thread::sleep(Duration::from_secs(2));
+        Err(error) => {
+            log::warn!("connect failed at {}: {}", error.stage, error.reason);
+            set_status(
+                app,
+                status,
+                ConnStatus {
+                    state: "disconnected".into(),
+                    detail: Some(error.to_string()),
+                    error: Some(error),
+                    ..Default::default()
+                },
+            );
+            None
         }
-        log::debug!("connect attempt {attempt}: opening {port}");
-        match ElmDriver::open(&profile) {
-            Ok(mut d) => {
-                // Liveness probe: ATZ on the open port. Fast path gets one
-                // short try (a healthy link answers in <1s; a dead one should
-                // fail fast so escalation starts sooner); post-cycle attempts
-                // get two patient tries since fresh links often eat the first
-                // write.
-                let (tries, per_try) = if attempt == 0 {
-                    (1, Duration::from_secs(3))
-                } else {
-                    (2, Duration::from_secs(5))
-                };
-                let mut alive = false;
-                for probe_try in 0..tries {
-                    let probe = d.cmd("ATZ", per_try);
-                    log::trace!("connect attempt {attempt} probe {probe_try}: ATZ -> {probe:?}");
-                    if ElmDriver::reset_alive(&probe) {
-                        alive = true;
-                        break;
-                    }
-                    std::thread::sleep(Duration::from_secs(1));
-                }
-                if alive {
-                    db.setting_set(&level_key, &attempt.to_string());
-                    return Ok(d);
-                }
-                if attempt == 2 {
-                    return Err(
-                        "port opens but the adapter never returns a prompt after 3 BT cycles"
-                            .into(),
-                    );
-                }
-            }
-            Err(e) => {
-                log::debug!("connect attempt {attempt}: open failed -> {e}");
-                if attempt == 2 {
-                    return Err(e.to_string());
-                }
-                std::thread::sleep(Duration::from_secs(1));
-            }
-        }
-    }
-    unreachable!()
-}
-
-/// Wi-Fi adapters have no Bluetooth ladder: open the socket, probe once
-/// patiently (the first write after a socket open is often eaten), retry
-/// the open a couple of times.
-fn connect_tcp(profile: &AdapterProfile) -> Result<ElmDriver, String> {
-    let mut last = String::from("no attempt made");
-    for attempt in 0..3 {
-        match ElmDriver::open(profile) {
-            Ok(mut d) => {
-                for _ in 0..2 {
-                    let probe = d.cmd("ATZ", Duration::from_secs(5));
-                    if ElmDriver::reset_alive(&probe) {
-                        return Ok(d);
-                    }
-                    std::thread::sleep(Duration::from_secs(1));
-                }
-                last = "socket opens but the adapter never returns a prompt".into();
-            }
-            Err(e) => {
-                log::debug!("tcp connect attempt {attempt}: {e}");
-                last = e.to_string();
-            }
-        }
-        std::thread::sleep(Duration::from_secs(2));
-    }
-    Err(last)
-}
-
-fn answer_disconnected(req: Request) {
-    let err = "not connected".to_string();
-    match req {
-        Request::ScanDtcs(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::ClearDtcs(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::ReadEcuInfo(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::Readiness(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::AllSensors(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsRead { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsReadMany { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsScan { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::Discover { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::ParkedVerification(tx) => {
-            let _ = tx.send(Err(err));
-        }
-        Request::CorrelationCapture { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsClear { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::UdsModuleDtcs { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::NameVehicle { tx, .. } => {
-            let _ = tx.send(Err(err));
-        }
-        Request::Stop => {}
     }
 }
 
-/// The VIN of the connection's vehicle, which selects the profile every
-/// UDS operation resolves modules, routes and read services from.
 fn current_vin(db: &Db, ctx: ConnCtx) -> Option<String> {
     ctx.vehicle_id
         .and_then(|id| db.vehicle(id))
         .and_then(|v| v.vin)
 }
 
-/// Dispatch one request to the right business-logic module. This is the only
-/// place that knows both "how to talk to the car" (via `drv`) and "what the
-/// UI asked for" (via `Request`) — everything past this point is either
-/// `obd::` (standard, any-car) or `uds::` (manufacturer-specific) logic.
+#[allow(clippy::too_many_arguments)]
+fn run_auto_discovery(
+    drv: &mut ElmDriver,
+    db: &Db,
+    app: &tauri::AppHandle,
+    status: &Arc<Mutex<ConnStatus>>,
+    cancel_scan: &AtomicBool,
+    vehicle_id: i64,
+    vin: Option<&str>,
+    connection_id: i64,
+    reason: discovery::knowledge::RunReason,
+    knowledge_key: &str,
+) -> discovery::auto::AutoSummary {
+    discovery::auto::notify_unknown_brand(vin, |notice| {
+        log::info!(
+            "discovery profile callback: reason={}, wmi={:?}; policy={}, scan_allowed={}",
+            notice.reason,
+            notice.wmi,
+            notice.fallback_policy,
+            notice.discovery_continues
+        );
+        let _ = app.emit(
+            "unknown-brand",
+            serde_json::json!({
+                "vehicleId": vehicle_id,
+                "classification": notice.classification,
+                "reason": notice.reason,
+                "wmi": notice.wmi,
+                "brandId": notice.brand_id,
+                "fallbackPolicy": notice.fallback_policy,
+                "discoveryContinues": notice.discovery_continues,
+            }),
+        );
+    });
+    cancel_scan.store(false, Ordering::Relaxed);
+    set_scanning(app, status, true);
+    let started_at = discovery::knowledge::now(db);
+    let running = DiscoveryStatus {
+        state: "running".into(),
+        reason: Some(reason.as_str().into()),
+        started_at: Some(started_at.clone()),
+        knowledge_key: knowledge_key.to_string(),
+        ..Default::default()
+    };
+    set_discovery(app, status, running.clone());
+
+    let stage_of = |phase: &str| match phase {
+        "auto-census" => "census",
+        "auto-identity" => "identity",
+        "auto-join" => "join",
+        _ => "coverage",
+    };
+    let stage = std::cell::RefCell::new(String::new());
+    let progress = |phase: &str, current: u32, total: u32, detail: &str| {
+        let _ = app.emit(
+            "discovery-progress",
+            serde_json::json!({
+                "phase": phase, "current": current, "total": total,
+                "detail": detail, "modulesFound": 0, "didsFound": 0,
+            }),
+        );
+        let next = stage_of(phase);
+        if *stage.borrow() != next {
+            *stage.borrow_mut() = next.to_string();
+            set_discovery(
+                app,
+                status,
+                DiscoveryStatus {
+                    stage: Some(next.to_string()),
+                    stage_done: Some(current),
+                    stage_total: Some(total),
+                    ..running.clone()
+                },
+            );
+        }
+    };
+    let summary = discovery::auto::run(
+        drv,
+        db,
+        vehicle_id,
+        vin,
+        connection_id,
+        cancel_scan,
+        &discovery::auto::AutoConfig::default(),
+        &progress,
+    );
+    set_scanning(app, status, false);
+    log::info!(
+        "automatic discovery: {} candidates, {} reached, {} refused, {} silent; {} fingerprinted; coverage {}; {} ms{}",
+        summary.census.candidates,
+        summary.census.reached,
+        summary.census.refused,
+        summary.census.silent,
+        summary.identity.fingerprinted,
+        summary.coverage_status.as_deref().unwrap_or("none"),
+        summary.elapsed_ms,
+        summary.stopped.as_deref().map(|s| format!(" ({s})")).unwrap_or_default()
+    );
+    if let Ok(json) = serde_json::to_string(&summary) {
+        let _ = db.insert_verification_run(vehicle_id, connection_id, "auto-s1-s3", &json);
+    }
+    let last_run_at = if discovery::knowledge::completed(&summary) {
+        Some(discovery::knowledge::record_auto_run(db, vehicle_id, knowledge_key).at)
+    } else {
+        log::info!(
+            "discovery not recorded as done: {}",
+            summary.stopped.as_deref().unwrap_or("cancelled")
+        );
+        discovery::knowledge::last_auto_run(db, vehicle_id).map(|r| r.at)
+    };
+    set_discovery(
+        app,
+        status,
+        DiscoveryStatus {
+            state: "done".into(),
+            stage: None,
+            stage_done: None,
+            stage_total: None,
+            last_run_at,
+            ..running
+        },
+    );
+    summary
+}
+
 fn handle_request(
     req: Request,
     drv: &mut ElmDriver,
@@ -833,26 +826,9 @@ fn handle_request(
 ) {
     match req {
         Request::ScanDtcs(tx) => {
-            let res = obd::scan_dtcs(drv).map(|r| {
-                db.insert_dtc_scan(
-                    Some(ctx.connection_id),
-                    ctx.vehicle_id,
-                    r.mil_on,
-                    &r.stored,
-                    &r.pending,
-                    &r.permanent,
-                    r.voltage,
-                    r.freeze.as_ref(),
-                );
-                r
-            });
-            let _ = tx.send(res);
+            let _ = tx.send(Err("fault-code scans are run by the connection loop".into()));
         }
         Request::ClearDtcs(tx) => {
-            // Write safety rail: read before, clear, read after, and ALWAYS
-            // log the attempt to writes_log once the clear command has been
-            // sent (a failed before-scan aborts without writing, so it is
-            // not logged as a write — nothing touched the car).
             let dtc_json = |r: &obd::DtcResult| {
                 serde_json::json!({
                     "mil_on": r.mil_on,
@@ -864,8 +840,6 @@ fn handle_request(
             let params = serde_json::json!({ "mode": "04" });
             let res = match obd::clear_and_verify(drv) {
                 Ok(outcome) => {
-                    // The post-clear scan lands in history like any other
-                    // scan, same as the UI's old clear-then-rescan flow did.
                     let a = &outcome.after;
                     db.insert_dtc_scan(
                         Some(ctx.connection_id),
@@ -933,12 +907,6 @@ fn handle_request(
         }
         Request::ReadEcuInfo(tx) => {
             let res = obd::read_ecu_info(drv).map(|info| {
-                // protocol/elm_version are real values read straight from
-                // the adapter — they belong to THIS connection now (schema
-                // v2), not to a global cache. The VIN in this response is
-                // display-only: the connect handshake already resolved the
-                // vehicle identity (or honestly didn't), and a manual
-                // "Read from ECU" click must not re-litigate it.
                 db.set_connection_protocol(ctx.connection_id, &info.protocol);
                 info
             });
@@ -948,13 +916,6 @@ fn handle_request(
             let _ = tx.send(obd::readiness(drv));
         }
         Request::AllSensors(tx) => {
-            // Persist the sweep, not just display it: the full-catalog
-            // sweep is exactly the "which sensors does THIS car actually
-            // answer" map, and before this it evaporated with the UI. As
-            // plain readings rows it lands per-vehicle, feeds the reports,
-            // and rides the cloud sync like everything else. The map
-            // itself is then just DISTINCT keys for the vehicle joined
-            // against parser.rs's static FULL_PIDS catalog.
             let res = obd::read_all_sensors(drv).map(|list| {
                 for s in &list {
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &s.key, s.value);
@@ -987,9 +948,6 @@ fn handle_request(
         }
         Request::Discover { full, tx } => {
             cancel_scan.store(false, Ordering::Relaxed);
-            // Findings are per-vehicle, so an unidentified car must name
-            // itself first — otherwise a discovery pass would have nowhere
-            // honest to file what it finds.
             let result = match ctx.vehicle_id {
                 Some(vehicle_id) => {
                     let vin = db.vehicle(vehicle_id).and_then(|v| v.vin);
@@ -1004,6 +962,29 @@ fn handle_request(
             };
             let _ = tx.send(result);
         }
+        Request::RunAutoDiscovery(tx) => match ctx.vehicle_id {
+            None => {
+                let _ = tx.send(Err(
+                    "this connection has no identified vehicle, so findings would have nowhere to live".into(),
+                ));
+            }
+            Some(vehicle_id) => {
+                let vin = status.lock().unwrap().vin.clone();
+                let summary = run_auto_discovery(
+                    drv,
+                    db,
+                    app,
+                    status,
+                    cancel_scan,
+                    vehicle_id,
+                    vin.as_deref(),
+                    ctx.connection_id,
+                    discovery::knowledge::RunReason::Requested,
+                    &discovery::knowledge_key(),
+                );
+                let _ = tx.send(Ok(summary));
+            }
+        },
         Request::ParkedVerification(tx) => {
             let result = match ctx.vehicle_id {
                 None => Err(
@@ -1034,13 +1015,6 @@ fn handle_request(
                             if let Ok(json) = serde_json::to_string(&report) {
                                 let _ = db.update_verification_run_json(run_id, &json);
                             }
-                            // Promote what the car itself answered into the
-                            // module records: a reachable route bumps
-                            // last_seen_at, a decoded identity block fills
-                            // the fingerprint columns (and counts as one
-                            // identity read on this connection), and sweep
-                            // hits become unlabeled discovered DIDs. Silent
-                            // routes write nothing.
                             for target in &report.targets {
                                 let reached = target.observations.iter().any(|item| {
                                     matches!(
@@ -1057,9 +1031,6 @@ fn handle_request(
                                 };
                                 let resp = resp.split(" + ").next().unwrap_or(resp).trim();
                                 let address = format!("{}/{}", req.trim(), resp);
-                                // A sweep shares its route with an identity
-                                // target; its label describes the search, not
-                                // the module, so it must not rename the row.
                                 let label =
                                     target.summary.is_none().then_some(target.label.as_str());
                                 let module_id =
@@ -1160,11 +1131,175 @@ fn handle_request(
             let vin = current_vin(db, ctx);
             let _ = tx.send(uds::module_dtcs(drv, db, vin.as_deref(), &module));
         }
-        // Handled inline in the polling loop (needs the loop's own ctx and
-        // status); reaching here would be a dispatch bug, answer honestly.
         Request::NameVehicle { tx, .. } => {
             let _ = tx.send(Err("naming is handled by the connection loop".into()));
         }
         Request::Stop => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::elm::discovery::state::LEARNING_STATE_SETTING;
+    use std::path::Path;
+
+    fn test_db() -> Db {
+        Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    #[test]
+    fn the_status_carries_the_discovery_block_on_the_wire() {
+        let status = ConnStatus {
+            state: "connected".into(),
+            discovery: Some(DiscoveryStatus {
+                state: "running".into(),
+                reason: Some(discovery::knowledge::RunReason::NeverRun.as_str().into()),
+                stage: Some("census".into()),
+                stage_done: Some(3),
+                stage_total: Some(12),
+                started_at: Some("2026-09-01 10:00:00".into()),
+                last_run_at: None,
+                knowledge_key: discovery::knowledge_key(),
+            }),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json["discovery"]["state"], "running");
+        assert_eq!(json["discovery"]["reason"], "never_run");
+        assert_eq!(json["discovery"]["stage"], "census");
+        assert_eq!(json["discovery"]["stage_total"], 12);
+        assert_eq!(
+            json["discovery"]["knowledge_key"],
+            discovery::knowledge_key()
+        );
+        let empty = serde_json::to_value(ConnStatus {
+            state: "disconnected".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(empty["discovery"].is_null());
+    }
+
+    #[test]
+    fn a_learning_state_speeds_probe_sampling_up_and_off_again() {
+        assert_eq!(probe_interval_ticks(None, false), 120);
+        assert_eq!(probe_interval_ticks(None, true), 8);
+    }
+
+    #[test]
+    fn an_explicit_probe_interval_wins_in_either_state() {
+        assert_eq!(probe_interval_ticks(Some("60"), false), 60);
+        assert_eq!(probe_interval_ticks(Some("60"), true), 60);
+        assert_eq!(probe_interval_ticks(Some(" 60 "), true), 60);
+        assert_eq!(probe_interval_ticks(Some("1"), false), 4);
+        assert_eq!(probe_interval_ticks(Some("99999"), false), 2400);
+        assert_eq!(probe_interval_ticks(Some("fast"), true), 8);
+    }
+
+    #[test]
+    fn the_fault_code_scan_interval_defaults_to_five_minutes_and_clamps() {
+        assert_eq!(dtc_scan_interval_ticks(None), 1200);
+        assert_eq!(dtc_scan_interval_ticks(Some("600")), 600);
+        assert_eq!(dtc_scan_interval_ticks(Some("10")), 240);
+        assert_eq!(dtc_scan_interval_ticks(Some("999999")), 14400);
+    }
+
+    #[test]
+    fn the_settings_row_reaches_the_resolver_from_the_database() {
+        let db = test_db();
+        assert_eq!(
+            probe_interval_ticks(db.setting_get(PROBE_INTERVAL_SETTING).as_deref(), false),
+            120
+        );
+        db.setting_set(LEARNING_STATE_SETTING, "on");
+        let learning_on = db
+            .setting_get(LEARNING_STATE_SETTING)
+            .map(|v| v == "on")
+            .unwrap_or(false);
+        assert!(learning_on);
+        assert_eq!(
+            probe_interval_ticks(
+                db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
+                learning_on
+            ),
+            8
+        );
+        db.setting_set(PROBE_INTERVAL_SETTING, "40");
+        assert_eq!(
+            probe_interval_ticks(
+                db.setting_get(PROBE_INTERVAL_SETTING).as_deref(),
+                learning_on
+            ),
+            40
+        );
+    }
+
+    #[test]
+    fn no_fault_code_scan_runs_inside_the_first_interval() {
+        let schedule = DtcScanSchedule::new(1200);
+        for tick in [0u64, 1, 120, 1199] {
+            assert!(!schedule.due(tick), "a scan fired at tick {tick}");
+        }
+        assert!(schedule.due(1200));
+    }
+
+    #[test]
+    fn the_poller_scans_once_per_interval() {
+        let mut schedule = DtcScanSchedule::new(1200);
+        assert!(schedule.due(1200));
+        schedule.record(1200);
+        assert!(!schedule.due(1201));
+        assert!(!schedule.due(2399));
+        assert!(schedule.due(2400));
+    }
+
+    #[test]
+    fn a_manual_scan_resets_the_pollers_own_clock() {
+        let mut schedule = DtcScanSchedule::new(1200);
+        schedule.record(1000);
+        assert!(!schedule.due(1200));
+        assert!(schedule.due(2200));
+    }
+
+    #[test]
+    fn a_session_that_ends_gets_one_closing_scan_and_never_two() {
+        let mut schedule = DtcScanSchedule::new(1200);
+        assert!(schedule.due_at_session_end(300));
+        schedule.record(300);
+        assert!(!schedule.due_at_session_end(300));
+        assert!(schedule.due_at_session_end(301));
+    }
+
+    #[test]
+    fn a_recorded_scan_lands_in_history_the_way_a_manual_one_does() {
+        let raw = r#"{
+            "schema_version": 1,
+            "name": "standard-dtc-scan",
+            "contains_vehicle_identifiers": false,
+            "steps": [
+                {"command": "0101", "response": "41 01 00 00 00 00\r>"},
+                {"command": "03", "response": "43 00\r>"},
+                {"command": "07", "response": "47 00\r>"},
+                {"command": "0A", "response": "4A 00\r>"},
+                {"command": "ATRV", "response": "12.4V\r>"}
+            ]
+        }"#;
+        let mut drv = ElmDriver::from_replay_json(raw).expect("fixture");
+        let db = test_db();
+        let connection_id = db.start_connection("ELM327 v1.5", "test");
+        let ctx = ConnCtx {
+            connection_id,
+            vehicle_id: None,
+        };
+
+        let result = record_dtc_scan(&mut drv, &db, ctx).expect("the scan completes");
+        drv.assert_replay_complete();
+
+        assert!(!result.mil_on);
+        assert!(result.stored.is_empty());
+        let history = db.dtc_history(None, 10);
+        assert_eq!(history.len(), 1, "the scan was recorded, not just returned");
+        assert_eq!(history[0].voltage, Some(12.4));
     }
 }

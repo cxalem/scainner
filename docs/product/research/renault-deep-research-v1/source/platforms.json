@@ -52,7 +52,7 @@
         "CanZE dedicated ZOE asset set"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S01",
         "S02"
@@ -88,7 +88,7 @@
         "CanZE dedicated ZOE_Ph2 asset set"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S03",
         "S04"
@@ -125,7 +125,7 @@
         "CanZE dedicated Twingo_3_Ph2 asset set"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S05"
       ],
@@ -157,7 +157,7 @@
         "CanZE dedicated Twizy asset set"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S06"
       ],

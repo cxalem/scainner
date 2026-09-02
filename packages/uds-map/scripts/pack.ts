@@ -1,7 +1,3 @@
-// Shared, dependency-free helpers for the pack scripts (coverage.ts,
-// lint.ts). Runs under `node --experimental-strip-types`, so this file uses
-// only erasable TypeScript syntax and imports the data directly rather
-// than going through src/index.ts (whose `.js` specifiers need a build).
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,8 +35,6 @@ export function sourceOk(s: Source | undefined): boolean {
   return !!s && typeof s.url === "string" && s.url.trim().length > 0 && typeof s.date === "string" && s.date.trim().length > 0 && !!s.type && typeof s.licence === "string" && s.licence.trim().length > 0;
 }
 
-/** Brand tokens that must not appear in code: every brand id, every word
- * of every brand name (longer than three characters), and every WMI. */
 export function brandTokens(map: UdsMap): string[] {
   const tokens = new Set<string>();
   for (const b of map.brands) {
@@ -48,7 +42,6 @@ export function brandTokens(map: UdsMap): string[] {
     for (const part of b.id.split("_")) if (part.length > 2) tokens.add(part.toLowerCase());
     for (const word of b.name.split(/[^A-Za-zÀ-ž]+/)) if (word.length > 3) tokens.add(word.toLowerCase());
   }
-  // Generic words that happen to be in brand names are not brand tokens.
   for (const generic of ["group", "platform", "shared", "diagnostic", "stack", "before", "onward", "from", "incl", "and", "europe", "north", "america"]) {
     tokens.delete(generic);
   }
@@ -117,4 +110,61 @@ export function brandStats(map: UdsMap, b: Brand): BrandStats {
 
 export function decodeShape(d: Decode): string {
   return `${d.encoding}${d.signed ? "/signed" : ""}${d.encoding === "bitfield" ? `[${d.bit_offset}+${d.bit_len}]` : ""}`;
+}
+
+
+export type ResearchPack = {
+  pack_id: string;
+  version: number;
+  research_date: string;
+  profiles: Array<{
+    brand_id: string;
+    platforms?: Array<{ platform_id: string }>;
+    routes: Array<{
+      platform: string;
+      exploration_only?: boolean;
+      candidate_dids?: Array<string | { support_status?: string; automatic_execution_authorized?: boolean }>;
+    }>;
+  }>;
+};
+
+export type ResearchBrandStats = {
+  id: string;
+  packs: string[];
+  routes: number;
+  explorationRoutes: number;
+  platformScopedRoutes: number;
+  candidateDids: number;
+  negativeEvidence: number;
+};
+
+export function loadResearchPacks(): ResearchPack[] {
+  const index = JSON.parse(readFileSync(join(PKG_DIR, "data", "research-packs.json"), "utf-8")) as { packs: string[] };
+  return index.packs.map((name) => JSON.parse(readFileSync(join(PKG_DIR, "data", name), "utf-8")) as ResearchPack);
+}
+
+function isNegativeEvidence(did: string | { support_status?: string; automatic_execution_authorized?: boolean }): boolean {
+  if (typeof did === "string") return false;
+  return did.automatic_execution_authorized === false || did.support_status === "unsupported" || did.support_status === "explicitly_unsupported_on_test_vehicle";
+}
+
+export function researchStats(packs: ResearchPack[] = loadResearchPacks()): Map<string, ResearchBrandStats> {
+  const stats = new Map<string, ResearchBrandStats>();
+  for (const pack of packs) {
+    for (const profile of pack.profiles ?? []) {
+      const entry = stats.get(profile.brand_id) ?? { id: profile.brand_id, packs: [], routes: 0, explorationRoutes: 0, platformScopedRoutes: 0, candidateDids: 0, negativeEvidence: 0 };
+      if (!entry.packs.includes(pack.pack_id)) entry.packs.push(pack.pack_id);
+      for (const route of profile.routes ?? []) {
+        entry.routes += 1;
+        if (route.exploration_only) entry.explorationRoutes += 1;
+        if (route.platform !== "unknown") entry.platformScopedRoutes += 1;
+        for (const did of route.candidate_dids ?? []) {
+          entry.candidateDids += 1;
+          if (isNegativeEvidence(did)) entry.negativeEvidence += 1;
+        }
+      }
+      stats.set(profile.brand_id, entry);
+    }
+  }
+  return stats;
 }

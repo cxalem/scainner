@@ -1,38 +1,17 @@
-//! ECU-family compatibility matching (protocol §2, L3; plan A2).
-//!
-//! A module is *found* by brand and address but *known* by its part
-//! reference. The key built here deliberately carries no VIN, serial or
-//! address, so the same Continental MK100 matches on a Peugeot, an Opel or a
-//! Citroën — and so nothing in the key can identify an individual car.
-
 use crate::elm::uds_map::{families_for_hardware_ref, family_by_id, EcuFamily, UdsMap};
 use serde::{Deserialize, Serialize};
 
-/// The comparison material of one module, built from its fingerprint.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibilityKey {
-    /// Supplier name or code, when the identity payload names one.
     pub supplier: Option<String>,
-    /// Family / system name (ISO `F197`, PSA `F08F`, …), when answered.
     pub family: Option<String>,
-    /// Part reference: PSA `F080` reference 1 / ISO `F187`.
     pub hardware_ref: Option<String>,
-    /// Software / calibration reference: PSA `F0FE` / ISO `F189`, `F195`.
     pub software_ref: Option<String>,
-    /// Reserved for brands whose same part answers with a different payload
-    /// layout (not populated by any parser yet).
     pub payload_variant: Option<String>,
-    /// Read service the module answered with ("22", "21", "1A").
     pub service: Option<String>,
 }
 
 impl CompatibilityKey {
-    /// From the fingerprint columns on `discovered_modules`: the spare part
-    /// number is the hardware reference and the software version the
-    /// software reference. `supplier` is whatever the identity block's
-    /// `supplier` field decoded to (an opaque code or a name — no table is
-    /// applied to it); `service` the read service the module answers per
-    /// the pack (`read_service_for_module`).
     pub fn from_fingerprint(
         spare_part_number: Option<&str>,
         software_version: Option<&str>,
@@ -56,25 +35,12 @@ impl CompatibilityKey {
     }
 }
 
-/// How well a module's key matches a family (protocol §2 rules).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "match", rename_all = "snake_case")]
 pub enum FamilyMatch {
-    /// Same part reference *and* same software reference: decodes apply at
-    /// their existing state, flagged inherited until this car confirms them.
-    Strong {
-        family_id: String,
-    },
-    /// Same part reference, software unknown or different: same decodes,
-    /// flagged weak — a calibration change can move a DID.
-    Weak {
-        family_id: String,
-    },
-    /// Only the family or supplier name matches: decodes become
-    /// `research_candidate` hypotheses here.
-    NameOnly {
-        family_id: String,
-    },
+    Strong { family_id: String },
+    Weak { family_id: String },
+    NameOnly { family_id: String },
     None,
 }
 
@@ -98,8 +64,6 @@ impl FamilyMatch {
     }
 }
 
-/// Exact, case-insensitive, whitespace-trimmed equality. No substring
-/// matching: "MK100" must not claim every family whose name mentions it.
 fn name_matches(key: Option<&str>, candidate: Option<&str>) -> bool {
     match (key, candidate) {
         (Some(k), Some(c)) => {
@@ -110,10 +74,6 @@ fn name_matches(key: Option<&str>, candidate: Option<&str>) -> bool {
     }
 }
 
-/// Match a key against every family in the map. Byte-level matches win
-/// over name matches. When several families share the hardware reference,
-/// the one that also lists the software reference wins (Strong); otherwise
-/// the first of them in map order is a Weak match.
 pub fn match_family(key: &CompatibilityKey, map: &UdsMap) -> FamilyMatch {
     if let Some(hw) = key.hardware_ref.as_deref() {
         let sharing = families_for_hardware_ref(map, hw);
@@ -133,8 +93,6 @@ pub fn match_family(key: &CompatibilityKey, map: &UdsMap) -> FamilyMatch {
             };
         }
     }
-    // Name-only: the family name must match exactly; a supplier on its own
-    // (Bosch makes many ESP generations) never identifies a family.
     if let Some(family) = map
         .ecu_families
         .iter()
@@ -147,7 +105,6 @@ pub fn match_family(key: &CompatibilityKey, map: &UdsMap) -> FamilyMatch {
     FamilyMatch::None
 }
 
-/// The family behind a match, for callers that need its decodes.
 pub fn matched_family<'a>(map: &'a UdsMap, m: &FamilyMatch) -> Option<&'a EcuFamily> {
     m.family_id().and_then(|id| family_by_id(map, id))
 }
@@ -195,7 +152,6 @@ mod tests {
                 family_id: "cont_esp_mk100_psa".into()
             }
         );
-        // Exact equality only: a substring or a supplier alone is nothing.
         let k = CompatibilityKey::from_fingerprint(None, None, Some("MK100"), None, "22");
         assert_eq!(match_family(&k, uds_map::map()), FamilyMatch::None);
         let k = CompatibilityKey {

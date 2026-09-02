@@ -35,7 +35,7 @@
         "psa.e208.battery.d815"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "vehicle_fit": "untested",
       "identity_fit": "provisional",
       "activation": "disabled",
@@ -77,7 +77,7 @@
       "identity_reference_examples": [],
       "proposed_candidate_ids": [],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "vehicle_fit": "untested",
       "identity_fit": "provisional",
       "activation": "disabled",

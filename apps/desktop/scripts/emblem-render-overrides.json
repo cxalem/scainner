@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Per-emblem escape hatches for scripts/render-emblems.mjs. Key = GLB basename",
+    "(the same key the app uses for the badge). Every field is optional; anything",
+    "absent falls back to the script's defaults.",
+    "",
+    "  rotateDeg        [x, y, z] degrees applied to the model before framing.",
+    "                   For a badge exported face-down, [180, 0, 0] turns the",
+    "                   readable face toward the lens. Not detectable from",
+    "                   geometry, hence an override.",
+    "  yawDeg           horizontal swing off dead-on   (default 6)",
+    "  elevDeg          camera height above centre     (default 10)",
+    "  margin           fraction of the half-frame the badge fills (default 0.88)",
+    "  keepText         true to skip wordmark stripping for this badge",
+    "  bandMaxYFrac     bottom band height as a fraction of model height (0.35)",
+    "  bandMinWidthFrac band must span this fraction of model width to count (0.5)",
+    "  bandMinCount     minimum meshes in the band before it reads as text (3)"
+  ],
+
+  "_entries": "none — the six face-down badges were fixed in the GLB itself (see scripts/rotate-emblem-glb.mjs), not framed around here."
+}

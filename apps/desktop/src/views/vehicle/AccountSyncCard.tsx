@@ -1,6 +1,3 @@
-// Account + cloud sync. Sign-in itself lives on the Login gate now; this
-// card shows who is signed in and the sync state, and still offers the
-// one-time-code form for someone who continued without an account.
 import { useSyncExternalStore } from "react";
 import { CloudUpload } from "lucide-react";
 import { Button, Card, CardHead, Dot, Field, Input, Note } from "@/components/ui";

@@ -1,20 +1,9 @@
-//! Knowledge overlay packs enumerated from data (multi-brand plan P2.5).
-//!
-//! `packages/uds-map/data/packs.json` lists every overlay under
-//! `data/packs/`; this module embeds exactly those files and a test fails
-//! when the two lists drift. `include_str!` needs literal paths, so the
-//! embedded list is written out here — the index stays the source of truth
-//! and the mirror is checked, never trusted. Folding this into
-//! `uds_map.rs` (whose single-overlay functions keep working unchanged) is
-//! the Phase 1 follow-up recorded in the PR.
-
 use crate::elm::uds_map::{can_address, hex16, Brand, KnownDid};
 use serde::Deserialize;
 use std::sync::OnceLock;
 
 const INDEX_RAW: &str = include_str!("../../../../../../packages/uds-map/data/packs.json");
 
-/// (file name as listed in the index, embedded contents).
 const EMBEDDED: &[(&str, &str)] = &[(
     "obdb-citroen.json",
     include_str!("../../../../../../packages/uds-map/data/packs/obdb-citroen.json"),
@@ -39,7 +28,6 @@ fn index() -> &'static PackIndex {
     INDEX.get_or_init(|| serde_json::from_str(INDEX_RAW).expect("data/packs.json is malformed"))
 }
 
-/// Every overlay pack the index lists, in index order.
 pub fn overlays() -> &'static [OverlayPack] {
     static PACKS: OnceLock<Vec<OverlayPack>> = OnceLock::new();
     PACKS.get_or_init(|| {
@@ -68,7 +56,6 @@ pub fn overlays() -> &'static [OverlayPack] {
     })
 }
 
-/// Overlay brand entries whose WMI list contains this VIN's prefix.
 pub fn overlay_brands_for_vin(vin: Option<&str>) -> Vec<&'static Brand> {
     let Some(wmi) = vin.filter(|v| v.len() >= 3).map(|v| v[..3].to_uppercase()) else {
         return Vec::new();
@@ -80,9 +67,6 @@ pub fn overlay_brands_for_vin(vin: Option<&str>) -> Vec<&'static Brand> {
         .collect()
 }
 
-/// Module address pairs for a VIN: the main map's (which already include
-/// the first overlay through the frozen contract) followed by every other
-/// overlay's, deduplicated.
 pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>)> {
     let mut out = crate::elm::uds_map::known_modules_for_vin(vin);
     for brand in overlay_brands_for_vin(vin) {
@@ -99,7 +83,6 @@ pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>
     out
 }
 
-/// A module-bound known DID from any overlay (after the main map missed).
 pub fn overlay_known_did(
     vin: Option<&str>,
     req: u32,

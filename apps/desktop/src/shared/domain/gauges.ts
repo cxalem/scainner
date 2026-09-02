@@ -1,13 +1,3 @@
-// Sensor/gauge metadata used across multiple views (Diagnose's freeze
-// frame, History's stat table and range picker, Live's gauge grid) — none
-// of it is a Tauri response type, so it has no Schema.Class and no single
-// owning feature (research.md section 3).
-//
-// i18n: GAUGES/MONITOR_LABELS below stay English — they're the stable
-// default and the shape most existing call sites destructure `.label`
-// from directly. `gaugeLabel`/`monitorLabel` are the locale-aware lookups
-// (same pattern as lib/dtc.ts's localizedSystem/etc): consult these at
-// display time instead of reading `.label`/`MONITOR_LABELS[key]` directly.
 import { GAUGE_LABELS_ES, MONITOR_LABELS_ES } from "./gauges.es";
 import type { Locale } from "@/i18n";
 
@@ -54,8 +44,6 @@ export function monitorLabel(key: string, locale: Locale): string {
   return MONITOR_LABELS[key] ?? key;
 }
 
-// Locale-aware version of STAT_LABELS (used by History's stat table) —
-// "Refrigerante (°C)" instead of "Coolant (°C)".
 export function statLabel(key: string, locale: Locale): string {
   const gauge = GAUGES.find((g) => g.key === key);
   if (!gauge) return key === "voltage" ? (locale === "es" ? "Batería (V)" : "Battery (V)") : key;
@@ -70,8 +58,3 @@ export const RANGES = [
 ];
 
 export const hex4 = (n: number) => n.toString(16).toUpperCase().padStart(4, "0");
-
-// The "Interrogating ECU…" / "Sweeping sensor PIDs…" cycling phrases for a
-// full sensor sweep (no backend progress event exists for it) now live in
-// the i18n dictionary (t.live.allSensors.readingPhrases) — they're UI
-// chrome, not car-domain reference data, so they moved out of this file.

@@ -1,10 +1,3 @@
-// Mirrors the Rust test suite in apps/desktop/src-tauri/src/elm/uds_map.rs
-// — same behavior must hold in both implementations, since they read the
-// same data file and must never silently drift apart.
-//
-// Tests are the one place brand ids may appear in this package's source:
-// they pin the shape of specific pack entries, and the pack lint skips
-// *.test.ts for that reason.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -46,9 +39,8 @@ import {
 } from "./index.js";
 import type { Decode, KnownDid } from "./types.js";
 
-const CITROEN_VIN = "VR7EXAMPLE0000001"; // a synthetic example VIN (PSA WMI prefix)
+const CITROEN_VIN = "VR7EXAMPLE0000001";
 
-/** A synthetic VIN for a brand id: its first WMI plus filler. */
 function vinFor(brandId: string, vds = "EXAMPLE"): string {
   const brand = getMap().brands.find((b) => b.id === brandId);
   if (!brand) throw new Error(`no brand ${brandId}`);
@@ -135,8 +127,6 @@ describe("brandForVin / bandsForVin", () => {
   });
 
   it("sweeps confirmed bands before low-confidence ones", () => {
-    // A widely-cited PSA band (D0xx) returned zero hits on the real car;
-    // it must not consume a scan before the productive D4xx does.
     const bands = bandsForVin(CITROEN_VIN);
     const d4 = bands.findIndex(([f]) => f === 0xd400);
     const d0 = bands.findIndex(([f]) => f === 0xd000);
@@ -197,8 +187,6 @@ describe("addressesToProbe / responseAddr", () => {
     const volvo = addressesToProbe("YV1EXAMPLE0000000");
     expect(volvo.length).toBeGreaterThan(0);
     expect(volvo.every((candidate) => candidate.req > 0x7ff)).toBe(true);
-    // The target-byte policy is conventional-only until Phase 2 implements
-    // target iteration; it must not silently enable 29-bit enumeration.
     const targetByte = getMap().brands.find((b) => b.scan_policy === "conventional_11bit_and_target_byte_11bit");
     expect(targetByte).toBeDefined();
     const probes = addressesToProbe(vinFor(targetByte!.id));
@@ -219,9 +207,6 @@ describe("extendedModulesForVin", () => {
 
 describe("knownDid / decodeKnownDid", () => {
   it("finds the verified battery-voltage DID on the engine module", () => {
-    // Corrected during research: D422 is battery VOLTAGE, not state of
-    // charge — proven by this project's own live correlation against PID
-    // 0142. See RESEARCH.md.
     const k = knownDid(CITROEN_VIN, 0xd422, { req: 0x6a8, resp: 0x688 });
     expect(k).toBeDefined();
     expect(k!.label.toLowerCase()).toContain("battery");
@@ -252,8 +237,6 @@ describe("knownDid / decodeKnownDid", () => {
     const k = knownDid(CITROEN_VIN, 0x013c, { req: 0x18dac7f1, resp: 0x18daf1c7 });
     expect(k?.unit).toBe("bar");
     expect(decodeKnownDid(k!, [0x08, 0xca, 0x1e])).toBeCloseTo(2.25, 3);
-    // The tyre temperature previously omitted from the overlay is the
-    // second decode of the same payload (raw - 50 C).
     const decodes = decodesForDid(CITROEN_VIN, 0x18dac7f1, 0x18daf1c7, 0x013c);
     expect(decodes).toHaveLength(2);
     expect(decodeValue(decodes[1], [0x08, 0xca, 0x1e])).toBe(-20);
@@ -347,7 +330,6 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     expect(r2.protocol).toBe("can29_normal_fixed");
     expect(r2.target_byte).toBe(nfModule.req.slice(4, 6).toUpperCase());
 
-    // Undocumented pairs derive: conventional 11-bit or custom 29-bit.
     expect(routeForModule(undefined, 0x7e0, 0x7e8)).toEqual({ protocol: "can11_500", req: "7E0", resp: "7E8" });
     expect(deriveRoute(0x14dacbf1, 0x142af1cb).protocol).toBe("can29_custom");
     expect(deriveRoute(0x18da10f1, 0x18daf110)).toEqual({ protocol: "can29_normal_fixed", req: "18DA10F1", resp: "18DAF110", target_byte: "10" });
@@ -380,7 +362,6 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     expect(readServiceForModule(vin, hexAny(m21.req)!, hexAny(m21.resp)!)).toBe("21");
     expect(readServiceForModule(vin, hexAny(m22.req)!, hexAny(m22.resp)!)).toBe("22");
     expect(readServiceForModule("ZZZ00000000000000", 0x7e0, 0x7e8)).toBe("22");
-    // No module carries a 1A override: 1A is a per-record service (review fix 3).
     for (const b of getMap().brands) for (const m of b.modules ?? []) expect(m.read_service, `${b.id} ${m.req}`).not.toBe("1A");
   });
 
@@ -391,23 +372,19 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     expect(resolveReadService({ brand: "21", standard: "22" })).toBe("21");
     expect(resolveReadService({ standard: "21" })).toBe("21");
     expect(resolveReadService({})).toBe("22");
-    // A DID-level override exists in data (a KWP identification record).
     const withDid = getMap().brands.find((b) => (b.known_dids ?? []).some((k) => k.read_service))!;
     const k = withDid.known_dids!.find((k) => k.read_service)!;
     expect(k.read_service).toBe("1A");
     if (k.modules?.length) {
       expect(readServiceForDid(vinFor(withDid.id), hexAny(k.modules[0].req)!, hexAny(k.modules[0].resp)!, hex16(k.did)!)).toBe("1A");
     }
-    // Unbound entries never influence a module's service.
     for (const m of withDid.modules ?? []) {
       const svc = readServiceForDid(vinFor(withDid.id), hexAny(m.req)!, hexAny(m.resp)!, hex16(k.did)!);
       expect(svc).toBe(readServiceForModule(vinFor(withDid.id), hexAny(m.req)!, hexAny(m.resp)!));
     }
-    // A module-level override flows through the DID accessor.
     const with21 = getMap().brands.find((b) => (b.modules ?? []).some((m) => m.read_service === "21"))!;
     const m21 = with21.modules!.find((m) => m.read_service === "21")!;
     expect(readServiceForDid(vinFor(with21.id), hexAny(m21.req)!, hexAny(m21.resp)!, 0x0001)).toBe("21");
-    // Platform read services are consulted only through a VIN-selectable platform.
     const patterned = getMap().brands.find((b) => (b.platforms ?? []).some((p) => p.vds_pattern && p.read_service))!;
     const p = patterned.platforms!.find((p) => p.vds_pattern && p.read_service)!;
     const literal = p.vds_pattern!.replace(/^\^/, "").replace(/\[([^\]])[^\]]*\]/g, "$1");
@@ -439,15 +416,22 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     expect(patterned.length).toBeGreaterThanOrEqual(2);
     for (const b of patterned.slice(0, 3)) {
       const p = b.platforms!.find((p) => p.vds_pattern)!;
-      // Build a VDS that matches: take the literal characters of a "^ABC" pattern
-      // or the first alternative of a "^[XY]" class.
-      const literal = p.vds_pattern!.replace(/^\^/, "").replace(/\[([^\]])[^\]]*\]/g, "$1");
+      const literal = p
+        .vds_pattern!.replace(/^\^/, "")
+        .replace(/\(([^)|]*)[^)]*\)/g, "$1")
+        .replace(/\[([^\]])[^\]]*\]/g, "$1");
       const vin = vinFor(b.id, literal);
       expect(platformForVin(vin)?.key, `${b.id} ${p.vds_pattern}`).toBe(p.key);
       expect(platformForVin(vinFor(b.id, "ZZZZZZZ"))?.key).not.toBe(p.key);
     }
     expect(platformForVin("ZZZ00000000000000")).toBeUndefined();
     expect(platformForVin("VR7")).toBeUndefined();
+  });
+
+  it("selects the reviewed European Kona OS descriptor without selecting Kona EV", () => {
+    expect(platformForVin(vinFor("hyundai_kia", "K2811ZZ"))?.key).toBe("hyundai_kona_os");
+    expect(platformForVin(vinFor("hyundai_kia", "K281GZZ"))?.key).not.toBe("hyundai_kona_os");
+    expect(platformForVin(vinFor("hyundai_kia", "K281HZZ"))?.key).not.toBe("hyundai_kona_os");
   });
 
   it("every brand declares read services, identity, platforms[] and sources[] (shape)", () => {

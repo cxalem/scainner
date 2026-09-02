@@ -64,8 +64,6 @@ def sanitize_text(text: str, dids: set[str]) -> str:
     value_keys = "hex|ascii|payload_hex|printable|raw_response|payload|value"
     for did in sorted(dids):
         for form in _did_forms(did):
-            # {"did": 61840, "hex": "...", "ascii": "..."} — every value key that
-            # follows the did inside the same object.
             pattern = re.compile(
                 r'("did"\s*:\s*' + re.escape(form) + r')((?:\s*,\s*"(?:' + value_keys + r')"\s*:\s*"[^"]*")+)',
                 re.DOTALL,
@@ -77,7 +75,6 @@ def sanitize_text(text: str, dids: set[str]) -> str:
             while prev != out:
                 prev = out
                 out = pattern.sub(_sub, out)
-        # {"F190": "..."} sample maps and {"did": "F190", "payloads": [...]}.
         out = re.sub(r'("' + did + r'"\s*:\s*)"[^"]*"', r'\1"' + REDACTED + '"', out, flags=re.IGNORECASE)
         out = re.sub(r'("did"\s*:\s*"' + did + r'"\s*,\s*"payloads"\s*:\s*)\[[^\]]*\]',
                      r'\1["' + REDACTED + '"]', out, flags=re.IGNORECASE)

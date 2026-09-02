@@ -1,43 +1,9 @@
-// Segmentation repair for the Citroën C4 GLB (public/models/citroen-c4.glb).
-//
-// Source model: ~/Downloads/Citroen_C4_2022_interior_doors_windows_v4_1.glb —
-// an AI-generated 6-way part split (paint/glass/plastic/tires/alloy/lamps)
-// of the original 6,112-triangle C4 mesh, chosen over its sibling variants
-// by a per-primitive data audit (v5 files contain material-less meshes that
-// render default-white; v4_1 is the newest fully-materialed one with an
-// interior).
-//
-// Why repair: the AI segmentation assigned hundreds of triangles to the
-// wrong part — most dramatically, 279 of the 480 "Lamp Lenses" triangles
-// are actually body panels scattered across the car. Under the original
-// baked photo texture this was invisible (every triangle sampled
-// plausible pixels); under the app's clean flat PBR materials every
-// misassigned triangle renders as a dark shard on silver paint (or a
-// light shard on dark trim) — the "triangle cuts" bug.
-//
-// Ground truth: the ORIGINAL orange photo atlas from the source asset
-// (public/models/citroen-c4-diffuse.jpg, same UV layout — verified: 92% of
-// paint triangles sample orange pixels, plastic/glass/tires sample dark).
-// A triangle whose UV centroid samples saturated orange IS body paint,
-// regardless of which part the segmentation put it in. Conservative rules
-// only:
-//   - non-paint, non-glass triangle sampling ORANGE -> move to paint
-//   - paint triangle sampling DARK (<70/255)        -> move to plastic
-// Everything ambiguous (midgray, bright chrome, red taillight) stays put.
-//
-// Run:
-//   python3 -c "from PIL import Image; open('/tmp/atlas_rgb.bin','wb').write(Image.open('public/models/citroen-c4-diffuse.jpg').convert('RGB').tobytes())"
-//   node scripts/repair-c4-glb.mjs
-//
-// Output: public/models/citroen-c4.glb (moved triangles appended as new
-// accessors; the superseded accessor data stays orphaned in the buffer —
-// ~0.7MB of waste, accepted for simplicity).
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 const SRC = path.join(os.homedir(), "Downloads/Citroen_C4_2022_interior_doors_windows_v4_1.glb");
-const ATLAS_RGB = "/tmp/atlas_rgb.bin"; // 2048x2048 raw RGB dump of citroen-c4-diffuse.jpg
+const ATLAS_RGB = "/tmp/atlas_rgb.bin";
 const OUT = "public/models/citroen-c4.glb";
 
 const buf = fs.readFileSync(SRC);
@@ -148,31 +114,18 @@ moveWhere("alloy", (t) => t.cls === "ORANGE", "paint");
 moveWhere("plastic", (t) => t.cls === "ORANGE", "paint");
 moveWhere("paint", (t) => t.cls === "DARK", "plastic");
 
-// --- Pass 2: lamp position gate. Real lamps only exist at the car's nose
-// and tail; source-model coords run z ≈ ±93, and the verified lamp zones
-// (from the OBJ pipeline's position guards, scaled) are |z| > 55. Lamp
-// triangles outside those zones are misassignments the color test couldn't
-// catch (they sample midgray/bright pixels): dark ones go to plastic,
-// everything else to paint.
 {
   const centroidZ = (t) => (t.pos[2] + t.pos[5] + t.pos[8]) / 3;
   moveWhere("lamp", (t) => Math.abs(centroidZ(t)) < 55 && t.cls === "DARK", "plastic");
   moveWhere("lamp", (t) => Math.abs(centroidZ(t)) < 55, "paint");
 }
 
-// --- Pass 3: island absorption. A triangle NONE of whose edge-neighbors
-// belong to its own part, with >=2 neighbors in one other part, is an
-// isolated shard — absorb it into that neighbor part. Only paint/plastic
-// may grow (never wheels/lamps/glass), and glass is never touched. A few
-// iterations erode 1-2-triangle tendrils without moving the boundary of
-// any legitimate region (legit border triangles always keep a same-part
-// neighbor).
 const SOURCES = ["paint", "plastic", "lamp", "alloy", "tire"];
 const TARGETS = new Set(["paint", "plastic"]);
 for (let iter = 0; iter < 3; iter++) {
   const vq = (x, y, z) => `${Math.round(x * 2000)},${Math.round(y * 2000)},${Math.round(z * 2000)}`;
   const edgeKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
-  const edgeMap = new Map(); // edge -> [{part, ti}]
+  const edgeMap = new Map();
   for (const part of Object.keys(triLists)) {
     triLists[part].forEach((t, ti) => {
       const vs = [vq(t.pos[0], t.pos[1], t.pos[2]), vq(t.pos[3], t.pos[4], t.pos[5]), vq(t.pos[6], t.pos[7], t.pos[8])];
@@ -183,7 +136,7 @@ for (let iter = 0; iter < 3; iter++) {
       }
     });
   }
-  const pending = []; // {from, ti, to}
+  const pending = [];
   for (const part of SOURCES) {
     triLists[part].forEach((t, ti) => {
       const vs = [vq(t.pos[0], t.pos[1], t.pos[2]), vq(t.pos[3], t.pos[4], t.pos[5]), vq(t.pos[6], t.pos[7], t.pos[8])];
@@ -195,14 +148,13 @@ for (let iter = 0; iter < 3; iter++) {
         }
       }
       if (neighborParts.length === 0) return;
-      if (neighborParts.includes(part)) return; // has a same-part neighbor: not an island
+      if (neighborParts.includes(part)) return;
       const counts = {};
       for (const np of neighborParts) counts[np] = (counts[np] || 0) + 1;
       const [best, bestN] = Object.entries(counts).sort((x, y) => y[1] - x[1])[0];
       if (bestN >= 2 && TARGETS.has(best)) pending.push({ from: part, ti, to: best });
     });
   }
-  // apply (descending index so removals don't shift)
   pending.sort((a, b) => b.ti - a.ti);
   let n = 0;
   for (const m of pending) {

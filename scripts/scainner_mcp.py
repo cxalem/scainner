@@ -1,7 +1,3 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["mcp>=1.2,<2"]
-# ///
 """Scainner MCP server: the agent API as tools.
 
 Run with `uv run scripts/scainner_mcp.py` (stdio transport). The desktop
@@ -57,7 +53,6 @@ def guarded(fn):
     return wrapper
 
 
-# ---- connection ----
 @mcp.tool()
 @guarded
 def status() -> dict:
@@ -87,7 +82,6 @@ def name_vehicle(name: str) -> dict:
     return api().name_vehicle(name)
 
 
-# ---- standard OBD ----
 @mcp.tool()
 @guarded
 def live() -> dict:
@@ -135,7 +129,6 @@ def sensors() -> list | dict:
     return api().sensors()
 
 
-# ---- UDS ----
 @mcp.tool()
 @guarded
 def uds_modules() -> list | dict:
@@ -192,7 +185,6 @@ def uds_clear(module: str, confirmed: bool = False) -> dict:
     return api().uds_clear(module, confirmed=confirmed)
 
 
-# ---- evidence protocol ----
 @mcp.tool()
 @guarded
 def parked_verification() -> dict:
@@ -220,7 +212,6 @@ def verification_run(run_id: int) -> dict:
     return api().verification_run(run_id)
 
 
-# ---- knowledge ----
 @mcp.tool()
 @guarded
 def vehicles() -> list | dict:
@@ -244,6 +235,17 @@ def module_dids(module_id: int) -> list | dict:
 @guarded
 def evidence_map(vehicle_id: int) -> dict:
     return api().evidence_map(vehicle_id)
+
+
+@mcp.tool()
+@guarded
+def research_request(vehicle_id: int) -> dict:
+    """De-identified "what the car said" for the next deep-research prompt: WMI
+    (never the VIN), platform and knowledge keys, module fingerprints (never a
+    serial), route outcomes with NRC and attempt counts, unlabeled DIDs with
+    byte length and shape class, identity conflicts, open-hypothesis counts and
+    generated questions. Local, no car traffic."""
+    return api().research_request(vehicle_id)
 
 
 @mcp.tool()

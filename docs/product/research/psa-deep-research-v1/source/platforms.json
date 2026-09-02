@@ -25,7 +25,7 @@
         "source architecture generation"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S02"
       ],
@@ -54,7 +54,7 @@
         "source architecture generation"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S02"
       ],
@@ -83,7 +83,7 @@
         "source architecture generation"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S02"
       ],
@@ -154,7 +154,7 @@
         "exact e-208 vehicle profile"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S03"
       ],
@@ -191,7 +191,7 @@
         "two exact sibling vehicle profiles"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_refs": [
         "S04",
         "S05"

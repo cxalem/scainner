@@ -1,24 +1,9 @@
-//! Identity: the one fingerprint builder (multi-brand plan P2.3) and the
-//! identity-confidence write-back (plan A7).
-//!
-//! [`fingerprint`] is driven entirely by the brand's `identity_block`
-//! (`uds_map::identity_block_for_vin`): it walks the block's DIDs in order
-//! (ISO first, vendor layouts after), decodes each answered payload with
-//! the entry's layout — `iso_ascii`, `bcd_part_refs`, `ascii_part_refs`,
-//! `raw`; layouts name encodings, never brands — and fills the part,
-//! hardware, software, system and supplier fields. The first decoded value
-//! of a field wins, so an ISO answer is preferred over a vendor one.
-//! `serial`, `vin` and `other` entries are kept as evidence and never
-//! enter the match key.
-
 use crate::db::Db;
 use crate::elm::discovery::state::IdentityFit;
 use crate::elm::outcome::{DiagnosticOutcome, DiagnosticStatus};
 use crate::elm::uds::{EcuFingerprint, EcuIdentityEvidence};
 use crate::elm::uds_map::{self, hex16, IdentityBlock, IdentityDid, IdentityField, IdentityLayout};
 
-/// One identity DID as read on a route: the outcome plus the payload after
-/// the echoed identifier.
 #[derive(Debug, Clone)]
 pub struct IdentityObservation {
     pub did: u16,
@@ -32,10 +17,6 @@ impl IdentityObservation {
     }
 }
 
-/// Packed BCD digits: `len` bytes at `offset`, two decimal digits per byte,
-/// wrapped in a literal `prefix`/`suffix`. `None` when the group is short
-/// or any nibble is not a decimal digit, so `FF` padding never becomes a
-/// number.
 pub fn decode_bcd_part_refs(
     payload: &[u8],
     offset: usize,
@@ -61,8 +42,6 @@ pub fn decode_bcd_part_refs(
     Some(digits)
 }
 
-/// Printable ASCII of a slice, NUL/space padding trimmed; `None` when
-/// nothing readable is left.
 pub fn decode_ascii(payload: &[u8]) -> Option<String> {
     let text: String = payload
         .iter()
@@ -84,12 +63,10 @@ pub fn decode_ascii(payload: &[u8]) -> Option<String> {
     (alnum >= 2).then_some(clean)
 }
 
-/// ASCII references at a fixed offset/length (`ascii_part_refs`).
 pub fn decode_ascii_at(payload: &[u8], offset: usize, len: usize) -> Option<String> {
     decode_ascii(payload.get(offset..offset.checked_add(len)?)?)
 }
 
-/// Bytes as upper-case hex without separators (`raw`).
 pub fn decode_raw(payload: &[u8], offset: usize, len: Option<usize>) -> Option<String> {
     let end = match len {
         Some(len) => offset.checked_add(len)?,
@@ -150,10 +127,6 @@ fn hex_string(data: &[u8]) -> String {
         .join(" ")
 }
 
-/// Build the fingerprint of one route from the identity block of this
-/// VIN's brand. `None` when no comparable field (part, hardware, software,
-/// system) could be decoded — a silent or refused block never produces a
-/// fingerprint.
 pub fn fingerprint(
     vin: Option<&str>,
     route: (&str, &str),
@@ -162,7 +135,6 @@ pub fn fingerprint(
     fingerprint_with_block(&uds_map::identity_block_for_vin(vin), route, observations)
 }
 
-/// Same as [`fingerprint`] with an explicit block (tests, replay tooling).
 pub fn fingerprint_with_block(
     block: &IdentityBlock,
     (req, resp): (&str, &str),
@@ -173,8 +145,6 @@ pub fn fingerprint_with_block(
     let mut software = None;
     let mut system = None;
     let mut supplier = None;
-    // Evidence: one entry per DID of the block that was observed, with every
-    // field decoded from it.
     let mut evidence: Vec<EcuIdentityEvidence> = Vec::new();
     for entry in &block.dids {
         let Some(did) = hex16(&entry.did) else {
@@ -267,9 +237,6 @@ pub fn fingerprint_with_block(
     })
 }
 
-/// Digest of the comparison material only: part / hardware / software /
-/// system name. The ECU serial and the VIN never enter it, so two reads
-/// agree exactly when the *family* material is byte-identical.
 pub fn fingerprint_key_hash(fingerprint: &EcuFingerprint) -> Option<String> {
     let key = fingerprint.match_key.as_deref()?.trim();
     if key.is_empty() {
@@ -278,10 +245,6 @@ pub fn fingerprint_key_hash(fingerprint: &EcuFingerprint) -> Option<String> {
     Some(hash_key(key))
 }
 
-/// Stable digest of an arbitrary match key string. FNV-1a 64 written out
-/// rather than `DefaultHasher`, whose algorithm is not guaranteed across
-/// Rust releases — the hash is persisted, and a toolchain change must not
-/// turn every stable module into a conflicted one.
 pub fn hash_key(key: &str) -> String {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in key.as_bytes() {
@@ -291,11 +254,6 @@ pub fn hash_key(key: &str) -> String {
     format!("{h:016x}")
 }
 
-/// Record one identity read for a module on `connection_id`. Stable needs
-/// the same material on a second, independent connection. Returns the
-/// resulting fit, or None when the fingerprint carries no comparison
-/// material (a silent or refused identity block must not count as a read)
-/// or the module is unknown.
 pub fn record_identity(
     db: &Db,
     module_id: i64,
@@ -308,9 +266,6 @@ pub fn record_identity(
 
 #[cfg(test)]
 pub(crate) mod test_data {
-    //! Identity payloads captured on this project's verified vehicle
-    //! (evidence run #2, 2026-08-27) and a synthetic ISO block. Test data,
-    //! not production constants.
     use super::IdentityObservation;
     use crate::elm::outcome::DiagnosticOutcome;
 
@@ -330,7 +285,6 @@ pub(crate) mod test_data {
         }
     }
 
-    /// The verified vehicle's ABS/ESP as it answered its vendor block.
     pub fn verified_abs_observations() -> Vec<IdentityObservation> {
         vec![
             answered(0xF18C, "32 38 35"),
@@ -342,7 +296,6 @@ pub(crate) mod test_data {
         ]
     }
 
-    /// A module of a brand with only the ISO block: F187/F191/F195/F197.
     pub fn iso_observations() -> Vec<IdentityObservation> {
         vec![
             answered(0xF187, "31 4B 30 39 30 37 35 33 30 41"),
@@ -400,7 +353,6 @@ mod tests {
             .evidence
             .iter()
             .any(|e| e.did == 0xF18C && e.label.contains("excluded")));
-        // The family join sees the same tuple the old parser produced.
         let key = crate::elm::discovery::family::CompatibilityKey::from_fingerprint(
             fp.spare_part_number.as_deref(),
             fp.software_version.as_deref(),
@@ -416,7 +368,6 @@ mod tests {
 
     #[test]
     fn an_iso_block_vehicle_of_another_brand_fingerprints_from_f187_f191_f195_f197() {
-        // A brand with the ISO block only (no vendor entries), by data.
         let brand = map()
             .brands
             .iter()
@@ -439,7 +390,6 @@ mod tests {
         let key = fp.match_key.unwrap();
         assert_eq!(key, "part=1K0907530A|hw=H01|sw=0210|sys=ESC MK100");
         assert!(!key.contains("SERIAL1") && !key.contains("ZZZ"));
-        // An unknown WMI falls back to the standard ISO block.
         let unknown = super::fingerprint(
             Some("ZZZ00000000000000"),
             ("7E0", "7E8"),
@@ -484,7 +434,6 @@ mod tests {
             record_identity(&db, module, &fp, first),
             Some((IdentityFit::Provisional, 1))
         );
-        // Same session again: only proves the buffer, still provisional.
         assert_eq!(
             record_identity(&db, module, &fp, first),
             Some((IdentityFit::Provisional, 2))

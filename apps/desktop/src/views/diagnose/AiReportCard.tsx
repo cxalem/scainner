@@ -5,11 +5,6 @@ import { Swap } from "@/motion/components";
 import { generateDiagnosisReport, getApiKey, getLastReport, setApiKey, type SavedReport } from "@/lib/ai";
 import { useLocale, useT } from "@/i18n";
 
-// The written report: sends the backend's briefing (identity, scan history
-// with freeze frames, sensor stats) to the model with the user's own key
-// and renders what comes back. The key lives in localStorage only — see
-// lib/ai.ts. One version today; the "for me / for the workshop" split waits
-// on the server-side report.
 export function AiReportCard({ hasAnyData, vehicleId }: { hasAnyData: boolean; vehicleId: number | null }) {
   const t = useT();
   const { locale } = useLocale();

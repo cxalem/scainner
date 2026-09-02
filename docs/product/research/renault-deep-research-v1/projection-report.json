@@ -26,13 +26,16 @@
     "renault_ampr_small"
   ],
   "warnings": [
+    "candidate renault.megane.abs.4b35 variant S07-a: bitfield signal 0 has no bit_offset/bit_len, so the variant stays documentation-only",
+    "candidate renault.megane.abs.4b35 variant S07-a: bitfield signal 1 has no bit_offset/bit_len, so the variant stays documentation-only",
     "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
   ],
+  "platform_proposals": 12,
   "confirmed_routes": [],
   "archived_files": [
     {
       "path": "index.json",
-      "sha256": "ad022c1ed317b0bf7b73e0d3b31d2d58989f9084d6616f2da30efd4bbc2550cc"
+      "sha256": "3adbb79f873db43d091de3648ac149eaf1cd1393a9c651b44fa733aae10305c4"
     },
     {
       "path": "README.md",
@@ -44,7 +47,7 @@
     },
     {
       "path": "platforms.json",
-      "sha256": "69f632e2b2796683f1164fb2b17733f99e217c9b692d609bea8b8cb883044e2e"
+      "sha256": "1a1787d68b8f0f8ea6ca5bf89600abfd180170d43b765588b6e32207dd456cff"
     },
     {
       "path": "connection-playbook.json",
@@ -56,7 +59,7 @@
     },
     {
       "path": "ecu-routes.json",
-      "sha256": "e8112df3daeb95089c28b605d6dceab086edfdf715b18279006d2589c77a936c"
+      "sha256": "0118cdad2bddf4ca5c0a3346dee3dbd01aa8dfc1da0dee9ac9ba007a2aca1caf"
     },
     {
       "path": "did-candidates.json",
@@ -68,7 +71,7 @@
     },
     {
       "path": "ecu-family-hypotheses.json",
-      "sha256": "9cf94e0b9d51a98252c8b4f5c0459483ff69a7da940c9d67724c315649e6c4c9"
+      "sha256": "50382f3799733293d8e0e50839b28c887864390d2feac36482a0f11d2a8c5e27"
     },
     {
       "path": "observed-module-inventories.json",

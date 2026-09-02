@@ -1,19 +1,11 @@
-//! The adapter profile: which transport to open and how, stored in
-//! `app_settings` under `adapter.*` keys. The `SCAINNER_OBD_PORT`,
-//! `SCAINNER_OBD_MAC` and `SCAINNER_OBD_PIN` environment variables remain a
-//! fallback for one release when the corresponding setting is absent.
-
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AdapterKind {
-    /// A serial port: Bluetooth SPP (`/dev/cu.*`, `rfcomm*`) or USB
-    /// (`/dev/ttyUSB*`, `COM*`).
     #[default]
     ElmSerial,
-    /// An ELM327 Wi-Fi adapter reachable at `host:port`.
     TcpElm,
 }
 
@@ -33,9 +25,6 @@ impl AdapterKind {
     }
 }
 
-/// Multiplier on the handshake/read timeouts, which were tuned on one
-/// dongle. `slow` is for adapters or ECUs that answer late; `fast` for
-/// USB adapters on a quick bus.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TimingProfile {
@@ -76,8 +65,6 @@ impl TimingProfile {
     }
 }
 
-/// The JSON field names of `AdapterProfile`, for rejecting unknown keys in
-/// a partial `PUT /adapter` body instead of silently dropping them.
 pub const FIELDS: [&str; 8] = [
     "kind", "path", "bt_addr", "pin", "host", "port", "baud", "timing",
 ];
@@ -86,14 +73,9 @@ pub const FIELDS: [&str; 8] = [
 #[serde(deny_unknown_fields)]
 pub struct AdapterProfile {
     pub kind: AdapterKind,
-    /// Serial port path (`elm_serial`).
     pub path: Option<String>,
-    /// Dashed MAC of the paired dongle, for the Bluetooth revival ladder.
-    /// Without it only the "open the port directly" step can run.
     pub bt_addr: Option<String>,
-    /// Bluetooth pairing PIN used by the re-pair step.
     pub pin: String,
-    /// Host of a Wi-Fi adapter (`tcp_elm`).
     pub host: Option<String>,
     pub port: u16,
     pub baud: u32,
@@ -120,15 +102,11 @@ fn non_empty(v: Option<String>) -> Option<String> {
 }
 
 impl AdapterProfile {
-    /// Build the profile from a settings lookup plus an environment lookup
-    /// (the latter only consulted when the setting is missing).
     pub fn from_lookups(
         setting: impl Fn(&str) -> Option<String>,
         env: impl Fn(&str) -> Option<String>,
     ) -> Self {
         let defaults = Self::default();
-        // A stored row — even an empty one — is authoritative; the
-        // environment is only consulted when the setting was never written.
         let get = |key: &str, env_key: Option<&str>| match setting(key) {
             Some(stored) => non_empty(Some(stored)),
             None => env_key.and_then(|k| non_empty(env(k))),
@@ -154,14 +132,10 @@ impl AdapterProfile {
         }
     }
 
-    /// From the settings store, with the process environment as fallback.
     pub fn load(setting: impl Fn(&str) -> Option<String>) -> Self {
         Self::from_lookups(setting, |k| std::env::var(k).ok())
     }
 
-    /// The `(key, value)` rows that persist this profile. Optional fields
-    /// that are unset are written as empty strings so a cleared value does
-    /// not fall back to a stale one.
     pub fn to_settings(&self) -> Vec<(&'static str, String)> {
         vec![
             ("adapter.kind", self.kind.as_str().to_string()),
@@ -175,51 +149,6 @@ impl AdapterProfile {
         ]
     }
 
-    /// What physically identifies this adapter: the Bluetooth address, else
-    /// the serial path, else `host:port`. The learned Bluetooth escalation
-    /// level is keyed by it so a level learned on one dongle never applies
-    /// to a different adapter.
-    pub fn identity(&self) -> String {
-        match self.kind {
-            AdapterKind::ElmSerial => format!(
-                "{}:{}",
-                self.kind.as_str(),
-                self.bt_addr
-                    .clone()
-                    .or_else(|| self.path.clone())
-                    .unwrap_or_default()
-            ),
-            AdapterKind::TcpElm => format!(
-                "{}:{}:{}",
-                self.kind.as_str(),
-                self.host.clone().unwrap_or_default(),
-                self.port
-            ),
-        }
-    }
-
-    /// `app_settings` key of the escalation level last known to work for
-    /// this adapter (`bt_connect_level:<identity>`).
-    pub fn learned_level_key(&self) -> String {
-        format!("bt_connect_level:{}", self.identity())
-    }
-
-    /// Where the Bluetooth escalation ladder starts: the stored level for
-    /// this adapter, but always 0 when there is no Bluetooth address — the
-    /// ladder's steps 1 and 2 cannot run for a USB adapter, so a learned
-    /// level would only skip the one step that can succeed.
-    pub fn ladder_start(&self, stored: Option<String>) -> u8 {
-        if self.bt_addr.is_none() {
-            return 0;
-        }
-        stored
-            .and_then(|v| v.parse::<u8>().ok())
-            .filter(|&level| level <= 2)
-            .unwrap_or(0)
-    }
-
-    /// Trim every field and treat blanks as unset (a JSON body with
-    /// `"path": ""` means "clear it"); MACs are lower-cased.
     pub fn normalized(mut self) -> Self {
         self.path = non_empty(self.path.take());
         self.bt_addr = non_empty(self.bt_addr.take()).map(|s| s.to_ascii_lowercase());
@@ -228,8 +157,6 @@ impl AdapterProfile {
         self
     }
 
-    /// Reject profiles that cannot possibly connect, with a message the
-    /// settings UI can show.
     pub fn validate(&self) -> Result<(), String> {
         match self.kind {
             AdapterKind::ElmSerial => {
@@ -263,10 +190,6 @@ impl AdapterProfile {
     }
 }
 
-/// Map the adapter's `ATI` (and, for STN chips, `STI`) banner to the
-/// `connections.device_kind` value: `ELM327 v2.3` → `elm327_v2.3`,
-/// `STN1170 v4.0.1` → `stn1170`, an unknown banner → its first word
-/// slugified, nothing → `elm_unknown`.
 pub fn device_kind_from_banner(ati: &str, sti: Option<&str>) -> String {
     fn clean(raw: &str) -> Option<String> {
         raw.split(['\r', '\n'])
@@ -397,38 +320,14 @@ mod tests {
     }
 
     #[test]
-    fn the_learned_ladder_level_is_per_adapter_and_ignored_without_bluetooth() {
-        let usb = AdapterProfile {
-            path: Some("/dev/ttyUSB0".into()),
-            ..Default::default()
-        };
-        assert_eq!(
-            usb.ladder_start(Some("2".into())),
-            0,
-            "no bt_addr: always attempt 0"
-        );
-        assert_eq!(usb.identity(), "elm_serial:/dev/ttyUSB0");
-
-        let bt = AdapterProfile {
-            path: Some("/dev/cu.OBDII".into()),
-            bt_addr: Some("aa-bb-cc-dd-ee-ff".into()),
-            ..Default::default()
-        };
-        assert_eq!(bt.ladder_start(Some("2".into())), 2);
-        assert_eq!(bt.ladder_start(Some("7".into())), 0, "out of range → 0");
-        assert_eq!(bt.ladder_start(None), 0);
-        assert_eq!(
-            bt.learned_level_key(),
-            "bt_connect_level:elm_serial:aa-bb-cc-dd-ee-ff"
-        );
-        assert_ne!(usb.learned_level_key(), bt.learned_level_key());
-
-        let wifi = AdapterProfile {
-            kind: AdapterKind::TcpElm,
-            host: Some("192.168.0.10".into()),
-            ..Default::default()
-        };
-        assert_eq!(wifi.identity(), "tcp_elm:192.168.0.10:35000");
+    fn a_stale_repair_permission_row_is_ignored() {
+        let settings = HashMap::from([
+            ("adapter.path", "/dev/cu.OBDII"),
+            ("adapter.allow_repair", "true"),
+        ]);
+        let p = AdapterProfile::from_lookups(lookup(&settings), |_| None);
+        assert_eq!(p.path.as_deref(), Some("/dev/cu.OBDII"));
+        assert!(p.validate().is_ok());
     }
 
     #[test]

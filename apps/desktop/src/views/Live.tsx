@@ -1,8 +1,5 @@
-// Live — the same sensors on two time scales. "Now" is the standing gauge
-// set plus whatever this car's probes push, grouped and pinnable; "Over
-// time" is the stored history of the same keys (views/live/Trend.tsx).
 import { useMemo, useRef, useState } from "react";
-import { Activity, ChartLine, ListFilter, Pin, PinOff } from "lucide-react";
+import { Activity, ChartLine, ListFilter, Pin, PinOff, Radar } from "lucide-react";
 import {
   Button,
   Card,
@@ -25,13 +22,14 @@ import {
 } from "@/components/ui";
 import { Block, Reveal, Swap } from "@/motion/components";
 import { GAUGES, gaugeLabel, hex4 } from "@/shared/domain/gauges";
-import type { Live as LiveMap, UdsProbe } from "@scainner/core";
+import type { DiscoveryStatus, Live as LiveMap, UdsProbe } from "@scainner/core";
 import { useAllSensors } from "@/features/live/queries";
 import { useListProbes } from "@/features/lab/queries";
 import { useLocale, useT } from "@/i18n";
 import { Trend } from "@/views/live/Trend";
 import { GAUGE_RANGES, percentOf } from "@/views/live/ranges";
 import { usePins } from "@/views/live/pins";
+import { showLiveDiscoveryNotice } from "@/lib/discovery-notice";
 
 type SensorState = "standard" | "verified" | "inherited" | "candidate";
 
@@ -44,10 +42,6 @@ type SensorDef = {
   range: { lo: number; hi: number } | null;
 };
 
-// A probe's live key is not spelled out anywhere the frontend can read, so
-// match the two ways the backend has named them; anything unmatched is
-// shown as a plain standard reading rather than given a state it may not
-// have earned.
 function probeFor(key: string, probes: readonly UdsProbe[]): UdsProbe | null {
   const k = key.toLowerCase();
   return (
@@ -68,6 +62,7 @@ function SensorCard({
   live,
   pinned,
   onPin,
+  onOpenTrend,
   seen,
 }: {
   def: SensorDef;
@@ -75,7 +70,7 @@ function SensorCard({
   live: boolean;
   pinned: boolean;
   onPin: () => void;
-  /** Running min/max for keys with no declared range. */
+  onOpenTrend: () => void;
   seen: Map<string, { lo: number; hi: number }>;
 }) {
   const t = useT();
@@ -94,7 +89,14 @@ function SensorCard({
   return (
     <Card className="gap-[7px] px-3.5 py-3">
       <div className="flex items-baseline gap-2">
-        <span className="flex-1 truncate text-[12px] text-neutral-400">{def.name}</span>
+        <button
+          type="button"
+          onClick={onOpenTrend}
+          title={t.live.viewOverTime}
+          className="min-w-0 flex-1 truncate rounded-sm text-left text-[12px] text-neutral-400 transition-colors duration-150 hover:text-accent-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none"
+        >
+          {def.name}
+        </button>
         <IconButton icon={pinned ? PinOff : Pin} label={pinned ? t.live.unpin : t.live.pin} active={pinned} onClick={onPin} className="p-0" />
       </div>
       <div className="text-[22px] leading-none text-neutral-100">
@@ -185,18 +187,22 @@ export function Live({
   live,
   connected,
   scanning = false,
+  discovery = null,
   vehicleId = null,
+  onNavigate,
 }: {
   live: LiveMap;
   connected: boolean;
-  /** A UDS scan pauses standard polling; say so instead of going stale. */
   scanning?: boolean;
+  discovery?: DiscoveryStatus | null;
   connState?: string;
   vehicleId?: number | null;
+  onNavigate?: (view: "lab") => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
   const [mode, setMode] = useState<"now" | "trend">("now");
+  const [trendKey, setTrendKey] = useState("voltage");
   const { pins, toggle } = usePins(vehicleId);
   const probesQuery = useListProbes(vehicleId);
   const probes = probesQuery.data ?? [];
@@ -241,6 +247,7 @@ export function Live({
   }, [defs, pins, t]);
 
   const note = mode === "trend" ? t.live.noteStored : scanning ? t.live.noteScanning : connected ? t.live.noteLive : t.live.noteOffline;
+  const scanNotice = showLiveDiscoveryNotice(discovery, mode);
 
   return (
     <>
@@ -257,8 +264,23 @@ export function Live({
         <span className="flex-1 text-[12px] text-neutral-500">{note}</span>
       </Block>
 
-      <Swap k={mode} className="flex flex-col gap-4">
-        {mode === "now" ? (
+      <Swap k={scanNotice ? "scanning" : mode} className="flex flex-col gap-4">
+        {scanNotice ? (
+          <Card>
+            <EmptyState
+              icon={Radar}
+              title={t.autoScan.live.title}
+              body={t.autoScan.live.body}
+              action={
+                onNavigate && (
+                  <Button variant="secondary" size="sm" onClick={() => onNavigate("lab")}>
+                    {t.autoScan.live.action}
+                  </Button>
+                )
+              }
+            />
+          </Card>
+        ) : mode === "now" ? (
           <>
             {groups.map((g) => (
               <div key={g.name} className="flex flex-col gap-[7px]">
@@ -272,6 +294,10 @@ export function Live({
                       live={liveOk}
                       pinned={pins.includes(d.key)}
                       onPin={() => toggle(d.key)}
+                      onOpenTrend={() => {
+                        setTrendKey(d.key);
+                        setMode("trend");
+                      }}
                       seen={seen}
                     />
                   ))}
@@ -281,7 +307,7 @@ export function Live({
             <AllSensorsCard connected={liveOk} />
           </>
         ) : (
-          <Trend vehicleId={vehicleId} />
+          <Trend vehicleId={vehicleId} sensorKey={trendKey} onSelectKey={setTrendKey} />
         )}
       </Swap>
     </>

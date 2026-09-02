@@ -20,9 +20,14 @@
     "psa_mmc_ev_ion_czero"
   ],
   "warnings": [
+    "route psa_c41_engine_6a8_688: authorized without an immutable source, accepted only because the trusted map already carries 6A8/688",
+    "route psa_c41_abs_esc_6ad_68d: authorized without an immutable source, accepted only because the trusted map already carries 6AD/68D",
+    "route psa_c41_eps_6b5_695: authorized without an immutable source, accepted only because the trusted map already carries 6B5/695",
+    "route psa_c41_front_camera_or_cvm_74a_64a: authorized without an immutable source, accepted only because the trusted map already carries 74A/64A",
     "psa_c41_front_camera_or_cvm_74a_64a is locally confirmed but missing from command-support evidence",
     "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
   ],
+  "platform_proposals": 7,
   "confirmed_routes": [
     {
       "route_id": "psa_c41_engine_6a8_688",
@@ -52,7 +57,7 @@
   "archived_files": [
     {
       "path": "index.json",
-      "sha256": "1d2da5fcb094595dd8d62a9d288c619953082d9daf7e46d283ccde53d508e970"
+      "sha256": "093af965ba86ca588416eea9920651813fefd5ff0599c4c3b5152e4bb930a589"
     },
     {
       "path": "README.md",
@@ -64,7 +69,7 @@
     },
     {
       "path": "platforms.json",
-      "sha256": "7207b8ffdfba4f0f17453888aaa8f1a87db883741fe60b3b0c8712d2ddd9009b"
+      "sha256": "c1a58f58e7e44ac7fac31a14c0fc10c1a0a5a7dc764d34fb0a4ca2588fa71b1e"
     },
     {
       "path": "connection-playbook.json",
@@ -76,7 +81,7 @@
     },
     {
       "path": "ecu-routes.json",
-      "sha256": "568053a7a617af7e17f52fc8587e04fa2383baa420a59f7c7b55b0f7f0510865"
+      "sha256": "658fe701f5649e358da5650e64bf772927f0877c5efd448c0537c52e9a846376"
     },
     {
       "path": "did-candidates.json",
@@ -88,7 +93,7 @@
     },
     {
       "path": "ecu-family-hypotheses.json",
-      "sha256": "c823ba3fc6c55a3016f1ef29e04222becc1a91cfa33e7f60342ae839e901732c"
+      "sha256": "9be39a934f86bc9fabbfe7df955e074bae6b0471b6f8dbd08475dfa870ff4deb"
     },
     {
       "path": "observed-module-inventories.json",

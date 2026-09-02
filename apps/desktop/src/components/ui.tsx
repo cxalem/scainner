@@ -1,11 +1,3 @@
-// The design system's component layer. Every primitive here is built from
-// the tokens in theme/tokens.css (through the Tailwind names mapped in
-// index.css) — no hex, no ad-hoc px radius, no one-off easing. Views compose
-// these; they do not restyle them.
-//
-// Type scale used across the app (from the Hi-Fi v2 handoff):
-//   page title 22 · card head 19 · body 13.5/13 · secondary 12.5/12/11.5
-//   kicker 10.5 uppercase +0.1em · pill 10.5 · nav 13 · stat number 23 mono
 import * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -13,9 +5,6 @@ import { Loader2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { backdropVariants, modalPanelVariants } from "@/motion";
 
-// ---------- Surfaces ----------
-/** A white surface on the paper background. `flush` removes the padding
- *  for cards that hold their own header/table rows. */
 export function Card({
   className,
   flush = false,
@@ -33,7 +22,6 @@ export function Card({
   );
 }
 
-/** Card head row: icon in accent, 13.5px title, optional right slot. */
 export function CardHead({
   icon: Icon,
   title,
@@ -45,7 +33,6 @@ export function CardHead({
   title: React.ReactNode;
   aside?: React.ReactNode;
   className?: string;
-  /** Inside a `flush` card: draws the bottom rule and its own padding. */
   divided?: boolean;
 }) {
   return (
@@ -63,7 +50,6 @@ export function CardHead({
   );
 }
 
-/** Uppercase 10.5px label above a group of fields or a list. */
 export function Kicker({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
@@ -73,7 +59,6 @@ export function Kicker({ className, ...props }: React.HTMLAttributes<HTMLDivElem
   );
 }
 
-/** A section label with a rule fading out to the right ("Standard OBD ——"). */
 export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -83,7 +68,6 @@ export function SectionLabel({ children, className }: { children: React.ReactNod
   );
 }
 
-/** Page head: kicker / 22px title / lede, with a right-hand slot. */
 export function PageHeader({
   kicker,
   title,
@@ -107,23 +91,18 @@ export function PageHeader({
   );
 }
 
-/** Secondary explanatory line (12.5px, neutral-500). */
 export function Note({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn("text-[12.5px] leading-[1.55] text-neutral-500", className)} {...props} />;
 }
 
-/** Monospace reading: a code, a VIN, a byte, a value. */
 export function Mono({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
   return <span className={cn("num", className)} {...props} />;
 }
 
-// ---------- Skeleton ----------
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("animate-pulse rounded-md bg-neutral-900", className)} {...props} />;
 }
 
-/** A Card-shaped loading placeholder sized to what it stands in for, so
- *  nothing shifts once real data lands. */
 export function CardSkeleton({
   title = true,
   rows = 3,
@@ -149,11 +128,6 @@ export function CardSkeleton({
   );
 }
 
-// ---------- Button ----------
-// primary: outlined in the accent (the design's single-voice button —
-//          filled buttons would shout on a paper-white app)
-// secondary: outlined in the divider
-// ghost: accent text, no border
 type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
 type ButtonSize = "sm" | "md" | "lg";
 export function Button({
@@ -171,7 +145,6 @@ export function Button({
   size?: ButtonSize;
   block?: boolean;
   icon?: LucideIcon;
-  /** Shows a spinner in the icon slot and disables the button. */
   busy?: boolean;
 }) {
   const variants: Record<ButtonVariant, string> = {
@@ -209,7 +182,6 @@ export function Button({
   );
 }
 
-/** A quiet, text-only control (sidebar sign-out, pin, expander toggles). */
 export function IconButton({
   className,
   icon: Icon,
@@ -235,7 +207,6 @@ export function IconButton({
   );
 }
 
-// ---------- Forms ----------
 export const inputClass =
   "w-full min-h-9 rounded-md border border-divider bg-surface px-2.5 py-1.5 text-[13.5px] text-text caret-accent " +
   "placeholder:text-neutral-600 transition-colors duration-150 hover:border-neutral-600 " +
@@ -275,8 +246,6 @@ export function Field({
   );
 }
 
-// ---------- Segmented control ----------
-/** Bordered strip of options; the active one sits on accent-800. */
 export function Seg<T extends string>({
   value,
   onChange,
@@ -328,7 +297,6 @@ export function Seg<T extends string>({
   );
 }
 
-/** Larger option cards (choose one of N ways to run something). */
 export function ChoiceCard({
   active,
   icon: Icon,
@@ -363,7 +331,6 @@ export function ChoiceCard({
   );
 }
 
-/** Round chip toggles (sensor picker). */
 export function Chip({
   active,
   className,
@@ -384,11 +351,6 @@ export function Chip({
   );
 }
 
-// ---------- Pills ----------
-// The app's status idiom: a small bordered pill whose color carries meaning.
-//   verified / inherited / candidate / standard — the four sensor states
-//   ok / warn / stop / info — severity and outcome
-//   accent — "yours" (entered by you, open case)
 export type PillVariant =
   | "verified"
   | "inherited"
@@ -427,7 +389,6 @@ export function Pill({
   );
 }
 
-/** Compatibility shim for the pre-redesign `Badge` — same idea as Pill. */
 export function Badge({
   variant = "default",
   ...props
@@ -436,7 +397,6 @@ export function Badge({
   return <Pill variant={map[variant]} {...props} />;
 }
 
-/** Small pulsing dot for "live"/"connected". */
 export function Dot({
   tone = "ok",
   pulse = false,
@@ -458,7 +418,6 @@ export function Dot({
   );
 }
 
-/** The "this car · live" chip on the page header. */
 export function LiveChip({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex shrink-0 items-center gap-2 rounded-full border border-divider bg-surface px-[13px] py-[5px] text-[12px] shadow-sm">
@@ -468,14 +427,12 @@ export function LiveChip({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ---------- Progress ----------
 export function ProgressBar({
   value,
   tone = "accent",
   height = 3,
   className,
 }: {
-  /** 0–100 */
   value: number;
   tone?: "accent" | "candidate" | "gradient";
   height?: 2 | 3 | 6;
@@ -497,7 +454,6 @@ export function ProgressBar({
   );
 }
 
-/** A 2px indeterminate sweep (a report being written). */
 export function SweepBar({ className }: { className?: string }) {
   return (
     <div
@@ -514,7 +470,6 @@ export function Spinner({ className }: { className?: string }) {
   return <Loader2 className={cn("h-[15px] w-[15px] animate-spin", className)} aria-hidden="true" />;
 }
 
-// ---------- Empty state ----------
 export function EmptyState({
   icon: Icon,
   title,
@@ -541,7 +496,6 @@ export function EmptyState({
   );
 }
 
-// ---------- Banner ----------
 export function Banner({
   tone = "warn",
   icon: Icon,
@@ -570,7 +524,6 @@ export function Banner({
   );
 }
 
-// ---------- Table ----------
 export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
   return (
     <div className="w-full overflow-x-auto">
@@ -602,8 +555,6 @@ export function Tr({ className, ...props }: React.HTMLAttributes<HTMLTableRowEle
   return <tr className={cn("transition-colors hover:bg-text/[0.03]", className)} {...props} />;
 }
 
-// ---------- Expander row ----------
-/** A clickable row with a caret; pair with <Reveal when={open}> for the body. */
 export function ExpanderButton({
   open,
   className,
@@ -626,7 +577,6 @@ export function ExpanderButton({
   );
 }
 
-// ---------- Dialog ----------
 export function Dialog({
   open,
   onClose,
@@ -687,7 +637,6 @@ export function Dialog({
   );
 }
 
-// ---------- Tabs (underline style, for report "For you / For the workshop") ----------
 export function UnderlineTabs<T extends string>({
   value,
   onChange,
@@ -722,7 +671,6 @@ export function UnderlineTabs<T extends string>({
   );
 }
 
-// ---------- Legacy shims (pre-redesign call sites) ----------
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col gap-1", className)} {...props} />;
 }
@@ -741,9 +689,6 @@ export function Segmented<T extends string>(props: {
   return <Seg {...props} />;
 }
 
-// ---------- success/pending feedback helpers ----------
-/** Flips a label on for `ms`, then clears it — the app's one success idiom
- * ("Saved"/"Copied"), reused instead of a toast system. */
 export function useTransientLabel(ms = 2000) {
   const [label, setLabel] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
@@ -759,9 +704,6 @@ export function useTransientLabel(ms = 2000) {
   return [label, flash] as const;
 }
 
-/** Cycles through a present-tense phrase list while `active` is true, so a
- * long wait reads as moving forward instead of frozen on one label. Pass a
- * module-level constant array for `phrases`. */
 export function useCyclingLabel(phrases: readonly string[], active: boolean, intervalMs = 3000): string {
   const [i, setI] = useState(0);
   useEffect(() => {

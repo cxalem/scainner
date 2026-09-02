@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "brand_ids": ["toyota"],
+  "marques": ["toyota", "lexus"],
+  "research_date": "2026-09-02",
+  "baseline_reference": {
+    "uds_map_version": 9,
+    "wmis": ["JTD", "JTE", "JTH", "JTJ", "JTK", "JTL", "JTM", "JTN", "JT2", "JT3", "JT4", "JT5", "JT6", "JT8", "SB1", "VNK", "NMT", "MR0", "2T1", "2T2", "2T3", "4T1", "4T3", "4T4", "5TD", "5TE", "5TF", "5YF", "58A"],
+    "existing_platform_count": 3,
+    "existing_module_count": 10,
+    "existing_known_did_count": 11,
+    "rule": "Reference only; this pack never replaces trusted or vehicle evidence."
+  },
+  "merge_mode": "additive_only",
+  "claims": [
+    {
+      "claim_id": "toyota.prius.generation_split",
+      "exact_claim": "Immutable Prius source data separates service-21 routes used on 2010s vehicles from service-22 routes used by newer generations.",
+      "scope": {"brand_ids": ["toyota"], "marques": ["toyota"], "models": ["prius"]},
+      "source_refs": ["S01"],
+      "validation": {"source_validation_status": "immutable_open_diagnostic_database", "project_physical_validation_status": "not_tested"},
+      "action_if_connected": "Select by explicit model and year, then probe presence and identity before candidate reads.",
+      "promotion_test": "Reproduce each route and decoder on project hardware and bind it to stable ECU identity.",
+      "non_generalization_boundary": "Do not treat service-21 and service-22 generations as interchangeable."
+    },
+    {
+      "claim_id": "toyota.prius.hybrid_routes",
+      "exact_claim": "Immutable Prius source data carries modern hybrid-control reads on 7D2/7DA and battery-pack reads on 747/74F.",
+      "scope": {"brand_ids": ["toyota"], "marques": ["toyota"], "models": ["prius"], "powertrains": ["hev"]},
+      "source_refs": ["S01"],
+      "validation": {"source_validation_status": "immutable_open_diagnostic_database", "project_physical_validation_status": "not_tested"},
+      "action_if_connected": "Probe exact routes only after Prius/year classification.",
+      "promotion_test": "Capture stable identity and validate signals against independent references.",
+      "non_generalization_boundary": "Prius source scope; no automatic Toyota-wide inheritance."
+    },
+    {
+      "claim_id": "toyota.lexus_rx.service_split",
+      "exact_claim": "Immutable Lexus RX data contains service-21 engine reads for 2010/2013 vehicles and service-22 hybrid reads for 2025.",
+      "scope": {"brand_ids": ["toyota"], "marques": ["lexus"], "models": ["rx"]},
+      "source_refs": ["S03"],
+      "validation": {"source_validation_status": "immutable_open_diagnostic_database", "project_physical_validation_status": "not_tested"},
+      "action_if_connected": "Use explicit model year to select the compatible branch.",
+      "promotion_test": "Reproduce route, identity and decoder on a physical Lexus RX in each branch.",
+      "non_generalization_boundary": "Lexus RX only; do not inherit from Prius solely because addresses match."
+    },
+    {
+      "claim_id": "toyota.opendbc.identity_catalog",
+      "exact_claim": "opendbc contains Toyota ECU firmware fingerprint records obtained through diagnostic identification exchanges.",
+      "scope": {"brand_ids": ["toyota"], "marques": ["toyota", "lexus"]},
+      "source_refs": ["S04"],
+      "validation": {"source_validation_status": "immutable_open_implementation", "project_physical_validation_status": "not_tested"},
+      "action_if_connected": "Capture identity before proposing ECU-family reuse.",
+      "promotion_test": "Match exact part and compatible software on project vehicles.",
+      "non_generalization_boundary": "Firmware strings classify ECUs; they do not prove proprietary DID meanings."
+    }
+  ]
+}

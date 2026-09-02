@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "version": 1,
+  "brand": "SEAT",
+  "wmi_primary": [
+    "VSS"
+  ],
+  "north_star": "Use brand/platform knowledge to shrink the search space, then identify ECUs before querying proprietary DIDs.",
+  "steps": [
+    {
+      "step": 1,
+      "name": "identify_brand_and_model",
+      "actions": [
+        "Read VIN by standard OBD/UDS paths where available.",
+        "If WMI=VSS, select SEAT overlay.",
+        "Resolve model/chassis code and approximate production generation before choosing transport branch."
+      ],
+      "success": "brand=SEAT and platform branch is known or explicitly unknown"
+    },
+    {
+      "step": 2,
+      "name": "passive_transport_detection",
+      "actions": [
+        "Listen before transmitting.",
+        "Record standard vs extended CAN IDs and bus activity.",
+        "If legacy/6J branch is possible, preserve K-line/TP1.6/TP2.0 as alternate transports rather than assuming UDS."
+      ],
+      "policy": {
+        "passive_listen_ms": 2000,
+        "can11_expected_bitrate": "500 kbit/s on documented modern VAG diagnostic CAN",
+        "29bit_active_authorized": false
+      }
+    },
+    {
+      "step": 3,
+      "name": "platform_branch",
+      "decision_hints": [
+        {
+          "hint": "model=Leon KL or gateway part prefix 5WA / GW2020 High",
+          "platform": "seat_mqb_evo"
+        },
+        {
+          "hint": "model=Leon 5F/Ateca and gateway/ECU prefixes 5Q0 or 3Q0",
+          "platform": "seat_mqb"
+        },
+        {
+          "hint": "model=Ibiza KJ/Arona KJ; 2Q0/3Q0 architecture",
+          "platform": "seat_mqb_a0"
+        },
+        {
+          "hint": "model=Tarraco KN",
+          "platform": "seat_mqb_a_lwb"
+        },
+        {
+          "hint": "model=Mii electric",
+          "platform": "seat_mii_electric_shared_up"
+        },
+        {
+          "hint": "model=Ibiza 6J/6P",
+          "platform": "seat_pq25_mixed_ibiza_6j"
+        },
+        {
+          "hint": "model=Leon 1P/Altea 5P/Toledo 5P",
+          "platform": "seat_pq35_can"
+        },
+        {
+          "hint": "model=Alhambra 7N",
+          "platform": "seat_alhambra_7n"
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "name": "known_route_presence_and_identity",
+      "modern_can_probe_order": [
+        "0x710->0x77A gateway",
+        "0x7E0->0x7E8 engine",
+        "0x713->0x77D ABS/ESC",
+        "0x714->0x77E cluster",
+        "0x712->0x77C steering assist (general VAG MQB candidate; NOT Mii electric)",
+        "0x70E->0x778 central electronics",
+        "0x715->0x77F airbag",
+        "0x746->0x7B0 HVAC",
+        "optional modules based on platform inventory and VAG route catalogue"
+      ],
+      "identity_request_strategy": {
+        "preferred_multi_did": [
+          "0xF187",
+          "0xF195",
+          "0xF182"
+        ],
+        "preferred_service": "0x22",
+        "fallback_single_dids": [
+          "0xF187",
+          "0xF18A",
+          "0xF18C",
+          "0xF190",
+          "0xF191",
+          "0xF195",
+          "0xF197"
+        ],
+        "note": "openDBC uses a Volkswagen multi-DID firmware identification request. If an ECU rejects multi-DID form, retry single DIDs within budget."
+      }
+    },
+    {
+      "step": 5,
+      "name": "fingerprint_and_family_match",
+      "actions": [
+        "Store route, supplier, part number, HW/SW, system name and observed ASAM/ODX identity when available.",
+        "Match against ECU-family hypotheses before importing sensor decoders.",
+        "Part/software compatibility outranks model-name similarity."
+      ]
+    },
+    {
+      "step": 6,
+      "name": "known_did_queries",
+      "actions": [
+        "Query route-specific source-confirmed model DIDs first.",
+        "Then query platform/family candidates.",
+        "Then query make-level candidates, preserving ambiguous decoder variants.",
+        "Do not enter extended diagnostic session automatically in product mode."
+      ]
+    },
+    {
+      "step": 7,
+      "name": "bounded_fallback",
+      "conditions": [
+        "SEAT is known but platform remains unresolved",
+        "CAN11/UDS transport has been positively detected",
+        "known VAG route allowlist did not inventory enough ECUs"
+      ],
+      "actions": [
+        "Try remaining VAG UDS route catalogue entries first.",
+        "Only then permit conservative 11-bit enumeration 0x700-0x7F6 excluding 0x7DF.",
+        "29-bit enumeration remains disabled unless exact new evidence authorizes a normalized pattern."
+      ]
+    },
+    {
+      "step": 8,
+      "name": "record_terminal_state",
+      "terminal_states": [
+        "unsupported_transport_legacy_kline",
+        "unsupported_transport_tp1_6",
+        "unsupported_transport_tp2_0",
+        "transport_detected_no_diagnostic_response",
+        "brand_identified_platform_unknown",
+        "gateway_blocked_or_unreachable",
+        "vehicle_asleep_or_conditions_not_correct",
+        "protected_sfd_write_function",
+        "ecu_responsive_identity_unreadable",
+        "ecu_identified_no_known_signals",
+        "route_responding",
+        "signals_observed",
+        "candidate_decode",
+        "vehicle_confirmed",
+        "family_confirmed",
+        "aborted_bus_health",
+        "aborted_budget",
+        "aborted_user"
+      ]
+    }
+  ]
+}

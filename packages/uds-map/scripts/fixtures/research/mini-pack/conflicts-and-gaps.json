@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "conflict_id": "examplebrand_gateway_response_split",
+      "finding": "Two source files disagree on the gateway response address.",
+      "automatic_merge": "forbidden",
+      "resolution": "Keep both by scope until a physical read decides.",
+      "source_refs": [
+        "S01"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "examplebrand_gen1_no_vds_pattern",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "platform_ids": [
+          "examplebrand_gen1"
+        ]
+      },
+      "priority": "P1",
+      "required_evidence": "A VIN from a confirmed first-generation vehicle.",
+      "safe_next_action": "Leave platform-scoped candidates inert until a pattern is confirmed.",
+      "retry_condition": "New VIN evidence.",
+      "source_refs": [
+        "S01"
+      ]
+    }
+  ],
+  "declared_counts": {
+    "conflicts": 1,
+    "gaps": 1
+  }
+}

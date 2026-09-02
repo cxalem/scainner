@@ -1,3 +1,4 @@
+pub mod connect;
 pub mod correlation;
 pub mod discovery;
 pub mod driver;

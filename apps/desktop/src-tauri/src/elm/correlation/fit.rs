@@ -7,9 +7,6 @@ const LAGS_MS: [i64; 15] = [
 ];
 const MAX_ROBUST_POINTS: usize = 128;
 
-/// Widest field decoded as one number. A wider window (a `0x21` group or a
-/// long multi-frame DID) is analysed on its first eight bytes; the shape
-/// notes say so, and an inherited decode addresses the real field directly.
 pub(crate) const MAX_DECODE_BYTES: usize = 8;
 
 pub(crate) fn decode_payload(
@@ -203,9 +200,6 @@ fn regression(pairs: &[(f64, f64)]) -> Option<Correlation> {
     })
 }
 
-/// Deterministic dominant-line estimate. Widely separated point pairs vote
-/// for a slope bin; medians in the winning neighbourhood reject stale
-/// sequential reads without knowing the signal's semantic meaning.
 fn robust_line(pairs: &[(f64, f64)]) -> Option<(f64, f64)> {
     if pairs.len() < 10 {
         return None;
