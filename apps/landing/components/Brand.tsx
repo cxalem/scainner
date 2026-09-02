@@ -1,6 +1,3 @@
-// Ported from apps/desktop/src/brand/index.tsx — same mark, same colors,
-// not brand tokens (the mark's palette is brand-owned, independent of the
-// UI accent).
 import type { SVGProps } from "react";
 import { cn } from "@/lib/utils";
 

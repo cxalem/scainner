@@ -1,7 +1,3 @@
-// dom.ts documents tokens.css's custom properties rather than redefining
-// them. What's testable is drift: DOM_TOKENS must name every property
-// tokens.css declares, and nothing it doesn't — read from the file itself,
-// not from a hand-copied list that could drift alongside dom.ts.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,14 +27,11 @@ describe("DOM_TOKENS", () => {
 
   it("index.css maps tokens, it does not declare them", () => {
     const css = readFileSync(join(__dirname, "../index.css"), "utf8");
-    // The only :root block index.css may keep is the color-scheme one.
     const declared = declaredTokens(css);
     expect([...declared]).toEqual([]);
   });
 
   it("no component carries a raw hex color", () => {
-    // The brand mark (src/brand) and the 3D constants (rendering.ts) are the
-    // documented exceptions; everything else must go through tokens.
     const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
     const root = join(__dirname, "..");
     const offenders: string[] = [];
@@ -53,7 +46,6 @@ describe("DOM_TOKENS", () => {
         if (!/\.(tsx?|css)$/.test(entry) || /\.test\.tsx?$/.test(entry)) continue;
         if (p.endsWith("rendering.ts") || p.endsWith("tokens.css")) continue;
         const src = readFileSync(p, "utf8");
-        // strip comments before matching so provenance notes don't count
         const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
         if (/#[0-9a-fA-F]{6}\b/.test(code)) offenders.push(p.slice(root.length + 1));
       }

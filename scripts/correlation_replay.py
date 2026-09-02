@@ -29,8 +29,6 @@ def be(value, length, signed=False):
 
 
 def write(name, value):
-    # Compact output keeps the replay corpus reviewable as a binary-sized
-    # artifact instead of turning each repeated reference into many diff lines.
     (OUT / name).write_text(json.dumps(value, separators=(",", ":")) + "\n")
 
 
@@ -169,7 +167,6 @@ def convert_camera_negative():
         for capture in captures:
             condition = capture["condition"]
             for row in capture["samples"]:
-                # The source records order and condition but no timestamps.
                 ts = sequence * 1000
                 sequence += 1
                 samples.append(

@@ -1,10 +1,3 @@
-// `pnpm --filter @scainner/uds-map research:snapshot <brand_id>`
-//
-// Prints the Markdown block that goes into the research prompt's
-// {{coverage_snapshot}} placeholder: everything the project already knows
-// about one brand, so a deep-research round can be asked for what is
-// missing instead of what is already in the map. Read-only, deterministic
-// (every list is sorted), and generated entirely from data.
 import { fileURLToPath } from "node:url";
 import type { Brand, EcuFamily, KnownDid, ModuleDef } from "../src/types.ts";
 import { loadMap, loadResearchPacks, researchStats } from "./pack.ts";
@@ -16,7 +9,6 @@ const cell = (value: unknown): string => dash(value).replaceAll("|", "\\|");
 const byAddress = (a: ModuleDef, b: ModuleDef): number => a.req.localeCompare(b.req) || a.resp.localeCompare(b.resp);
 const byDid = (a: KnownDid, b: KnownDid): number => a.did.localeCompare(b.did);
 
-/** The block itself, so a test can assert its sections without a subprocess. */
 export function renderSnapshot(brandId: string): string {
   const map = loadMap();
   const brand: Brand | undefined = map.brands.find((candidate) => candidate.id === brandId);

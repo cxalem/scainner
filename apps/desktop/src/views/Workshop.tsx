@@ -1,6 +1,3 @@
-// Workshop: the cases you have open, with the complaint that started each
-// one. Presentation only — the data is useDiagnosticCases /
-// useCreateDiagnosticCase, unchanged.
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { FolderCheck, FolderOpen, Plus } from "lucide-react";
 import {

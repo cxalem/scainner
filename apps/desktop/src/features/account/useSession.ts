@@ -1,6 +1,3 @@
-// Who is signed in, app-wide. `undefined` while the stored session is still
-// being read (so the login gate doesn't flash for a returning user), then
-// the email or null.
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 

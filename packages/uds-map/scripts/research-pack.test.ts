@@ -1,5 +1,3 @@
-// `research:validate` over a fictional minimal pack: one fixture that is
-// valid, and one mutation per rejection class in specification §6.
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -12,7 +10,6 @@ const MINI = join(dirname(fileURLToPath(import.meta.url)), "fixtures/research/mi
 
 type PackEdit = { read: (name: string) => any; write: (name: string, value: unknown) => void; writeRaw: (name: string, value: string) => void };
 
-/** A copy of the valid pack with one mutation applied, manifest hashes refreshed. */
 function fixture(mutate: (pack: PackEdit) => void, rehash = true): string {
   const dir = mkdtempSync(join(tmpdir(), "research-pack-"));
   cpSync(MINI, dir, { recursive: true });
@@ -551,8 +548,6 @@ describe("VIN classifiers on platforms", () => {
   });
 
   it("rejects a literal that cannot occur in a VIN", () => {
-    // I, O and Q are excluded from every VIN, so a pattern spelling one is
-    // a transcription slip, not a classifier.
     for (const pattern of ["^KAI1", "^KAO1", "^KAQ1"]) {
       rejects(withPatterns([pattern]), /uses syntax outside the shared regex subset/);
     }
@@ -575,17 +570,11 @@ describe("VIN classifiers on platforms", () => {
   });
 });
 
-// The projector drops every unauthorized candidate, so a DID a physically
-// tested vehicle refused must not reappear in a runtime pack. This walks the
-// real authoring directories rather than a fixture: it is the check that the
-// negative evidence a pack records actually costs those identifiers their
-// place in a plan.
 describe("negative command evidence", () => {
   const repo = join(dirname(fileURLToPath(import.meta.url)), "../../..");
   const docs = join(repo, "docs/product/research");
   const NEGATIVE = new Set(["unsupported", "explicitly_unsupported_on_test_vehicle"]);
 
-  /** Authoring directories that compiled to a runtime pack of the same name. */
   const compiledPacks = readdirSync(docs, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => ({

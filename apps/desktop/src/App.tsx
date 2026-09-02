@@ -24,16 +24,11 @@ import { Lab } from "@/views/Lab";
 import { Workshop } from "@/views/Workshop";
 import type { ConnStatus, Live as LiveMap } from "@scainner/core";
 
-// Code-split: three.js/@react-three (~450KB gzip) loads only when a scene
-// actually mounts (login carousel, connect gate, overview, vehicle).
 const Vehicle = lazy(() => import("@/views/Vehicle").then((m) => ({ default: m.Vehicle })));
 const DiscoveryFlow = lazy(() =>
   import("@/components/DiscoveryFlow").then((m) => ({ default: m.DiscoveryFlow })),
 );
 
-// The gates, in order: language (once ever) → sign-in (until signed in, or
-// skipped for this session) → connect (until the first connect of this
-// session, or "browse saved cars") → the shell.
 type Stage = "onboarding" | "login" | "connect" | "shell";
 
 export default function App() {
@@ -45,18 +40,9 @@ export default function App() {
   const staleTimer = useRef<number | null>(null);
 
   const [discoverVin, setDiscoverVin] = useState<string | null>(null);
-  // Two different events, deliberately handled differently (2026-08-30):
-  // an INVOLUNTARY signal drop (conn.state flips to "disconnected" on its
-  // own — a loose OBD connector, the ignition cycling) should NOT yank you
-  // out of the shell mid-review, so this stays true once set; it is never
-  // reset by conn.state changing. A MANUAL disconnect — the sidebar
-  // button, an explicit user action — is a deliberate "I'm done with this
-  // car" and takes you back to the connect gate; see the disconnect()
-  // handler below, the only other place this is set.
   const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const [browsingOffline, setBrowsingOffline] = useState(false);
   const [onboarded, setOnboarded] = useState(() => hasOnboarded());
-  // Sign-in is for sync; "continue without an account" is a per-session choice.
   const session = useSession();
   const [offlineOk, setOfflineOk] = useState(false);
 
@@ -68,7 +54,6 @@ export default function App() {
       .catch(() => {});
     const un1 = listen<ConnStatus>("conn-status", (e) => {
       setConn(e.payload);
-      // Invalidate everything on connect, nothing on live-update.
       if (e.payload.state === "connected") void queryClient.invalidateQueries();
     });
     const un2 = listen<LiveMap>("live-update", (e) => {
@@ -76,10 +61,6 @@ export default function App() {
       if (staleTimer.current) window.clearTimeout(staleTimer.current);
       staleTimer.current = window.setTimeout(() => setLive({}), 10000);
     });
-    // The poller runs its own fault-code scan every few minutes and one
-    // more as the session ends, so Diagnose has to refresh on a scan
-    // nobody pressed a button for — a manual scan invalidates the same
-    // query from its own mutation.
     const un3 = listen("dtc-scan", () => {
       void queryClient.invalidateQueries({ queryKey: ["dtc_history"] });
     });
@@ -90,21 +71,6 @@ export default function App() {
     };
   }, [queryClient]);
 
-  // A brand-new vehicle: discoverVin + hasConnectedOnce in the SAME effect
-  // run, so Shell and DiscoveryFlow mount in one render — the overlay
-  // covers the dashboard's first frame. DiscoveryFlow's own "Go to
-  // dashboard" button is what actually gates the visible handoff from
-  // there.
-  //
-  // A KNOWN vehicle reconnecting has no such overlay, so without this it
-  // went straight from ConnectGate to the dashboard the instant "connected"
-  // fired — no chance to actually see "it recognized the car" (reported
-  // live, 2026-08-30). A fixed-duration auto-advance was tried and
-  // reverted the same day (no duration is right for every reader) — this
-  // stays on ConnectGate, which now shows its own "Go to dashboard" button
-  // once connected; hasConnectedOnce is left false here on purpose so
-  // ConnectGate keeps rendering until continueToDashboard (below) is
-  // called from that click.
   useEffect(() => {
     if (conn.state !== "connected") return;
     if (conn.vehicle_is_new && conn.vin) {
@@ -127,7 +93,6 @@ export default function App() {
     selectedVehicleId,
     knownVehicleIds: (vehicles.data ?? []).map((v) => v.id),
   });
-  // Browsing offline with nothing selected: default to the first stored car.
   const currentVehicleId = viewVehicleId ?? (browsingOffline ? (vehicles.data?.[0]?.id ?? null) : null);
   const currentVin =
     currentVehicleId === connectedVehicleId
@@ -136,15 +101,9 @@ export default function App() {
   const currentVehicle = (vehicles.data ?? []).find((v) => v.id === currentVehicleId);
   const currentName = currentVehicle?.display_name || currentVehicle?.vin || conn.display_name || null;
   const recording = connected && Object.keys(live).length > 0;
-  // The discovery block describes the CONNECTED car's run. While browsing a
-  // stored car it must not be shown against that car's pages — same rule
-  // as liveEnabled, and the same bug it exists to prevent.
   const onConnectedCarDiscovery = liveEnabled ? (conn.discovery ?? null) : null;
 
   const connect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()));
-  // A manual disconnect is a deliberate "I'm done with this car" — resets
-  // hasConnectedOnce so the app falls back to the connect gate, unlike an
-  // involuntary signal drop (see hasConnectedOnce's own comment above).
   const disconnect = async () => {
     await runPromise(Effect.flatMap(DeviceService, (device) => device.disconnect()));
     setHasConnectedOnce(false);
@@ -240,17 +199,9 @@ export default function App() {
         </Shell>
       )}
 
-      {/* One rail for the whole app, mounted once and never unmounted: a
-          toast raised as a gate hands off to the shell has to survive the
-          screen it was raised from. */}
       <Toaster closeLabel={t.common.close} />
 
       {discoverVin && (
-        // Same radial-gradient ground DiscoveryFlow's own root paints —
-        // covers the frame(s) before its lazy chunk resolves (prewarmed on
-        // mount, so this should rarely be visible) without the flash of a
-        // flat bg-bg rectangle that looked like a blank/broken page during
-        // the connect→dashboard handoff (2026-08-30).
         <Suspense
           fallback={
             <div

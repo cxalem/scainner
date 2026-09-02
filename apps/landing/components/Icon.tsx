@@ -1,11 +1,3 @@
-// Generic icons: re-exported straight from lucide-react (the product's own
-// icon library — apps/desktop/src/brand's own rule is "lucide-react only,
-// no emojis"; this page follows the same convention). Renamed on the way
-// out so call sites read by intent, not by lucide's own naming.
-//
-// OS-brand marks (Apple/Windows/Android) are hand-drawn below: lucide is a
-// generic UI-icon set, not a brand-logo library, so there's no lucide
-// equivalent for these three.
 export {
   Download as DownloadIcon,
   SearchCheck as SearchListIcon,

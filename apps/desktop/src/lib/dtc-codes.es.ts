@@ -1,13 +1,3 @@
-// Spanish translation of DTC_LIBRARY (lib/dtc.ts) — the same ~30 curated
-// entries, same keys (enforced by DtcCode: TS fails the build if this
-// drifts from the English source, same key-safety pattern as en.ts/es.ts).
-//
-// Part of Phase 3 (docs/workflows/i18n/plan.md): this is automotive
-// technical content, not UI chrome. Translated with real automotive
-// terminology in mind, but this is an AI-assisted first draft — the plan
-// explicitly calls for a human review pass on this file before it's
-// trusted in front of real mechanics, same as it would for any technical
-// translation. Flagging that here, not silently shipping it as gospel.
 import type { DtcCode, DtcInfo } from "./dtc";
 
 export const DTC_LIBRARY_ES: Record<DtcCode, DtcInfo> = {

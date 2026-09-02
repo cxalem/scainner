@@ -1,7 +1,3 @@
-// Overview — what the app knows about this car right now, and what it
-// thinks you should do about it. Scene + verdict up top, four stat tiles,
-// fuel and recent sessions below. Every section is a <Block> so the page
-// stagger and sibling reflow come from the shared motion vocabulary.
 import { Suspense, lazy, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
@@ -26,15 +22,10 @@ import { useLocale, useT } from "@/i18n";
 import { discoveryRunId, showDiscoveryBanner } from "@/lib/discovery-notice";
 import type { DiscoveryStatus } from "@scainner/core";
 
-// Code-split: three.js only loads once the scene actually mounts.
 const VehicleScene = lazy(() =>
   import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })),
 );
 
-// Fixed, not h-full: with the grid no longer stretching this cell to match
-// its sibling (see hero() below), the frame needs its own definite height
-// for the WebGL canvas to size against — h-full has nothing to resolve
-// against once the parent's height is content-driven instead of stretched.
 const SCENE_CLASS = "h-[190px] rounded-none";
 
 function SceneCard({ status, vin }: { status: SceneStatus; vin: string | null }) {
@@ -61,11 +52,8 @@ export function Overview({
   onNavigate,
 }: {
   connState?: string;
-  /** The vehicle every view shows — resolved once in App.tsx. */
   vehicleId?: number | null;
-  /** VIN for the brand emblem (VehicleScene decodes make from it). */
   vin?: string | null;
-  /** The automatic sensor run, off the conn-status broadcast. */
   discovery?: DiscoveryStatus | null;
   onNavigate?: (view: "diagnose" | "live" | "lab") => void;
 }) {
@@ -77,18 +65,10 @@ export function Overview({
   const sceneStatus: SceneStatus =
     connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
   const reportQuery = useVehicleReport(vehicleId);
-  // Dismissal is per run, not per session: the next run blocks live data
-  // all over again, so it earns the banner again (lib/discovery-notice.ts).
   const [dismissedRun, setDismissedRun] = useState<string | null>(null);
   const scanBanner = showDiscoveryBanner(discovery, dismissedRun);
-  // Every branch below returns through this, so the banner sits at the top
-  // of the content area whatever state the report itself is in — the scan
-  // is the reason several of those states look empty.
   const withScanBanner = (content: ReactNode) => (
     <>
-      {/* Reveal, not Block: the banner appears mid-session, not with the
-          page, so it fades in on its own rather than joining the entrance
-          stagger — same shape as UpdateBanner. */}
       <Reveal when={scanBanner} mode="fade">
         <Banner
           tone="info"
@@ -116,12 +96,6 @@ export function Overview({
   );
 
   const hero = (right: ReactNode) => (
-    // items-start, not items-stretch: the verdict card's line count varies
-    // (1 sentence to 5 bullets), and stretching the scene card to match
-    // turns its 300×190 landscape frame into a near-square or portrait
-    // box — the emblem's camera is tuned for landscape, so a stretched
-    // frame renders it as a thin vertical sliver instead of the full mark.
-    // Left top-aligned at its own min-height; the right card grows freely.
     <Block className="grid items-start gap-4" style={{ gridTemplateColumns: "300px 1fr" }}>
       <SceneCard status={sceneStatus} vin={vin} />
       {right}
@@ -136,7 +110,6 @@ export function Overview({
     </Block>
   );
 
-  // Still discovering whether any vehicle exists at all.
   if (vehiclesQuery.isPending) {
     return withScanBanner((
       <>
@@ -163,7 +136,6 @@ export function Overview({
     ));
   }
 
-  // Connected, but this car answered no VIN: name it to create its row.
   if (connState === "connected" && vehicleId == null) {
     return withScanBanner(hero(
       <Card className="justify-center">
@@ -204,7 +176,6 @@ export function Overview({
     ));
   }
 
-  // Confirmed empty: the fetch succeeded and found nothing.
   if (vehicleId == null) {
     return withScanBanner(hero(
       <Card className="justify-center">
@@ -272,9 +243,6 @@ export function Overview({
         : t.overview.verdict.headIssues(verdicts.filter((v) => v.status !== "good").length);
   const scanNote =
     report.scans_total > 0 ? t.overview.verdict.scanNote(report.scans_total, report.last ? formatWhen(report.last, locale) : null) : t.overview.verdict.noScanNote;
-  // One compact line about the scan specifically (not the full per-check
-  // detail list, which Diagnose already owns) — the fault-record verdict
-  // buildVerdicts also computes, reused directly rather than duplicated.
   const scanInfo =
     report.scans_total > 0
       ? {
@@ -305,13 +273,6 @@ export function Overview({
 
   return withScanBanner((
     <>
-      {/* h-[190px], not h-full: matches SCENE_CLASS's own fixed height now
-          that the grid is items-start (each cell sizes to its own content,
-          see hero() below) — two independent-height cards side by side
-          need an explicit shared height, not mutual stretching, or one
-          crops the other's aspect (2026-08-30). justify-between spreads
-          the now-shorter content across that height instead of leaving it
-          bunched in the middle with dead space top and bottom. */}
       {hero(
         <Card className="h-[190px] justify-between gap-3 px-[18px] py-4">
           <div className="flex flex-col gap-3">
@@ -319,11 +280,6 @@ export function Overview({
               <Pill variant={chip.variant} className="text-[11px]">{chip.text}</Pill>
               <span className="text-[12px] text-neutral-500">{scanNote}</span>
             </div>
-            {/* A quick overview, not a report: headline + one line about
-                the scan specifically. The full per-check detail list
-                (buildVerdicts' other lines: engine/cooling/battery/turbo)
-                stays out of this card — too much for a glanceable summary;
-                Diagnose already owns the itemized version (2026-08-30). */}
             <div className="max-w-[38ch] text-[19px] leading-[1.35]">{headline}</div>
             {scanInfo && (
               <div className="flex items-start gap-2 text-[13px] leading-[1.5]">
@@ -371,9 +327,6 @@ export function Overview({
           ) : (
             report.sessions.slice(0, 5).map((s) => (
               <div key={s.id} className="flex items-baseline gap-[11px] text-[12.5px]">
-                {/* min-w, not w: toLocaleString's real output ("Aug 25,
-                    6:31 PM") runs longer than the design's terse "14:02" —
-                    a fixed w would paint over the text beside it. */}
                 <Mono className="min-w-[74px] shrink-0 text-[11.5px] text-neutral-500">{formatWhen(s.started_at, locale)}</Mono>
                 <span className="text-neutral-300">{t.overview.sessions.row(s.minutes, s.readings)}</span>
               </div>

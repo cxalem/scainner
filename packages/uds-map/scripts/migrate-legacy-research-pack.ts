@@ -1,27 +1,3 @@
-// One-off migration: a pre-specification research package -> a
-// specification-shaped authoring directory.
-//
-// Two brand packages (`docs/product/research/<brand>-deep-research-v1/`)
-// were written before `docs/uds/brand-research-pack-specification.md`
-// existed. They carried the same knowledge in a different shape: no
-// manifest hashes, `0x`-prefixed addresses, packed `730/748` route
-// alternatives, a private protocol vocabulary, a single `decode` per DID
-// and no `claims[]`. Two Python scripts used to fold them straight into
-// `data/research/existing-brand-hypotheses-v3.json`.
-//
-// This script replaces those scripts. It reads one legacy directory and
-// writes `<brand>-deep-research-v2/` in the canonical shape, so the normal
-// pipeline (`research:validate` -> `research:compile`) owns them from here
-// on. It is kept in the tree for provenance: it is the record of how the
-// v1 content became v2, and it is deterministic, so the output can be
-// regenerated and diffed.
-//
-//   node --experimental-strip-types scripts/migrate-legacy-research-pack.ts \
-//     --brand seat \
-//     --input ../../docs/product/research/seat-deep-research-v1 \
-//     --output ../../docs/product/research/seat-deep-research-v2
-//
-// Normative contract for the output: docs/uds/brand-research-pack-specification.md.
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
@@ -29,22 +5,9 @@ import { validateResearchPack } from "./research-pack.ts";
 
 type Json = Record<string, any>;
 
-/** The day this migration ran and every GitHub blob below was re-resolved. */
 const MIGRATION_DATE = "2026-09-02";
 
-// ------------------------------------------------------------ configuration
 
-/**
- * A GitHub source the legacy ledger cited by branch (or by repository root)
- * with the blob digest hidden in a prose `revision` field. Each `sha` here
- * was resolved with
- * `gh api repos/<owner>/<repo>/contents/<path> --jq .sha` on
- * MIGRATION_DATE and matched the digest the legacy package already
- * recorded, so pinning changes the URL, never the evidence.
- *
- * `execution_eligible` is specification §15's gate: only these sources can
- * authorize a route or a DID for automatic execution.
- */
 type GitSource = { repo: string; path: string; sha: string; execution_eligible: boolean; source_type?: string };
 
 type DidScope =
@@ -53,11 +16,8 @@ type DidScope =
   | { kind: "excluded"; reason: string };
 
 type RouteArray = {
-  /** Key of the array inside the legacy `ecu-routes.json`. */
   key: string;
-  /** Route id prefix, kept from the legacy delta so ids stay recognizable. */
   prefix: string;
-  /** `catalogue` = every CAN platform in the pack; `record` = the record's own `platform`. */
   scope: "catalogue" | "record";
 };
 
@@ -66,30 +26,18 @@ type BrandConfig = {
   brand_ids: string[];
   marques: string[];
   brand_label: string;
-  /** Prefix for candidate ids and derived route ids. */
   id_prefix: string;
   git_sources: Record<string, GitSource>;
   route_arrays: RouteArray[];
   did_scopes: Record<string, DidScope>;
-  /** Legacy platform key -> marque, when the legacy record names one. */
   claims: Json[];
-  /** Legacy `decode.formula` records this migration converted by hand. */
   formula_decodes: Record<string, Json>;
   readme_notes: string[];
 };
 
-/**
- * Legacy `decode` blocks whose arithmetic lived in a `formula` string. The
- * canonical language has only `scale`/`bias`, so each one was solved once,
- * by hand, and recorded here rather than parsed: a wrong parse of a source
- * formula is a wrong sensor reading.
- */
 const SEAT_FORMULA_DECODES: Record<string, Json> = {
-  // OVMS: raw / 4.0
   "1E3B": { offset: 0, len: 2, encoding: "be", signed: false, scale: 0.25, bias: 0, unit: "V", quantity: "voltage", label: "HV battery voltage" },
-  // OVMS: ((raw - 2044.0) / 4.0) * -1  ->  -0.25 * raw + 511
   "1E3D": { offset: 0, len: 2, encoding: "be", signed: false, scale: -0.25, bias: 511, unit: "A", quantity: "current", label: "HV battery current" },
-  // OVMS: raw / 2.5
   "028C": { offset: 0, len: 1, encoding: "be", signed: false, scale: 0.4, bias: 0, unit: "%", quantity: "state_of_charge", label: "HV battery absolute state of charge" },
 };
 
@@ -108,9 +56,6 @@ const CONFIG: Record<string, BrandConfig> = {
       S05: { repo: "commaai/opendbc", path: "opendbc/car/volkswagen/values.py", sha: "9a7851b662dd94df155057ad80c4a00f67b630d8", execution_eligible: true, source_type: "open_source_implementation" },
       S06: { repo: "openvehicles/Open-Vehicle-Monitoring-System-3", path: "vehicle/OVMS.V3/components/vehicle_vweup/src/vweup_obd.h", sha: "1a79c553654b4b981c162b6cbb740c9784408d96", execution_eligible: true, source_type: "open_source_implementation" },
       S07: { repo: "openvehicles/Open-Vehicle-Monitoring-System-3", path: "vehicle/OVMS.V3/components/vehicle_vweup/src/vweup_obd.cpp", sha: "e0f36c1f02067ce022c7d65fdd9689b009f32f28", execution_eligible: true, source_type: "open_source_implementation" },
-      // The six SEAT model repositories share one empty-signalset blob.
-      // Pinning it makes "the source was empty at this revision" checkable;
-      // it stays execution-ineligible because emptiness authorizes nothing.
       S27: { repo: "OBDb/Seat-Ateca", path: "signalsets/v3/default.json", sha: "7176ccfbcd8055c9fb74a97f35ef5f197efd1f53", execution_eligible: false, source_type: "source_state_record" },
     },
     route_arrays: [
@@ -358,7 +303,6 @@ const CONFIG: Record<string, BrandConfig> = {
   },
 };
 
-// ------------------------------------------------------------------ helpers
 
 const hex = (value: string): string => (value.toLowerCase().startsWith("0x") ? value.slice(2) : value).toUpperCase();
 const slug = (value: string): string =>
@@ -367,21 +311,8 @@ const slug = (value: string): string =>
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-/** `normalized_vehicle_fact` in research.rs, so model ids match what the runtime compares. */
 const modelId = (value: string): string => slug(value);
 
-/**
- * Legacy vocabulary -> specification §4 `knowledge_state`.
- *
- * Nothing here maps to `community_verified`: that state means the same
- * finding reproduced across two or more vehicles, which only the fleet
- * promotion gate can establish. A source being operational, exact or
- * physically tested by its own author says how good the source is, not how
- * widely the finding was reproduced, so it stays `community_reported` and
- * the quality lives in `reliability` / `source_fidelity`. The validator
- * rejects the state outright, and `assertNoFleetPromotion` below is the
- * migrator's own guard.
- */
 const KNOWLEDGE_STATE: Record<string, string> = {
   source_confirmed: "community_reported",
   source_confirmed_model_scoped: "community_reported",
@@ -399,7 +330,6 @@ const KNOWLEDGE_STATE: Record<string, string> = {
   oem_confirmed: "oem_confirmed",
 };
 
-/** No authored record may claim fleet verification. */
 function assertNoFleetPromotion(records: Json[], kind: string): void {
   for (const record of records) {
     if (record.knowledge_state === "community_verified") {
@@ -408,12 +338,6 @@ function assertNoFleetPromotion(records: Json[], kind: string): void {
   }
 }
 
-/**
- * §9.2: a platform with no VIN descriptor rule must say so in a gap record,
- * or the pack is silently unclassifiable. The validator matches on the gap's
- * `kind` and `scope.platform_ids`, so this guard checks exactly what it
- * reads rather than the gap id.
- */
 function assertEveryPlatformIsClassifiedOrDeclared(platforms: Json[], gaps: Json[]): void {
   const declared = new Set<string>();
   for (const gap of gaps) {
@@ -428,7 +352,6 @@ function assertEveryPlatformIsClassifiedOrDeclared(platforms: Json[], gaps: Json
 const knowledgeState = (legacy: string | undefined, fallback = "research_candidate"): string =>
   (legacy && KNOWLEDGE_STATE[legacy]) || fallback;
 
-/** Legacy transport words -> the two closed §8 vocabularies. */
 const RUNTIME_TRANSPORT: Record<string, string> = {
   can11: "can11_500",
   can11_500: "can11_500",
@@ -447,12 +370,6 @@ const DOCUMENTED_TRANSPORT: Record<string, string[]> = {
   do_not_assume_uds: [],
 };
 
-/**
- * A plausibility window per unit, so a converted decoder can be projected at
- * all: the compiler defers any variant without a `valid_range`. These are
- * project-side sanity bounds, not source claims, and a unit this table does
- * not know deliberately leaves the variant documentation-only.
- */
 const VALID_RANGE: Record<string, { min: number; max: number }> = {
   V: { min: 0, max: 1000 },
   A: { min: -1000, max: 1000 },
@@ -468,7 +385,6 @@ const VALID_RANGE: Record<string, { min: number; max: number }> = {
   radian: { min: -12, max: 12 },
 };
 
-/** Legacy `encoding` shorthand -> canonical `{len, encoding, signed}`. */
 function encodingOf(value: unknown): { len: number; encoding: string; signed: boolean } | null {
   if (typeof value !== "string") return null;
   const match = /^([us])(\d+)(?:_(be|le))?$/.exec(value.toLowerCase());
@@ -478,7 +394,6 @@ function encodingOf(value: unknown): { len: number; encoding: string; signed: bo
   return { len: bits / 8, encoding: match[3] === "le" ? "le" : "be", signed: match[1] === "s" };
 }
 
-/** Which validation recipe a candidate's own words ask for. */
 const RECIPE_KEYWORDS: Array<[RegExp, string]> = [
   [/wheel.*speed|speed.*wheel/, "wheel_speed"],
   [/steering/, "steering_angle"],
@@ -492,11 +407,9 @@ const RECIPE_KEYWORDS: Array<[RegExp, string]> = [
 
 const readJson = (dir: string, name: string): Json => JSON.parse(readFileSync(join(dir, name), "utf8")) as Json;
 
-/** Sorted stable JSON so a re-run is a no-op diff. */
 const writeJson = (dir: string, name: string, value: unknown): void =>
   writeFileSync(join(dir, name), `${JSON.stringify(value, null, 2)}\n`);
 
-/** `730/748 -> 79A/7B2` is two routes, never one record (§8). */
 function expandAlternatives(entries: Json[]): Json[] {
   const out: Json[] = [];
   for (const entry of entries) {
@@ -508,7 +421,6 @@ function expandAlternatives(entries: Json[]): Json[] {
   return out;
 }
 
-/** `2004-2013 depending model`, `2017+`, `pre-2008 / holdover` -> §7 year bounds. */
 function yearsOf(era: unknown): { from: number | null; to: number | null } | undefined {
   if (typeof era !== "string") return undefined;
   const years = [...era.matchAll(/\b(19|20)\d{2}\b/g)].map((m) => Number(m[0]));
@@ -520,7 +432,6 @@ function yearsOf(era: unknown): { from: number | null; to: number | null } | und
   return { from: min, to: max };
 }
 
-// ------------------------------------------------------------------- sources
 
 function buildSources(legacy: Json[], config: BrandConfig): { sources: Json[]; immutable: Set<string> } {
   const immutable = new Set<string>();
@@ -540,8 +451,6 @@ function buildSources(legacy: Json[], config: BrandConfig): { sources: Json[]; i
       execution_eligible: false,
     };
     if (git) {
-      // §15: the digest goes inside the URL, so "which bytes" is not a
-      // second field a reader has to trust.
       record.url = `https://github.com/${git.repo}/blob/${git.sha}/${git.path}`;
       record.revision = git.sha;
       record.retrieved_at = MIGRATION_DATE;
@@ -554,15 +463,12 @@ function buildSources(legacy: Json[], config: BrandConfig): { sources: Json[]; i
       record.notes = "Project baseline reference; never a research source for a route or a DID.";
       return record;
     }
-    // No revision to pin: publication/retrieval dates are all the source
-    // offers, so it can document but never authorize.
     record.notes = "No immutable revision available; documentation-only under specification §15.";
     return record;
   });
   return { sources, immutable };
 }
 
-// ----------------------------------------------------------------- platforms
 
 function buildPlatforms(legacy: Json[], config: BrandConfig): Json[] {
   return legacy.map((platform) => {
@@ -592,8 +498,6 @@ function buildPlatforms(legacy: Json[], config: BrandConfig): Json[] {
       gateway_architecture: null,
       security_behavior: [],
       classification_evidence: [],
-      // §9 and the pipeline's platform bridge: a pack cannot make itself
-      // VIN-selectable. Every platform ships an explicit gap instead.
       vds_patterns: [],
       confidence: evidence.confidence ?? platform.confidence ?? "medium",
       knowledge_state: knowledgeState(evidence.knowledge_state, platform.brand ? "community_reported" : "research_candidate"),
@@ -608,9 +512,7 @@ function buildPlatforms(legacy: Json[], config: BrandConfig): Json[] {
   });
 }
 
-// -------------------------------------------------------------------- routes
 
-/** Address pair plus scope: the key a candidate or an evidence record joins on. */
 type RouteKey = string;
 
 function main(): void {
@@ -678,7 +580,6 @@ function main(): void {
     };
   };
 
-  // ---- routes -------------------------------------------------------------
   const routes: Json[] = [];
   const routeByKey = new Map<RouteKey, Json>();
   const usedRouteIds = new Set<string>();
@@ -708,9 +609,6 @@ function main(): void {
       for (const service of options.readServices) if (!existing.read_services.includes(service)) existing.read_services.push(service);
       return existing;
     }
-    // §8: only an explicit "ISO-TP UDS over 11-bit CAN" label becomes a
-    // runtime transport. Anything else keeps its words and never generates
-    // traffic.
     const isoTpUds = options.protocolLabel === null || /^can11_isotp_uds(_candidate)?$/.test(options.protocolLabel);
     const elevenBit = Number.parseInt(options.req, 16) <= 0x7ff && Number.parseInt(options.resp, 16) <= 0x7ff;
     const protocol = isoTpUds && elevenBit ? "can11_500" : "unknown";
@@ -757,8 +655,6 @@ function main(): void {
         req: hex(entry.req),
         resp: hex(entry.resp),
         protocolLabel: entry.protocol ?? null,
-        // The legacy arrays state no service; every citing source is a
-        // service-22 catalogue, and §16 forbids anything but a read.
         readServices: ["22"],
         sourceRefs: entry.source_refs ?? [],
         confidence: entry.confidence ?? "medium",
@@ -771,7 +667,6 @@ function main(): void {
     }
   }
 
-  // ---- DID candidates -----------------------------------------------------
   const candidates: Json[] = [];
   const usedCandidateIds = new Set<string>();
   const excluded: Json[] = [];
@@ -783,13 +678,6 @@ function main(): void {
     return null;
   };
 
-  /**
-   * The legacy `decode` object -> a §12 decoder variant, or nothing. The
-   * legacy shape had three dialects (canonical-ish `encoding`+`scale`, a
-   * `formula` string, and a bit-oriented `len_bits`/`mul`/`div` form). Only
-   * what maps exactly is converted; the rest is preserved verbatim beside
-   * the candidate and reported as a gap.
-   */
   const signalsOf = (decode: Json, did: string): Json[] | null => {
     const byHand = config.formula_decodes[did];
     if (byHand) return [byHand];
@@ -938,7 +826,6 @@ function main(): void {
     });
   }
 
-  // ---- command-support evidence ------------------------------------------
   const evidence: Json[] = [];
   const usedEvidenceIds = new Set<string>();
   for (const record of legacyEvidence.negative_records ?? []) {
@@ -981,8 +868,6 @@ function main(): void {
       vehicle_state: "not_recorded_by_source",
       attempts: null,
       outcome: {
-        // The source records a support matrix, not a raw frame: the vehicle
-        // was asked and did not support the identifier.
         status: "unsupported",
         nrc: null,
         payload_hex: null,
@@ -1017,7 +902,6 @@ function main(): void {
     });
   }
 
-  // ---- families and inventories ------------------------------------------
   const routeIdsByPair = new Map<string, string[]>();
   for (const route of routes) {
     const pair = `${route.route.req}->${route.route.resp}`;
@@ -1061,8 +945,6 @@ function main(): void {
       models: [modelId(inventory.vehicle)],
     },
     kind: "source_module_inventory",
-    // The legacy records list the manufacturer's own address bytes, not
-    // request/response pairs, so no route id can be claimed here.
     route_ids: [],
     address_bytes_seen: inventory.addresses ?? [],
     vehicle_description: inventory.vehicle,
@@ -1071,7 +953,6 @@ function main(): void {
     physical_project_observation: false,
   }));
 
-  // ---- validation plan ----------------------------------------------------
   const recipes: Json[] = [];
   const seenRecipes = new Set<string>();
   const pushRecipe = (id: string, kind: string, state: string, instructions: string[], expected: string[]) => {
@@ -1087,11 +968,6 @@ function main(): void {
       promotion_result: "vehicle_fit_matched",
     });
   };
-  // The two legacy plans name the same handful of tests in different words.
-  // A legacy test takes the keyword id a candidate will reference when that
-  // id is still free, so the recipe a candidate points at is the one with
-  // real instructions; anything left over keeps its own id rather than
-  // being merged away.
   const legacyTests: Array<{ words: string; instruction: string }> = [
     ...(legacyPlan.recommended_human_tests ?? []).map((test: Json) => ({ words: `${test.signal} ${test.test}`, instruction: String(test.test) })),
     ...(legacyPlan.human_tests ?? []).map((test: unknown) => ({ words: String(test), instruction: String(test) })),
@@ -1104,7 +980,6 @@ function main(): void {
       "the value returns to its resting state when the action stops",
     ]);
   }
-  // Every keyword id a candidate can reference must exist as a recipe.
   for (const [, id] of RECIPE_KEYWORDS) {
     pushRecipe(id, "cross_reference", "stationary", [`Compare the candidate value against an independent reference for ${id.replace(/_/g, " ")}.`], [
       "the value stays within the plausibility window recorded on the decoder variant",
@@ -1121,7 +996,6 @@ function main(): void {
     promotion_rules: legacyPlan.promotion_rules ?? {},
   };
 
-  // ---- safety policy ------------------------------------------------------
   const legacyBudgets: Json = legacyPolicy.request_budgets ?? {};
   const wallclockSeconds = Number(legacyBudgets.global?.max_wallclock_ms ?? 0) / 1000;
   const safety = {
@@ -1136,9 +1010,6 @@ function main(): void {
       passive_capture: "attempt only if the adapter reliably monitors the active pins; otherwise passive_capture_unavailable",
     },
     never_automatic_services: ["10_non_default", "11", "14", "27", "28", "2E", "2F", "31", "34", "35", "36", "37", "3D"],
-    // §17: only a narrowing survives the migration. The legacy files spoke
-    // in request counts and milliseconds; the one budget that maps onto a
-    // central ceiling is the whole-connection wall clock.
     brand_budget_reductions: wallclockSeconds > 0 && wallclockSeconds < 600 ? { whole_automatic_connection_seconds: wallclockSeconds } : {},
     brand_request_budgets: legacyBudgets,
     "29bit_policy": {
@@ -1158,7 +1029,6 @@ function main(): void {
     legacy_transport_detection: legacyPolicy.transport_detection ?? null,
   };
 
-  // ---- conflicts and gaps -------------------------------------------------
   const conflicts = (legacyConflicts.conflicts ?? []).map((conflict: Json) => {
     const record: Json = {
       conflict_id: conflict.id,
@@ -1167,8 +1037,6 @@ function main(): void {
       resolution: conflict.resolution,
       source_refs: conflict.source_refs ?? [],
     };
-    // The v1 README stated the steering split in prose. Name both routes so
-    // the conflict is checkable rather than readable.
     const steering = routes.filter((route) => route.module_role === "steering_assist" && route.route.req === "712");
     if (conflict.id === "seat_eps_route_712" && steering.length > 1) {
       record.route_ids = steering.map((route) => route.route_id).sort();
@@ -1188,10 +1056,6 @@ function main(): void {
       source_refs: [],
     });
   }
-  // §9.2: neither legacy package carried a VIN descriptor rule, so every
-  // platform declares the limit rather than leaving it to be inferred. The
-  // validator reads `kind` and `scope.platform_ids`, not the id, so both
-  // must be present for the gap to count as the declaration.
   for (const platform of platforms) {
     gaps.push({
       gap_id: `${platform.platform_id}_platform_not_vin_selectable`,
@@ -1235,7 +1099,6 @@ function main(): void {
     source_refs: [],
   });
 
-  // ---- overlay, playbook, manifest ---------------------------------------
   const overlay = {
     schema_version: 1,
     artifact_type: "brand_research_hypothesis_overlay",
@@ -1260,8 +1123,6 @@ function main(): void {
 
   const playbook = { schema_version: 1, ...legacyPlaybook };
 
-  // Both guards run before anything is written: a migration that would
-  // produce an invalid pack leaves the previous output untouched.
   for (const [kind, records] of [["route", routes], ["candidate", candidates], ["platform", platforms], ["ecu family", families], ["claim", config.claims]] as Array<[string, Json[]]>) {
     assertNoFleetPromotion(records, kind);
   }
@@ -1335,9 +1196,6 @@ function main(): void {
     validation: { status: "pending", errors: [], warnings: [] },
   };
   writeJson(output, "index.json", index);
-  // The manifest records what `research:validate` said about the directory
-  // it describes. index.json excludes itself from hashing, so recording the
-  // verdict cannot invalidate the manifest it sits in.
   const verdict = validateResearchPack(output);
   index.validation = { status: verdict.failures.length ? "invalid" : "valid", errors: verdict.failures, warnings: verdict.warnings };
   writeJson(output, "index.json", index);
@@ -1363,7 +1221,6 @@ function readOptional(dir: string, name: string): Json {
 function readme(config: BrandConfig, brand: string, input: string, counts: Record<string, number>): string {
   return `# ${config.brand_label} deep research v2
 
-**Pack id:** \`${config.pack_id}\` · **Pack version:** 2 · **Migrated:** ${MIGRATION_DATE}
 **Authoring contract:** [UDS brand research pack specification](../../../uds/brand-research-pack-specification.md) v1.0
 
 This directory carries the same research as \`${basename(input)}\`, rewritten

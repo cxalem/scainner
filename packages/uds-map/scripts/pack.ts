@@ -1,7 +1,3 @@
-// Shared, dependency-free helpers for the pack scripts (coverage.ts,
-// lint.ts). Runs under `node --experimental-strip-types`, so this file uses
-// only erasable TypeScript syntax and imports the data directly rather
-// than going through src/index.ts (whose `.js` specifiers need a build).
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -39,8 +35,6 @@ export function sourceOk(s: Source | undefined): boolean {
   return !!s && typeof s.url === "string" && s.url.trim().length > 0 && typeof s.date === "string" && s.date.trim().length > 0 && !!s.type && typeof s.licence === "string" && s.licence.trim().length > 0;
 }
 
-/** Brand tokens that must not appear in code: every brand id, every word
- * of every brand name (longer than three characters), and every WMI. */
 export function brandTokens(map: UdsMap): string[] {
   const tokens = new Set<string>();
   for (const b of map.brands) {
@@ -48,7 +42,6 @@ export function brandTokens(map: UdsMap): string[] {
     for (const part of b.id.split("_")) if (part.length > 2) tokens.add(part.toLowerCase());
     for (const word of b.name.split(/[^A-Za-zÀ-ž]+/)) if (word.length > 3) tokens.add(word.toLowerCase());
   }
-  // Generic words that happen to be in brand names are not brand tokens.
   for (const generic of ["group", "platform", "shared", "diagnostic", "stack", "before", "onward", "from", "incl", "and", "europe", "north", "america"]) {
     tokens.delete(generic);
   }
@@ -119,9 +112,6 @@ export function decodeShape(d: Decode): string {
   return `${d.encoding}${d.signed ? "/signed" : ""}${d.encoding === "bitfield" ? `[${d.bit_offset}+${d.bit_len}]` : ""}`;
 }
 
-// ---- research candidate packs (data/research/*.json, listed by data/research-packs.json)
-// Research is evidence about where to look, never trusted knowledge, so it is
-// counted separately from the map above and never merged into `brandStats`.
 
 export type ResearchPack = {
   pack_id: string;
@@ -153,13 +143,11 @@ export function loadResearchPacks(): ResearchPack[] {
   return index.packs.map((name) => JSON.parse(readFileSync(join(PKG_DIR, "data", name), "utf-8")) as ResearchPack);
 }
 
-/** A candidate the pack itself marks as never-to-be-requested: preserved evidence, not a read. */
 function isNegativeEvidence(did: string | { support_status?: string; automatic_execution_authorized?: boolean }): boolean {
   if (typeof did === "string") return false;
   return did.automatic_execution_authorized === false || did.support_status === "unsupported" || did.support_status === "explicitly_unsupported_on_test_vehicle";
 }
 
-/** Per-brand research totals, keyed by brand id, in the packs' listed order. */
 export function researchStats(packs: ResearchPack[] = loadResearchPacks()): Map<string, ResearchBrandStats> {
   const stats = new Map<string, ResearchBrandStats>();
   for (const pack of packs) {

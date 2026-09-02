@@ -1,26 +1,11 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "./theme/tokens.css";
-/* shadcn/ui's own base layer: `shadcn/tailwind.css` carries the data-*
-   variants and utilities its components are written against, `tw-animate-css`
-   the enter/exit keyframes they use. Both are purely additive — they declare
-   variants and utilities, they restyle nothing — which is why they can sit
-   over this app's token layer without touching a single existing component.
-   The Sonda font stays Inter; the CLI's Geist import was removed. */
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* shadcn components are written for a `.dark` ancestor. This app is
-   single-theme light and never sets that class (see main.tsx), so the dark
-   values below are inert today and exist so a shadcn component dropped on
-   the one dark ground the brand has renders in Sonda's dark voice. */
 @custom-variant dark (&:is(.dark *));
 
-/* Tailwind v4 theme mapping. The values live in theme/tokens.css — this
-   block only names them for the utility layer (`bg-surface`, `text-accent-300`,
-   `border-divider`, `shadow-md`, `rounded-lg`, `font-heading`). `inline` so
-   utilities reference the token variable directly, which keeps a runtime
-   token change (a future theme switch) live without a rebuild. */
 @theme inline {
   --color-*: initial;
 
@@ -71,21 +56,6 @@
   --color-white: var(--surface);
   --color-transparent: transparent;
 
-  /* --- the shadcn/ui bridge -------------------------------------------
-     shadcn components are written against a fixed set of semantic role
-     names (background/foreground/card/popover/primary/…). They are NOT a
-     second palette: every one resolves to a Sonda token from
-     theme/tokens.css, so a component installed from the registry comes out
-     in the brand's colours with no restyling. These names also happen to be
-     the ones the pre-redesign views used, which is why some of them already
-     existed here.
-
-     One collision, on purpose: shadcn's `accent` role means "a subtle hover
-     surface", while this app's `accent` is the solid blurple and 90-odd call
-     sites already depend on that. The app's meaning wins. A shadcn component
-     that reaches for `hover:bg-accent` should be edited in
-     components/ui/ to use `bg-accent-900` instead — see
-     docs/redesign/03-shadcn.md. */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -98,8 +68,6 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  /* `--color-accent` stays the solid blurple above; only the foreground
-     that pairs with it is new. */
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -143,7 +111,6 @@
 }
 
 :root {
-  /* Single-theme app (light). Native controls follow the app, not the OS. */
   color-scheme: light;
 }
 
@@ -176,19 +143,16 @@ a:hover { color: var(--accent-300); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-/* Numbers are the app's strongest visual signature: monospace, tabular. */
 @utility num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* A rule that fades out to the right — used under section labels. */
 @utility rule-fade {
   height: 1px;
   background: linear-gradient(90deg, var(--divider), transparent);
 }
 
-/* — ambient motion (CSS-driven; discrete appear/leave motion is framer) — */
 @keyframes sc-glow {
   0%, 100% { opacity: 0.45; transform: scale(1); }
   50% { opacity: 0.75; transform: scale(1.06); }

@@ -1,20 +1,3 @@
-// @scainner/uds-map — a queryable knowledge map of manufacturer-specific
-// UDS (ISO 14229) diagnostic addresses and DID ranges, keyed by VIN.
-//
-// This is a straight, deliberate port of the query functions in
-// apps/desktop/src-tauri/src/elm/uds_map.rs, the Rust engine that reads
-// the SAME data/uds-map.json this package ships. Keep the two in sync by
-// hand when the query logic changes — see that file's doc comment for the
-// full design rationale ("no hardcoded values anywhere": every per-brand
-// fact lives in the data file, never in code; no brand is named in code).
-//
-// READ-ONLY BY DESIGN. This package answers "what address/DID should I
-// try for this VIN" — it does not talk to a car. Confidence levels
-// (`confirmed`/`high`/`medium`/`low`) reflect how independently verified
-// each entry is; treat `medium`/`low` as a starting point to confirm on
-// real hardware, not a guarantee. See RESEARCH.md for full per-brand
-// provenance and known gaps, and COVERAGE.md (generated) for what the
-// pack holds per brand.
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,7 +28,6 @@ function dataDir(): string {
   return join(dirname(fileURLToPath(import.meta.url)), "..", "data");
 }
 
-/** The full parsed map. Cached after first read. */
 export function getMap(): UdsMap {
   if (cached) return cached;
   const raw = readFileSync(join(dataDir(), "uds-map.json"), "utf-8");
@@ -53,9 +35,6 @@ export function getMap(): UdsMap {
   return cached;
 }
 
-/** Every knowledge overlay pack under data/packs/ (sorted by file name).
- * Overlays carry their own licence and provenance and are consulted after
- * the main map for module-scoped lookups. */
 export function overlayPacks(): OverlayPack[] {
   if (cachedPacks) return cachedPacks;
   const dir = join(dataDir(), "packs");
@@ -66,24 +45,16 @@ export function overlayPacks(): OverlayPack[] {
   return cachedPacks;
 }
 
-/** Parse a 16-bit hex value — used for DIDs, which span the full
- * 0000-FFFF range. NOT for CAN addresses: use `can11` for those, which
- * additionally enforces the 11-bit range. */
 export function hex16(s: string): number | undefined {
   const v = Number.parseInt(s.trim(), 16);
   return Number.isNaN(v) ? undefined : v;
 }
 
-/** Parse an 11-bit CAN address. Returns undefined for 29-bit extended
- * addresses — real, correctly recorded in the map, but not what an
- * 11-bit-only sweeper can address; see `extendedModulesForVin` for
- * surfacing those honestly instead of silently dropping them. */
 export function can11(s: string): number | undefined {
   const v = Number.parseInt(s.trim(), 16);
   return Number.isNaN(v) || v > 0x7ff ? undefined : v;
 }
 
-/** Any hex width — for 29-bit addresses and general validation. */
 export function hexAny(s: string): number | undefined {
   const v = Number.parseInt(s.trim(), 16);
   return Number.isNaN(v) ? undefined : v;
@@ -108,28 +79,18 @@ function wmiOf(vin: string | null | undefined): string | undefined {
   return vin.slice(0, 3).toUpperCase();
 }
 
-/** The brand entry whose WMI list contains this VIN's first three
- * characters. undefined for an unknown or absent VIN — callers then
- * fall back to every brand's data (slower, still bounded) rather than
- * guessing at one. */
 export function brandForVin(vin: string | null | undefined): Brand | undefined {
   const wmi = wmiOf(vin);
   if (!wmi) return undefined;
   return getMap().brands.find((b) => b.wmi.some((w) => w.toUpperCase() === wmi));
 }
 
-/** Overlay brand entries whose WMI list contains this VIN's prefix. */
 export function overlayBrandsForVin(vin: string | null | undefined): Brand[] {
   const wmi = wmiOf(vin);
   if (!wmi) return [];
   return overlayPacks().flatMap((p) => p.brands.filter((b) => b.wmi.some((w) => w.toUpperCase() === wmi)));
 }
 
-/** DID neighborhoods worth sweeping, as [from, to] pairs ordered
- * confidence-first (confirmed before high before medium before low) so a
- * cancelled or link-degraded scan still got the productive
- * neighborhoods first. Brand-specific when the VIN identifies one;
- * otherwise the union across every brand, deduplicated. */
 export function bandsForVin(vin: string | null | undefined): [number, number][] {
   const collect = (b: Brand): [number, number, number][] =>
     (b.did_bands ?? []).flatMap((d: Band) => {
@@ -153,8 +114,6 @@ export function bandsForVin(vin: string | null | undefined): [number, number][] 
   return out;
 }
 
-/** Module address pairs this brand is known to use, tried before a
- * generic sweep so a recognized car finds its real modules first. */
 export function knownModulesForVin(
   vin: string | null | undefined,
 ): { req: number; resp: number; name: string | null }[] {
@@ -169,7 +128,6 @@ export function knownModulesForVin(
   return out;
 }
 
-/** How many documented modules use 29-bit addressing. */
 export function extendedModulesForVin(vin: string | null | undefined): number {
   const brand = brandForVin(vin);
   if (!brand) return 0;
@@ -177,10 +135,6 @@ export function extendedModulesForVin(vin: string | null | undefined): number {
     .length;
 }
 
-/** The response CAN address for a request address on this brand: the
- * brand's own per-block rule when the map has one (see `RespOffset` —
- * some brands need two different rules depending on the address block),
- * else the standard fallback offset. */
 export function responseAddr(brand: Brand | undefined, req: number): number {
   if (brand) {
     for (const r of brand.resp_offsets ?? []) {
@@ -229,8 +183,6 @@ function scanStrategies(
   }
 }
 
-/** Build an evidence-driven enumeration plan: documented pairs first, then
- * only the generic addressing schemes allowed by this brand's policy. */
 export function addressesToProbe(
   vin: string | null | undefined,
 ): AddressCandidate[] {
@@ -267,22 +219,18 @@ export function addressesToProbe(
   return out;
 }
 
-/** The standardized (ISO 14229-1) identification DIDs — genuinely
- * universal, not brand-specific. */
 export function identDids(): number[] {
   return getMap()
     .standard.ident_dids.map((d) => hex16(d.did))
     .filter((v): v is number => v !== undefined);
 }
 
-/** DIDs whose payload is worth using as a module's display name, best first. */
 export function nameDids(): number[] {
   return getMap()
     .standard.name_dids.map(hex16)
     .filter((v): v is number => v !== undefined);
 }
 
-/** The DID asked when merely testing whether anything lives at an address. */
 export function presenceProbeDid(): number {
   return hex16(getMap().standard.presence_probe_did) ?? 0xf186;
 }
@@ -297,11 +245,6 @@ function knownDidCandidates(vin: string | null | undefined, did: number): KnownD
   return brands.flatMap((b) => (b.known_dids ?? []).filter((k) => hex16(k.did) === did));
 }
 
-/** A documented label (and decodes, when known) for a DID on exactly this
- * module of this brand — turns a raw discovery hit into a named sensor
- * instead of anonymous hex. A DID is not globally meaningful across a
- * vehicle, so an entry bound to another module, or to no module
- * (`binding: "unknown"`), is never returned (v9: no unscoped fallback). */
 export function knownDid(
   vin: string | null | undefined,
   did: number,
@@ -310,16 +253,10 @@ export function knownDid(
   return knownDidCandidates(vin, did).find((k) => moduleMatches(k, module));
 }
 
-/** The first documented entry for a DID on this brand regardless of
- * module binding — for browsing and research tooling only, never for
- * labelling what a specific module answered. */
 export function knownDidUnscoped(vin: string | null | undefined, did: number): KnownDid | undefined {
   return knownDidCandidates(vin, did)[0];
 }
 
-/** The scalar decode of a known DID: `decodes[0]` when present, else the
- * legacy offset/len/scale/bias fields (v8 shape). undefined when the map
- * documents only the address. */
 export function primaryDecode(known: KnownDid): Decode | undefined {
   if (known.decodes && known.decodes.length > 0) return known.decodes[0];
   const { offset, len, scale, bias } = known;
@@ -337,9 +274,6 @@ export function primaryDecode(known: KnownDid): Decode | undefined {
   };
 }
 
-/** Apply one decode to raw payload bytes (after the echoed identifier).
- * undefined when the payload is too short, or for `ascii` (use
- * `decodeString`). */
 export function decodeValue(decode: Decode, bytes: number[] | Uint8Array): number | undefined {
   const arr = Array.from(bytes);
   const { offset, len } = decode;
@@ -383,8 +317,6 @@ function signedBigInt(raw: bigint, bits: number, signed: boolean): number {
   return Number(raw);
 }
 
-/** The printable ASCII string of an `ascii` decode (or the whole payload
- * when `len` is 0). */
 export function decodeString(decode: Decode, bytes: number[] | Uint8Array): string | undefined {
   const arr = Array.from(bytes);
   const end = decode.len > 0 ? decode.offset + decode.len : arr.length;
@@ -392,29 +324,20 @@ export function decodeString(decode: Decode, bytes: number[] | Uint8Array): stri
   return String.fromCharCode(...arr.slice(decode.offset, end).filter((b) => b >= 0x20 && b < 0x7f));
 }
 
-/** Decode a KnownDid's raw byte payload with its primary decode. Returns
- * undefined when the map doesn't have a full decode formula for this DID
- * (a real, honest outcome — many entries only document the address). */
 export function decodeKnownDid(known: KnownDid, bytes: number[] | Uint8Array): number | undefined {
   const decode = primaryDecode(known);
   return decode ? decodeValue(decode, bytes) : undefined;
 }
 
-/** Every ECU family in the map (empty on maps older than v8). */
 export function ecuFamilies(): EcuFamily[] {
   return getMap().ecu_families ?? [];
 }
 
-/** The family whose hardware references contain this part reference —
- * the byte-level match the protocol calls a Strong/Weak join. */
 export function familyForHardwareRef(hardwareRef: string): EcuFamily | undefined {
   const wanted = hardwareRef.trim();
   return ecuFamilies().find((f) => f.hardware_refs.some((r) => r === wanted));
 }
 
-// ---------------------------------------------------------------------------
-// v9 accessors — the contract mirrored by uds_map.rs for Phase 2.
-// ---------------------------------------------------------------------------
 
 function moduleDef(vin: string | null | undefined, req: number, resp: number): ModuleDef | undefined {
   const brand = brandForVin(vin);
@@ -422,9 +345,6 @@ function moduleDef(vin: string | null | undefined, req: number, resp: number): M
   return brands.flatMap((b) => b.modules ?? []).find((m) => hexAny(m.req) === req && hexAny(m.resp) === resp);
 }
 
-/** Derive a route from a request/response pair alone: 11-bit ids are
- * conventional 500 kbit/s; a normal-fixed 29-bit pair (`18DA<t>F1` /
- * `18DAF1<t>`) names its target byte; any other 29-bit pair is custom. */
 export function deriveRoute(req: number, resp: number): Route {
   const hex = (v: number, width: number) => v.toString(16).toUpperCase().padStart(width, "0");
   if (req > 0x7ff || resp > 0x7ff) {
@@ -437,14 +357,10 @@ export function deriveRoute(req: number, resp: number): Route {
   return { protocol: "can11_500", req: hex(req, 3), resp: hex(resp, 3) };
 }
 
-/** The route tuple for a module: the pack's explicit route when the
- * module is documented with one, else derived from the ids. */
 export function routeForModule(vin: string | null | undefined, req: number, resp: number): Route {
   return moduleDef(vin, req, resp)?.route ?? deriveRoute(req, resp);
 }
 
-/** The identity block to read on this VIN's modules: the brand's block
- * (ISO DIDs plus vendor layouts) or the standard ISO block. */
 export function identityBlockForVin(vin: string | null | undefined): IdentityBlock {
   const brand = brandForVin(vin);
   return brand?.identity_block ?? getMap().standard.identity_block ?? { dids: [], source: standardSource() };
@@ -454,9 +370,6 @@ function standardSource() {
   return { url: "packages/uds-map/RESEARCH.md#1-what-is-in-scope", date: "2026-08-23", type: "community" as const, licence: "MIT" };
 }
 
-/** Read-service precedence shared by both accessors: DID > module >
- * platform > brand > standard (`22`). Exposed so the precedence itself is
- * testable without a pack entry for every combination. */
 export function resolveReadService(levels: {
   did?: ReadService;
   module?: ReadService;
@@ -467,9 +380,6 @@ export function resolveReadService(levels: {
   return levels.did ?? levels.module ?? levels.platform ?? levels.brand ?? levels.standard ?? "22";
 }
 
-/** The read service for one module: module override, then the platform
- * selected by VIN (VDS pattern), then brand default, then the standard
- * default (`22`). Per-DID overrides are honoured by `readServiceForDid`. */
 export function readServiceForModule(vin: string | null | undefined, req: number, resp: number): ReadService {
   return resolveReadService({
     module: moduleDef(vin, req, resp)?.read_service,
@@ -479,9 +389,6 @@ export function readServiceForModule(vin: string | null | undefined, req: number
   });
 }
 
-/** The read service for one DID on one module: the DID's own override (a
- * KWP identification record read with `1A` on a `22` module) first, then
- * `readServiceForModule` precedence. Only module-bound entries count. */
 export function readServiceForDid(vin: string | null | undefined, req: number, resp: number, did: number): ReadService {
   return resolveReadService({
     did: knownDid(vin, did, { req, resp })?.read_service,
@@ -492,8 +399,6 @@ export function readServiceForDid(vin: string | null | undefined, req: number, r
   });
 }
 
-/** Every decode of a DID on exactly this module (empty when the pack has
- * no module-bound entry or only the address). */
 export function decodesForDid(vin: string | null | undefined, req: number, resp: number, did: number): Decode[] {
   const known = knownDid(vin, did, { req, resp });
   if (!known) return [];
@@ -502,21 +407,14 @@ export function decodesForDid(vin: string | null | undefined, req: number, resp:
   return primary ? [primary] : [];
 }
 
-/** How far this VIN's brand is profiled; undefined for an unknown WMI. */
 export function profiledLevelForVin(vin: string | null | undefined): ProfiledLevel | undefined {
   return brandForVin(vin)?.profiled_level;
 }
 
-/** What silence from a module means on this brand, and whether writes
- * are gateway-blocked. Unknown brands (and brands without a sourced rule)
- * get `unknown`/`false` with no source. */
 export function gatewayBehaviourForVin(vin: string | null | undefined): GatewayBehaviour {
   return brandForVin(vin)?.gateway_behaviour ?? { silence_means: "unknown", writes_blocked: false };
 }
 
-/** The platform whose `vds_pattern` matches VIN characters 4-10 (first
- * match in pack order). Platforms without a pattern are never selected
- * by VIN. */
 export function platformForVin(vin: string | null | undefined): Platform | undefined {
   const brand = brandForVin(vin);
   if (!brand || !vin || vin.length < 10) return undefined;

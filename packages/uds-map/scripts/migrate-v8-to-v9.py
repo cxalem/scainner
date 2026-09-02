@@ -36,19 +36,14 @@ TODAY = "2026-08-28"
 RESEARCH_DATE = "2026-08-23"
 RESEARCH = "packages/uds-map/RESEARCH.md"
 
-log: list[tuple[str, str, str]] = []  # (fact, json path, source id)
+log: list[tuple[str, str, str]] = []
 
 
 def note(fact: str, path: str, source_id: str) -> None:
     log.append((fact, path, source_id))
 
 
-# --------------------------------------------------------------------------
-# Source catalogue. Licences were read from the GitHub API on 2026-08-28;
-# NOASSERTION means the repository ships a LICENSE file GitHub cannot
-# classify, and the acquisition protocol's licence gate then treats the
-# source as verification evidence only.
-# --------------------------------------------------------------------------
+# NOASSERTION sources are verification-only because the licence gate cannot classify them.
 def src(url: str, type_: str, licence: str, date: str = RESEARCH_DATE, note_: str | None = None) -> dict:
     d = {"url": url, "date": date, "type": type_, "licence": licence}
     if note_:
@@ -116,10 +111,6 @@ def S(key: str) -> dict:
     return deepcopy(SOURCES[key])
 
 
-# --------------------------------------------------------------------------
-# Per-brand default sources (RESEARCH.md section 4) for entries without a
-# more specific source in the tables below.
-# --------------------------------------------------------------------------
 BRAND_SOURCES: dict[str, dict[str, str]] = {
     "psa": {"modules": "psa_diag", "bands": "project_hunt", "dids": "psa_diag_bmf"},
     "opel_psa": {"modules": "wican_astra", "bands": "wican_astra", "dids": "wican_astra"},
@@ -144,7 +135,6 @@ BRAND_SOURCES: dict[str, dict[str, str]] = {
     "tesla": {"modules": "opendbc_tesla", "bands": "opendbc_tesla", "dids": "opendbc_tesla"},
 }
 
-# Module-level source overrides: (brand, req) -> source id.
 MODULE_SOURCE: dict[tuple[str, str], str] = {
     ("psa", "6A8"): "project",
     ("psa", "6AD"): "project",
@@ -193,7 +183,6 @@ MODULE_SOURCE: dict[tuple[str, str], str] = {
     ("volvo", "18DA10F1"): "obdb_polestar2",
 }
 
-# Band-level source overrides: (brand, from) -> source id.
 BAND_SOURCE: dict[tuple[str, str], str] = {
     ("psa", "D400"): "project_hunt",
     ("psa", "D600"): "project_hunt",
@@ -236,11 +225,6 @@ BAND_SOURCE: dict[tuple[str, str], str] = {
     ("volvo", "F180"): "obdb_polestar2",
 }
 
-# --------------------------------------------------------------------------
-# Known DID module bindings, from RESEARCH.md and the entries' own labels.
-# (brand, did) -> list of "REQ/RESP" or [] for an honest unknown binding.
-# A DID missing here keeps whatever v8 bound (PSA) or gets binding unknown.
-# --------------------------------------------------------------------------
 BINDINGS: dict[tuple[str, str], list[str]] = {
     ("opel_psa", "D410"): ["6B4/694"],
     ("opel_psa", "D860"): ["6B4/694"],
@@ -408,7 +392,6 @@ BINDINGS: dict[tuple[str, str], list[str]] = {
     ("subaru", "F100"): [],
 }
 
-# Known DID source overrides: (brand, did) -> source id.
 DID_SOURCE: dict[tuple[str, str], str] = {
     ("psa", "D422"): "project_hunt",
     ("psa", "D4B1"): "project_hunt",
@@ -482,14 +465,11 @@ DID_SOURCE: dict[tuple[str, str], str] = {
     ("volvo", "4028"): "obdb_polestar2",
 }
 
-# Per-DID read service (RESEARCH.md section 3.3): KWP identification records
-# read with 1A on modules that otherwise answer 22.
 DID_READ_SERVICE: dict[tuple[str, str], tuple[str, str]] = {
     ("gm", "00DF"): ("1A", "wican_opel"),
     ("gm", "006D"): ("1A", "wican_opel"),
 }
 
-# Per-module read service overrides (RESEARCH.md section 3.3).
 MODULE_READ_SERVICE: dict[tuple[str, str], tuple[str, str]] = {
     ("nissan", "79B"): ("21", "ovms_leaf"),
     ("renault", "79B"): ("21", "canze"),
@@ -497,11 +477,6 @@ MODULE_READ_SERVICE: dict[tuple[str, str], tuple[str, str]] = {
     ("hyundai_kia", "7D6"): ("21", "ovms_soulev"),
 }
 
-# --------------------------------------------------------------------------
-# Decodes. Each entry replaces/extends the v8 scalar with real decodes.
-# Fields: offset, len, signed, encoding, [bit_offset, bit_len], scale, bias,
-# unit, quantity, label.
-# --------------------------------------------------------------------------
 def dec(offset, len_, scale, bias, unit, quantity, label, signed=False, encoding="be", bit_offset=None, bit_len=None):
     d = {
         "offset": offset,
@@ -516,7 +491,6 @@ def dec(offset, len_, scale, bias, unit, quantity, label, signed=False, encoding
     return d
 
 
-# Quantity for a scalar entry, from its unit and label.
 QUANTITY_BY_UNIT = {
     "V": "voltage", "A": "current", "%": "percentage", "km": "distance", "km/h": "speed",
     "C": "temperature", "F": "temperature", "K": "temperature", "bar": "pressure", "kPa": "pressure",
@@ -547,8 +521,6 @@ def quantity_for(unit: str | None, label: str) -> str:
     return "raw"
 
 
-# Explicit multi-value / signed decodes (brand, did) -> list of decodes.
-# Where a note explains a deliberate choice it is logged.
 EXTRA_DECODES: dict[tuple[str, str], list[dict]] = {
     ("psa", "D40F"): [dec(0, 1, 1.0, 0.0, "raw", "raw", "EPS torque/current candidate A", signed=True)],
     ("psa", "D411"): [dec(0, 1, 1.0, 0.0, "raw", "raw", "EPS torque/current candidate B", signed=True)],
@@ -595,23 +567,17 @@ EXTRA_DECODES: dict[tuple[str, str], list[dict]] = {
     ],
 }
 
-# Per-cell voltage blocks: (brand, did) -> (first cell index, cell count)
 CELL_BLOCKS = {
     ("hyundai_kia", "0102"): (1, 32),
     ("hyundai_kia", "0103"): (33, 32),
     ("hyundai_kia", "0104"): (65, 32),
 }
 
-# Sibling DIDs described only inside another entry's label; each becomes its
-# own known DID with the same formula and binding.
 SIBLING_DIDS: dict[tuple[str, str], list[tuple[str, str]]] = {
     ("mazda", "2A05"): [("2A06", "Tyre pressure, wheel 2"), ("2A07", "Tyre pressure, wheel 3"), ("2A08", "Tyre pressure, wheel 4")],
     ("mazda", "2A0A"): [("2A0B", "Tyre temperature, wheel 2"), ("2A0C", "Tyre temperature, wheel 3"), ("2A0D", "Tyre temperature, wheel 4")],
 }
 
-# --------------------------------------------------------------------------
-# Identity blocks (layouts name encodings, never brands).
-# --------------------------------------------------------------------------
 ISO_IDENTITY = [
     {"did": "F187", "field": "part", "layout": "iso_ascii"},
     {"did": "F191", "field": "hardware", "layout": "iso_ascii"},
@@ -645,11 +611,6 @@ VENDOR_IDENTITY: dict[str, tuple[list[dict], str]] = {
     ),
 }
 
-# --------------------------------------------------------------------------
-# Platforms. vds_pattern is a regex over VIN characters 4-10 (7 characters)
-# and is only set where a registry confirmed the prefix; otherwise null and
-# the platform is selectable by evidence only.
-# --------------------------------------------------------------------------
 def platform(key, years, notes, source_id, vds=None, families=None, read_service=None):
     p = {"key": key, "vds_pattern": vds, "years": list(years), "ecu_families_expected": families or []}
     if read_service:
@@ -740,8 +701,6 @@ GATEWAY: dict[str, dict] = {
 
 PROFILED_LEVEL: dict[str, str] = {
     "psa": "decodes_verified",
-    # External corpora are sourced research until their raw exchanges are
-    # committed as replay fixtures and exercised by this repository.
     "mercedes": "routes_sourced",
     "nissan": "routes_sourced",
     "volvo": "routes_sourced",
@@ -769,7 +728,6 @@ BRAND_READ_SERVICE["mitsubishi"] = None
 BRAND_READ_SERVICE["tesla"] = None
 BRAND_READ_SERVICE["subaru"] = None
 
-# Modules dropped in v9 because their only source says nothing credible was found.
 DROP_MODULES: set[tuple[str, str]] = {("subaru", "7E0")}
 
 SCAN_POLICY: dict[str, tuple[str, str]] = {
@@ -815,7 +773,6 @@ def migrate_brand(b: dict) -> dict:
         used[s["url"]] = s
         return deepcopy(s)
 
-    # modules
     dropped = [m for m in b.get("modules", []) if (bid, m["req"]) in DROP_MODULES]
     for m in dropped:
         note(f"module {m['req']}/{m['resp']} dropped: its only citation says nothing credible was found", f"brands[{bid}].modules[{m['req']}]", defaults["modules"])
@@ -843,7 +800,6 @@ def migrate_brand(b: dict) -> dict:
             if m["req"] == "14DACBF1":
                 m["route"]["source"] = use("research:35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs")
 
-    # bands
     for band in b.get("did_bands", []):
         sid = BAND_SOURCE.get((bid, band["from"]), defaults["bands"])
         band["source"] = use(sid)
@@ -853,7 +809,6 @@ def migrate_brand(b: dict) -> dict:
             band["source"] = use("research:32-the-f4xx-obd-pid-mirror-band")
             note("F4xx mode-01 mirror band demoted to low", f"brands[{bid}].did_bands[F400]", "research:32-the-f4xx-obd-pid-mirror-band")
 
-    # known DIDs
     out_dids: list[dict] = []
     for k in b.get("known_dids", []):
         key = (bid, k["did"])
@@ -886,7 +841,6 @@ def migrate_brand(b: dict) -> dict:
         elif key in EXTRA_DECODES:
             note(f"DID {k['did']}: {len(decodes)} decodes from label/note text", f"brands[{bid}].known_dids[{k['did']}].decodes", sid)
         k["decodes"] = decodes
-        # scalar mirror of decodes[0]
         if decodes:
             first = decodes[0]
             k["offset"], k["len"], k["scale"], k["bias"] = first["offset"], first["len"], first["scale"], first["bias"]
@@ -904,7 +858,6 @@ def migrate_brand(b: dict) -> dict:
             note(f"sibling DID {sib_did} split out of the {k['did']} label", f"brands[{bid}].known_dids[{sib_did}]", sid)
     b["known_dids"] = out_dids
 
-    # brand-level fields
     rs = BRAND_READ_SERVICE[bid]
     if rs:
         b["read_service"] = rs
@@ -967,7 +920,6 @@ def migrate_overlay() -> None:
                     dec(0, 1, 1.0, 0.0, "flag", "flag", "TPMS front-right pressure invalid", encoding="bitfield", bit_offset=1, bit_len=1),
                     dec(0, 1, 1.0, 0.0, "flag", "flag", "TPMS front-left pressure invalid", encoding="bitfield", bit_offset=0, bit_len=1),
                 ]
-                # scalar mirror stays the whole byte: offset 0, len 1, raw flags
                 k["decodes"].insert(0, dec(0, 1, 1.0, 0.0, "", "raw", k["label"]))
             else:
                 k["decodes"] = [

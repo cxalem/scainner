@@ -11,9 +11,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
 
-// Every command below is a one-line adapter over `api::ops` — the same
-// functions the embedded HTTP API (`api/mod.rs`, docs/api.md) calls, so the
-// UI and a local agent never diverge in what they do to the car or the DB.
 type State<'a> = tauri::State<'a, Arc<AppState>>;
 
 #[tauri::command]
@@ -31,9 +28,6 @@ fn list_adapters(state: State) -> Vec<elm::transport::enumerate::AdapterCandidat
     ops::list_adapters(&state)
 }
 
-/// Radios in range that are not paired yet. Async on purpose: the inquiry
-/// blocks for `seconds`, and `ops` puts that on the blocking pool so the
-/// IPC layer keeps answering while the scan runs.
 #[tauri::command]
 async fn discover_adapters(
     seconds: Option<u8>,
@@ -49,10 +43,6 @@ async fn discover_adapters(
     .await
 }
 
-/// Pair the device the user picked. `pin` is null on the first attempt; a
-/// radio that wants a code comes back as an error string starting with
-/// `pin_required:`, which is the frontend's cue to reveal the PIN field and
-/// call again with what the user typed.
 #[tauri::command]
 async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
     ops::pair_adapter(addr.trim().to_ascii_lowercase(), pin)
@@ -392,9 +382,6 @@ fn data_db_path(app: &tauri::AppHandle) -> std::path::PathBuf {
     dir.join("scainner.sqlite3")
 }
 
-/// stderr *and* the log file: a connect that fails in a car park has to
-/// leave evidence behind, and stderr is invisible unless the app was
-/// started from a terminal.
 struct Tee(std::fs::File);
 
 impl std::io::Write for Tee {
@@ -408,9 +395,6 @@ impl std::io::Write for Tee {
     }
 }
 
-/// `~/Library/Logs/com.cxalem.scainner/desktop.log`, rolled over to `.1`
-/// once it passes 2 MB. `None` on platforms with no known log directory —
-/// logging then stays exactly as it was, on stderr only.
 fn log_file() -> Option<std::fs::File> {
     #[cfg(target_os = "macos")]
     {
@@ -433,9 +417,6 @@ fn log_file() -> Option<std::fs::File> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Quiet by default — set RUST_LOG=debug (or =trace for per-DID scan
-    // detail) to see the connection/scan internals. `Info` is the default
-    // level so warnings and above always surface.
     let mut logger =
         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"));
     if let Some(file) = log_file() {
@@ -453,8 +434,6 @@ pub fn run() {
             let db = Arc::new(Db::open(&path).expect("failed to open sqlite db"));
             let state = Arc::new(AppState::new(db, path));
             app.manage(state.clone());
-            // The agent API shares this exact state (and therefore the one
-            // serial connection) with the UI — see docs/api.md.
             api::start(app.handle().clone(), state);
             Ok(())
         })

@@ -24,7 +24,6 @@ import {
   WindowsIcon,
 } from "@/components/Icon";
 
-// Parallel to the dictionary arrays by index: icons are not translated content.
 const FEATURE_ICONS = [SearchListIcon, EraserIcon, PulseIcon, FileDownIcon];
 const CAUSE_BAR_CLASSES = ["bg-accent-400", "bg-accent-600", "bg-neutral-700"];
 
@@ -36,7 +35,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* ————————————————————————— Header / hero ————————————————————————— */}
       <header className="relative overflow-hidden bg-section">
         <div className="sn-glow pointer-events-none absolute inset-0 bg-[radial-gradient(64%_58%_at_72%_24%,var(--section-glow),transparent_70%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,var(--section-divider)_18%,var(--section-divider)_82%,transparent)]" />
@@ -68,7 +66,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
       </header>
 
       <main className="flex-1">
-        {/* ————————————————————————— App showcase ————————————————————————— */}
         <section className="mx-auto max-w-[1140px] px-5 pb-6 pt-16 sm:px-8 sm:pt-20 lg:pt-[88px]">
           <Reveal className="mb-7 flex flex-wrap items-end justify-between gap-6 lg:mb-8">
             <h2 className="max-w-[22ch] text-[28px] font-medium leading-[1.12] tracking-[-0.02em] text-pretty sm:text-[34px] lg:text-[38px] lg:leading-[1.1]">
@@ -93,7 +90,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
           </Reveal>
         </section>
 
-        {/* ————————————————————————— How it works ————————————————————————— */}
         <section className="mx-auto max-w-[1140px] px-5 pb-5 pt-20 sm:px-8 lg:pt-[92px]">
           <div className="mb-4.5 text-[13px] uppercase tracking-[0.1em] text-neutral-500">{dict.howItWorks.kicker}</div>
           <h2 className="mb-9 max-w-[20ch] text-[28px] font-medium leading-[1.15] tracking-[-0.02em] sm:text-[34px] lg:mb-11 lg:text-[38px] lg:leading-[1.12]">
@@ -110,7 +106,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
           </Reveal>
         </section>
 
-        {/* ————————————————————————— Any connector ————————————————————————— */}
         <section className="mx-auto max-w-[1140px] px-5 py-16 sm:px-8 lg:py-20">
           <Reveal className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14">
             <div className="flex flex-col gap-4.5">
@@ -140,7 +135,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
           </Reveal>
         </section>
 
-        {/* ————————————————————————— Same fault, two answers ————————————————————————— */}
         <section className="relative overflow-hidden bg-section">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_60%_at_18%_10%,var(--section-glow),transparent_70%)] opacity-70" />
           <div className="relative mx-auto max-w-[1140px] px-5 py-16 sm:px-8 lg:pb-[92px] lg:pt-[88px]">
@@ -153,7 +147,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
             </div>
 
             <Reveal className="grid grid-cols-1 items-start gap-5.5 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
-              {/* generic reader */}
               <div className="flex flex-col gap-5 rounded-[var(--radius-md)] border border-section-divider-soft p-6">
                 <span className="text-[11.5px] uppercase tracking-[0.09em] text-section-subtle">{dict.comparison.genericReader.label}</span>
                 <div className="flex flex-col gap-1.5">
@@ -173,7 +166,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
                 <span className="text-[13.5px] leading-[1.55] text-section-subtle">{dict.comparison.genericReader.footer}</span>
               </div>
 
-              {/* Sonda report */}
               <Card className="overflow-hidden rounded-[var(--radius-md)] border-accent-700 bg-surface p-0 shadow-md ring-0">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-divider p-4.5 sm:p-5.5">
                   <div className="flex flex-wrap items-center gap-3">
@@ -244,7 +236,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
           </div>
         </section>
 
-        {/* ————————————————————————— Pricing ————————————————————————— */}
         <section className="mx-auto flex max-w-[1140px] flex-col items-center gap-5.5 px-5 pt-20 pb-20 text-center sm:px-8 lg:pt-24 lg:pb-[104px]">
           <div className="text-[13px] uppercase tracking-[0.1em] text-neutral-500">{dict.pricing.kicker}</div>
           <h2 className="max-w-[26ch] text-[32px] font-medium leading-[1.1] tracking-[-0.02em] text-pretty sm:text-[38px] lg:text-[44px] lg:leading-[1.08] lg:tracking-[-0.025em]">
@@ -274,7 +265,6 @@ export function LandingContent({ dict, locale }: { dict: Dictionary; locale: Loc
         </section>
       </main>
 
-      {/* ————————————————————————— Footer ————————————————————————— */}
       <footer className="relative overflow-hidden bg-section">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_90%_at_20%_0%,var(--section-glow),transparent_70%)] opacity-60" />
         <div className="relative mx-auto flex max-w-[1140px] flex-wrap items-start justify-between gap-9 px-5 py-13 sm:px-8">

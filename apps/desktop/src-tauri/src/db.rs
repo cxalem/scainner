@@ -1,20 +1,3 @@
-//! SQLite storage. The database IS the product: every reading lands here so
-//! any tool (including an AI session running sqlite3) can query the car's
-//! full recorded history.
-//!
-//! Schema v2 (2026-08-21, docs/workflows/data-core/plan.md): a vehicle is a
-//! real entity with its own id — VIN is a nullable attribute, not the key
-//! (proven necessary by a real ~2000 Peugeot whose ECU never answers Mode
-//! 09). Every recorded fact carries `vehicle_id` + `connection_id` FKs; a
-//! fact recorded while the vehicle is unidentified carries NULL honestly and
-//! can be claimed when the user names the car. Column shapes mirror the
-//! target Postgres/Supabase schema (`org_id`/`owner_user_id` reserved,
-//! always NULL locally) so multi-tenant doesn't need a second rethink.
-//!
-//! v1 -> v2 is a CLEAN SLATE, not a migration: the owner's explicit call
-//! ("local data is disposable test data") — on first open with the old
-//! schema present, the old tables are dropped and v2 is created fresh.
-
 use rusqlite::{params, Connection};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -25,9 +8,6 @@ pub struct Db(pub Mutex<Connection>);
 
 const SCHEMA_VERSION: i64 = 15;
 
-/// A workshop repair order / diagnostic investigation. Cases are deliberately
-/// separate from connections: one job can span several adapter sessions,
-/// scans, technicians, and a before/after verification cycle.
 #[derive(Serialize, Clone)]
 pub struct DiagnosticCase {
     pub id: i64,
@@ -71,24 +51,15 @@ pub struct DiscoveredModuleRow {
     pub fingerprint_match_key: Option<String>,
     pub fingerprint_fields_answered: i64,
     pub fingerprint_fields_total: i64,
-    /// Identity confidence (`provisional|stable|conflicted`), NULL until
-    /// `record_identity` has run for the module.
     pub identity_fit: Option<String>,
     pub identity_reads: i64,
-    /// Full route tuple as JSON (protocol, bits, extension, session).
     pub route_json: Option<String>,
-    /// Family join result (plan A4): family id and `strong|weak|name_only|none`.
     pub family_id: Option<String>,
     pub family_match: Option<String>,
-    /// Route outcome (`reached` once the census writes it; NULL on rows
-    /// created before Phase 2, which only ever held reached routes).
     pub route_state: Option<String>,
-    /// Supplier code/name from the identity block, when it carried one.
     pub supplier: Option<String>,
 }
 
-/// One route outcome of the census (Phase 2): the candidate route and what
-/// it did — `reached`, `refused`, `silent`, `transport_failed`.
 #[derive(Serialize, Clone, Debug)]
 pub struct RouteOutcomeRow {
     pub id: i64,
@@ -98,17 +69,11 @@ pub struct RouteOutcomeRow {
     pub route_state: String,
     pub route_json: Option<String>,
     pub detail: Option<String>,
-    /// Negative response code when the route refused; `None` otherwise.
     pub nrc: Option<i64>,
-    /// How many censuses have asked this address on this vehicle.
     pub attempts: i64,
     pub observed_at: String,
 }
 
-/// One tracked hypothesis: a DID on a module of one vehicle with the four
-/// state dimensions (plan A3). `decode_json` holds the inherited decode when
-/// a family match created the row; `shape_json`/`interpretations_json` are
-/// the correlation engine's output once it has run.
 #[derive(Serialize, Clone, Debug)]
 pub struct HypothesisRow {
     pub id: i64,
@@ -131,21 +96,14 @@ pub struct HypothesisRow {
     pub sample_count: i64,
     pub created_at: String,
     pub updated_at: String,
-    /// What justified the current `knowledge_state`, when a promotion needed
-    /// justifying (schema v12). Cleared when the state is retracted.
     pub evidence: Option<HypothesisEvidence>,
 }
 
-/// The evidence stored beside a hypothesis: the verification runs whose
-/// discriminating result carried it to its knowledge state. Kept as JSON so
-/// later evidence kinds (a second vehicle, a pack citation) can join it
-/// without another column.
 #[derive(Serialize, serde::Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct HypothesisEvidence {
     pub run_ids: Vec<i64>,
 }
 
-/// What a join (or any other writer) asks to persist for one hypothesis.
 #[derive(Clone, Debug, Default)]
 pub struct HypothesisUpsert {
     pub vehicle_id: i64,
@@ -158,9 +116,6 @@ pub struct HypothesisUpsert {
     pub family_id: Option<String>,
 }
 
-/// Fields a state transition may touch. `None` leaves the column alone.
-/// `evidence_run_ids` is what the caller offers in support of a
-/// knowledge-state promotion; an empty list retracts the stored evidence.
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct HypothesisPatch {
     pub knowledge_state: Option<String>,
@@ -170,9 +125,6 @@ pub struct HypothesisPatch {
     pub evidence_run_ids: Option<Vec<i64>>,
 }
 
-/// Raw sample storage is written by the S5 hypothesis poll (a follow-up in
-/// the supervisor, outside this track) and read by `discovery::learn`; the
-/// tests exercise it, the binary does not yet.
 #[allow(dead_code)]
 #[derive(Serialize, Clone, Debug)]
 pub struct HypothesisSampleRow {
@@ -183,9 +135,6 @@ pub struct HypothesisSampleRow {
     pub refs_json: Option<String>,
 }
 
-/// Reusable, de-identified knowledge learned from vehicle observations.
-/// Deliberately contains no vehicle, connection, VIN, serial, DTC, or raw
-/// payload field, so private vehicle deletion cannot remove product knowledge.
 #[derive(Serialize, Clone, Debug)]
 pub struct KnowledgeCandidateRow {
     pub id: i64,
@@ -212,7 +161,6 @@ pub struct KnowledgeCandidateRow {
     pub last_observed_at: String,
 }
 
-/// Samples kept per hypothesis; older ones are dropped on insert.
 #[allow(dead_code)]
 pub const HYPOTHESIS_SAMPLE_RETENTION: i64 = 5000;
 
@@ -246,7 +194,6 @@ pub struct VehicleMapModule {
     pub last_seen_at: String,
     pub identity: VehicleMapIdentity,
     pub dids: Vec<VehicleMapDid>,
-    /// Honest placeholder until the unified module-DTC slice persists these.
     pub module_fault_evidence: String,
 }
 
@@ -278,8 +225,6 @@ pub struct DiscoveredDidRow {
 
 #[derive(Serialize, Clone)]
 pub struct FingerprintObservation {
-    /// Cohort-local pseudonym. It is deliberately unrelated to VIN, cloud id,
-    /// or the local database id.
     pub vehicle_ref: String,
     pub module_address: String,
     pub spare_part_number: Option<String>,
@@ -329,12 +274,6 @@ fn normalized_part_number(value: &str) -> Option<String> {
 pub struct UdsProbe {
     #[serde(default)]
     pub id: i64,
-    /// None only for legacy probes saved before per-vehicle scoping
-    /// (2026-08-24) — those keep polling on every car, same as always.
-    /// Every probe saved from now on (manual or auto-discovered) carries a
-    /// real vehicle_id, so a probe found on one car is never attempted on
-    /// another (the same cross-car isolation every other table already
-    /// has since schema v2).
     #[serde(default)]
     pub vehicle_id: Option<i64>,
     pub module: String,
@@ -352,38 +291,20 @@ pub struct UdsProbe {
     pub bias: f64,
     #[serde(default = "yes")]
     pub enabled: bool,
-    /// `manual` probes belong to the user and are never reconciled by
-    /// discovery. `discovery` probes may be refreshed or removed when the
-    /// shipped knowledge map changes.
     #[serde(default = "manual_origin")]
     pub origin: String,
-    /// Set when the probe exists because a hypothesis was activated (schema
-    /// v13). One sensor pipeline: the hypothesis is the decision to read
-    /// this DID, the probe is how that decision reaches the bus — so a
-    /// linked probe is polled whatever its origin says.
     #[serde(default)]
     pub hypothesis_id: Option<i64>,
-    /// The window is two's complement (schema v14). False — an unsigned
-    /// big-endian read — is what every probe saved before v14 meant, and
-    /// stays the default for anything that does not say otherwise.
     #[serde(default)]
     pub signed: bool,
 }
 
 impl UdsProbe {
-    /// The `readings.key` this probe's samples are stored under. The poller
-    /// (`elm::uds::poll_probes`) derives that key from the label, so anything
-    /// mapping a stored key back to its probe has to spell it the same way —
-    /// hence one function, used by both sides.
     pub fn reading_key(&self) -> String {
         format!("uds_{}", self.label.to_lowercase().replace(' ', "_"))
     }
 }
 
-/// One stored reading key with what the UI needs to name and group it: where
-/// it came from (a standard OBD gauge or a UDS probe), which module answers
-/// it, and when it was last written. `label`/`unit` are None for standard
-/// keys — those are named by the frontend's gauge table.
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct ReadingKeyRow {
     pub key: String,
@@ -391,7 +312,6 @@ pub struct ReadingKeyRow {
     pub unit: Option<String>,
     pub module_key: Option<String>,
     pub module_name: Option<String>,
-    /// `standard` | `probe`
     pub source: String,
     pub probe_id: Option<i64>,
     pub last_ts: Option<String>,
@@ -410,9 +330,6 @@ fn yes() -> bool {
     true
 }
 
-/// One row of the write audit trail: everything the app has ever changed on
-/// the car, with the state read before and after. See `docs/workflows/
-/// write-caps/plan.md` — no write ships without landing here.
 #[derive(Serialize, Clone)]
 pub struct WriteLogRow {
     pub id: i64,
@@ -422,13 +339,10 @@ pub struct WriteLogRow {
     pub params: serde_json::Value,
     pub before: Option<serde_json::Value>,
     pub after: Option<serde_json::Value>,
-    /// "cleared" | "faults_remain" | "refused" | "error"
     pub outcome: String,
     pub error: Option<String>,
 }
 
-/// The vehicle entity — schema v2's core. `vin` nullable on purpose:
-/// pre-Mode-09 ECUs are real; `display_name` is the human identity then.
 #[derive(Serialize, Clone)]
 pub struct Vehicle {
     pub id: i64,
@@ -443,7 +357,6 @@ pub struct Vehicle {
     pub first_connected_at: Option<String>,
 }
 
-/// One row of the vehicle picker: identity + how many connections recorded.
 #[derive(Serialize, Clone)]
 pub struct VehicleListRow {
     pub id: i64,
@@ -489,9 +402,6 @@ pub struct Insights {
     pub voltage_min: Option<f64>,
     pub voltage_avg: Option<f64>,
     pub fuel_price: f64,
-    /// Most recent tank-level reading (PID 012F), not a window average — the
-    /// tank level is a point-in-time gauge, not a trend. `None` if the ECU
-    /// has never reported it (many don't expose this PID over OBD2).
     pub fuel_level_pct: Option<f64>,
 }
 
@@ -529,8 +439,6 @@ pub struct HistoryPoint {
     pub value: f64,
 }
 
-/// Index row of `verification_runs` (agent API): everything but the JSON
-/// body, which is fetched per run.
 #[derive(Serialize, Clone, Debug)]
 pub struct VerificationRunRow {
     pub id: i64,
@@ -540,14 +448,6 @@ pub struct VerificationRunRow {
     pub created_at: String,
     pub result_bytes: i64,
 }
-
-// ---------- cloud sync feed (docs/workflows/data-core/plan.md) ----------
-// The frontend sync engine pulls one of these, pushes it to Supabase under
-// the signed-in user's JWT, then advances the reading watermark. Only rows
-// with a resolved vehicle are included: the cloud's RLS policies reject
-// facts whose vehicle is NULL by design ("unassigned facts are invisible"),
-// so unidentified connections sync after the user names the car (naming
-// back-stamps vehicle_id, and the frontend resets the watermark).
 
 #[derive(Serialize)]
 pub struct SyncVehicle {
@@ -682,27 +582,15 @@ pub struct SyncBatch {
     pub probes: Vec<SyncProbe>,
     pub discovered_modules: Vec<SyncDiscoveredModule>,
     pub diagnostic_cases: Vec<SyncDiagnosticCase>,
-    /// Highest readings.id included — the next watermark on success.
     pub last_reading_id: i64,
 }
 
 impl Db {
-    /// Opens (creating if needed) the SQLite database at schema v2.
-    ///
-    /// Versioning via `PRAGMA user_version`: 0 means either a brand-new
-    /// file or the old un-versioned v1 schema — in both cases any v1
-    /// tables are dropped (clean-slate policy, see module docs) and v2 is
-    /// created fresh. Future schema changes bump SCHEMA_VERSION and add a
-    /// stepwise upgrade here (v2 data will NOT be disposable).
     pub fn open(path: &Path) -> rusqlite::Result<Self> {
         let conn = Connection::open(path)?;
         conn.execute_batch("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;")?;
         let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
         if version < 2 {
-            // v1 (or partial) — drop everything the old shape ever created.
-            // Clean-slate applies to the pre-v2 shape ONLY (the owner's
-            // "disposable test data" call was about v1); v2+ data survives
-            // every later version bump via additive migrations below.
             conn.execute_batch(
                 r#"
                 DROP TABLE IF EXISTS readings;
@@ -896,10 +784,6 @@ impl Db {
                 ON verification_runs(vehicle_id, created_at DESC);
             "#,
         )?;
-        // v3 (cloud sync): client-generated uuids on every syncable row —
-        // these become the Postgres primary keys, so pushes are idempotent.
-        // ALTER + separate unique index because SQLite can't add a UNIQUE
-        // column via ALTER; errors discarded once the column exists.
         let _ = conn.execute("ALTER TABLE vehicles ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE connections ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE dtc_scan_events ADD COLUMN cloud_id TEXT", []);
@@ -909,8 +793,6 @@ impl Db {
             "ALTER TABLE discovered_modules ADD COLUMN cloud_id TEXT",
             [],
         );
-        // v7: partial ISO 14229 ECU fingerprints. Each ALTER is idempotent
-        // for existing databases; fresh databases already have the columns.
         for column in [
             "spare_part_number TEXT",
             "hardware_version TEXT",
@@ -924,8 +806,6 @@ impl Db {
                 [],
             );
         }
-        // v8: distinguish first discovery from the most recent positive
-        // observation used by the evidence-only vehicle map.
         let _ = conn.execute(
             "ALTER TABLE discovered_modules ADD COLUMN last_seen_at TEXT",
             [],
@@ -934,10 +814,6 @@ impl Db {
             "UPDATE discovered_modules SET last_seen_at = discovered_at WHERE last_seen_at IS NULL",
             [],
         );
-        // v10: Universal Discovery Protocol knowledge layer (plan A3).
-        // Identity confidence, the full route tuple and the family join on
-        // each module; hypotheses with the four state dimensions; raw
-        // samples for the correlation engine. Idempotent like v7.
         for column in [
             "identity_fit TEXT",
             "identity_reads INTEGER NOT NULL DEFAULT 0",
@@ -946,9 +822,6 @@ impl Db {
             "route_json TEXT",
             "family_id TEXT",
             "family_match TEXT",
-            // Phase 2 (multi-brand plan): the route outcome of the module
-            // (`reached` for every row the census answered) and the
-            // supplier code/name the identity block carried.
             "route_state TEXT",
             "supplier TEXT",
         ] {
@@ -1043,9 +916,6 @@ impl Db {
                 ON knowledge_candidates(family_id, did);
             "#,
         )?;
-        // v4: provenance makes discovery-owned probes safely
-        // reconcilable. Existing rows are conservatively manual because
-        // older schemas cannot prove how they were created.
         let _ = conn.execute(
             "ALTER TABLE uds_probes ADD COLUMN origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual','discovery'))",
             [],
@@ -1068,7 +938,6 @@ impl Db {
                 ON uds_probes(vehicle_id, module, did, origin);
             "#,
         )?;
-        // Backfill rows created on v2 before cloud_id existed.
         for table in [
             "vehicles",
             "connections",
@@ -1090,42 +959,20 @@ impl Db {
                 )?;
             }
         }
-        // v12: the evidence behind a knowledge-state promotion. The
-        // verification runs that discriminated the decode are kept on the
-        // hypothesis, so the gate in `patch_hypothesis` can be audited
-        // afterwards instead of taken on trust. Idempotent like v7/v10.
         let _ = conn.execute("ALTER TABLE hypotheses ADD COLUMN evidence_json TEXT", []);
-        // The projected table's pre-v12 default sat outside the protocol
-        // vocabulary (`KnowledgeState::parse` does not accept 'observed');
-        // `unknown` is the state it always meant.
         let _ = conn.execute(
             "UPDATE knowledge_candidates SET knowledge_state = 'unknown'
              WHERE knowledge_state = 'observed'",
             [],
         );
-        // v13: a probe may be owned by a hypothesis. Activating a
-        // hypothesis is the user's decision to read that DID, and this
-        // column is how that decision reaches the poller instead of dying
-        // in a second, never-polled table. NULL on every existing row:
-        // probes created before v13 keep their old `origin` semantics.
         let _ = conn.execute(
             "ALTER TABLE uds_probes ADD COLUMN hypothesis_id INTEGER REFERENCES hypotheses(id)",
             [],
         );
-        // v14: a probe's window may be two's complement. Without this the
-        // decoder read every window as unsigned, so a small negative angle
-        // came back as its wrapped positive twin (−2.0° reported as
-        // 6551.6° on the 2026-09-01 ride). 0 on every existing row: an
-        // unsigned read is exactly what those probes were saved meaning.
         let _ = conn.execute(
             "ALTER TABLE uds_probes ADD COLUMN signed INTEGER NOT NULL DEFAULT 0",
             [],
         );
-        // v15: a census outcome keeps the refusal's NRC and how many
-        // censuses have asked that address, so a research request can say
-        // "refused with 0x31" and "silent on N connections" instead of
-        // "silent, once, at some point". NULL / 1 on every existing row:
-        // one recorded observation is exactly what those rows mean.
         let _ = conn.execute("ALTER TABLE route_outcomes ADD COLUMN nrc INTEGER", []);
         let _ = conn.execute(
             "ALTER TABLE route_outcomes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1",
@@ -1154,8 +1001,6 @@ impl Db {
         Ok(conn.last_insert_rowid())
     }
 
-    /// Re-store a run's JSON once its row id is known, so an exported report
-    /// names the evidence run it came from without consulting the table.
     pub fn update_verification_run_json(&self, id: i64, result_json: &str) -> rusqlite::Result<()> {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -1165,10 +1010,6 @@ impl Db {
         Ok(())
     }
 
-    /// Run index for the agent API (`GET /verification/runs`): metadata only,
-    /// newest first — the JSON body can be megabytes, so it is fetched per
-    /// run through `verification_run`. `vehicle_id`/`plan_version` filter;
-    /// `None` means no filter (an agent listing every car's evidence).
     pub fn list_verification_runs(
         &self,
         vehicle_id: Option<i64>,
@@ -1199,8 +1040,6 @@ impl Db {
         .collect()
     }
 
-    /// One run with its complete stored JSON (a `ParkedVerificationReport`
-    /// or a `CorrelationCapture`, distinguishable by their fields).
     pub fn verification_run(&self, id: i64) -> Option<(VerificationRunRow, String)> {
         let conn = self.0.lock().unwrap();
         conn.query_row(
@@ -1224,10 +1063,6 @@ impl Db {
         .ok()
     }
 
-    // ---------- vehicles ----------
-
-    /// Get-or-create the vehicle for a successfully-read VIN, stamping
-    /// `first_connected_at` on creation. Returns (vehicle_id, created).
     pub fn ensure_vehicle(&self, vin: &str) -> (i64, bool) {
         let conn = self.0.lock().unwrap();
         if let Ok(id) = conn.query_row(
@@ -1245,8 +1080,6 @@ impl Db {
         (conn.last_insert_rowid(), true)
     }
 
-    /// A VIN-less vehicle, identified only by the user's chosen name — the
-    /// "name this car" path for ECUs that never answer Mode 09.
     pub fn create_vehicle_named(&self, name: &str) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -1321,8 +1154,6 @@ impl Db {
         .collect()
     }
 
-    /// Permanently remove owner/vehicle history while retaining the separate
-    /// de-identified `knowledge_candidates` product knowledge.
     pub fn delete_vehicle_private_data(&self, vehicle_id: i64) -> bool {
         let mut conn = self.0.lock().unwrap();
         let Ok(tx) = conn.transaction() else {
@@ -1363,8 +1194,6 @@ impl Db {
         tx.commit().is_ok()
     }
 
-    // ---------- workshop diagnostic cases ----------
-
     pub fn create_diagnostic_case(
         &self,
         vehicle_id: i64,
@@ -1385,8 +1214,6 @@ impl Db {
         }
 
         let conn = self.0.lock().unwrap();
-        // Human-readable inside one vehicle; the UUID remains the durable
-        // cloud identity. Numbering is allocated transactionally by SQLite.
         let sequence: i64 = conn.query_row(
             "SELECT COUNT(*) + 1 FROM diagnostic_cases WHERE vehicle_id = ?1",
             params![vehicle_id],
@@ -1474,8 +1301,6 @@ impl Db {
         )
     }
 
-    // ---------- connections ----------
-
     pub fn start_connection(&self, elm_version: &str, device_kind: &str) -> i64 {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -1504,9 +1329,6 @@ impl Db {
         .ok();
     }
 
-    /// Link a connection to its vehicle, back-stamping everything the
-    /// connection already recorded while unidentified — this is what makes
-    /// the "name this car" flow claim the live data recorded before naming.
     pub fn link_connection_vehicle(&self, connection_id: i64, vehicle_id: i64) {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -1536,8 +1358,6 @@ impl Db {
         )
         .ok();
     }
-
-    // ---------- recorded facts ----------
 
     pub fn insert_reading(
         &self,
@@ -1588,9 +1408,6 @@ impl Db {
         event_id
     }
 
-    /// Append one row to the write audit trail. Called from every write
-    /// handler, on success AND on failure — the trail is only trustworthy
-    /// if nothing can touch the car without landing here.
     #[allow(clippy::too_many_arguments)]
     pub fn log_write(
         &self,
@@ -1622,18 +1439,12 @@ impl Db {
             ],
         );
         if let Err(e) = &res {
-            // A write reached the car but its audit row could not be stored.
-            // The `.ok()` style the other inserts use would hide that, and
-            // for THIS table a silent gap defeats its whole purpose, so at
-            // minimum it must be loud in the logs. (Review fix, write-caps.)
             log::error!("writes_log insert failed, the audit trail is missing a row ({module}/{action}/{outcome}): {e}");
             return -1;
         }
         conn.last_insert_rowid()
     }
 
-    /// Write audit trail for exactly one vehicle. `None` means only writes
-    /// made while the connection was still unidentified, never all cars.
     pub fn writes_log(&self, vehicle_id: Option<i64>, limit: i64) -> Vec<WriteLogRow> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -1665,9 +1476,6 @@ impl Db {
         .collect()
     }
 
-    /// Scan history for one vehicle — or, with `None`, the scans of
-    /// still-unidentified connections (vehicle_id IS NULL): "what this
-    /// unnamed car scanned," never "everything in the database."
     pub fn dtc_history(&self, vehicle_id: Option<i64>, limit: i64) -> Vec<DtcScan> {
         self.dtc_history_where(
             match vehicle_id {
@@ -1707,7 +1515,6 @@ impl Db {
         .collect()
     }
 
-    /// Per-key min/avg/max over the last N hours — feeds the AI briefing.
     pub fn key_stats(&self, vehicle_id: Option<i64>, since_hours: f64) -> Vec<KeyStats> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -1730,10 +1537,6 @@ impl Db {
         .collect()
     }
 
-    // ---------- auto-discovery findings ----------
-    // Upserts, not inserts: rediscovering the same car refreshes what it
-    // finds rather than piling up duplicates — a pass is idempotent.
-
     pub fn upsert_discovered_module(
         &self,
         vehicle_id: i64,
@@ -1750,8 +1553,6 @@ impl Db {
             .ok();
         match existing {
             Some(id) => {
-                // Only overwrite a stored name with a real one, but always
-                // record that this module positively answered again.
                 let _ = conn.execute(
                     "UPDATE discovered_modules SET
                      module_name = COALESCE(?1, module_name),
@@ -1797,9 +1598,6 @@ impl Db {
                 fingerprint.supplier,
             ],
         );
-        // Rebuild from every proven field retained on the module, not only
-        // from this pass. An intermittent refusal must not make a stable ECU
-        // family appear to become a different, less-complete family.
         let _ = conn.execute(
             "UPDATE discovered_modules SET fingerprint_match_key = NULLIF(
                RTRIM(
@@ -1825,8 +1623,6 @@ impl Db {
         label: Option<&str>,
     ) {
         let conn = self.0.lock().unwrap();
-        // A label from the knowledge map counts as confirmed; an unlabeled
-        // hit stays honestly "unlabeled" until something identifies it.
         let confidence = if label.is_some() {
             "confirmed"
         } else {
@@ -1861,8 +1657,6 @@ impl Db {
         self.sync_knowledge_candidate(module_id, did);
     }
 
-    /// Project a vehicle-scoped observation into reusable product knowledge.
-    /// Raw payloads and all owner identifiers stop at this boundary.
     fn sync_knowledge_candidate(&self, module_id: i64, did: u16) {
         let conn = self.0.lock().unwrap();
         let source = conn.query_row(
@@ -1931,8 +1725,6 @@ impl Db {
         } else {
             ("observation", format!("observation:{observation_id}"))
         };
-        // Identity can arrive after the first responsive DID. Replace the
-        // earlier weak scope; do not leave duplicate observation/exact candidates.
         if scope != "observation" {
             let _ = conn.execute(
                 "DELETE FROM knowledge_candidates WHERE compatibility_key = ?1 AND did = ?2",
@@ -2107,7 +1899,6 @@ impl Db {
         .collect()
     }
 
-    /// Store the route outcome of a discovered (answering) module.
     pub fn set_module_route_state(&self, module_id: i64, route_state: &str) -> bool {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -2118,9 +1909,6 @@ impl Db {
         .unwrap_or(false)
     }
 
-    /// Record the census outcome of one candidate route (upsert on
-    /// vehicle + address). `reached` routes also live in
-    /// `discovered_modules`; refused/silent ones only here.
     pub fn record_route_outcome(
         &self,
         vehicle_id: i64,
@@ -2155,7 +1943,6 @@ impl Db {
         );
     }
 
-    /// Every recorded route outcome of a vehicle, by address.
     pub fn route_outcomes(&self, vehicle_id: i64) -> Vec<RouteOutcomeRow> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -2183,15 +1970,7 @@ impl Db {
         .collect()
     }
 
-    // ---------- discovery knowledge layer (plan A3) ----------
-
-    /// Called by `discovery::identity::record_identity` (wired into the
-    /// supervisor as a follow-up, see plan A7).
     #[allow(dead_code)]
-    /// Identity confidence write-back (protocol S2 "repeat once for
-    /// byte-identity"). `identity_hash` is a digest of the fingerprint match
-    /// key (never the serial or VIN). Returns the new fit and read count, or
-    /// None when the module does not exist.
     pub fn record_identity(
         &self,
         module_id: i64,
@@ -2215,8 +1994,6 @@ impl Db {
             )
             .ok()?;
         let current = fit.as_deref().and_then(IdentityFit::parse);
-        // A row hashed before the connection column existed counts as seen
-        // on an unknown (-1) connection: the next real read can make it stable.
         let previous = previous_hash
             .as_deref()
             .map(|h| (h, previous_conn.unwrap_or(-1)));
@@ -2233,14 +2010,8 @@ impl Db {
         Some((next, reads))
     }
 
-    /// `PUT /learning-state {"on": false}` cascade: every hypothesis that was
-    /// polled as `learning`, on every vehicle, goes back to `disabled` in
-    /// one statement. Returns how many rows changed.
     pub fn disable_learning_hypotheses(&self) -> usize {
         let conn = self.0.lock().unwrap();
-        // The probes a learning hypothesis owns go off with it, or the
-        // supervisor would keep reading DIDs the flag no longer allows
-        // through the other half of the pipeline.
         let _ = conn.execute(
             "UPDATE uds_probes SET enabled = 0 WHERE hypothesis_id IN
                (SELECT id FROM hypotheses WHERE activation = 'learning')",
@@ -2254,7 +2025,6 @@ impl Db {
         .unwrap_or(0)
     }
 
-    /// Store the S3 join result on the module (idempotent).
     pub fn set_module_family(
         &self,
         module_id: i64,
@@ -2276,9 +2046,6 @@ impl Db {
         updated
     }
 
-    /// Store the full route tuple (protocol §9) on the module. Written by the
-    /// census stage once it persists route tuples (follow-up outside this
-    /// track); read back through `discovered_summary`.
     #[allow(dead_code)]
     pub fn set_module_route(&self, module_id: i64, route_json: &str) -> bool {
         let conn = self.0.lock().unwrap();
@@ -2290,11 +2057,6 @@ impl Db {
         .unwrap_or(false)
     }
 
-    /// Insert or refresh one hypothesis, unique on (vehicle, module, DID).
-    /// Re-running a join updates the knowledge it carries but never touches
-    /// what this vehicle established (`vehicle_fit`, `activation`, engine
-    /// output) and never downgrades a confirmed knowledge state. Returns
-    /// (id, created).
     pub fn upsert_hypothesis(&self, h: &HypothesisUpsert) -> (i64, bool) {
         let conn = self.0.lock().unwrap();
         let existing: Option<i64> = conn
@@ -2411,14 +2173,6 @@ impl Db {
             .ok()
     }
 
-    /// Apply a state transition with the rules from `discovery::state`
-    /// enforced against the row's resulting state. `learning_on` is the
-    /// `app_settings.learning_state` flag. Err carries the violated rule.
-    ///
-    /// A knowledge-state promotion is gated on evidence: the runs named in
-    /// `patch.evidence_run_ids` must be this vehicle's own, and the rules in
-    /// `check_knowledge` decide whether they carry the claim. The runs that
-    /// justified the state are stored, and a retraction drops them.
     pub fn patch_hypothesis(
         &self,
         id: i64,
@@ -2453,8 +2207,6 @@ impl Db {
         let was =
             KnowledgeState::parse(&current.knowledge_state).unwrap_or(KnowledgeState::Unknown);
         let offered = patch.evidence_run_ids.clone().unwrap_or_default();
-        // Evidence has to be this car's own: a run recorded against another
-        // vehicle proves nothing about this decode.
         {
             let conn = self.0.lock().unwrap();
             for run in &offered {
@@ -2485,8 +2237,6 @@ impl Db {
             },
         )?;
         check_activation(activation, fit, learning_on)?;
-        // Offered runs replace what was stored; an empty list and any move
-        // off `locally_confirmed` retract it.
         let evidence_json = match &patch.evidence_run_ids {
             Some(ids) if !ids.is_empty() => serde_json::to_string(&HypothesisEvidence {
                 run_ids: ids.clone(),
@@ -2521,10 +2271,7 @@ impl Db {
         Ok(row)
     }
 
-    /// Writer: the S5 hypothesis poll (supervisor follow-up).
     #[allow(dead_code)]
-    /// Store one raw sample and enforce the retention rule (keep the newest
-    /// `HYPOTHESIS_SAMPLE_RETENTION` per hypothesis).
     pub fn insert_hypothesis_sample(
         &self,
         hypothesis_id: i64,
@@ -2541,7 +2288,6 @@ impl Db {
         )
     }
 
-    /// Same as `insert_hypothesis_sample` with an explicit retention count.
     #[allow(dead_code)]
     pub fn insert_hypothesis_sample_keeping(
         &self,
@@ -2558,8 +2304,6 @@ impl Db {
             params![hypothesis_id, ts_ms, payload_hex, refs_json],
         );
         let id = conn.last_insert_rowid();
-        // Retention by insertion order: everything older than the N-th
-        // newest row goes. One indexed lookup, not a full re-sort per insert.
         let _ = conn.execute(
             "DELETE FROM hypothesis_samples WHERE hypothesis_id = ?1 AND id <= COALESCE(
                (SELECT id FROM hypothesis_samples WHERE hypothesis_id = ?1
@@ -2569,7 +2313,6 @@ impl Db {
         id
     }
 
-    /// Reader: `discovery::learn` over stored samples (follow-up).
     #[allow(dead_code)]
     pub fn hypothesis_samples(&self, hypothesis_id: i64, limit: i64) -> Vec<HypothesisSampleRow> {
         let conn = self.0.lock().unwrap();
@@ -2593,8 +2336,6 @@ impl Db {
         .collect()
     }
 
-    /// Distinct reading keys and total count for a vehicle — the cheap
-    /// "standard" line of the coverage report.
     pub fn standard_coverage(&self, vehicle_id: i64) -> (i64, i64) {
         let conn = self.0.lock().unwrap();
         conn.query_row(
@@ -2736,10 +2477,6 @@ impl Db {
         }
     }
 
-    /// VIN-free field-trial dataset and conservative reuse measurement. A
-    /// repeated family requires the same normalized F187 part number on at
-    /// least two different vehicles; weaker overlaps are retained in the
-    /// observations but never promoted to a match.
     pub fn fingerprint_experiment(&self) -> FingerprintExperimentReport {
         #[derive(Clone)]
         struct Row {
@@ -2866,11 +2603,6 @@ impl Db {
         }
     }
 
-    /// Every (module address, did) pair already found on this vehicle —
-    /// the fast re-scan path's input: re-probe exactly these instead of
-    /// blindly sweeping the whole bus/band range again. Owner call
-    /// 2026-08-24: "if we already have data from a car, a re-scan
-    /// shouldn't take that long."
     pub fn discovered_addresses_and_dids(&self, vehicle_id: i64) -> Vec<(String, u16)> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -2907,12 +2639,6 @@ impl Db {
         .collect()
     }
 
-    // ---------- uds probes / modules ----------
-
-    /// Probes for one car: this vehicle's own probes plus any legacy
-    /// (pre-scoping) global ones. `None` scope (no identified vehicle
-    /// connected) returns only the legacy global probes — never another
-    /// car's, the same isolation rule as readings/scans/everything else.
     pub fn list_probes(&self, vehicle_id: Option<i64>) -> Vec<UdsProbe> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -2956,11 +2682,6 @@ impl Db {
         conn.last_insert_rowid()
     }
 
-    /// Auto-discovery's promotion path: a DID the knowledge map has a full
-    /// decode formula for becomes a stored decode definition with no
-    /// manual "save as probe" step. Upserts on (vehicle_id, module,
-    /// did) so re-running discovery refreshes the formula rather than
-    /// piling up duplicates.
     pub fn upsert_probe_from_discovery(
         &self,
         vehicle_id: i64,
@@ -2983,8 +2704,6 @@ impl Db {
             )
             .ok();
         match existing {
-            // A manual definition is user-owned. It wins over discovery
-            // and is never silently rewritten.
             Some((_id, origin)) if origin == "manual" => false,
             Some((id, _)) => {
                 let _ = conn.execute(
@@ -3010,8 +2729,6 @@ impl Db {
             .ok();
     }
 
-    /// Removes one probe only when discovery owns it. Used when the
-    /// knowledge map retracts or moves a formula; manual rows are immune.
     pub fn delete_discovery_probe(&self, id: i64) -> bool {
         self.0
             .lock()
@@ -3024,9 +2741,6 @@ impl Db {
             .unwrap_or(false)
     }
 
-    /// Edit a probe's decode formula in place (agent API `PATCH /probes/:id`).
-    /// Identity (id, vehicle, origin) never changes; only how the answer is
-    /// read. Returns false when no such probe exists.
     pub fn update_probe_decode(&self, id: i64, p: &UdsProbe) -> bool {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -3059,16 +2773,8 @@ impl Db {
         .ok();
     }
 
-    /// A hypothesis that has just been activated owns a probe: the row that
-    /// makes the poller actually read that DID. An existing row for the same
-    /// (vehicle, module, DID) is adopted whatever its origin — that is the
-    /// whole point, a user who already saved this DID by hand must not end
-    /// up with a duplicate. Otherwise a new `discovery`-origin row is
-    /// created from the hypothesis's decode. Returns the probe's id.
     pub fn link_hypothesis_probe(&self, hypothesis_id: i64, vehicle_id: i64, p: &UdsProbe) -> i64 {
         let conn = self.0.lock().unwrap();
-        // A manual row wins the adoption when both exist: it is the one the
-        // user can see and edit in the probe list.
         let existing: Option<i64> = conn
             .query_row(
                 "SELECT id FROM uds_probes WHERE vehicle_id = ?1 AND module = ?2 AND did = ?3
@@ -3079,8 +2785,6 @@ impl Db {
             .ok();
         match existing {
             Some(id) => {
-                // Adoption never rewrites a formula the user may have tuned;
-                // it only records the ownership and switches the row on.
                 let _ = conn.execute(
                     "UPDATE uds_probes SET hypothesis_id = ?2, enabled = 1 WHERE id = ?1",
                     params![id, hypothesis_id],
@@ -3111,9 +2815,6 @@ impl Db {
         }
     }
 
-    /// Switch off every probe a hypothesis owns. The row is kept (with its
-    /// link) so re-enabling the hypothesis reuses it instead of piling up a
-    /// second definition of the same DID.
     pub fn disable_hypothesis_probes(&self, hypothesis_id: i64) -> usize {
         let conn = self.0.lock().unwrap();
         conn.execute(
@@ -3123,9 +2824,6 @@ impl Db {
         .unwrap_or(0)
     }
 
-    /// Custom UDS modules (non-PSA brands, or extra PSA modules the built-in
-    /// four don't cover). Returned as generic (key, label, req, resp) tuples
-    /// so this module stays free of a dependency on `elm::uds`.
     pub fn list_uds_modules(&self) -> Vec<(String, String, String, String)> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -3137,8 +2835,6 @@ impl Db {
             .collect()
     }
 
-    /// Returns Err if the key collides with a built-in or an existing custom
-    /// module (UNIQUE constraint) — surfaced to the UI as a friendly message.
     pub fn add_uds_module(
         &self,
         key: &str,
@@ -3161,8 +2857,6 @@ impl Db {
             .ok();
     }
 
-    // ---------- app settings (app-level, not car-level) ----------
-
     pub fn setting_get(&self, key: &str) -> Option<String> {
         let conn = self.0.lock().unwrap();
         conn.query_row(
@@ -3183,16 +2877,11 @@ impl Db {
         .ok();
     }
 
-    /// Remove one setting entirely — an absent row and a row holding a
-    /// sentinel are not the same thing to a caller that treats "no row" as
-    /// "never happened" (see `discovery::knowledge`).
     pub fn setting_delete(&self, key: &str) {
         let conn = self.0.lock().unwrap();
         conn.execute("DELETE FROM app_settings WHERE key = ?1", params![key])
             .ok();
     }
-
-    // ---------- per-vehicle report ----------
 
     pub fn vehicle_report(&self, vehicle_id: i64) -> CarReport {
         let conn = self.0.lock().unwrap();
@@ -3250,8 +2939,6 @@ impl Db {
                 |r| r.get(0),
             )
             .unwrap_or(0);
-        // Per-vehicle at last — dtc_scan_events carries vehicle_id now (the
-        // old dtc_scans table had no link at all and this pair was global).
         let (scans_total, scans_clean): (i64, i64) = conn
             .query_row(
                 "SELECT COUNT(*),
@@ -3309,7 +2996,6 @@ impl Db {
         let stats_7d = stats(24.0 * 7.0);
         let stats_all = stats(24.0 * 3650.0);
 
-        // ---- Plain-language insights (last 7 days; falls back to all-time) ----
         let window_hours = 24.0 * 7.0;
         let pick = |set: &Vec<KeyStats>, key: &str| -> Option<(f64, f64, f64, i64)> {
             set.iter()
@@ -3321,7 +3007,6 @@ impl Db {
         } else {
             &stats_7d
         };
-        // Engine hours inside the window ≈ sum of connections started in it.
         let engine_minutes_window: f64 = conn
             .query_row(
                 "SELECT COALESCE(SUM((julianday(COALESCE(ended_at, started_at)) - julianday(started_at)) * 1440), 0)
@@ -3398,8 +3083,6 @@ impl Db {
             insights,
         }
     }
-
-    // ---------- cloud sync feed ----------
 
     pub fn sync_batch(&self, after_reading_id: i64, limit: i64) -> SyncBatch {
         let conn = self.0.lock().unwrap();
@@ -3674,8 +3357,6 @@ impl Db {
         }
     }
 
-    // ---------- misc ----------
-
     pub fn reading_keys(&self, vehicle_id: Option<i64>) -> Vec<String> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -3687,14 +3368,7 @@ impl Db {
             .collect()
     }
 
-    /// The same keys, each with the probe and module behind it and the newest
-    /// timestamp it carries. Two cheap queries: the keys plus their MAX(ts)
-    /// (served by idx_readings_vehicle_key_ts) and the discovered module
-    /// names. The probe join happens in memory because a probe's reading key
-    /// is derived from its label (`UdsProbe::reading_key`), which SQL would
-    /// have to spell a second time.
     pub fn reading_key_details(&self, vehicle_id: Option<i64>) -> Vec<ReadingKeyRow> {
-        // list_probes takes the same (non-reentrant) lock — call it first.
         let probes = self.list_probes(vehicle_id);
         let conn = self.0.lock().unwrap();
         let mut module_names: BTreeMap<String, String> = BTreeMap::new();
@@ -3788,7 +3462,6 @@ impl Db {
         .collect()
     }
 
-    /// Everything in a date range as one JSON blob — the export button.
     pub fn export_json(&self, vehicle_id: Option<i64>, since_hours: f64) -> String {
         let readings: Vec<(String, String, f64, Option<i64>)> = {
             let conn = self.0.lock().unwrap();
@@ -3824,8 +3497,6 @@ mod tests {
     use super::*;
 
     fn test_db() -> Db {
-        // ":memory:" is SQLite's in-memory database name; Db::open passes it
-        // through to Connection::open unchanged.
         Db::open(Path::new(":memory:")).expect("in-memory db")
     }
 
@@ -4031,7 +3702,6 @@ mod tests {
         assert_eq!(voltage.probe_id, None);
         assert!(voltage.last_ts.is_some());
 
-        // Another car's keys never appear here, same rule as reading_keys.
         let (other, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
         assert!(db.reading_key_details(Some(other)).is_empty());
     }
@@ -4060,8 +3730,6 @@ mod tests {
         db.link_connection_vehicle(c2, peugeot);
         db.insert_reading(c1, Some(citroen), "fuel_level", 80.0);
         db.insert_reading(c2, Some(peugeot), "fuel_level", 49.8);
-        // The exact live bug from 2026-08-21: the Peugeot's fuel level must
-        // NEVER show up in the Citroën's report, and vice versa.
         let citroen_report = db.vehicle_report(citroen);
         let peugeot_report = db.vehicle_report(peugeot);
         assert_eq!(citroen_report.insights.fuel_level_pct, Some(80.0));
@@ -4072,9 +3740,6 @@ mod tests {
 
     #[test]
     fn a_pre_v13_database_opens_with_no_hypothesis_link_on_existing_probes() {
-        // The v13 column is additive: a database written before the probe /
-        // hypothesis link existed must open untouched, with every stored
-        // probe still polling on exactly the rule it was saved under.
         let path = std::env::temp_dir().join(format!(
             "scainner-v11-migration-{}.sqlite3",
             uuid::Uuid::new_v4()
@@ -4129,9 +3794,6 @@ mod tests {
 
     #[test]
     fn probes_are_scoped_per_vehicle() {
-        // A probe found on one car (e.g. auto-discovery on a Kona) must
-        // never be attempted on another (e.g. a Peugeot) — the same cross-
-        // car isolation every other table already has since schema v2.
         let db = test_db();
         let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
@@ -4163,8 +3825,6 @@ mod tests {
 
     #[test]
     fn legacy_global_probes_still_poll_on_every_car() {
-        // Probes saved before per-vehicle scoping existed have vehicle_id
-        // NULL — they must keep working everywhere, not silently vanish.
         let db = test_db();
         let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let (peugeot, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
@@ -4184,7 +3844,7 @@ mod tests {
             hypothesis_id: None,
             signed: false,
         };
-        db.add_probe(&probe, None); // legacy path: no vehicle scope
+        db.add_probe(&probe, None);
         assert_eq!(db.list_probes(Some(citroen)).len(), 1);
         assert_eq!(db.list_probes(Some(peugeot)).len(), 1);
         assert_eq!(db.list_probes(None).len(), 1);
@@ -4192,8 +3852,6 @@ mod tests {
 
     #[test]
     fn discovery_promotion_upserts_instead_of_duplicating() {
-        // Re-running discovery on the same car must refresh the probe's
-        // formula, not pile up a second row for the same DID.
         let db = test_db();
         let (citroen, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let first = db.upsert_probe_from_discovery(
@@ -4440,7 +4098,6 @@ mod tests {
         let c_known = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.link_connection_vehicle(c_known, citroen);
         db.insert_reading(c_known, Some(citroen), "rpm", 800.0);
-        // A VIN-less car connects: readings recorded with NULL vehicle_id.
         let c_unknown = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.insert_reading(c_unknown, None, "rpm", 900.0);
         db.insert_dtc_scan(
@@ -4453,14 +4110,11 @@ mod tests {
             Some(13.5),
             None,
         );
-        // Nothing leaks into the Citroën.
         let report = db.vehicle_report(citroen);
         assert_eq!(report.total_readings, 1);
         assert_eq!(report.scans_total, 0);
-        // Unidentified scan history is its own bucket, not the Citroën's.
         assert_eq!(db.dtc_history(Some(citroen), 10).len(), 0);
         assert_eq!(db.dtc_history(None, 10).len(), 1);
-        // The user names the car -> everything already recorded is claimed.
         let peugeot = db.create_vehicle_named("Peugeot viejo");
         db.link_connection_vehicle(c_unknown, peugeot);
         let named_report = db.vehicle_report(peugeot);
@@ -4491,7 +4145,6 @@ mod tests {
         let report = db.vehicle_report(v);
         assert_eq!(report.scans_total, 2);
         assert_eq!(report.scans_clean, 1);
-        // Round-trips through the per-code table back into arrays.
         let history = db.dtc_history(Some(v), 10);
         assert_eq!(history.len(), 2);
         assert_eq!(history[0].stored, vec!["P0420".to_string()]);
@@ -4532,8 +4185,6 @@ mod tests {
         );
         db.create_diagnostic_case(v, "MIL illuminated", Some(128_400), Some("Alex"))
             .unwrap();
-        // An unidentified connection: its rows must NOT ship (the cloud's
-        // RLS rejects NULL-vehicle facts by design).
         let c2 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.insert_reading(c2, None, "rpm", 900.0);
         let batch = db.sync_batch(0, 100);
@@ -4552,11 +4203,9 @@ mod tests {
             batch.vehicles[0].cloud_id
         );
         assert!(batch.last_reading_id >= 2);
-        // Idempotent watermark: nothing new past the watermark.
         let empty = db.sync_batch(batch.last_reading_id, 100);
         assert!(empty.readings.is_empty());
         assert_eq!(empty.last_reading_id, batch.last_reading_id);
-        // Every shipped row carries a cloud id.
         assert!(!batch.vehicles[0].cloud_id.is_empty());
         assert!(!batch.connections[0].cloud_id.is_empty());
         assert!(!batch.scan_events[0].cloud_id.is_empty());
@@ -4569,7 +4218,7 @@ mod tests {
         let (b, _) = db.ensure_vehicle("VF3XXXXXXXXXXXXXX");
         db.set_fuel_price(a, 1.62);
         assert_eq!(db.vehicle_report(a).insights.fuel_price, 1.62);
-        assert_eq!(db.vehicle_report(b).insights.fuel_price, 1.50); // default untouched
+        assert_eq!(db.vehicle_report(b).insights.fuel_price, 1.50);
     }
 
     #[test]
@@ -4639,8 +4288,6 @@ mod tests {
             Some("Wheel speed rear-left")
         );
 
-        // The production constant is 5000; the rule is exercised with a
-        // small window so the suite stays fast.
         assert_eq!(HYPOTHESIS_SAMPLE_RETENTION, 5000);
         let keep = 50;
         for ts in 0..(keep + 7) {
@@ -4696,7 +4343,6 @@ mod tests {
             db.patch_hypothesis(id, &bad, true).unwrap_err().rule,
             "unknown_state_value"
         );
-        // Confirming the decode needs the run that discriminated it.
         let connection = db.start_connection("ELM327", "test");
         db.link_connection_vehicle(connection, vehicle);
         let run = db
@@ -4721,9 +4367,6 @@ mod tests {
         assert!(db.patch_hypothesis(999, &confirm, false).unwrap().is_none());
     }
 
-    /// The knowledge dimension is gated the way activation is: a promotion
-    /// to a confirmed state has to name the evidence, and the evidence has
-    /// to belong to this car.
     #[test]
     fn promoting_knowledge_requires_this_vehicles_discriminating_runs() {
         let db = test_db();
@@ -4738,7 +4381,6 @@ mod tests {
             knowledge_state: "inherited".into(),
             ..Default::default()
         });
-        // Another car's evidence, recorded before this one's.
         let (other_vehicle, _) = db.ensure_vehicle("VR7EXAMPLE0000003");
         let other_connection = db.start_connection("ELM327", "test");
         db.link_connection_vehicle(other_connection, other_vehicle);
@@ -4749,7 +4391,6 @@ mod tests {
             .insert_verification_run(vehicle, connection, "corr-v1", "{}")
             .unwrap();
 
-        // Matched, but nothing to point at.
         let bare = HypothesisPatch {
             knowledge_state: Some("locally_confirmed".into()),
             vehicle_fit: Some("matched".into()),
@@ -4759,7 +4400,6 @@ mod tests {
             db.patch_hypothesis(id, &bare, false).unwrap_err().rule,
             "locally_confirmed_requires_evidence"
         );
-        // A run, but this car never matched the decode.
         let unmatched = HypothesisPatch {
             knowledge_state: Some("locally_confirmed".into()),
             evidence_run_ids: Some(vec![run]),
@@ -4769,7 +4409,6 @@ mod tests {
             db.patch_hypothesis(id, &unmatched, false).unwrap_err().rule,
             "locally_confirmed_requires_evidence"
         );
-        // Someone else's run proves nothing here.
         let borrowed = HypothesisPatch {
             evidence_run_ids: Some(vec![other_run]),
             ..bare.clone()
@@ -4778,7 +4417,6 @@ mod tests {
             db.patch_hypothesis(id, &borrowed, false).unwrap_err().rule,
             "evidence_run_not_found"
         );
-        // Fleet knowledge never starts on one car.
         for fleet in ["community_verified", "oem_confirmed"] {
             let patch = HypothesisPatch {
                 knowledge_state: Some(fleet.into()),
@@ -4790,7 +4428,6 @@ mod tests {
                 "fleet_state_not_settable_locally"
             );
         }
-        // Nothing was written while the rules refused.
         assert_eq!(db.hypothesis(id).unwrap().knowledge_state, "inherited");
         assert!(db.hypothesis(id).unwrap().evidence.is_none());
 
@@ -4801,7 +4438,6 @@ mod tests {
         let row = db.patch_hypothesis(id, &confirmed, false).unwrap().unwrap();
         assert_eq!(row.knowledge_state, "locally_confirmed");
         assert_eq!(row.evidence.unwrap().run_ids, vec![run]);
-        // An unrelated patch leaves the evidence where it is.
         let relabel = HypothesisPatch {
             label: Some("Wheel speed RL".into()),
             ..Default::default()
@@ -4842,7 +4478,6 @@ mod tests {
             .unwrap();
         assert_eq!(row.evidence.unwrap().run_ids, vec![run]);
 
-        // A human demotion is allowed and takes the evidence with it.
         let row = db
             .patch_hypothesis(
                 id,
@@ -4868,9 +4503,6 @@ mod tests {
         assert!(stored.is_none());
     }
 
-    /// A database written before v14 gains the signed column with every
-    /// stored probe still meaning what it meant: an unsigned big-endian
-    /// read, exactly what the decoder did before the flag existed.
     #[test]
     fn a_pre_v14_database_gains_an_unsigned_default_on_existing_probes() {
         let path =
@@ -4878,7 +4510,6 @@ mod tests {
         {
             let db = Db::open(&path).expect("fresh db");
             let conn = db.0.lock().unwrap();
-            // Wind the file back to the v13 shape.
             conn.execute_batch(
                 "ALTER TABLE uds_probes DROP COLUMN signed;
                  INSERT INTO uds_probes (module, did, label, unit, offset, len, scale, bias, cloud_id)
@@ -4901,7 +4532,6 @@ mod tests {
             !probes[0].signed,
             "a probe saved before the flag existed keeps reading unsigned"
         );
-        // And the flag is writable from here on.
         let mut edited = probes[0].clone();
         edited.signed = true;
         assert!(db.update_probe_decode(edited.id, &edited));
@@ -4912,8 +4542,6 @@ mod tests {
         }
     }
 
-    /// A database written before v12 opens with the evidence column and with
-    /// the projected state moved into the protocol's vocabulary.
     #[test]
     fn a_pre_v12_database_gains_evidence_and_the_protocol_vocabulary() {
         let path =
@@ -4921,7 +4549,6 @@ mod tests {
         {
             let db = Db::open(&path).expect("fresh db");
             let conn = db.0.lock().unwrap();
-            // Wind the file back to the v11 shape.
             conn.execute_batch(
                 "ALTER TABLE hypotheses DROP COLUMN evidence_json;
                  INSERT INTO knowledge_candidates
@@ -5024,8 +4651,6 @@ mod tests {
         assert_eq!(learned[0].knowledge_state, "locally_confirmed");
         assert_eq!(learned[0].label.as_deref(), Some("Wheel speed"));
 
-        // A later unvalidated observation from another compatible car
-        // deduplicates into the family row and cannot downgrade confirmation.
         let (second_vehicle, _) = db.ensure_vehicle("VR7SECOND00000001");
         let second_module = db.upsert_discovered_module(second_vehicle, "6AD/68D", Some("ABS"));
         db.set_module_family(second_module, Some("cont_esp_mk100_psa"), "strong");
@@ -5044,7 +4669,6 @@ mod tests {
             "locally_confirmed"
         );
 
-        // Enforce the privacy boundary structurally, not only by convention.
         let private_columns = {
             let conn = db.0.lock().unwrap();
             let mut stmt = conn

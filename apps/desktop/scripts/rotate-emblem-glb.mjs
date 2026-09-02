@@ -1,28 +1,4 @@
 #!/usr/bin/env node
-/**
- * Rotate an emblem GLB in place, baking the rotation into the mesh vertices.
- *
- *   node apps/desktop/scripts/rotate-emblem-glb.mjs --x 180 <emblem.glb> ...
- *
- * Why this exists: several badges in public/emblems/glb arrived exported
- * face-down, so a camera on +Z sees the back of the extrusion and the mark
- * renders mirrored or upside down — on the app's live canvas as much as in
- * the PNG pipeline. render-emblems.mjs can correct a still with its
- * `rotateDeg` override, but the app's GlbEmblem has no such knob, so the
- * correction belongs in the file.
- *
- * The rotation is baked into vertex positions (and normals) rather than
- * left on a node transform: the result is a file with identity transforms
- * that behaves the same however it is loaded, instead of one that depends
- * on the consumer honouring a node TRS.
- *
- * Same headless-Chrome pipeline as render-emblems.mjs and for the same
- * reason: three.js's GLTF loader and exporter are browser code. The
- * exporter posts the re-encoded binary back to the local server, which
- * writes it over the input. Files outside the repo are never written.
- *
- * Flags: --x/--y/--z <deg> (default --x 180), --dry-run.
- */
 import { createServer } from "node:http";
 import { readFile, writeFile, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
@@ -50,8 +26,6 @@ if (!sawAngle) deg.x = 180;
 if (files.length === 0) die("usage: node rotate-emblem-glb.mjs [--x deg] [--y deg] [--z deg] [--dry-run] <emblem.glb> ...");
 for (const f of files) {
   if (!existsSync(f)) die(`no such file: ${f}`);
-  // Guard against pointing this at the pristine source downloads: it
-  // overwrites what it is given.
   if (!f.startsWith(REPO + path.sep)) die(`refusing to write outside the repo: ${f}`);
 }
 
@@ -111,10 +85,6 @@ new GLTFLoader().load("/model.glb", (gltf) => {
   root.rotation.set(RX, RY, RZ);
   root.updateMatrixWorld(true);
 
-  // Bake every node's world matrix into its geometry, then flatten the
-  // transforms to identity. A geometry instanced by more than one node
-  // cannot be baked this way (one buffer, two placements), so it is cloned
-  // per node first.
   const seen = new Set();
   let meshes = 0;
   root.traverse((o) => {

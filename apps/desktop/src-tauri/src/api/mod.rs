@@ -1,19 +1,3 @@
-//! The embedded agent API: an HTTP/JSON server on 127.0.0.1 living INSIDE the
-//! Tauri process, so an agent (or curl) shares the app's one serial
-//! connection, supervisor and SQLite handle. Every handler is an adapter over
-//! `ops` — the same functions the Tauri commands call — so the UI and the
-//! API can never disagree about what a request does to the car.
-//!
-//! Auth: `Authorization: Bearer <token>` on every route but `GET /health`.
-//! The token is generated once and stored in `app_settings.api_token`, and
-//! mirrored to `<app data dir>/api-token` (0600) for local agents to read.
-//! Safety: read-only by default; `POST /dtc/clear` and `POST /uds/clear`
-//! refuse (409, with the before-state) unless the body says
-//! `{"confirmed": true}`. Nothing here can send UDS 2E/2F/31/11/27 — the
-//! supervisor has no such request.
-//!
-//! Full route list + curl examples: `apps/desktop/docs/api.md`.
-
 pub mod openapi;
 pub mod ops;
 
@@ -38,8 +22,6 @@ use tokio_stream::{Stream, StreamExt};
 pub const DEFAULT_PORT: u16 = 47811;
 pub const TOKEN_SETTING: &str = "api_token";
 pub const PORT_SETTING: &str = "api_port";
-/// Tauri events the supervisor already broadcasts to the UI, relayed as-is
-/// over `GET /events` (SSE `event:` name = Tauri event name).
 const RELAYED_EVENTS: &[&str] = &[
     "conn-status",
     "live-update",
@@ -62,8 +44,6 @@ pub struct LiveSnapshot {
 
 pub struct ApiState {
     pub state: Arc<AppState>,
-    /// `None` only under test — `POST /connect` needs it to spawn the
-    /// supervisor (which emits Tauri events).
     pub app: Option<tauri::AppHandle>,
     pub token: String,
     pub port: u16,
@@ -112,12 +92,10 @@ fn now_ms() -> u128 {
         .unwrap_or(0)
 }
 
-/// Returns the stored token, minting one on first run.
 pub fn ensure_token(db: &crate::db::Db) -> String {
     if let Some(existing) = db.setting_get(TOKEN_SETTING).filter(|t| !t.is_empty()) {
         return existing;
     }
-    // Two v4 uuids = 256 random bits from the OS RNG; no extra dependency.
     let token = format!(
         "{}{}",
         uuid::Uuid::new_v4().simple(),
@@ -139,10 +117,6 @@ fn write_private_file(path: &std::path::Path, contents: &str) {
     }
 }
 
-/// Starts the server from Tauri `setup`: mints/loads the token, installs the
-/// event relay, binds 127.0.0.1:<api_port|47811> (falling back to an
-/// ephemeral port if taken) and writes `api-token` / `api-port` next to the
-/// database so a local agent can find both.
 pub fn start(app: tauri::AppHandle, state: Arc<AppState>) {
     use tauri::{Listener, Manager};
 
@@ -192,8 +166,6 @@ pub fn start(app: tauri::AppHandle, state: Arc<AppState>) {
     });
 }
 
-// ---------- errors ----------
-
 pub struct ApiError(StatusCode, Value);
 
 impl ApiError {
@@ -211,8 +183,6 @@ impl IntoResponse for ApiError {
     }
 }
 
-/// Maps the ops layer's string errors onto HTTP: no supervisor / dongle →
-/// 503, the confirm rail → 409, everything else → 500.
 fn op_err(error: String) -> ApiError {
     let status = if error.contains("not connected") || error.contains("supervisor gone") {
         StatusCode::SERVICE_UNAVAILABLE
@@ -232,9 +202,6 @@ fn ok<T: Serialize>(value: T) -> ApiResult {
     Ok(Json(value).into_response())
 }
 
-/// Lenient body parsing: an empty body is `T::default()`, anything else must
-/// be JSON of the right shape (400 otherwise). Lets curl call the write
-/// routes with no body and still get the honest 409.
 fn parse_body<T: DeserializeOwned + Default>(body: &Bytes) -> Result<T, ApiError> {
     if body.iter().all(|b| b.is_ascii_whitespace()) {
         return Ok(T::default());
@@ -247,8 +214,6 @@ fn parse_required<T: DeserializeOwned>(body: &Bytes) -> Result<T, ApiError> {
     serde_json::from_slice(body)
         .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, format!("invalid JSON body: {e}")))
 }
-
-// ---------- auth ----------
 
 async fn auth(
     State(api): State<Arc<ApiState>>,
@@ -272,19 +237,15 @@ async fn auth(
     }
 }
 
-// ---------- router ----------
-
 pub fn router(api: Arc<ApiState>) -> Router {
     let authed = Router::new()
         .route("/", get(index))
         .route("/openapi.json", get(openapi_doc))
         .route("/events", get(events))
-        // connection
         .route("/connect", post(connect))
         .route("/disconnect", post(disconnect))
         .route("/status", get(status))
         .route("/vehicle/name", post(name_current_vehicle))
-        // standard OBD
         .route("/live", get(live))
         .route("/readings", get(readings))
         .route("/readings/keys", get(reading_keys))
@@ -296,7 +257,6 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/readiness", get(readiness))
         .route("/sensors", get(sensors))
         .route("/writes-log", get(writes_log))
-        // UDS
         .route("/uds/modules", get(uds_modules).post(add_uds_module))
         .route(
             "/uds/modules/{key}",
@@ -309,12 +269,10 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/uds/scan/cancel", post(uds_scan_cancel))
         .route("/uds/discover", post(uds_discover))
         .route("/uds/clear", post(uds_clear))
-        // evidence protocol
         .route("/verification/parked", post(verification_parked))
         .route("/verification/capture", post(verification_capture))
         .route("/verification/runs", get(verification_runs))
         .route("/verification/runs/{id}", get(verification_run))
-        // knowledge
         .route("/vehicles", get(vehicles))
         .route(
             "/vehicles/{id}",
@@ -326,7 +284,6 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/vehicles/{id}/name", post(set_vehicle_name))
         .route("/vehicles/{id}/fuel-price", post(set_fuel_price))
         .route("/modules/{id}/dids", get(module_dids))
-        // discovery knowledge layer
         .route("/vehicles/{id}/coverage", get(vehicle_coverage))
         .route("/vehicles/{id}/parked-plan", get(vehicle_parked_plan))
         .route("/vehicles/{id}/guided-steps", get(vehicle_guided_steps))
@@ -357,7 +314,6 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/adapter", get(adapter_get).put(adapter_set))
         .route("/sync/batch", get(sync_batch))
         .route("/db-path", get(db_path))
-        // export
         .route("/export/markdown", get(export_markdown))
         .route("/export/json", get(export_json))
         .layer(middleware::from_fn_with_state(api.clone(), auth));
@@ -367,8 +323,6 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .merge(authed)
         .with_state(api)
 }
-
-// ---------- meta ----------
 
 async fn health(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(json!({
@@ -396,8 +350,6 @@ async fn events(
         .map(|ev| Ok(Event::default().event(ev.name).data(ev.json)));
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
-
-// ---------- connection ----------
 
 async fn connect(State(api): State<Arc<ApiState>>) -> ApiResult {
     let app = api.app.clone().ok_or_else(|| {
@@ -431,8 +383,6 @@ async fn name_current_vehicle(State(api): State<Arc<ApiState>>, body: Bytes) -> 
         .map_err(op_err)?;
     ok(json!({ "vehicle_id": id }))
 }
-
-// ---------- standard OBD ----------
 
 async fn live(State(api): State<Arc<ApiState>>) -> ApiResult {
     let snapshot = ops::lock_or_recover(&api.live).clone();
@@ -483,8 +433,6 @@ async fn reading_keys(
     ok(ops::reading_keys(&api.state, q.vehicle_id))
 }
 
-/// The enriched form of the above: `/readings/keys` stays a plain string
-/// array so existing clients (the MCP `reading_keys` tool) keep working.
 async fn reading_key_details(
     State(api): State<Arc<ApiState>>,
     Query(q): Query<VehicleQuery>,
@@ -552,8 +500,6 @@ async fn writes_log(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQue
         q.limit.unwrap_or(50),
     ))
 }
-
-// ---------- UDS ----------
 
 async fn uds_modules(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::uds_modules(&api.state))
@@ -677,8 +623,6 @@ async fn uds_clear(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
         .map_err(op_err)?)
 }
 
-// ---------- evidence protocol ----------
-
 async fn verification_parked(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::parked_verification(&api.state).await.map_err(op_err)?)
 }
@@ -729,8 +673,6 @@ async fn verification_run(State(api): State<Arc<ApiState>>, Path(id): Path<i64>)
         "result": result,
     }))
 }
-
-// ---------- knowledge ----------
 
 async fn vehicles(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::list_vehicles(&api.state))
@@ -824,8 +766,6 @@ async fn module_dids(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> A
     ok(ops::discovered_dids(&api.state, id))
 }
 
-// ---------- discovery knowledge layer ----------
-
 fn no_vehicle(id: i64) -> ApiError {
     ApiError::msg(StatusCode::NOT_FOUND, format!("no vehicle #{id}"))
 }
@@ -858,9 +798,6 @@ async fn vehicle_hypotheses(State(api): State<Arc<ApiState>>, Path(id): Path<i64
     ok(ops::list_hypotheses(&api.state, id))
 }
 
-/// What this car said, de-identified, for the next research round: WMI (no
-/// VIN), module fingerprints (no serial), route outcomes with their NRCs,
-/// unlabelled identifiers and the questions they raise.
 async fn vehicle_research_request(
     State(api): State<Arc<ApiState>>,
     Path(id): Path<i64>,
@@ -878,10 +815,6 @@ async fn vehicle_join(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> 
     }
 }
 
-/// "Scan again": forget the stored knowledge key for this vehicle and, when
-/// it is the connected one, run the automatic pass now without
-/// reconnecting. Minutes on a live car — watch `/events` for conn-status
-/// `discovery.stage` while it runs.
 async fn vehicle_discovery_run(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
     if api.state.db.vehicle(id).is_none() {
         return Err(no_vehicle(id));
@@ -889,10 +822,6 @@ async fn vehicle_discovery_run(State(api): State<Arc<ApiState>>, Path(id): Path<
     ok(ops::run_discovery(&api.state, id).await.map_err(op_err)?)
 }
 
-/// State transition on one hypothesis. A rule violation is a 409 whose body
-/// names the rule and the reason, so an agent can explain instead of retry.
-/// `evidence_run_ids` carries the verification runs a knowledge-state
-/// promotion rests on; the reply echoes them as `evidence`.
 async fn patch_hypothesis(
     State(api): State<Arc<ApiState>>,
     Path(id): Path<i64>,
@@ -916,8 +845,6 @@ async fn patch_hypothesis(
             StatusCode::NOT_FOUND,
             format!("no hypothesis #{id}"),
         )),
-        // A value outside the vocabulary is a malformed request (400); a
-        // real transition rule is a conflict with the row's state (409).
         Err(violation) => {
             let status = if violation.rule == "unknown_state_value" {
                 StatusCode::BAD_REQUEST
@@ -957,8 +884,6 @@ async fn probes(State(api): State<Arc<ApiState>>, Query(q): Query<VehicleQuery>)
 
 async fn add_probe(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let probe: crate::db::UdsProbe = parse_required(&body)?;
-    // An unresolvable module key is a bad request, not a stored row that
-    // never answers: say so instead of accepting it.
     let id = ops::add_probe(&api.state, &probe, probe.vehicle_id)
         .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?;
     ok(json!({ "id": id }))
@@ -1049,8 +974,6 @@ async fn setting_set(
     ok(json!({ "key": key, "value": b.value }))
 }
 
-// ---------- adapter profile ----------
-
 async fn adapters(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(json!({ "adapters": ops::list_adapters(&api.state) }))
 }
@@ -1060,9 +983,6 @@ struct AdapterDiscoverBody {
     seconds: Option<u8>,
 }
 
-/// Radios in range that are not paired yet. Blocking for up to 15 s by
-/// design — the radio inquiry is the wait — but never on the supervisor:
-/// `ops::discover_adapters` runs it on the blocking pool.
 async fn adapters_discover(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let b: AdapterDiscoverBody = if body.is_empty() {
         AdapterDiscoverBody::default()
@@ -1088,14 +1008,6 @@ struct PairBody {
     pin: Option<String>,
 }
 
-/// Pair the device the user chose. `pin` is optional and normally absent:
-/// the attempt goes out without one, which is all Secure Simple Pairing
-/// needs and all an already-paired radio needs.
-///
-/// 409 `{"error": "pin_required"}` is the one recoverable answer — the radio
-/// asked for a code, so ask the user and call again with `pin`. 400 with
-/// whatever the platform said covers the rest (wrong PIN, out of range,
-/// dongle asleep): things the person holding the hardware can act on.
 async fn adapters_pair(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let b: PairBody = parse_required(&body)?;
     let addr = b.addr.trim().to_ascii_lowercase();
@@ -1122,7 +1034,6 @@ async fn adapter_get(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(ops::adapter_profile(&api.state))
 }
 
-/// Partial update: fields omitted from the body keep their current value.
 async fn adapter_set(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let current = serde_json::to_value(ops::adapter_profile(&api.state))
         .map_err(|e| ApiError::msg(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
@@ -1179,8 +1090,6 @@ async fn sync_batch(State(api): State<Arc<ApiState>>, Query(q): Query<SyncQuery>
 async fn db_path(State(api): State<Arc<ApiState>>) -> ApiResult {
     ok(json!({ "path": ops::db_path(&api.state) }))
 }
-
-// ---------- export ----------
 
 #[derive(Deserialize)]
 struct ExportQuery {
@@ -1279,7 +1188,6 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
         assert!(body["adapters"].is_array());
 
-        // Review #65: unknown keys are refused, not silently dropped.
         let (status, body) = call(
             &api,
             "PUT",
@@ -1294,7 +1202,6 @@ mod tests {
             "{body}"
         );
 
-        // Review #65: baud is validated against the serial transport's list.
         let (status, body) = call(
             &api,
             "PUT",
@@ -1305,7 +1212,6 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
 
-        // A serial profile with a Bluetooth address round-trips as written.
         let (status, _) = call(
             &api,
             "PUT",
@@ -1340,9 +1246,6 @@ mod tests {
         assert_eq!(body["state"], "disconnected");
     }
 
-    /// "Scan again" without the car plugged in still has to do something
-    /// durable, or the button lies: it forgets the stored knowledge key,
-    /// so the next connection runs the pass.
     #[tokio::test]
     async fn scan_again_clears_the_gate_when_the_car_is_not_connected() {
         use crate::elm::discovery::knowledge;
@@ -1382,7 +1285,6 @@ mod tests {
     #[tokio::test]
     async fn clear_routes_are_confirm_gated_before_anything_else() {
         let (api, _) = test_api();
-        // No body at all → 409 with a before-state slot, never a write.
         let (status, body) = call(&api, "POST", "/dtc/clear", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["confirm_with"]["confirmed"], true);
@@ -1409,8 +1311,6 @@ mod tests {
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["before"]["module"], "abs");
 
-        // Confirmed but no car: the request reaches the connection check and
-        // is refused there (503), proving the gate sits in front of it.
         let (status, _) = call(
             &api,
             "POST",
@@ -1476,7 +1376,6 @@ mod tests {
         let (status, _) = call(&api, "GET", "/verification/runs/999", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
 
-        // Without a live connection there is no profile: only customs.
         let (status, body) = call(&api, "GET", "/uds/modules", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert!(body
@@ -1504,8 +1403,6 @@ mod tests {
         assert_eq!(body_module["read_service"], "22");
         assert_eq!(body_module["route"]["protocol"], "can11_500");
 
-        // The generated plan for the vehicle, without car traffic: its
-        // brand's profile modules, ISO identity DIDs, a versioned plan.
         let (status, body) = call(
             &api,
             "GET",
@@ -1526,8 +1423,6 @@ mod tests {
         assert_eq!(status, StatusCode::NOT_FOUND);
     }
 
-    /// A vehicle of a second brand through the router: its own coverage,
-    /// its own plan, and no leakage from the first brand's rows.
     #[tokio::test]
     async fn a_second_brand_is_served_in_isolation() {
         let (api, db) = test_api();
@@ -1589,10 +1484,6 @@ mod tests {
             .all(|d| d["did"] != 0xF080)));
     }
 
-    /// Guided steps are generated from open hypotheses: a baseline before
-    /// and after every input, optional nodes for anything that moves the
-    /// car, an operator confirmation wherever the gearbox matters, and a
-    /// plan version composed from the pack revision.
     #[tokio::test]
     async fn the_research_request_is_de_identified_and_asks_about_what_stayed_quiet() {
         let (api, db) = test_api();
@@ -1631,8 +1522,6 @@ mod tests {
             .iter()
             .any(|question| question.as_str().unwrap().contains("752/652")));
 
-        // The whole document, not one field: nothing owner-specific may
-        // survive into a file meant for a research prompt.
         let serialized = serde_json::to_string(&body).unwrap();
         assert!(!serialized.contains(&vin), "{serialized}");
     }
@@ -1645,7 +1534,6 @@ mod tests {
         let (status, _) = call(&api, "GET", "/vehicles/999/guided-steps", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
 
-        // Before the join: a valid, empty tree with the composed version.
         let (status, body) = call(
             &api,
             "GET",
@@ -1741,7 +1629,6 @@ mod tests {
                 }
             }
         }
-        // Optional (car-moving) nodes come after the stationary ones.
         let first_optional = steps.iter().position(|s| s["optional"] == true);
         if let Some(pos) = first_optional {
             assert!(saw_optional);
@@ -1750,16 +1637,12 @@ mod tests {
                 .filter(|s| s["kind"] == "input")
                 .all(|s| s["optional"] == true));
         }
-        // A test that names another module's DID gets it as a reference.
         assert!(steps.iter().any(|s| s["capture"]["reference_dids"]
             .as_object()
             .map(|m| !m.is_empty())
             .unwrap_or(false)));
     }
 
-    /// The knowledge layer end to end through the router: join the seeded
-    /// C4, read its coverage and hypotheses, then walk a hypothesis through
-    /// the state rules.
     #[tokio::test]
     async fn join_coverage_and_hypothesis_rules_through_the_router() {
         let (api, db) = test_api();
@@ -1816,7 +1699,6 @@ mod tests {
         assert_eq!(d400["vehicle_fit"], "untested");
         assert_eq!(d400["activation"], "disabled");
 
-        // Rule: enabled needs matched → 409 naming the rule.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -1828,7 +1710,6 @@ mod tests {
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["rule"], "enabled_requires_matched");
 
-        // Rule: learning needs the learning state.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -1861,7 +1742,6 @@ mod tests {
         assert_eq!(status, StatusCode::OK, "{body}");
         assert_eq!(body["activation"], "learning");
 
-        // A value outside the vocabulary is a 400, not a 409.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -1873,7 +1753,6 @@ mod tests {
         assert_eq!(status, StatusCode::BAD_REQUEST);
         assert_eq!(body["rule"], "unknown_state_value");
 
-        // Switching learning off cascades to every learning hypothesis.
         let (status, body) = call(
             &api,
             "PUT",
@@ -1899,7 +1778,6 @@ mod tests {
             .iter()
             .all(|h| h["activation"] == "disabled"));
 
-        // Confirming on this car unlocks enabled.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -1943,17 +1821,12 @@ mod tests {
         assert_eq!(body["decodes"]["enabled"]["count"], 1);
     }
 
-    /// A knowledge-state promotion through the router: what the world knows
-    /// only moves on evidence this car actually recorded, and what it moves
-    /// to is what the outbound knowledge table carries.
     #[tokio::test]
     async fn promoting_a_hypothesis_needs_evidence_through_the_router() {
         let (api, db) = test_api();
         let c4 = crate::elm::discovery::join::fixtures::seed_c4(&db);
         let vehicle = c4.vehicle_id;
         crate::elm::discovery::join::join_vehicle(&db, crate::elm::uds_map::map(), vehicle);
-        // A decode the world does not know yet: the pack's own states
-        // arrive through the inherit path and are not what this gate rules on.
         let unknown = db
             .list_hypotheses(vehicle)
             .into_iter()
@@ -1966,7 +1839,6 @@ mod tests {
         let run = db
             .insert_verification_run(vehicle, connection, "corr-v1", "{}")
             .unwrap();
-        // A run belonging to a different car.
         let (other, _) = db.ensure_vehicle("VF7OTHER0000000001");
         let other_connection = db.start_connection("ELM327", "test");
         db.link_connection_vehicle(other_connection, other);
@@ -1974,7 +1846,6 @@ mod tests {
             .insert_verification_run(other, other_connection, "corr-v1", "{}")
             .unwrap();
 
-        // Matched, but no discriminating run named.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -1986,7 +1857,6 @@ mod tests {
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["rule"], "locally_confirmed_requires_evidence");
 
-        // Another vehicle's run.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -2000,7 +1870,6 @@ mod tests {
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["rule"], "evidence_run_not_found");
 
-        // Fleet knowledge is never settable from one car.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -2014,7 +1883,6 @@ mod tests {
         assert_eq!(status, StatusCode::CONFLICT);
         assert_eq!(body["rule"], "fleet_state_not_settable_locally");
 
-        // The car's own run carries the promotion, and the reply echoes it.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -2038,7 +1906,6 @@ mod tests {
             .find(|c| c["did"] == did && c["knowledge_state"] == "locally_confirmed");
         assert!(confirmed.is_some(), "{learned}");
 
-        // Retracting the claim takes the evidence with it.
         let (status, body) = call(
             &api,
             "PATCH",
@@ -2052,8 +1919,6 @@ mod tests {
         assert!(body["evidence"].is_null());
     }
 
-    /// Every documented route must be served, and every route the decision
-    /// record requires must be documented.
     #[tokio::test]
     async fn openapi_matches_the_router() {
         let (api, _) = test_api();
@@ -2114,8 +1979,6 @@ mod tests {
 
         for route in openapi::ROUTES {
             let concrete = route.path.replace("{id}", "1").replace("{key}", "abs");
-            // Status only: /events is an endless SSE stream, so the body is
-            // never collected here.
             let req = Request::builder()
                 .method(route.method)
                 .uri(&concrete)

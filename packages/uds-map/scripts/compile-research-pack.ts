@@ -32,9 +32,6 @@ const output = resolve(args.get("output")!);
 const reportPath = resolve(args.get("report")!);
 const archive = resolve(args.get("archive")!);
 
-// One validation, two front doors: the compiler refuses exactly what
-// `research:validate` rejects, so a pack can never reach the runtime by
-// skipping the command.
 const validation = validateResearchPack(input);
 process.stdout.write(`${formatValidationReport(validation)}\n`);
 if (validation.failures.length) {
@@ -59,8 +56,6 @@ for (const recipe of recipesOf(pack)) {
 const sourceClaims = [...sources.values()].filter(immutableSource).map((source) => ({
   claim_id: `${index.pack_id}.source.${source.ref.toLowerCase()}`,
   exact_claim: `${source.title} supplies research evidence scoped to ${source.scope}.`,
-  // Source quality and fleet reproduction are independent dimensions.
-  // Only the vehicle-evidence promotion gate may grant community_verified.
   knowledge_state: "community_reported",
   source_fidelity: source.reliability,
   vehicle_applicability: "untested_by_project",
@@ -219,20 +214,14 @@ const projectedPlatforms = (platformsFile.platforms ?? [])
     models: platform.scope.models,
     powertrains: platform.scope.powertrains ?? [],
   }));
-// §9.1: `vds_patterns[]` is the pack's classifier list — anchored regex
-// strings over the vehicle-descriptor characters. `vin_rules`/`classifier`
-// are pre-standard spellings, kept so older packs still report honestly.
 const vdsPatternsOf = (platform: Json): string[] =>
   (platform.vds_patterns ?? platform.vin_rules ?? []).filter((pattern: unknown): pattern is string => typeof pattern === "string" && pattern.length > 0);
 const platformHasVinRule = (platform: Json): boolean => Boolean(vdsPatternsOf(platform).length || platform.classifier);
-/** The trusted map's `platforms[].vds_pattern` is a single regex string, so
- * several VIN families become one alternation: `^(KN3DU|KN36U)`. Every
- * branch keeps its own `^`-anchored body inside the group, which is the
- * form `elm/uds_map.rs::vds_matches` expands before matching. */
 const trustedVdsPattern = (platform: Json): string | null => {
   const patterns = vdsPatternsOf(platform);
   if (!patterns.length) return null;
   if (patterns.length === 1) return patterns[0];
+  // The trusted map stores one vds_pattern per platform.
   return `^(${patterns.map((pattern) => pattern.replace(/^\^/, "")).join("|")})`;
 };
 const vinSelectablePlatforms = (platformsFile.platforms ?? []).filter(platformHasVinRule).map((platform: Json) => platform.platform_id);
@@ -245,11 +234,6 @@ const vehicleFactSelectablePlatforms = projectedPlatforms
   .map((platform: Json) => platform.platform_id);
 if (!vinSelectablePlatforms.length) warnings.push("VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform");
 
-// Platform bridge: a platform-scoped candidate stays inert until the trusted
-// map carries the platform (and, for VIN selection, a vds pattern). Every
-// declared platform the map does not have becomes a reviewable proposal
-// beside the projection report; a human moves accepted ones into
-// data/uds-map.json. Nothing here writes to the trusted map.
 const trustedPlatformKeys = new Map<string, string[]>();
 for (const brand of trustedMapBrands()) trustedPlatformKeys.set(brand.id, (brand.platforms ?? []).map((platform: Json) => String(platform.key)));
 const packBrandIds: string[] = overlay.brand_ids ?? [];

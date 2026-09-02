@@ -1,6 +1,3 @@
-// Add a module route by hand (any brand's CAN request/response IDs).
-// Routes normally come from the brand pack; this is research use. Shares
-// the `uds_modules` query with Lab.tsx (same cache entry).
 import { useState } from "react";
 import { Button, Card, Input, Mono, Note, Skeleton } from "@/components/ui";
 import { Reveal } from "@/motion/components";

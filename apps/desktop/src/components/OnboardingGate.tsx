@@ -1,7 +1,3 @@
-// The very first screen on a fresh install, shown once ever: pick a
-// language. One tap both picks and confirms. Labels are always in their
-// own language — this is the one screen that has to read before a locale
-// is chosen, so it does not go through useT().
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
@@ -24,9 +20,6 @@ export function OnboardingGate({ onDone }: { onDone: () => void }) {
 
   return (
     <motion.div
-      // fixed inset-0, not h-screen: see Login.tsx's own comment on the
-      // same fix — an h-screen sibling stacks in document flow instead of
-      // overlaying the next gate during the exit fade (2026-08-30).
       className="fixed inset-0 flex items-center justify-center bg-bg text-text"
       style={{ background: "radial-gradient(60% 50% at 50% 0%, var(--accent-900), var(--bg) 70%)" }}
       initial="hidden"

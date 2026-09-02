@@ -1,6 +1,3 @@
-// Sweep a DID range on the selected module by hand, chunked to stay under
-// the backend's per-call time cap, with live progress (a silent module
-// gives nothing for a while — the bar is what says "working", not "stuck").
 import { useEffect, useState } from "react";
 import { Effect } from "effect";
 import { listen } from "@/lib/tauri";
@@ -12,7 +9,6 @@ import { hex4 } from "@/shared/domain/gauges";
 import type { UdsHit } from "@scainner/core";
 import { useT } from "@/i18n";
 
-// Must match the backend's per-call cap in uds::scan_range (currently 256).
 const SCAN_CHUNK = 256;
 
 type LiveProgress = { current: number; total: number; did: string; hits: number };
@@ -25,7 +21,6 @@ export function RangeScanner({
 }: {
   module: string;
   connected: boolean;
-  /** The vehicle's parked-plan sweep band for this module. */
   defaultRange?: [number, number] | null;
   onProbeCandidate: (hit: UdsHit) => void;
 }) {

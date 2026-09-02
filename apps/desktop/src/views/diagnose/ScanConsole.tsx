@@ -10,9 +10,6 @@ import { detectVoltageCluster } from "@/lib/dtc-grouping";
 import { CodeRow, type CodeStatus } from "@/views/diagnose/CodeRow";
 import { useT } from "@/i18n";
 
-// The four things one scan does, shown as a list of sentences rather than a
-// spinner. The backend runs them as one call, so progress here is paced on
-// a timer while the mutation is pending and settles to "all done" with it.
 const STEP_KEYS = ["standard", "modules", "freeze", "readiness"] as const;
 const STEP_MS = 800;
 

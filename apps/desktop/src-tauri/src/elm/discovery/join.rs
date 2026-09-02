@@ -1,9 +1,3 @@
-//! S3 join (protocol §4; plan A4): for every fingerprinted module of a
-//! vehicle, match an ECU family and register its decodes as hypotheses this
-//! car has not yet confirmed. Local, instant, idempotent — re-running
-//! refreshes, never duplicates, and never touches what the vehicle itself
-//! has established (`vehicle_fit`, `activation`).
-
 use crate::db::{Db, DiscoveredModuleRow, HypothesisUpsert};
 use crate::elm::discovery::family::{match_family, matched_family, CompatibilityKey, FamilyMatch};
 use crate::elm::discovery::state::{is_hypothesis_candidate, IdentityFit, KnowledgeState};
@@ -18,13 +12,9 @@ pub struct JoinedModule {
     pub identity_fit: Option<String>,
     pub family_id: Option<String>,
     pub family_match: String,
-    /// Hypotheses created or refreshed from the family's decodes.
     pub inherited: usize,
-    /// `unknown` hypotheses created or refreshed from discovered DIDs.
     pub unknown: usize,
-    /// Discovered DIDs the class filter kept out of the hypothesis table.
     pub filtered: usize,
-    /// Why the module was not joined, when it was not.
     pub skipped: Option<String>,
 }
 
@@ -37,11 +27,9 @@ pub struct JoinSummary {
     pub unknown_created: usize,
     pub unknown_refreshed: usize,
     pub filtered: usize,
-    /// Every hypothesis id touched, for the evidence trail.
     pub hypothesis_ids: Vec<i64>,
 }
 
-/// Space-separated or contiguous hex pairs → bytes; tolerant of junk.
 pub fn parse_hex(raw: &str) -> Vec<u8> {
     let compact: String = raw.chars().filter(|c| c.is_ascii_hexdigit()).collect();
     compact
@@ -52,10 +40,6 @@ pub fn parse_hex(raw: &str) -> Vec<u8> {
         .collect()
 }
 
-/// The decode as persisted on a hypothesis: the contract's
-/// `InheritedDecode` fields plus where it came from and how sure the world
-/// is, so a coverage line can say "known from N vehicles" without a map
-/// lookup.
 fn decode_json(decode: &FamilyDecode, family_id: &str, m: &FamilyMatch) -> String {
     json!({
         "label": decode.label,
@@ -74,9 +58,6 @@ fn decode_json(decode: &FamilyDecode, family_id: &str, m: &FamilyMatch) -> Strin
     .to_string()
 }
 
-/// Identity confidence the join sees for a module. Rows fingerprinted
-/// before `record_identity` existed carry NULL; a fingerprint observed at
-/// least once is treated as provisional, which is exactly what one read is.
 fn effective_identity(module: &DiscoveredModuleRow) -> Option<IdentityFit> {
     match module.identity_fit.as_deref().and_then(IdentityFit::parse) {
         Some(fit) => Some(fit),
@@ -146,11 +127,6 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
                             continue;
                         };
                         family_dids.push(did);
-                        // Only a Strong (part + software) match carries the
-                        // world's state for the decode. A Weak match (software
-                        // differs or unknown) and a name-only match earn a
-                        // research candidate; the family's own state travels
-                        // inside decode_json as `inherited_knowledge_state`.
                         let knowledge = if matches!(m, FamilyMatch::Strong { .. }) {
                             KnowledgeState::parse(&decode.knowledge_state)
                                 .unwrap_or(KnowledgeState::ResearchCandidate)
@@ -181,9 +157,6 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
                 joined.skipped = Some("no fingerprint: identity block not answered yet".into());
             }
         }
-        // Every answered DID that is not a family decode and passes the
-        // class filter becomes an `unknown` hypothesis (protocol S4). The
-        // filter's bands are the brand's and the joined family's, from data.
         let classes = crate::elm::discovery::pack_ext::band_classes_for_module(
             map,
             vin.as_deref(),
@@ -232,9 +205,6 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
 
 #[cfg(test)]
 pub(crate) mod fixtures {
-    //! Seed vehicles for every test in this layer: the vehicle this project
-    //! verified (as recorded on 2026-08-27) and a second vehicle of another
-    //! brand with an ISO identity block and a module on read service 21.
     use crate::db::Db;
     use crate::elm::uds::EcuFingerprint;
     use crate::elm::uds_map::{map, ReadService};
@@ -263,7 +233,6 @@ pub(crate) mod fixtures {
         }
     }
 
-    /// The VIN of the verified vehicle: the `decodes_verified` brand's first WMI.
     pub fn verified_vin() -> String {
         crate::elm::discovery::pack_ext::tests::verified_brand_vin()
     }
@@ -272,17 +241,11 @@ pub(crate) mod fixtures {
         pub vin: String,
         pub brand_id: String,
         pub vehicle_id: i64,
-        /// ISO-block module on service 22 (the standard engine route).
         pub engine: i64,
-        /// The module the pack documents on read service 21.
         pub local_id_module: i64,
         pub local_id_address: String,
     }
 
-    /// A vehicle of the first brand whose pack documents a module on read
-    /// service 21: its engine answers the ISO block, the 21 module answers
-    /// a group. Nothing here names the brand — it is whichever brand the
-    /// data says.
     pub fn seed_second_brand(db: &Db) -> SeededSecondBrand {
         let (brand, module) = map()
             .brands
@@ -323,7 +286,6 @@ pub(crate) mod fixtures {
         let local_id_module =
             db.upsert_discovered_module(vehicle_id, &local_id_address, module.name.as_deref());
         db.set_module_route_state(local_id_module, "reached");
-        // A 21 group answer: one-byte identifier, raw group payload.
         db.upsert_discovered_did(local_id_module, 0x01, "00 3C 01 F4 5A", 5, None);
         SeededSecondBrand {
             vin,
@@ -346,11 +308,9 @@ pub(crate) mod fixtures {
             camera,
             &fingerprint("74A", "64A", "9817137180", "9694921880"),
         );
-        // Engine ECU: reached, answers DIDs, no fingerprint yet.
         let engine = db.upsert_discovered_module(vehicle_id, "6A8/688", Some("Engine ECU"));
-        // A few discovered DIDs as the sweeps recorded them.
         db.upsert_discovered_did(abs, 0xD400, "00 00", 2, Some("Wheel speed rear-left"));
-        db.upsert_discovered_did(abs, 0xD435, "0A", 1, None); // DSGi per-wheel, unknown
+        db.upsert_discovered_did(abs, 0xD435, "0A", 1, None);
         db.upsert_discovered_did(abs, 0xF080, "98 46 12 49 80 00 00 98 20 60 93 80", 12, None);
         db.upsert_discovered_did(
             abs,
@@ -362,7 +322,6 @@ pub(crate) mod fixtures {
         db.upsert_discovered_did(abs, 0xD636, "3A 91 C4 07 EE 52 B8 1D 6F A0 29 D3", 12, None);
         db.upsert_discovered_did(engine, 0xD422, "00 8C", 2, Some("Battery voltage"));
         db.upsert_discovered_did(engine, 0xD4A0, "12 34 00", 3, None);
-        // Engine D6xx measurement (2 bytes): in the band, but not config-shaped.
         db.upsert_discovered_did(engine, 0xD622, "00 07", 2, None);
         db.upsert_discovered_did(camera, 0xD404, "00", 1, None);
         SeededC4 {
@@ -462,8 +421,6 @@ mod tests {
             .filter(|h| h.knowledge_state == "unknown")
             .map(|h| h.did)
             .collect();
-        // D435 (ABS), D422 + D4A0 + D622 (engine), D404 (camera) pass; F080,
-        // D619 and the D636 blob do not.
         assert_eq!(unknown.len(), 5, "{unknown:04X?}");
         assert!(
             unknown.contains(&0xD622),
@@ -477,7 +434,6 @@ mod tests {
             .iter()
             .any(|h| h.did == 0xF080 || h.did == 0xD619 || h.did == 0xD636));
         assert_eq!(summary.filtered, 3);
-        // A discovered DID that is also a family decode is one row, inherited.
         assert_eq!(
             rows.iter()
                 .filter(|h| h.module_id == c4.abs && h.did == 0xD400)
@@ -496,7 +452,6 @@ mod tests {
             .into_iter()
             .find(|h| h.module_id == c4.abs && h.did == 0xD400)
             .unwrap();
-        // This car confirms the wheel speed and enables it.
         db.patch_hypothesis(
             d400.id,
             &crate::db::HypothesisPatch {
@@ -538,7 +493,6 @@ mod tests {
         for h in db.list_hypotheses(vehicle_id) {
             assert_eq!(h.activation, "disabled");
             assert_eq!(h.vehicle_fit, "untested");
-            // Weak: the world's state is not claimed here, only recorded.
             assert_eq!(h.knowledge_state, "research_candidate");
             let decode: serde_json::Value =
                 serde_json::from_str(h.decode_json.as_deref().unwrap()).unwrap();
@@ -600,8 +554,6 @@ mod tests {
             .iter()
             .find(|m| m.module_id == second.engine)
             .unwrap();
-        // No family in the pack carries this part yet: nothing inherited,
-        // the answered DID is an unknown hypothesis.
         assert_eq!(engine.family_match, "none");
         assert_eq!(engine.identity_fit.as_deref(), Some("provisional"));
         assert_eq!(engine.unknown, 1);
@@ -614,7 +566,6 @@ mod tests {
         assert_eq!(local.unknown, 1, "a 21 group answer is a hypothesis too");
         let rows = db.list_hypotheses(second.vehicle_id);
         assert!(rows.iter().all(|h| h.knowledge_state == "unknown"));
-        // The read service the key carries is the pack's, not a constant.
         let (req, resp) = second.local_id_address.split_once('/').unwrap();
         assert_eq!(
             uds_map::read_service_for_module(

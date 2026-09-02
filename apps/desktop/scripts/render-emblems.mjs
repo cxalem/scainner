@@ -1,48 +1,4 @@
 #!/usr/bin/env node
-/**
- * Render the app's 3D vehicle emblems (public/emblems/glb/*.glb) to flat,
- * transparent PNGs in public/emblems/png/.
- *
- *   node apps/desktop/scripts/render-emblems.mjs --all
- *   node apps/desktop/scripts/render-emblems.mjs public/emblems/glb/kia.glb
- *   node apps/desktop/scripts/render-emblems.mjs --all --size 512 --out /tmp/png
- *   node apps/desktop/scripts/render-emblems.mjs --all --contact-sheet /tmp/sheet.png
- *
- * Flags
- *   --all                 every GLB in apps/desktop/public/emblems/glb
- *   --out <dir>           output directory (default apps/desktop/public/emblems/png)
- *   --size <px>           square edge in pixels (default 1024)
- *   --keep-text           skip the wordmark-stripping heuristic (see below)
- *   --contact-sheet <p>   also write a labelled grid of every PNG rendered
- *                         (a review aid — write it outside the repo)
- *
- * The GLB is the source of truth; these PNGs are a derived, regenerable
- * artefact. Nothing in the app reads them yet.
- *
- * The scene is a port of the desktop app's GlbEmblem (src/components/
- * emblems.tsx) as it is lit on the landing hero (apps/landing/components/
- * EmblemScene.tsx): the same chrome material, the same four-panel studio
- * environment baked through PMREM, the same key/fill/rim lights, the same
- * 30° lens and ACES tone mapping, the same "fit 2.6 units across X" model
- * normalisation — all from theme/rendering.ts, mirrored here because a
- * headless renderer cannot import the app's TypeScript.
- *
- * Three deliberate differences, all because the output is a transparent
- * still of one badge rather than a live hero:
- *   - no contact shadow (a dark radial smudge has nothing to sit on once
- *     the background is transparent),
- *   - no rotation, and a near-frontal camera instead of the hero's 30°
- *     three-quarter angle: a badge used as a flat mark should read as the
- *     logo, with just enough elevation to keep the chrome bevels alive,
- *   - the camera distance and aim are fitted to each model's own bounding
- *     box rather than fixed, so every badge fills the same fraction of its
- *     square whatever its aspect ratio.
- *
- * three.js is loaded from whichever workspace has it installed, served over
- * a throwaway localhost server because ES modules will not load over
- * file://. Rendering is headless Chrome with SwiftShader; there is no
- * WebGL in Node.
- */
 import { createServer } from "node:http";
 import { readFile, mkdir, readdir, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
@@ -56,28 +12,12 @@ const GLB_DIR = path.join(REPO, "apps/desktop/public/emblems/glb");
 const DEFAULT_OUT = path.join(REPO, "apps/desktop/public/emblems/png");
 const OVERRIDES_FILE = path.join(HERE, "emblem-render-overrides.json");
 
-// —— camera defaults ————————————————————————————————————————————————
-// Near-frontal, not the hero's three-quarter. Yaw is the horizontal swing
-// off dead-on and elevation the height above the badge's own centre line;
-// both are small on purpose — enough for the chrome to catch the key light
-// and the bevels to show depth, not enough to read as a perspective shot.
-// The margin is the fraction of the half-frame the model's bounding box is
-// allowed to occupy, so 0.88 leaves a 12% breathing gutter on every side.
 const DEFAULT_YAW_DEG = 6;
 const DEFAULT_ELEV_DEG = 10;
 const DEFAULT_MARGIN = 0.88;
 
-// —— wordmark heuristic defaults ————————————————————————————————————
-// Several of these GLBs model the badge as the logo plus the maker's name
-// spelled out in separate letter meshes. The PNGs are wanted as marks, not
-// as lockups, so the letters go. Heuristic: three or more meshes sitting in
-// a thin band along the bottom of the model that together span more than
-// half its width are letters, not logo.
 const DEFAULT_BAND = { maxYFrac: 0.35, minWidthFrac: 0.5, minCount: 3 };
 
-// ————————————————————————————————————————————————————————————————————
-// Argument parsing
-// ————————————————————————————————————————————————————————————————————
 function parseArgs(argv) {
   const opts = {
     all: false,
@@ -95,7 +35,7 @@ function parseArgs(argv) {
       i += 1;
       return v;
     };
-    if (a === "--") continue; // `pnpm run x -- --all` forwards the separator
+    if (a === "--") continue;
     if (a === "--all") opts.all = true;
     else if (a === "--out") opts.out = path.resolve(need("--out"));
     else if (a === "--size") opts.size = Number(need("--size"));
@@ -133,14 +73,7 @@ function fail(msg) {
   process.exit(1);
 }
 
-// ————————————————————————————————————————————————————————————————————
-// Environment resolution
-// ————————————————————————————————————————————————————————————————————
 
-// three.js is a dependency of more than one workspace here and this script
-// belongs to none of them, so rather than importing it, find a copy on disk
-// and serve its ES modules. THREE_DIR overrides for anyone running from a
-// worktree with no node_modules of its own.
 function resolveThree() {
   const candidates = [
     path.join(REPO, "apps/desktop/node_modules/three"),
@@ -165,9 +98,6 @@ function resolveThree() {
   );
 }
 
-// Headless Chrome does the rendering (SwiftShader gives WebGL without a
-// GPU). No bundled browser is downloaded — this uses whatever Chrome the
-// machine already has.
 function resolveChrome() {
   if (process.env.CHROME_BIN) {
     if (!existsSync(process.env.CHROME_BIN))
@@ -196,8 +126,6 @@ function loadOverrides() {
   if (!existsSync(OVERRIDES_FILE)) return {};
   try {
     const raw = JSON.parse(readFileSync(OVERRIDES_FILE, "utf-8"));
-    // The file carries a "_comment" key for readers; everything else is a
-    // per-emblem entry keyed by GLB basename.
     const out = {};
     for (const [k, v] of Object.entries(raw)) if (!k.startsWith("_")) out[k] = v;
     return out;
@@ -206,9 +134,6 @@ function loadOverrides() {
   }
 }
 
-// ————————————————————————————————————————————————————————————————————
-// The page: one render, driven entirely by query parameters
-// ————————————————————————————————————————————————————————————————————
 const PAGE = `<!doctype html><meta charset="utf-8"><title>rendering</title>
 <style>html,body{margin:0;background:transparent}canvas{display:block}</style>
 <script type="importmap">{"imports":{
@@ -230,7 +155,6 @@ const ROTATE = (Q.get("rotate") || "0,0,0").split(",").map(Number);
 const BAND = { maxYFrac: num("bandMaxYFrac", 0.35), minWidthFrac: num("bandMinWidthFrac", 0.5), minCount: num("bandMinCount", 3) };
 const TARGET_WIDTH = num("targetWidth", 2.6);
 
-// —— constants mirrored from apps/desktop/src/theme/rendering.ts ——
 const CHROME_MATERIAL = { color:"#f4f6f8", metalness:0.9, roughness:0.13,
   clearcoat:0.85, clearcoatRoughness:0.06, envMapIntensity:2.0 };
 const STUDIO = { backdrop:[0.32,0.34,0.37], overheadPanel:[2.4,2.4,2.4],
@@ -276,7 +200,6 @@ function report(payload){
   return fetch("/report?" + new URLSearchParams(payload)).catch(() => {});
 }
 
-// Strip the maker's name. Returns how many meshes were removed.
 function stripWordmark(obj){
   const parts = [];
   obj.traverse((o) => { if (o.isMesh) parts.push([o, new THREE.Box3().setFromObject(o)]); });
@@ -285,8 +208,6 @@ function stripWordmark(obj){
   const h = all.max.y - all.min.y, w = all.max.x - all.min.x;
   const band = parts.filter(([, b]) => b.max.y < all.min.y + BAND.maxYFrac * h);
   if (band.length < BAND.minCount) return 0;
-  // A badge that is nothing but its name would be erased entirely; leave it
-  // whole and let the log say so rather than emitting an empty PNG.
   if (band.length >= parts.length) return 0;
   const bx0 = Math.min(...band.map(([, b]) => b.min.x));
   const bx1 = Math.max(...band.map(([, b]) => b.max.x));
@@ -295,11 +216,6 @@ function stripWordmark(obj){
   return band.length;
 }
 
-// Point the camera down a fixed yaw/elevation and solve for the distance
-// and aim that put the model's bounding box centred and just inside the
-// frame. Iterating beats a closed form here because the box is projected
-// under perspective: each pass re-aims at the projected centre, then scales
-// the distance by how far the worst corner overshoots the margin.
 function fitCamera(obj){
   const box = new THREE.Box3().setFromObject(obj);
   const corners = [];
@@ -322,7 +238,6 @@ function fitCamera(obj){
       x0 = Math.min(x0, ndc.x); x1 = Math.max(x1, ndc.x);
       y0 = Math.min(y0, ndc.y); y1 = Math.max(y1, ndc.y);
     }
-    // Re-aim so the projected box is centred, then re-fit its extent.
     const halfH = Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
     camera.matrixWorld.extractBasis(right, up, new THREE.Vector3());
     target.addScaledVector(right, ((x0 + x1) / 2) * halfH * camera.aspect);
@@ -342,10 +257,6 @@ new GLTFLoader().load("/model.glb" + location.search, (gltf) => {
   let meshes = 0;
   obj.traverse((o) => { if (o.isMesh) { o.material = material; meshes += 1; } });
 
-  // Not every badge is exported face-up toward +Z: some sit face-down, so a
-  // camera on +Z sees the back of the extrusion and the mark reads mirrored
-  // or upside down. Nothing in the geometry says which way is "up" for a
-  // logo, so the correction is a per-file override.
   if (ROTATE.some((d) => d)) {
     obj.rotation.set(...ROTATE.map((d) => d * Math.PI / 180));
     obj.updateMatrixWorld(true);
@@ -353,9 +264,6 @@ new GLTFLoader().load("/model.glb" + location.search, (gltf) => {
 
   const dropped = KEEP_TEXT ? 0 : stripWordmark(obj);
 
-  // Normalise scale the way the app does (GlbEmblem's targetWidth) so the
-  // baked environment reflects off a badge of the size it was tuned for;
-  // framing is the camera's job, below.
   const box = new THREE.Box3().setFromObject(obj);
   const sz = new THREE.Vector3(); box.getSize(sz);
   const c = new THREE.Vector3(); box.getCenter(c);
@@ -378,9 +286,6 @@ new GLTFLoader().load("/model.glb" + location.search, (gltf) => {
 });
 </script>`;
 
-// A labelled grid of the rendered PNGs, for eyeballing every badge at once.
-// Rendered through the same browser rather than an image tool, so the script
-// keeps its "Chrome and nothing else" dependency footprint.
 function sheetPage(names, cols, cell) {
   const cards = names
     .map(
@@ -400,9 +305,6 @@ function sheetPage(names, cols, cell) {
 <div class="grid">${cards}</div>`;
 }
 
-// ————————————————————————————————————————————————————————————————————
-// Driver
-// ————————————————————————————————————————————————————————————————————
 const opts = parseArgs(process.argv.slice(2));
 const THREE_DIR = resolveThree();
 const CHROME = resolveChrome();
@@ -420,9 +322,6 @@ inputs = [...new Set(inputs)];
 
 await mkdir(opts.out, { recursive: true });
 
-// One server for the whole run: it serves three.js, the page, whichever GLB
-// the current render asked for, and (at the end) the finished PNGs for the
-// contact sheet.
 let currentGlb = null;
 let currentReport = null;
 let sheetHtml = "";
@@ -477,9 +376,6 @@ function shoot(url, out, size, height = size) {
       `--window-size=${size},${height}`, "--default-background-color=00000000",
       "--virtual-time-budget=20000", `--screenshot=${out}`, url,
     ];
-    // Chrome's stderr is a wall of harmless macOS display/GPU warnings in
-    // headless mode, so it is buffered and only surfaced if it actually
-    // exits non-zero.
     const p = spawn(CHROME, args, { stdio: ["ignore", "ignore", "pipe"] });
     let err = "";
     p.stderr.on("data", (d) => { err += d; });

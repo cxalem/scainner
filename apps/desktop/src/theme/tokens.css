@@ -1,27 +1,9 @@
-/* Design tokens — the single source of truth for how the app looks.
- *
- * Every visual decision (color, type, radius, elevation, motion timing)
- * lives here as a CSS custom property. Components never carry a raw hex,
- * px-radius or easing of their own: they consume these through the
- * Tailwind utilities mapped in ../index.css (`bg-surface`, `text-accent`,
- * `rounded-md`, …) or, for the few JS-runtime consumers (Three.js,
- * Canvas), through ./rendering.ts. Retune a value here and the whole app
- * follows.
- *
- * Values come from the Hi-Fi v2 handoff (light theme, one accent voice).
- * Ramps: 100 is the DARKEST step and 900 the lightest — same convention
- * for neutral and accent, so "accent-900" is always the palest tint and
- * "neutral-100" is always near-ink.
- */
 :root {
-  /* — surfaces and text — */
   --bg: #f7f6fb;
   --surface: #ffffff;
   --text: #1d1a33;
   --divider: #e4e0f0;
 
-  /* The one dark ground in the app (login's left panel) and the tints
-     that only exist on it. */
   --section: #221d47;
   --section-text: #efedfa;
   --section-headline: #f4f2fc;
@@ -29,17 +11,12 @@
   --section-chip-text: #f2effd;
   --section-chip-border: rgba(183, 171, 240, 0.75);
   --section-chip-bg: rgba(145, 132, 217, 0.22);
-  /* The on-dark roles a component needs when it is not a chip: a text
-     emphasis step down, a hairline, and the accent that reads on ink.
-     Same values as the landing page's copy of this family
-     (apps/landing/app/tokens.css) — one brand, one set of numbers. */
   --section-muted: rgba(239, 237, 250, 0.8);
   --section-faint: rgba(239, 237, 250, 0.42);
   --section-divider: rgba(214, 207, 242, 0.28);
   --section-accent: #b7abf0;
   --section-accent-strong: #d6cff2;
 
-  /* — accent (blurple) and its ramp — */
   --accent: #4634a8;
   --accent-100: #f6f4fd;
   --accent-200: #efebfb;
@@ -50,11 +27,9 @@
   --accent-700: #d6cff2;
   --accent-800: #e8e3f8;
   --accent-900: #f4f1fd;
-  /* Secondary accent: only for "candidate, unproven" — never decorative. */
   --accent-2-400: #7a5ea8;
   --accent-2-600: #b09ed0;
 
-  /* — neutral ramp — */
   --neutral-100: #14121f;
   --neutral-200: #24213a;
   --neutral-300: #3a3556;
@@ -65,7 +40,6 @@
   --neutral-800: #e8e6f0;
   --neutral-900: #f2f0f7;
 
-  /* — semantic status (meaning, never decoration) — */
   --ok: oklch(0.48 0.09 155);
   --ok-bg: oklch(0.96 0.03 155);
   --ok-line: oklch(0.86 0.05 155);
@@ -76,47 +50,29 @@
   --stop-bg: oklch(0.96 0.04 25);
   --stop-line: oklch(0.87 0.08 25);
 
-  /* — elevation — */
   --shadow-sm: 0 1px 2px rgba(29, 26, 51, 0.06);
   --shadow-md: 0 10px 28px -12px rgba(29, 26, 51, 0.18);
   --shadow-lg: 0 30px 70px -26px rgba(29, 26, 51, 0.28);
 
-  /* — shape — */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 14px;
   --radius-full: 999px;
 
-  /* — type — */
   --font-body: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-heading: var(--font-body);
   --font-heading-weight: 500;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* — layout — */
   --sidebar-width: 232px;
   --content-max-width: 1000px;
 
-  /* — motion — mirrored in ../motion/index.ts for framer-motion; keep in
-     sync. The one easing is a soft decelerate: content settles, never
-     snaps. */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-fast: 150ms;
   --dur-base: 220ms;
   --dur-slow: 320ms;
   --dur-page: 360ms;
 
-  /* — the shadcn/ui bridge —
-     shadcn components are written against a fixed set of role names. They
-     are not a second palette: every one resolves to a value above, so a
-     component installed from the registry comes out in Sonda's colours
-     with nothing to restyle. index.css names them for the utility layer.
-
-     `--accent` is deliberately missing from this list. shadcn's `accent`
-     means "a subtle hover surface"; here it is the solid blurple and
-     ninety-odd call sites depend on that, so the app's meaning wins and a
-     component reaching for `hover:bg-accent` is edited to use
-     `bg-accent-900`. See docs/redesign/03-shadcn.md. */
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--surface);
@@ -136,8 +92,6 @@
   --input: var(--divider);
   --ring: var(--accent);
   --radius: var(--radius-md);
-  /* Charts stay inside the two accent voices plus one neutral, so a shadcn
-     chart reads as the same data language as charts.tsx. */
   --chart-1: var(--accent-400);
   --chart-2: var(--accent-600);
   --chart-3: var(--accent-2-400);
@@ -153,10 +107,6 @@
   --sidebar-ring: var(--accent);
 }
 
-/* The brand has exactly one dark ground — the `--section-*` family, used by
-   the login panel and the landing page. Mapped here so a shadcn component
-   rendered on it is right by construction. Nothing in the app sets `.dark`
-   today. */
 .dark {
   color-scheme: dark;
   --background: var(--section);

@@ -1,7 +1,3 @@
-// Polled probes: turns a DID found by hand into a recorded probe (polled
-// every ~30 s while connected, written to readings like any standard
-// sensor) and manages the ones already saved. Only probes the user created
-// explicitly — auto-discovered definitions are inventory, not telemetry.
 import { useEffect, useState } from "react";
 import { Button, Card, Input, Mono, Note, Skeleton } from "@/components/ui";
 import { List, Item, Reveal } from "@/motion/components";
@@ -10,8 +6,6 @@ import type { UdsHit, UdsProbe } from "@scainner/core";
 import { useAddProbe, useDeleteProbe, useListProbes, useToggleProbe } from "@/features/lab/queries";
 import { useT } from "@/i18n";
 
-// Raw UdsProbe schema field names, untranslated on purpose (same idiom as
-// hex CAN IDs/DIDs).
 const PROBE_FIELDS = [
   ["label", "text"],
   ["unit", "text"],

@@ -3,14 +3,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Tailwind v4 theme mapping — same pattern as the desktop app's index.css.
-   Values live in tokens.css (a straight copy of the app's own
-   theme/tokens.css); this block only names them for the utility layer, and
-   also maps shadcn/ui's semantic token names onto the same brand tokens
-   (below) so `<Button>`/`<Card>`/`<Input>` render in Sonda's own palette,
-   not shadcn's default gray/black theme. No .dark variant: this page has
-   no theme toggle — the product's one dark ground (the hero/footer) is
-   handled by the existing --section-* tokens, not a color-scheme switch. */
 @theme inline {
   --color-*: initial;
 
@@ -92,7 +84,6 @@
 
   --ease-out: var(--ease-out);
 
-  /* shadcn/ui semantic tokens → Sonda brand tokens. */
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --color-card: var(--surface);
@@ -117,13 +108,6 @@
   --radius-4xl: calc(var(--radius-lg) * 1.9);
 }
 
-/* @layer base, not plain rules: Tailwind wraps every utility class
-   (text-*, bg-*, …) in @layer utilities, and an unlayered rule always
-   wins over a layered one regardless of source order or selector
-   specificity — a plain `a { color }` here would silently beat any
-   `text-*` class ever put on an <a>, including every CTA button
-   (Button asChild renders as <a>). Layering it lets a component's own
-   Tailwind classes override this default the normal way. */
 @layer base {
   html,
   body {
@@ -189,7 +173,6 @@
   }
 }
 
-/* Toggled by components/Reveal.tsx; each root layout carries a <noscript> fallback. */
 [data-reveal] {
   opacity: 0;
   transform: translateY(18px);

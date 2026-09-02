@@ -1,7 +1,3 @@
-// Response types for the vehicle-identity/car-report surface: Overview's
-// dashboard, History's stat tables, and Vehicle.tsx's identity card all
-// consume these (research.md section 3 — feature folders match this app's
-// real view boundaries, not an arbitrary split).
 import { Schema } from "effect";
 
 export class KeyStat extends Schema.Class<KeyStat>("KeyStat")({
@@ -50,9 +46,6 @@ export class DailyVoltage extends Schema.Class<DailyVoltage>("DailyVoltage")({
 }) {}
 
 export class CarReport extends Schema.Class<CarReport>("CarReport")({
-  // Schema v2 (docs/workflows/data-core/plan.md): the vehicle entity's id is
-  // the key; vin is a nullable attribute (a real ~2000 Peugeot's ECU never
-  // answers Mode 09) and display_name is the human identity for VIN-less cars.
   vehicle_id: Schema.Number,
   vin: Schema.NullOr(Schema.String),
   display_name: Schema.NullOr(Schema.String),
@@ -70,7 +63,6 @@ export class CarReport extends Schema.Class<CarReport>("CarReport")({
   daily_voltage: Schema.Array(DailyVoltage),
 }) {}
 
-/// One row of the vehicle picker (`list_vehicles`).
 export class VehicleListRow extends Schema.Class<VehicleListRow>("VehicleListRow")({
   id: Schema.Number,
   vin: Schema.NullOr(Schema.String),
@@ -78,7 +70,6 @@ export class VehicleListRow extends Schema.Class<VehicleListRow>("VehicleListRow
   connections: Schema.Number,
 }) {}
 
-/// The full vehicles row (`vehicle_info`) — Vehicle.tsx's identity card.
 export class VehicleInfo extends Schema.Class<VehicleInfo>("VehicleInfo")({
   id: Schema.Number,
   vin: Schema.NullOr(Schema.String),

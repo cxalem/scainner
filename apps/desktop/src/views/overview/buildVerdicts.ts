@@ -9,13 +9,6 @@ export type Verdict = {
   status: "good" | "watch" | "bad";
 };
 
-// Reads Overview's report data into the plain-language Health summary
-// cards. Pure function, no JSX, no hooks — a natural own-file split from
-// the components that render its output (research.md section 4).
-//
-// Takes `t` as a parameter rather than calling useT() itself, same as
-// components/WriteHistory.tsx's summary() — this needs to stay a plain,
-// testable function, not a component or a hook.
 export function buildVerdicts(report: CarReport, t: Dictionary): Verdict[] {
   const insights = report.insights;
   const h = t.overview.health;

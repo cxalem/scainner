@@ -1,9 +1,5 @@
 use std::path::{Path, PathBuf};
 
-/// Generate the research-pack embedding table from the pack index, so adding
-/// a research pack is a data change (one compiled file plus one index line)
-/// instead of a Rust edit. `src/elm/discovery/research.rs` includes the
-/// generated `EMBEDDED` table; the index itself stays embedded there.
 fn emit_research_packs() {
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let data_dir = manifest
@@ -78,9 +74,8 @@ fn emit_research_packs() {
     write_if_changed(&out, &generated);
 }
 
-/// Keep the file's mtime stable when nothing changed, so an unrelated
-/// rebuild does not invalidate every downstream unit.
 fn write_if_changed(path: &Path, contents: &str) {
+    // Stable mtimes avoid invalidating downstream units on unrelated rebuilds.
     if std::fs::read_to_string(path).is_ok_and(|current| current == contents) {
         return;
     }

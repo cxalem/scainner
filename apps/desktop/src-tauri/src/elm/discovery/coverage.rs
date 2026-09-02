@@ -1,9 +1,3 @@
-//! The coverage report (protocol §8; plan A5): what is known about one
-//! vehicle, from data, with every line carrying the ids that back it. It
-//! never claims more than the tables hold — where a count is not stored
-//! yet (refused / silent / closed routes) the report says so in
-//! `limitations` instead of printing a zero that looks like a fact.
-
 use crate::db::{Db, HypothesisRow};
 use crate::elm::discovery::state::{IdentityFit, RouteState, LEARNING_STATE_SETTING};
 use crate::elm::uds_map::{brand_for_vin_in, UdsMap};
@@ -13,7 +7,6 @@ use serde::Serialize;
 pub struct VehicleLine {
     pub id: i64,
     pub display_name: Option<String>,
-    /// VIN present locally; the VIN itself is not repeated here.
     pub vin_known: bool,
     pub wmi: Option<String>,
     pub brand_id: Option<String>,
@@ -40,17 +33,12 @@ pub struct StandardLine {
 #[derive(Serialize, Clone, Debug)]
 pub struct RoutesLine {
     pub reached: usize,
-    /// Candidate routes the census tried that answered with a negative
-    /// response (present, refusing) / never answered / failed on transport.
     pub refused: usize,
     pub silent: usize,
     pub transport_failed: usize,
-    /// Every candidate route the census recorded an outcome for.
     pub candidates: usize,
     pub module_ids: Vec<i64>,
-    /// `route_outcomes` row ids behind the refused/silent counts.
     pub outcome_ids: Vec<i64>,
-    /// Route states this report can actually account for from stored rows.
     pub states_stored: Vec<&'static str>,
     pub limitations: Vec<String>,
 }
@@ -88,7 +76,6 @@ pub struct DecodeBucket {
 #[derive(Serialize, Clone, Debug, Default)]
 pub struct DecodesLine {
     pub total: usize,
-    /// Registered from a family match, not yet tested on this car.
     pub inherited_untested: DecodeBucket,
     pub matched: DecodeBucket,
     pub conflicted: DecodeBucket,
@@ -96,7 +83,6 @@ pub struct DecodesLine {
     pub research_candidate: DecodeBucket,
     pub unknown: DecodeBucket,
     pub enabled: DecodeBucket,
-    /// Hypotheses whose route was closed with a recorded reason.
     pub closed_route: DecodeBucket,
 }
 
@@ -127,19 +113,11 @@ pub struct GuidedStep {
 #[derive(Serialize, Clone, Debug)]
 pub struct LearningLine {
     pub learning_state_on: bool,
-    /// Hypotheses a passive learning drive would test: they carry an
-    /// inherited decode the correlation engine can check against references.
     pub passive_would_validate: Vec<i64>,
-    /// Hypotheses that need a person: their discriminating test is a
-    /// physical step (`is_guided_step`).
     pub guided_steps: Vec<GuidedStep>,
-    /// Hypotheses whose discriminating test is a drive — passive data.
     pub passive_tests: Vec<GuidedStep>,
 }
 
-/// Whether a discriminating test needs a person (pedal, wheel, reverse) or
-/// is satisfied by ordinary driving. The catalogue marks passive tests with
-/// a `drive:` prefix or by naming a learning/passive drive.
 pub fn is_guided_step(test: &str) -> bool {
     let t = test.trim().to_ascii_lowercase();
     !(t.starts_with("drive:") || t.contains("learning drive") || t.contains("passive"))
@@ -162,13 +140,10 @@ pub struct CoverageReport {
     pub hypotheses: Vec<HypothesisSummary>,
     pub learning: LearningLine,
     pub evidence: EvidenceLine,
-    /// `complete` when every reached module is fingerprinted with a stable
-    /// identity and no hypothesis is untested; otherwise `partial`.
     pub status: &'static str,
     pub remaining: Vec<String>,
 }
 
-/// Newest verification runs listed as evidence; the report flags truncation.
 const RUN_ID_LIMIT: i64 = 1000;
 
 fn push(bucket: &mut DecodeBucket, id: i64) {
@@ -227,8 +202,6 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
 
     let modules = db.discovered_summary(vehicle_id);
     let module_ids: Vec<i64> = modules.iter().map(|m| m.id).collect();
-    // Every census outcome per route (Phase 2): reached routes are also
-    // modules; refused / silent / transport_failed ones live only here.
     let outcomes = db.route_outcomes(vehicle_id);
     let count = |state: RouteState| {
         outcomes
@@ -465,8 +438,6 @@ mod tests {
                 "{}",
             )
             .unwrap();
-        // Census outcomes as the automatic run records them: the four
-        // modules reached, one profile route refused, one silent.
         for m in db.discovered_summary(c4.vehicle_id) {
             db.record_route_outcome(
                 c4.vehicle_id,
@@ -526,7 +497,6 @@ mod tests {
         assert_eq!(report.decodes.total, 21);
         assert_eq!(report.hypotheses.len(), 21);
         assert_eq!(report.learning.passive_would_validate.len(), 16);
-        // The four wheel-speed tests are "drive:" steps, not human ones.
         assert_eq!(report.learning.guided_steps.len(), 12);
         assert_eq!(report.learning.passive_tests.len(), 4);
         assert!(report
@@ -549,7 +519,6 @@ mod tests {
             .iter()
             .any(|r| r.contains("6A8/688") && r.contains("not fingerprinted")));
         assert!(report.remaining.iter().any(|r| r.contains("16 inherited")));
-        // Serialises: the API returns it as-is.
         let json = serde_json::to_value(&report).unwrap();
         assert_eq!(json["decodes"]["inherited_untested"]["count"], 16);
         assert!(
@@ -654,7 +623,6 @@ mod tests {
             .iter()
             .all(|m| m.route_state == "reached"));
         assert_eq!(report.status, "partial");
-        // A vehicle without any census yet says so instead of printing zeros.
         let db2 = Db::open(std::path::Path::new(":memory:")).unwrap();
         let c4 = seed_c4(&db2);
         let report = coverage(&db2, uds_map::map(), c4.vehicle_id).unwrap();

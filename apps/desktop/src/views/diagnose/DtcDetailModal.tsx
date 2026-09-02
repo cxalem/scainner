@@ -7,9 +7,6 @@ import { decodeDtc, dtcInfo, localizedOrigin, localizedSubsystem, localizedSyste
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
 import { useLocale, useT } from "@/i18n";
 
-// Per-code detail reached from the past-scans table: meaning, the code's
-// anatomy (works for any code), its occurrence timeline, the freeze frame
-// if this code triggered one, causes/symptoms, and a focused AI deep-dive.
 export function DtcDetailModal({
   code,
   history,

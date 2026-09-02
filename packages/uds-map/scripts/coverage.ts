@@ -1,10 +1,3 @@
-// Generates COVERAGE.md from the pack (multi-brand plan, Phase 1, P1.6):
-// the per-brand table the audit (§6) used to maintain by hand.
-//
-//   pnpm coverage            # rewrite COVERAGE.md
-//   pnpm coverage --check    # exit 1 when COVERAGE.md is out of date (CI)
-//
-// No brand is named here: every row comes from data.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { brandStats, decodeShape, loadMap, loadPacks, loadResearchPacks, PKG_DIR, researchStats } from "./pack.ts";

@@ -1,24 +1,3 @@
-// The app's toast API — a thin wrapper over sonner (components/ui/sonner.tsx).
-//
-//   toast.success("Paired OBD Reader 4821")
-//   toast.error(t.gate.failure.noAdapter, {
-//     description: t.gate.failureHints.checkPlug,
-//     action: { label: t.gate.tryAgain, onClick: retry },
-//     secondaryAction: { label: t.gate.chooseAnotherDevice, onClick: rescan },
-//     details: "Open: no such device",
-//   })
-//
-// Sonner owns everything a queue owns: the stack, the three-visible limit,
-// promoting queued toasts as those on screen leave, pausing the countdown
-// under the pointer and under focus, the swipe, the exit animation. This
-// file owns the app's side of it — the variants, the body layout, the
-// Details disclosure, and the per-variant dwell times in lib/toast.ts.
-//
-// Why a wrapper at all rather than importing sonner at the call sites: the
-// Details disclosure is the whole reason the hand-made toast existed (a
-// transport error one click away for a support screenshot, never the first
-// thing read), and it has to re-issue the toast to stop the countdown while
-// it is open. That belongs in one place, not in every caller.
 import { useCallback, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { toast as sonner } from "sonner";
@@ -31,43 +10,25 @@ export type { ToastVariant } from "@/lib/toast";
 export type ToastAction = {
   label: string;
   onClick: () => void;
-  /** Offered but not available yet — the button stays visible so the toast
-   *  does not change shape, the way it does inline. */
   disabled?: boolean;
 };
 
 export type ToastOptions = {
-  /** The secondary line: what to do about it, when there is something. */
   description?: string;
-  /** The recovery the toast is really offering. */
   action?: ToastAction;
-  /** The other way out, when there are two. */
   secondaryAction?: ToastAction;
-  /** Raw technical text, hidden behind the Details disclosure. */
   details?: string | null;
-  /** The disclosure's own label — required whenever `details` is set, so
-   *  the toast never grows an English-only control. */
   detailsLabel?: string;
-  /** Overrides the variant's default dwell time. */
   durationMs?: number;
-  /** Stays up until it is dismissed. */
   sticky?: boolean;
-  /** Reuse an id to replace a toast in place instead of stacking a second
-   *  copy of the same news. */
   id?: string | number;
 };
 
 type ToastId = string | number;
 
 let seq = 0;
-/** Ours, not sonner's, because the body needs the id before the toast that
- *  carries it exists — Escape dismisses by id, and so does re-issuing the
- *  toast when Details opens. */
 const nextToastId = (): ToastId => `sonda-toast-${++seq}`;
 
-/** One toast's body: the hint line, the recovery actions, and the details
- *  disclosure. Rendered into sonner's description slot so the variant icon,
- *  border tone and close button stay sonner's. */
 function ToastBody({
   id,
   variant,
@@ -87,14 +48,9 @@ function ToastBody({
 
   return (
     <div
-      // The rail is one polite live region for every toast in it, so a
-      // variant that must interrupt says so here — see toastRole().
       role={toastRole(variant)}
       className="flex flex-col gap-2"
       onKeyDown={(e) => {
-        // Escape closes the one the user is actually in. The rail is not
-        // in the tab order until something inside it takes focus, so this
-        // never competes with a dialog's own Escape.
         if (e.key === "Escape") {
           e.stopPropagation();
           sonner.dismiss(id);
@@ -148,25 +104,16 @@ function ToastBody({
   );
 }
 
-/** Raise a toast, or replace the one already carrying this `id`.
- *
- *  Opening Details re-issues the same toast with an infinite duration: it
- *  is the one honest way to stop sonner's countdown, which has no pause of
- *  its own beyond hover and focus, and a reader who has just asked for the
- *  technical text should not lose it three seconds later. */
 function raise(variant: ToastVariant, title: string, options: ToastOptions = {}): ToastId {
   const id = options.id ?? nextToastId();
 
-  // A toast with nothing under its title — "Paired X" — gets no body at
-  // all, rather than an empty box holding the description slot open. The
-  // exception is the variants that must interrupt: they carry the body
-  // purely for its role (see toastRole).
   const hasBody =
     options.description != null ||
     options.action != null ||
     options.secondaryAction != null ||
     (options.details != null && options.details !== "");
 
+  // Sonner has no pause API beyond hover or focus, so an open Details view is re-issued indefinitely.
   const emit = (detailsOpen: boolean) =>
     sonner[variant](title, {
       id,
@@ -191,8 +138,6 @@ function dismiss(id?: ToastId) {
   sonner.dismiss(id);
 }
 
-/** The module-level API, for the places that raise a toast outside a React
- *  render (an event handler in a plain module, a service callback). */
 export const toast = {
   success: (title: string, options?: ToastOptions) => raise("success", title, options),
   info: (title: string, options?: ToastOptions) => raise("info", title, options),
@@ -201,8 +146,6 @@ export const toast = {
   dismiss,
 };
 
-/** The same API from inside a component, with stable identities so it can
- *  sit in a dependency array without re-running the effect that uses it. */
 export function useToast() {
   const show = useCallback(
     (variant: ToastVariant, title: string, options?: ToastOptions) => raise(variant, title, options),

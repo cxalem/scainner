@@ -1,8 +1,3 @@
-//! Standard OBD-II (SAE J1979) operations: DTC scans, freeze frames, ECU
-//! identity, readiness monitors, and a full-sensor sweep. Everything here
-//! works on any car built since the early 2000s — no manufacturer-specific
-//! knowledge required. (Manufacturer-specific access lives in `uds.rs`.)
-
 use super::driver::ElmDriver;
 use super::outcome::DiagnosticOutcome;
 use super::parser;
@@ -20,10 +15,6 @@ pub struct DtcResult {
     pub freeze: Option<serde_json::Value>,
 }
 
-/// Verified engine-DTC clear: the full scan taken right before the mode 04
-/// clear and the full scan taken right after it. The write-caps hard rule
-/// requires a logged before/after for every write; this is the "before" and
-/// "after". The caller (supervisor) persists it to `writes_log`.
 #[derive(Serialize, Clone)]
 pub struct ObdClearOutcome {
     pub before: DtcResult,
@@ -31,11 +22,6 @@ pub struct ObdClearOutcome {
     pub outcome: DiagnosticOutcome,
 }
 
-/// How a verified clear can fail. The caller needs to know which phase died
-/// because the audit log must say whether the car was actually written:
-/// `BeforeScanFailed` means nothing was sent (not logged as a write),
-/// `ClearFailed` and `VerifyFailed` mean a write was attempted or done and
-/// MUST be logged, with whatever state was captured.
 #[derive(Debug)]
 pub enum ClearError {
     BeforeScanFailed(String),
@@ -43,9 +29,6 @@ pub enum ClearError {
     VerifyFailed { before: DtcResult, error: String },
 }
 
-/// Read, clear (mode 04), read again. If the before-scan fails, nothing is
-/// cleared: a write whose prior state could not be captured would break the
-/// audit trail, so it must not happen.
 pub fn clear_and_verify(drv: &mut ElmDriver) -> Result<ObdClearOutcome, ClearError> {
     let before = scan_dtcs(drv).map_err(ClearError::BeforeScanFailed)?;
     if let Err(error) = clear_mode04(drv) {
@@ -114,7 +97,6 @@ pub struct SensorReading {
     pub value: f64,
 }
 
-/// Send a mode command, strip the echoed prefix, return the raw payload bytes.
 pub fn query(
     drv: &mut ElmDriver,
     cmd: &str,
@@ -135,13 +117,12 @@ pub fn scan_dtcs(drv: &mut ElmDriver) -> Result<DtcResult, String> {
     let pending = parser::decode_dtcs(&query(drv, "07", "47", 15)?);
     let permanent = query(drv, "0A", "4A", 15)
         .map(|p| parser::decode_dtcs(&p))
-        .unwrap_or_default(); // NO DATA is fine
+        .unwrap_or_default();
     let voltage = drv.cmd("ATRV", Duration::from_secs(3)).ok().and_then(|r| {
         parser::clean_response(&r)
             .first()
             .and_then(|l| parser::decode_voltage(l))
     });
-    // Freeze frame: only meaningful when something is actually stored.
     let freeze = if stored.is_empty() {
         None
     } else {
@@ -158,13 +139,9 @@ pub fn scan_dtcs(drv: &mut ElmDriver) -> Result<DtcResult, String> {
     })
 }
 
-/// Mode 02 (freeze frame 0): the ECU's sensor snapshot from the moment the
-/// fault was stored. Mirrors the live PID set plus PID 02 (the triggering DTC).
 fn read_freeze_frame(drv: &mut ElmDriver) -> Option<serde_json::Value> {
     let mut out = serde_json::Map::new();
-    // Which DTC caused this freeze frame (PID 02).
     if let Ok(p) = query(drv, "020200", "42 02", 8) {
-        // payload: frame no. then 2 DTC bytes
         let dtc_bytes: Vec<u8> = p.into_iter().skip(1).take(2).collect();
         let codes = parser::decode_dtcs(&[&[1u8][..], &dtc_bytes[..]].concat());
         if let Some(c) = codes.first() {
@@ -174,7 +151,6 @@ fn read_freeze_frame(drv: &mut ElmDriver) -> Option<serde_json::Value> {
     for pid in parser::PIDS {
         let cmd = format!("02{}00", &pid.pid[2..]);
         if let Ok(p) = query(drv, &cmd, &format!("42 {}", &pid.pid[2..]), 8) {
-            // First payload byte is the frame number; PID data follows.
             let data: Vec<u8> = p.into_iter().skip(1).collect();
             if let Some(v) = (pid.decode)(&data) {
                 out.insert(pid.key.into(), serde_json::json!(v));
@@ -198,13 +174,6 @@ pub fn read_ecu_info(drv: &mut ElmDriver) -> Result<EcuInfo, String> {
         .first()
         .cloned()
         .unwrap_or_default();
-    // Full standard ELM327 protocol-number table (ATDPN's numeric reply,
-    // optionally 'A'-prefixed when auto-detected), not just the two CAN
-    // variants this was originally written and tested against. A ~2000
-    // Peugeot (2026-08-21) came back "protocol 5" — ISO 14230-4 KWP
-    // (fast init), a real, correct, pre-CAN K-line protocol, not garbage —
-    // it just fell through to the unfriendly numeric fallback because
-    // nothing this old had been connected before.
     let protocol = match pn.trim_start_matches('A') {
         "1" => "SAE J1850 PWM".to_string(),
         "2" => "SAE J1850 VPW".to_string(),
@@ -227,7 +196,6 @@ pub fn read_ecu_info(drv: &mut ElmDriver) -> Result<EcuInfo, String> {
     })
 }
 
-/// Mode 0101 bytes C/D: which noncontinuous monitors are supported and complete.
 pub fn readiness(drv: &mut ElmDriver) -> Result<std::collections::HashMap<String, bool>, String> {
     let p = query(drv, "0101", "41 01", 10)?;
     if p.len() < 4 {
@@ -235,14 +203,12 @@ pub fn readiness(drv: &mut ElmDriver) -> Result<std::collections::HashMap<String
     }
     let (b, c, d) = (p[1], p[2], p[3]);
     let mut out = std::collections::HashMap::new();
-    // Continuous monitors (byte B low bits): supported / complete
     let cont = [("misfire", 0), ("fuel_system", 1), ("components", 2)];
     for (name, bit) in cont {
         if b & (1 << bit) != 0 {
             out.insert(name.to_string(), b & (1 << (bit + 4)) == 0);
         }
     }
-    // Spark-ignition noncontinuous monitors (bytes C=supported, D=incomplete)
     let noncont = [
         ("catalyst", 0),
         ("heated_catalyst", 1),
@@ -260,13 +226,6 @@ pub fn readiness(drv: &mut ElmDriver) -> Result<std::collections::HashMap<String
     Ok(out)
 }
 
-/// Ask the ECU which mode-01 PIDs it supports (0100/0120/0140/0160
-/// bitmaps). Empty on any failure — callers treat that as "unknown, assume
-/// everything" rather than an error. Also used at connect time to make the
-/// poll loop adaptive: the old Peugeot answers 5 of the poll set's 12
-/// PIDs, and every unsupported one burned a NO DATA timeout per sweep
-/// (proven live 2026-08-21 by the kline probe — the ECU declares its set
-/// honestly, so asking once beats failing forever).
 pub fn supported_pids(drv: &mut ElmDriver) -> Vec<u8> {
     let mut supported: Vec<u8> = Vec::new();
     for base in [0x00u8, 0x20, 0x40, 0x60] {
@@ -287,8 +246,6 @@ pub fn supported_pids(drv: &mut ElmDriver) -> Vec<u8> {
     supported
 }
 
-/// Discover which PIDs the ECU supports, then read every one we know how
-/// to decode. One-shot, ~10-20 s.
 pub fn read_all_sensors(drv: &mut ElmDriver) -> Result<Vec<SensorReading>, String> {
     let supported = supported_pids(drv);
     if supported.is_empty() {

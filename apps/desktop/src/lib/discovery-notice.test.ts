@@ -54,7 +54,6 @@ describe("discoveryRunning", () => {
 describe("showLiveDiscoveryNotice", () => {
   it("replaces the gauges only on the Now tab, only while running", () => {
     expect(showLiveDiscoveryNotice(at(), "now")).toBe(true);
-    // Stored readings are unaffected by a scan, so "Over time" keeps working.
     expect(showLiveDiscoveryNotice(at(), "trend")).toBe(false);
     expect(showLiveDiscoveryNotice(at({ state: "done" }), "now")).toBe(false);
     expect(showLiveDiscoveryNotice(at({ state: "skipped" }), "now")).toBe(false);

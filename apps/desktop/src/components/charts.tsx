@@ -1,7 +1,3 @@
-// The only file that imports recharts — split into its own lazy chunk so
-// the charting library doesn't ride in the eager main bundle. Colors come
-// from the design tokens as CSS `var()` strings (recharts passes them
-// straight through to SVG attributes), never as literals.
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { CarReport } from "@scainner/core";
 
@@ -32,8 +28,6 @@ export function BatteryChart({ data }: { data: CarReport["daily_voltage"] }) {
   );
 }
 
-/** The Over-time trend: an accent line over a fading accent area, four
- *  divider gridlines, mono ticks. The line draws in on first paint. */
 export function TrendLineChart({
   data,
   unit,
