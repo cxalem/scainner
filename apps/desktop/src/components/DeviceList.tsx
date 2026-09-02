@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bluetooth, Cable, Loader2, Radar, Usb } from "lucide-react";
 import { Effect } from "effect";
@@ -29,6 +29,7 @@ import {
   deviceScrollColumnClass,
   isPinRequired,
   listSections,
+  mergePairedRow,
   nearbyRows,
   preselectedDevice,
   scanRow,
@@ -39,6 +40,8 @@ import {
 import { useT } from "@/i18n";
 
 const DISCOVER_SECONDS = 8;
+const PAIR_SETTLE_ATTEMPTS = 10;
+const PAIR_SETTLE_INTERVAL_MS = 1000;
 
 export type Discovery = ReturnType<typeof useDeviceList>["discovery"];
 
@@ -61,9 +64,15 @@ export function useDeviceList() {
   const [pairError, setPairError] = useState<string | null>(null);
   const [forgettingRow, setForgettingRow] = useState<DeviceRow | null>(null);
   const [forgetting, setForgetting] = useState(false);
+  const pairPoll = useRef(0);
+
+  const cancelPairPoll = useCallback(() => {
+    pairPoll.current += 1;
+  }, []);
 
   const refresh = useCallback(
     async (preferBtAddr?: string) => {
+      cancelPairPoll();
       setLoading(true);
       setError(null);
       setNearby([]);
@@ -95,12 +104,14 @@ export function useDeviceList() {
         setLoading(false);
       }
     },
-    [t.gate.deviceListFailed],
+    [cancelPairPoll, t.gate.deviceListFailed],
   );
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => cancelPairPoll, [cancelPairPoll]);
 
   useEffect(() => {
     if (!scanning) return;
@@ -149,8 +160,52 @@ export function useDeviceList() {
           Effect.flatMap(DeviceService, (device) => device.pairAdapter(addr, code)),
         );
         if (code) await savePairingPin(code);
-        await refresh(addr);
+        cancelPairPoll();
+        const poll = pairPoll.current;
+        const optimistic: DeviceRow = {
+          id: addr,
+          name: pairedName ?? addr,
+          kind: "paired_only",
+          path: null,
+          btAddr: addr,
+          lastUsed: false,
+          selectable: false,
+          preparing: true,
+        };
+        setNearby((current) => current.filter((row) => row.addr !== addr));
+        setRows((current) => mergePairedRow(optimistic, current));
         toast.show("success", t.gate.paired(pairedName ?? addr));
+        void (async () => {
+          let lastEnumerated: DeviceRow[] = [];
+          for (let attempt = 0; attempt < PAIR_SETTLE_ATTEMPTS; attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, PAIR_SETTLE_INTERVAL_MS));
+            if (pairPoll.current !== poll) return;
+            try {
+              lastEnumerated = deviceRows(
+                await runPromise(Effect.flatMap(DeviceService, (device) => device.listAdapters())),
+              );
+            } catch {
+              continue;
+            }
+            if (pairPoll.current !== poll) return;
+            const ready = lastEnumerated.find(
+              (row) => row.btAddr?.toLowerCase() === addr.toLowerCase() && row.selectable,
+            );
+            setRows(mergePairedRow(ready ? null : optimistic, lastEnumerated));
+            if (ready) {
+              setSelectedId(ready.id);
+              return;
+            }
+          }
+          if (pairPoll.current !== poll) return;
+          setRows(lastEnumerated);
+          setSelectedId((current) =>
+            current && lastEnumerated.some((row) => row.id === current && row.selectable)
+              ? current
+              : preselectedDevice(lastEnumerated),
+          );
+          toast.show("warning", t.gate.pairedPortPending);
+        })();
       } catch (failure) {
         if (code === null && isPinRequired(failure)) {
           setPinAddr(addr);
@@ -162,7 +217,7 @@ export function useDeviceList() {
         setPairingAddr(null);
       }
     },
-    [nearby, refresh, rememberedPin, t, toast],
+    [cancelPairPoll, nearby, rememberedPin, t, toast],
   );
 
   const pair = useCallback((addr: string) => attempt(addr, null), [attempt]);
@@ -337,6 +392,7 @@ function PairedRows({
 }) {
   const t = useT();
   const detail = (row: DeviceRow) => {
+    if (row.preparing) return null;
     if (row.kind === "paired_only") return t.gate.pairedNotConnected;
     const transport = row.kind === "bluetooth_serial" ? t.gate.transportBluetooth : t.gate.transportUsb;
     return `${transport} · ${row.path}`;
@@ -374,13 +430,19 @@ function PairedRows({
               />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] text-text">{row.name}</span>
-                <span className="num block truncate text-[11px] text-neutral-500">{detail(row)}</span>
+                {detail(row) && (
+                  <span className="num block truncate text-[11px] text-neutral-500">{detail(row)}</span>
+                )}
               </span>
-              {row.lastUsed && (
+              {row.preparing ? (
+                <Pill variant="info" className="shrink-0" data-device-pill>
+                  {t.gate.preparingAdapter}
+                </Pill>
+              ) : row.lastUsed ? (
                 <Pill variant="info" className="shrink-0" data-device-pill>
                   {t.gate.lastUsed}
                 </Pill>
-              )}
+              ) : null}
             </button>
             {action && (
               <ShadcnButton

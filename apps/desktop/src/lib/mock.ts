@@ -121,7 +121,7 @@ const NEARBY_IN_PREVIEW = [
 ];
 const PAIRS_WITHOUT_PIN = "aa-bb-cc-dd-ee-11";
 const askedForPin = new Set<string>();
-const pairedInPreview: Record<string, unknown>[] = [];
+const pairedInPreview: (Record<string, unknown> & { paired_at: number })[] = [];
 const forgottenInPreview = new Set<string>();
 let discovered = false;
 const MOCK_KNOWLEDGE_KEY = "k1;map=9@2026-08-28;research=demo@1;packs=demo@1;plan=1";
@@ -764,7 +764,18 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         adapterProfile = { ...adapterProfile, path: "/dev/cu.usbserial-1410", bt_addr: null };
       }
       return [
-        ...pairedInPreview,
+        ...pairedInPreview.map((row) => {
+          if (Date.now() - row.paired_at >= 3000) return row;
+          return {
+            ...row,
+            kind: "bluetooth",
+            id: row.bt_addr,
+            name: row.display_name,
+            connected: false,
+            device_kind: "paired_only",
+            path: null,
+          };
+        }),
         {
           kind: "serial",
           id: "/dev/cu.OBDLinkMX49489",
@@ -831,6 +842,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         path: `/dev/cu.${(found.name ?? addr).replace(/[^A-Za-z0-9]/g, "")}`,
         bt_addr: addr,
         last_used: false,
+        paired_at: Date.now(),
       });
       return undefined as T;
     }

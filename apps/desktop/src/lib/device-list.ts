@@ -8,6 +8,7 @@ export type DeviceRow = {
   btAddr: string | null;
   lastUsed: boolean;
   selectable: boolean;
+  preparing: boolean;
 };
 
 export type DeviceRowAction = "forget" | "remove_saved";
@@ -32,8 +33,28 @@ export function deviceRows(candidates: readonly AdapterCandidate[]): DeviceRow[]
       btAddr: candidate.bt_addr ?? (candidate.kind === "bluetooth" ? candidate.id : null),
       lastUsed: candidate.last_used ?? false,
       selectable: kind !== "paired_only" && path != null,
+      preparing: false,
     };
   });
+}
+
+export function mergePairedRow(
+  optimistic: DeviceRow | null,
+  enumerated: readonly DeviceRow[],
+): DeviceRow[] {
+  if (!optimistic?.btAddr) return [...enumerated];
+  const addr = optimistic.btAddr.toLowerCase();
+  const match = enumerated.findIndex((row) => row.btAddr?.toLowerCase() === addr);
+  if (match >= 0 && enumerated[match].selectable) return [...enumerated];
+  if (match >= 0) {
+    const rows = [...enumerated];
+    rows[match] = optimistic;
+    return rows;
+  }
+  const pairedOnly = enumerated.findIndex((row) => row.kind === "paired_only");
+  const rows = [...enumerated];
+  rows.splice(pairedOnly < 0 ? rows.length : pairedOnly, 0, optimistic);
+  return rows;
 }
 
 export type NearbyRow = {
