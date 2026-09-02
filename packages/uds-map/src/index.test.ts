@@ -454,6 +454,12 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     expect(platformForVin("VR7")).toBeUndefined();
   });
 
+  it("selects the reviewed European Kona OS descriptor without selecting Kona EV", () => {
+    expect(platformForVin(vinFor("hyundai_kia", "K2811ZZ"))?.key).toBe("hyundai_kona_os");
+    expect(platformForVin(vinFor("hyundai_kia", "K281GZZ"))?.key).not.toBe("hyundai_kona_os");
+    expect(platformForVin(vinFor("hyundai_kia", "K281HZZ"))?.key).not.toBe("hyundai_kona_os");
+  });
+
   it("every brand declares read services, identity, platforms[] and sources[] (shape)", () => {
     for (const b of getMap().brands) {
       expect(Array.isArray(b.platforms), b.id).toBe(true);

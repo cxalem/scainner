@@ -10175,6 +10175,23 @@
             "type": "open_implementation",
             "licence": "MIT"
           }
+        },
+        {
+          "key": "hyundai_kona_os",
+          "vds_pattern": "^K...1",
+          "years": [
+            2018,
+            2023
+          ],
+          "ecu_families_expected": [],
+          "read_service": "22",
+          "notes": "Narrow European/Korean-built Kona OS combustion descriptor family. Hyundai identifies K in VIN position 4 as Kona and G/H in position 8 as Kona EV; this pattern selects the non-EV descriptor carried by the local 2020 OS research vehicle. Other engines, markets and SX2 remain unclassified.",
+          "source": {
+            "url": "https://static.nhtsa.gov/odi/inv/2021/INRD-PE21010-15928.pdf",
+            "date": "2026-09-02",
+            "type": "oem_regulatory_filing",
+            "licence": "public regulatory filing"
+          }
         }
       ],
       "profiled_level": "routes_sourced",
@@ -10208,6 +10225,12 @@
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT"
+        },
+        {
+          "url": "https://static.nhtsa.gov/odi/inv/2021/INRD-PE21010-15928.pdf",
+          "date": "2026-09-02",
+          "type": "oem_regulatory_filing",
+          "licence": "public regulatory filing"
         }
       ]
     },
