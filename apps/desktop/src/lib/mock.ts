@@ -3,6 +3,7 @@
 // dongle attached). Lets the UI be previewed and iterated on without a car.
 // See `src/lib/tauri.ts` for how this is switched in.
 
+import { PIN_REQUIRED } from "@scainner/core";
 import type { AdapterProfile, ConnStatus, Live as LiveMap } from "@scainner/core";
 import type { CarReport, KeyStat } from "@scainner/core";
 import type { ClearOutcome, UdsModule, UdsProbe } from "@scainner/core";
@@ -123,10 +124,18 @@ let adapterProfile: AdapterProfile = {
 };
 // The two radios a scan "finds" in the preview: one with a friendly name,
 // one that answered without one (so the UI's address fallback is visible).
+// They pair differently on purpose — the named one does Secure Simple
+// Pairing and needs no code, the unnamed one asks for a PIN the first time,
+// so both halves of the pair flow are reachable in the preview.
 const NEARBY_IN_PREVIEW = [
   { addr: "aa-bb-cc-dd-ee-11", name: "OBD Reader 4821", paired: false },
   { addr: "aa-bb-cc-dd-ee-12", name: null, paired: false },
 ];
+/** The preview's PIN-less radio: `--pair` alone is enough for this one. */
+const PAIRS_WITHOUT_PIN = "aa-bb-cc-dd-ee-11";
+/** Addresses that have already been asked for a code this session, so the
+ *  request happens once and the retry with the PIN succeeds. */
+const askedForPin = new Set<string>();
 // What the preview has paired this session — appended to list_adapters so
 // a paired device becomes an ordinary row, exactly as it does for real.
 const pairedInPreview: Record<string, unknown>[] = [];
@@ -720,9 +729,17 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "pair_adapter": {
       await delay(1200);
       const addr = String(args?.addr ?? "");
+      const pin = args?.pin == null ? null : String(args.pin);
       const found = NEARBY_IN_PREVIEW.find((device) => device.addr === addr);
       if (!found) throw new Error(`no device at ${addr}`);
-      if (String(args?.pin ?? "") !== "1234") throw new Error("wrong PIN");
+      // The backend's two failures, in the shape the UI reads them: a radio
+      // that wants a code says so once (and only for the attempt that
+      // carried none), and a wrong code is an ordinary failure.
+      if (pin === null && addr !== PAIRS_WITHOUT_PIN && !askedForPin.has(addr)) {
+        askedForPin.add(addr);
+        throw new Error(`${PIN_REQUIRED}: Type pin code (up to 16 characters) for "${addr}"`);
+      }
+      if (pin !== null && pin !== "1234") throw new Error(`pairing ${addr} failed`);
       // Pairing gives the OS a serial node, so the device joins the list
       // as an ordinary connectable row rather than a paired-only one.
       pairedInPreview.push({

@@ -3,7 +3,12 @@
 //! Four operations, all of them driven by something the user did: enumerate
 //! what is paired, bring one address's link up (which also recreates the
 //! serial node macOS removes when the link drops), scan for radios that are
-//! not paired yet, and pair the one the user picked with the PIN they typed.
+//! not paired yet, and pair the one the user picked.
+//!
+//! Pairing carries no PIN by default: Secure Simple Pairing is what current
+//! dongles do, so asking for a code before the radio has asked for one made
+//! every device look like a device that wants one. A PIN goes out only on a
+//! retry, after the radio itself asked — see [`PairFailure::PinRequired`].
 //!
 //! What is still never done here: unpairing, and re-pairing behind the
 //! user's back. Both are disruptive, need a PIN that is not standardised
@@ -11,6 +16,7 @@
 //! connect pipeline does neither, and `elm/connect.rs` has a test that walks
 //! the crate to keep it that way.
 
+use std::process::Stdio;
 use std::time::Duration;
 
 /// The paired-device view the settings UI enumerates from.
@@ -35,6 +41,63 @@ pub struct NearbyDevice {
     pub paired: bool,
 }
 
+/// Why a pairing attempt failed. `PinRequired` is the one failure a client
+/// can act on by itself: it reveals the PIN field and retries with what the
+/// user types. Everything else is for the person holding the hardware —
+/// out of range, asleep, refused, wrong PIN.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PairFailure {
+    /// The radio asked for a PIN/passkey and the attempt carried none.
+    PinRequired(String),
+    Other(String),
+}
+
+/// The marker every client matches on: the Tauri command's error string
+/// starts with it, and the HTTP route answers 409 `{"error":"pin_required"}`.
+pub const PIN_REQUIRED: &str = "pin_required";
+
+impl PairFailure {
+    pub fn message(&self) -> &str {
+        match self {
+            Self::PinRequired(message) | Self::Other(message) => message,
+        }
+    }
+    pub fn is_pin_required(&self) -> bool {
+        matches!(self, Self::PinRequired(_))
+    }
+}
+
+impl std::fmt::Display for PairFailure {
+    /// The IPC wire form: the marker is a prefix so a Tauri client, which
+    /// only ever sees the error string, can tell the two apart the same way
+    /// the HTTP client tells 409 from 400.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PinRequired(message) => write!(f, "{PIN_REQUIRED}: {message}"),
+            Self::Other(message) => f.write_str(message),
+        }
+    }
+}
+
+/// blueutil's own wording for "this radio wants a PIN". Run without one it
+/// falls back to reading a code from stdin — which is closed here — and
+/// prints `Type pin code (up to 16 characters) for "…" (…) and press
+/// Enter:`; a radio that insists on legacy authentication comes back as
+/// `Failed to pair "…" with error 0x… (Authentication Failure)`. Matched
+/// case-insensitively against whatever blueutil actually printed (v2.13).
+const PIN_WORDINGS: [&str; 3] = ["pin code", "passkey", "authentication failure"];
+
+/// Read a failed `blueutil --pair` message: a PIN request the UI can answer,
+/// or a failure it can only report.
+pub fn classify_pair_failure(detail: &str) -> PairFailure {
+    let lower = detail.to_ascii_lowercase();
+    if PIN_WORDINGS.iter().any(|wording| lower.contains(wording)) {
+        PairFailure::PinRequired(detail.to_string())
+    } else {
+        PairFailure::Other(detail.to_string())
+    }
+}
+
 /// A scan shorter than this finds nothing; longer than this and the user is
 /// staring at a spinner. The API clamps to the range and defaults to
 /// `DEFAULT_DISCOVER_SECONDS`.
@@ -52,9 +115,11 @@ pub trait BluetoothControl: Send + Sync {
     /// Scan for radios in range. Blocks for `seconds` — the radio is busy
     /// for the whole inquiry — so every caller runs it off the main thread.
     fn discover(&self, seconds: u8) -> Result<Vec<NearbyDevice>, String>;
-    /// Pair one address the user chose, with the PIN they typed. Only ever
-    /// called from an explicit "Pair" click; nothing pairs on its own.
-    fn pair(&self, addr: &str, pin: Option<&str>) -> Result<(), String>;
+    /// Pair one address the user chose. `pin` is `None` on the first
+    /// attempt — the common case, Secure Simple Pairing — and carries the
+    /// user's code only on a retry after [`PairFailure::PinRequired`]. Only
+    /// ever called from an explicit "Pair" click; nothing pairs on its own.
+    fn pair(&self, addr: &str, pin: Option<&str>) -> Result<(), PairFailure>;
 }
 
 /// The control implementation for this build's platform.
@@ -96,8 +161,8 @@ impl BluetoothControl for Unsupported {
     fn discover(&self, _seconds: u8) -> Result<Vec<NearbyDevice>, String> {
         Err(MANUAL_PAIRING_REQUIRED.into())
     }
-    fn pair(&self, _addr: &str, _pin: Option<&str>) -> Result<(), String> {
-        Err(MANUAL_PAIRING_REQUIRED.into())
+    fn pair(&self, _addr: &str, _pin: Option<&str>) -> Result<(), PairFailure> {
+        Err(PairFailure::Other(MANUAL_PAIRING_REQUIRED.into()))
     }
 }
 
@@ -161,7 +226,20 @@ impl BluetoothControl for MacosBlueutil {
             Ok(out) if out.status.success() => {
                 parse_blueutil_paired(&String::from_utf8_lossy(&out.stdout))
             }
-            _ => Vec::new(),
+            // An empty list here is indistinguishable from "nothing is
+            // paired", and it is what de-dups the scan results — so say so
+            // in the log rather than letting a paired dongle quietly show
+            // up as a stranger in the Nearby group.
+            other => {
+                log::warn!(
+                    "blueutil --paired unusable, treating this machine as having no paired devices: {}",
+                    match other {
+                        Ok(out) => String::from_utf8_lossy(&out.stderr).trim().to_string(),
+                        Err(e) => e.to_string(),
+                    }
+                );
+                Vec::new()
+            }
         }
     }
 
@@ -182,29 +260,38 @@ impl BluetoothControl for MacosBlueutil {
         Ok(found)
     }
 
-    fn pair(&self, addr: &str, pin: Option<&str>) -> Result<(), String> {
+    fn pair(&self, addr: &str, pin: Option<&str>) -> Result<(), PairFailure> {
         let mut command = Self::command();
         command.args(["--pair", addr]);
         if let Some(pin) = pin.map(str::trim).filter(|p| !p.is_empty()) {
             command.arg(pin);
         }
-        let out = command
-            .output()
-            .map_err(|e| format!("blueutil not runnable (brew install blueutil): {e}"))?;
-        log::info!("blueutil pair {addr}: code={:?}", out.status.code());
+        // With no PIN argument blueutil reads one from stdin if the radio
+        // asks for it. Closed stdin turns that prompt into an immediate
+        // failure carrying blueutil's own wording — which is the signal
+        // `classify_pair_failure` reads — instead of a wait on a terminal
+        // nobody is looking at.
+        let out = command.stdin(Stdio::null()).output().map_err(|e| {
+            PairFailure::Other(format!("blueutil not runnable (brew install blueutil): {e}"))
+        })?;
+        log::info!(
+            "blueutil pair {addr} (with pin: {}): code={:?}",
+            pin.is_some(),
+            out.status.code()
+        );
         if out.status.success() {
             return Ok(());
         }
-        // blueutil reports a refused pairing on stderr and an unusable
-        // address on stdout; show whichever one actually said something.
+        // blueutil reports a refused pairing on stderr and the PIN prompt on
+        // stdout; show whichever one actually said something.
         let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
         let detail = if stderr.is_empty() { stdout } else { stderr };
-        Err(if detail.is_empty() {
+        Err(classify_pair_failure(&if detail.is_empty() {
             format!("pairing {addr} failed")
         } else {
             format!("pairing {addr} failed: {detail}")
-        })
+        }))
     }
 }
 
@@ -292,10 +379,58 @@ mod tests {
             .discover(8)
             .unwrap_err()
             .starts_with("manual pairing required"));
-        assert!(control
-            .pair("aa-bb-cc-dd-ee-ff", Some("1234"))
-            .unwrap_err()
-            .starts_with("manual pairing required"));
+        let failure = control.pair("aa-bb-cc-dd-ee-ff", Some("1234")).unwrap_err();
+        assert!(failure.message().starts_with("manual pairing required"));
+        assert!(
+            !failure.is_pin_required(),
+            "no scriptable stack is not a PIN prompt"
+        );
+    }
+
+    /// The whole point of the no-PIN-first attempt: the UI opens the PIN
+    /// field only when blueutil says the radio asked for one.
+    #[test]
+    fn blueutil_pin_prompts_are_told_apart_from_real_failures() {
+        // What blueutil v2.13 prints when `--pair` carries no PIN and the
+        // radio requests one; stdin is closed, so this is the whole answer.
+        let prompt = "pairing aa-bb-cc-dd-ee-01 failed: Type pin code (up to 16 characters) \
+                      for \"OBDII\" (aa-bb-cc-dd-ee-01) and press Enter:";
+        assert_eq!(
+            classify_pair_failure(prompt),
+            PairFailure::PinRequired(prompt.to_string())
+        );
+        assert!(classify_pair_failure(
+            "pairing aa-bb-cc-dd-ee-01 failed: Failed to pair \"OBDII\" with error 0x05 (Authentication Failure)"
+        )
+        .is_pin_required());
+        assert!(classify_pair_failure("Input passkey 123456 on \"OBDII\"").is_pin_required());
+
+        // Everything the user has to fix in the world, not in the app.
+        for detail in [
+            "pairing aa-bb-cc-dd-ee-01 failed",
+            "pairing aa-bb-cc-dd-ee-01 failed: Failed to start pairing with \"OBDII\"",
+            "pairing aa-bb-cc-dd-ee-01 failed: Failed to pair \"OBDII\" with error 0x04 (Page Timeout)",
+            "blueutil not runnable (brew install blueutil): No such file or directory",
+        ] {
+            assert!(
+                !classify_pair_failure(detail).is_pin_required(),
+                "{detail} is not a PIN request"
+            );
+        }
+    }
+
+    /// The Tauri client only ever sees the error string, so the marker has
+    /// to survive the trip as a prefix.
+    #[test]
+    fn a_pin_request_carries_its_marker_into_the_error_string() {
+        let failure = PairFailure::PinRequired("wants a pin code".into());
+        assert_eq!(failure.to_string(), "pin_required: wants a pin code");
+        assert!(failure.to_string().starts_with(PIN_REQUIRED));
+        assert_eq!(
+            PairFailure::Other("out of range".into()).to_string(),
+            "out of range",
+            "an ordinary failure is just its message"
+        );
     }
 
     /// The suite must never reach for the radio: `platform()` hands out the

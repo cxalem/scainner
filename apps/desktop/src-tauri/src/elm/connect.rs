@@ -251,7 +251,7 @@ fn stage_failed(stage: Stage, reason: impl Into<String>, started: Instant) -> Co
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::elm::transport::bluetooth::{NearbyDevice, PairedDevice};
+    use crate::elm::transport::bluetooth::{NearbyDevice, PairFailure, PairedDevice};
     use std::sync::Mutex;
 
     /// Records what the pipeline asked the radio to do, so a test can assert
@@ -303,9 +303,11 @@ mod tests {
             self.calls.lock().unwrap().push("discover".into());
             Err("the connect pipeline must not scan".into())
         }
-        fn pair(&self, addr: &str, _pin: Option<&str>) -> Result<(), String> {
+        fn pair(&self, addr: &str, _pin: Option<&str>) -> Result<(), PairFailure> {
             self.calls.lock().unwrap().push(format!("pair {addr}"));
-            Err("the connect pipeline must not pair".into())
+            Err(PairFailure::Other(
+                "the connect pipeline must not pair".into(),
+            ))
         }
     }
 
@@ -575,9 +577,9 @@ mod tests {
     ///
     /// Unpairing stays banned crate-wide. Pairing is allowed in exactly one
     /// file — `transport/bluetooth.rs`, reached only from the device screen's
-    /// Pair button with the PIN the user typed — so a second call site (a
-    /// retry loop, a "fix it for me" path) fails this test rather than
-    /// shipping.
+    /// Pair button (without a PIN first, with the user's code on the retry
+    /// the radio asked for) — so a second call site (a retry loop, a "fix it
+    /// for me" path) fails this test rather than shipping.
     #[test]
     fn the_crate_never_unpairs_or_re_pairs_a_radio() {
         // Built at runtime so this test's own source is not a hit. The

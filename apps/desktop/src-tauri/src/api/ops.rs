@@ -561,15 +561,22 @@ pub async fn discover_adapters(
     .map_err(|e| format!("worker join error: {e}"))?
 }
 
-/// Pair one address with the PIN the user typed. User-initiated only: there
+/// Pair one address. `pin` is `None` for the ordinary case — Secure Simple
+/// Pairing, which is what current dongles use — and carries the user's code
+/// only on a retry after a `PinRequired` answer. User-initiated only: there
 /// is no unpair and nothing re-pairs on its own (see the crate walk in
 /// `elm/connect.rs`).
-pub async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
+pub async fn pair_adapter(
+    addr: String,
+    pin: Option<String>,
+) -> Result<(), elm::transport::bluetooth::PairFailure> {
     tauri::async_runtime::spawn_blocking(move || {
         elm::transport::bluetooth::platform().pair(&addr, pin.as_deref())
     })
     .await
-    .map_err(|e| format!("worker join error: {e}"))?
+    .map_err(|e| {
+        elm::transport::bluetooth::PairFailure::Other(format!("worker join error: {e}"))
+    })?
 }
 
 /// The active adapter profile: `adapter.*` settings with the

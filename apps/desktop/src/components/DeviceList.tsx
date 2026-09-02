@@ -4,28 +4,39 @@
 //
 // A dongle out of the box is not in that list yet, so the screen can also
 // scan for radios in range and pair the one the user picks — scan, tap,
-// PIN, paired, and it is an ordinary row ready to connect. Scan results are
-// UI state only: Refresh clears them, and only a real pairing turns one
-// into a row.
+// paired, and it is an ordinary row ready to connect. The scan is a first-
+// class action in the card's own header, and its results land above the
+// paired rows, because a 230 px card cannot ask the user to go looking for
+// what they just clicked. Scan results are UI state only: Refresh clears
+// them, and only a real pairing turns one into a row.
+//
+// Pairing sends no PIN (Brief K, 2026-09-02). Secure Simple Pairing is what
+// current dongles use and an already-paired radio needs nothing at all, so
+// the field only appears when the radio itself asks — the backend's
+// `pin_required` answer — and the attempt is then retried with the code.
 //
 // Presentational on purpose — the gate owns the selection, because it also
 // needs the chosen device's name for the connecting screen and its path
 // for the profile it saves.
-import { useCallback, useEffect, useState } from "react";
-import { Bluetooth, Cable, Loader2, Usb } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Bluetooth, Cable, Loader2, Radar, Usb } from "lucide-react";
 import { Effect } from "effect";
 import { AdapterProfile, DeviceService } from "@scainner/core";
 import { runPromise } from "@/core/runtime";
-import { Button, Pill, inputClass } from "@/components/ui";
+import { Button, Kicker, Pill, inputClass } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_PIN,
   defaultPin,
   deviceRows,
+  isPinRequired,
+  listSections,
   nearbyRows,
   preselectedDevice,
+  scanRow,
   type DeviceRow,
   type NearbyRow,
+  type ScanState,
 } from "@/lib/device-list";
 import { useT } from "@/i18n";
 
@@ -52,9 +63,13 @@ export function useDeviceList() {
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-  const [pairAddr, setPairAddr] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  // The address a pairing attempt is out on, and the one whose radio asked
+  // for a PIN — two different things, so a device can be pairing without a
+  // field open and holding a field open without an attempt running.
+  const [pairingAddr, setPairingAddr] = useState<string | null>(null);
+  const [pinAddr, setPinAddr] = useState<string | null>(null);
   const [pin, setPin] = useState(DEFAULT_PIN);
-  const [pairing, setPairing] = useState(false);
   const [pairError, setPairError] = useState<string | null>(null);
 
   /** `preferBtAddr` is the radio just paired: it should be the selected row
@@ -66,7 +81,7 @@ export function useDeviceList() {
       setNearby([]);
       setScanned(false);
       setScanError(null);
-      setPairAddr(null);
+      setPinAddr(null);
       setPairError(null);
       try {
         const next = deviceRows(
@@ -99,13 +114,23 @@ export function useDeviceList() {
     void refresh();
   }, [refresh]);
 
+  // The countdown under the spinner. Costs one interval while the inquiry
+  // is out and nothing at all the rest of the time — a scan the user can
+  // see the end of is a scan they will wait through.
+  useEffect(() => {
+    if (!scanning) return;
+    setSecondsLeft(DISCOVER_SECONDS);
+    const id = setInterval(() => setSecondsLeft((left) => Math.max(0, left - 1)), 1000);
+    return () => clearInterval(id);
+  }, [scanning]);
+
   /** Scan the air for radios that are not paired yet. Runs alongside the
    *  list rather than replacing it — the paired rows stay usable while the
    *  8 s inquiry is out. */
   const discover = useCallback(async () => {
     setScanning(true);
     setScanError(null);
-    setPairAddr(null);
+    setPinAddr(null);
     setPairError(null);
     try {
       const found = await runPromise(
@@ -121,46 +146,64 @@ export function useDeviceList() {
     }
   }, [rows, t.gate.discoveryUnavailable]);
 
-  const beginPair = useCallback(async (addr: string) => {
-    setPairAddr(addr);
-    setPairError(null);
-    // The PIN that worked for the last dongle is the better opening guess
-    // than the generic default, and it costs one read to know it.
+  /** The PIN that worked for the last dongle is a better opening guess than
+   *  the generic default, and it costs one read to know it. */
+  const rememberedPin = useCallback(async () => {
     try {
       const profile = await runPromise(
         Effect.flatMap(DeviceService, (device) => device.adapterProfile()),
       );
-      setPin(defaultPin(profile.pin));
+      return defaultPin(profile.pin);
     } catch {
-      setPin(DEFAULT_PIN);
+      return DEFAULT_PIN;
     }
   }, []);
 
-  const cancelPair = useCallback(() => {
-    setPairAddr(null);
-    setPairError(null);
-  }, []);
+  /** One pairing attempt. `code` is null for the first try — which is all
+   *  Secure Simple Pairing needs — and the radio asking for a PIN is the
+   *  only failure that opens the field instead of reporting an error. A
+   *  failed retry *with* a code is an ordinary failure: the code was wrong. */
+  const attempt = useCallback(
+    async (addr: string, code: string | null) => {
+      setPairingAddr(addr);
+      setPairError(null);
+      try {
+        await runPromise(
+          Effect.flatMap(DeviceService, (device) => device.pairAdapter(addr, code)),
+        );
+        if (code) await savePairingPin(code);
+        // Re-enumerate: the paired radio is a device row now, and the scan
+        // results it came from are stale.
+        await refresh(addr);
+      } catch (failure) {
+        if (code === null && isPinRequired(failure)) {
+          setPinAddr(addr);
+          setPin(await rememberedPin());
+        } else {
+          // The field stays open on the failing row so the PIN can be
+          // retried without scanning again.
+          setPairError(t.gate.pairFailed);
+        }
+      } finally {
+        setPairingAddr(null);
+      }
+    },
+    [refresh, rememberedPin, t.gate.pairFailed],
+  );
+
+  const pair = useCallback((addr: string) => attempt(addr, null), [attempt]);
 
   const confirmPair = useCallback(async () => {
-    if (!pairAddr) return;
-    setPairing(true);
+    if (pinAddr) await attempt(pinAddr, pin);
+  }, [attempt, pin, pinAddr]);
+
+  const cancelPair = useCallback(() => {
+    setPinAddr(null);
     setPairError(null);
-    try {
-      await runPromise(Effect.flatMap(DeviceService, (device) => device.pairAdapter(pairAddr, pin)));
-      await savePairingPin(pin);
-      // Re-enumerate: the paired radio is a device row now, and the scan
-      // results it came from are stale.
-      await refresh(pairAddr);
-    } catch {
-      // The field stays open on the failing row so the PIN can be retried
-      // without scanning again.
-      setPairError(t.gate.pairFailed);
-    } finally {
-      setPairing(false);
-    }
-  }, [pairAddr, pin, refresh, t.gate.pairFailed]);
+  }, []);
 
   const selected = rows.find((row) => row.id === selectedId) ?? null;
+  const scan: ScanState = { scanning, scanned, error: scanError, found: nearby.length };
   return {
     rows,
     selected,
@@ -170,18 +213,17 @@ export function useDeviceList() {
     refresh,
     discovery: {
       nearby,
-      scanning,
-      scanned,
-      error: scanError,
+      scan,
+      secondsLeft,
       discover,
-      pairAddr,
+      pair,
+      pairingAddr,
+      pinAddr,
       pin,
       setPin,
-      pairing,
       pairError,
-      beginPair,
-      cancelPair,
       confirmPair,
+      cancelPair,
     },
   };
 }
@@ -231,95 +273,161 @@ export function DeviceList({
   discovery: Discovery;
 }) {
   const t = useT();
+  const sections = listSections(discovery.scan);
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* The scan is the answer whenever the dongle is not in the list yet,
+          so it is the card's own header action rather than a ghost button
+          under everything the user would have to scroll past. */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-divider px-3 py-2">
+        <Kicker className="flex-1">{t.gate.devicesHeading}</Kicker>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={Radar}
+          busy={discovery.scan.scanning}
+          disabled={loading}
+          onClick={() => void discovery.discover()}
+        >
+          {t.gate.discoverDevices}
+        </Button>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+        {sections.map((section) =>
+          section === "nearby" ? (
+            <NearbyGroup key="nearby" discovery={discovery} />
+          ) : rows.length > 0 ? (
+            <PairedRows key="paired" rows={rows} selectedId={selectedId} onSelect={onSelect} />
+          ) : (
+            <EmptyDevices key="paired" loading={loading} compact={sections.length > 1} />
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The devices the machine already has: the only rows Connect can act on. */
+function PairedRows({
+  rows,
+  selectedId,
+  onSelect,
+}: {
+  rows: DeviceRow[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const t = useT();
   const detail = (row: DeviceRow) => {
     if (row.kind === "paired_only") return t.gate.pairedNotConnected;
     const transport = row.kind === "bluetooth_serial" ? t.gate.transportBluetooth : t.gate.transportUsb;
     return `${transport} · ${row.path}`;
   };
 
-  // The group only exists once a scan has been asked for; before that the
-  // screen is exactly what it was.
-  const showNearby = discovery.scanning || discovery.scanned || discovery.nearby.length > 0;
-
-  if (rows.length === 0 && !showNearby) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-1.5 px-6 text-center">
-        <Cable className="h-6 w-6 text-neutral-600" aria-hidden="true" />
-        <span className="text-[13px] text-text">{loading ? t.gate.lookingForDevices : t.gate.noDevices}</span>
-        {!loading && <span className="max-w-[38ch] text-[12px] leading-snug text-neutral-500">{t.gate.pairFirst}</span>}
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
-      {rows.length > 0 && (
-        <div className="flex flex-col gap-2" role="listbox" aria-label={t.gate.chooseDeviceTitle}>
-          {rows.map((row) => {
-            const selected = row.id === selectedId;
-            const Icon = row.kind === "usb_serial" ? Usb : Bluetooth;
-            return (
-              <button
-                key={row.id}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                disabled={!row.selectable}
-                onClick={() => onSelect(row.id)}
-                className={cn(
-                  "flex items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-                  selected ? "border-accent bg-accent/10" : "border-divider bg-bg hover:border-neutral-600",
-                  !row.selectable && "pointer-events-none opacity-55",
-                )}
-              >
-                <Icon
-                  className={cn("h-4 w-4 shrink-0", row.selectable ? "text-accent-400" : "text-neutral-500")}
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] text-text">{row.name}</span>
-                  <span className="num block truncate text-[11px] text-neutral-500">{detail(row)}</span>
-                </span>
-                {row.lastUsed && (
-                  <Pill variant="info" className="shrink-0">
-                    {t.gate.lastUsed}
-                  </Pill>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {showNearby && <NearbyGroup discovery={discovery} />}
+    <div className="flex flex-col gap-2" role="listbox" aria-label={t.gate.chooseDeviceTitle}>
+      {rows.map((row) => {
+        const selected = row.id === selectedId;
+        const Icon = row.kind === "usb_serial" ? Usb : Bluetooth;
+        return (
+          <button
+            key={row.id}
+            type="button"
+            role="option"
+            aria-selected={selected}
+            disabled={!row.selectable}
+            onClick={() => onSelect(row.id)}
+            className={cn(
+              "flex items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+              selected ? "border-accent bg-accent/10" : "border-divider bg-bg hover:border-neutral-600",
+              !row.selectable && "pointer-events-none opacity-55",
+            )}
+          >
+            <Icon
+              className={cn("h-4 w-4 shrink-0", row.selectable ? "text-accent-400" : "text-neutral-500")}
+              aria-hidden="true"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] text-text">{row.name}</span>
+              <span className="num block truncate text-[11px] text-neutral-500">{detail(row)}</span>
+            </span>
+            {row.lastUsed && (
+              <Pill variant="info" className="shrink-0">
+                {t.gate.lastUsed}
+              </Pill>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-/** The scan's own group, under the paired rows: quieter than they are (a
- *  dashed rule, no accent) because nothing in it is connectable yet. */
+/** Nothing paired yet. The way out is the Discover button in the header
+ *  above, which is why this says what it says. */
+function EmptyDevices({ loading, compact }: { loading: boolean; compact: boolean }) {
+  const t = useT();
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center gap-1.5 px-6 text-center",
+        compact ? "py-3" : "flex-1 justify-center",
+      )}
+    >
+      <Cable className="h-6 w-6 text-neutral-600" aria-hidden="true" />
+      <span className="text-[13px] text-text">{loading ? t.gate.lookingForDevices : t.gate.noDevices}</span>
+      {!loading && (
+        <span className="max-w-[38ch] text-[12px] leading-snug text-neutral-500">{t.gate.pairFirst}</span>
+      )}
+    </div>
+  );
+}
+
+/** The scan's own group: quieter than the paired rows (a dashed rule, no
+ *  accent) because nothing in it is connectable yet — but above them, so
+ *  the spinner and then the results are where the click was. */
 function NearbyGroup({ discovery }: { discovery: Discovery }) {
   const t = useT();
-  const { nearby, scanning, error, pairAddr, pairing } = discovery;
-  const empty = !scanning && !error && nearby.length === 0;
+  const { nearby, scan, secondsLeft, pairingAddr, pinAddr } = discovery;
+  const status = scanRow(scan);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  // A list taller than the 230 px card would otherwise hide the very thing
+  // the click just started. Bring the scan's own row into view instead.
+  useEffect(() => {
+    if (!scan.scanning) return;
+    statusRef.current?.scrollIntoView({
+      block: "start",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  }, [scan.scanning]);
 
   return (
-    <section className="flex flex-col gap-2 rounded-md border border-dashed border-divider p-2.5">
+    <section
+      ref={statusRef}
+      className="flex flex-col gap-2 rounded-md border border-dashed border-divider p-2.5"
+    >
       <h2 className="text-[11px] uppercase tracking-[0.1em] text-neutral-500">{t.gate.nearby}</h2>
 
       <div aria-live="polite">
-        {scanning && (
+        {status === "scanning" && (
           <p className="flex items-center gap-2 text-[12px] text-neutral-400">
             <Loader2
               className="h-3.5 w-3.5 shrink-0 animate-spin motion-reduce:animate-none"
               aria-hidden="true"
             />
-            {t.gate.scanning}
+            {secondsLeft > 0 ? t.gate.scanningSeconds(secondsLeft) : t.gate.scanning}
           </p>
         )}
-        {error && <p className="text-[12px] leading-snug text-neutral-400">{error}</p>}
-        {empty && <p className="text-[12px] leading-snug text-neutral-500">{t.gate.noNearby}</p>}
+        {status === "error" && (
+          <p className="text-[12px] leading-snug text-neutral-400">{scan.error}</p>
+        )}
+        {status === "empty" && (
+          <p className="text-[12px] leading-snug text-neutral-500">{t.gate.noNearby}</p>
+        )}
       </div>
 
       {nearby.map((row) => (
@@ -332,19 +440,20 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
             </span>
             <Button
               size="sm"
-              onClick={() => void discovery.beginPair(row.addr)}
-              disabled={pairing || pairAddr === row.addr}
+              busy={pairingAddr === row.addr}
+              disabled={pairingAddr != null}
+              onClick={() => void discovery.pair(row.addr)}
             >
-              {t.gate.pair}
+              {pairingAddr === row.addr ? t.gate.pairing : t.gate.pair}
             </Button>
           </div>
 
-          {pairAddr === row.addr && (
+          {pinAddr === row.addr && (
             <PinField
               addr={row.addr}
               pin={discovery.pin}
               onPin={discovery.setPin}
-              pairing={pairing}
+              pairing={pairingAddr === row.addr}
               error={discovery.pairError}
               onConfirm={() => void discovery.confirmPair()}
               onCancel={discovery.cancelPair}
@@ -356,8 +465,9 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
   );
 }
 
-/** The inline PIN step. Enter pairs, Escape closes — the row is small
- *  enough that reaching for the buttons should be optional. */
+/** The PIN step, opened only by a radio that asked for one. Enter pairs,
+ *  Escape closes — the row is small enough that reaching for the buttons
+ *  should be optional. */
 function PinField({
   addr,
   pin,
@@ -387,6 +497,7 @@ function PinField({
         }
       }}
     >
+      <p className="text-[12px] leading-snug text-text">{t.gate.pinRequired}</p>
       <div className="flex items-end gap-2">
         <div className="flex min-w-0 flex-col gap-1">
           <label htmlFor={id} className="text-[11px] uppercase tracking-[0.1em] text-neutral-500">

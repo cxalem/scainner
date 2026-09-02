@@ -5,8 +5,12 @@ import {
   defaultPin,
   deviceRows,
   gateScreen,
+  isPinRequired,
+  listSections,
   nearbyRows,
   preselectedDevice,
+  scanRow,
+  type ScanState,
 } from "./device-list";
 
 const candidate = (fields: Partial<AdapterCandidate> & { id: string; name: string }) =>
@@ -166,6 +170,63 @@ describe("defaultPin", () => {
 
   it("prefers a PIN the profile already remembers", () => {
     expect(defaultPin("0000")).toBe("0000");
+  });
+});
+
+describe("scanRow", () => {
+  const idle: ScanState = { scanning: false, scanned: false, error: null, found: 0 };
+
+  it("says nothing before the user has asked for a scan", () => {
+    expect(scanRow(idle)).toBe("none");
+  });
+
+  it("is the spinner for as long as the inquiry is out", () => {
+    expect(scanRow({ ...idle, scanning: true })).toBe("scanning");
+    expect(scanRow({ ...idle, scanning: true, scanned: true, found: 2 })).toBe("scanning");
+  });
+
+  it("replaces the spinner in the same place when nothing was found", () => {
+    expect(scanRow({ ...idle, scanned: true })).toBe("empty");
+  });
+
+  it("steps aside once there are rows to read instead", () => {
+    expect(scanRow({ ...idle, scanned: true, found: 2 })).toBe("none");
+  });
+
+  it("reports a scan that could not run at all", () => {
+    expect(scanRow({ ...idle, scanned: true, error: "no Bluetooth here" })).toBe("error");
+  });
+});
+
+describe("listSections", () => {
+  const idle: ScanState = { scanning: false, scanned: false, error: null, found: 0 };
+
+  it("shows the paired rows alone until a scan is asked for", () => {
+    expect(listSections(idle)).toEqual(["paired"]);
+  });
+
+  it("puts Nearby above the paired rows the moment the scan starts", () => {
+    expect(listSections({ ...idle, scanning: true })).toEqual(["nearby", "paired"]);
+  });
+
+  it("keeps Nearby on top while its results are on screen", () => {
+    expect(listSections({ ...idle, scanned: true, found: 2 })).toEqual(["nearby", "paired"]);
+    expect(listSections({ ...idle, scanned: true })).toEqual(["nearby", "paired"]);
+  });
+});
+
+describe("isPinRequired", () => {
+  it("recognises the marker the backend sends when the radio asked for a code", () => {
+    expect(isPinRequired(new Error("pair_adapter failed: pin_required: Type pin code for …"))).toBe(true);
+    expect(isPinRequired("pin_required")).toBe(true);
+  });
+
+  it("leaves every other failure to the user", () => {
+    expect(isPinRequired(new Error("pair_adapter failed: pairing aa-bb failed: Page Timeout"))).toBe(false);
+    expect(isPinRequired(new Error("manual pairing required: …"))).toBe(false);
+    // Nothing here asks for anything: a device whose name happens to
+    // contain the word must not open a PIN field.
+    expect(isPinRequired(new Error('pairing failed for "pin_required_device"'))).toBe(false);
   });
 });
 

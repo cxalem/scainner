@@ -842,13 +842,20 @@ export type Dictionary = {
     lookingForDevices: string;
     noDevices: string;
     pairFirst: string;
+    // The device card's own header, where the scan action lives.
+    devicesHeading: string;
     // Discovery: finding and pairing a dongle that the OS has never seen,
     // without leaving the device screen for system Bluetooth settings.
     discoverDevices: string;
     scanning: string;
+    // The same line while the inquiry counts itself down.
+    scanningSeconds: (seconds: number) => string;
     nearby: string;
     pair: string;
     pairing: string;
+    // Why a PIN field appeared at all: the radio asked for one. Pairing
+    // never asks up front (Brief K) — see DeviceList.tsx.
+    pinRequired: string;
     pinLabel: string;
     pinHint: string;
     noNearby: string;
