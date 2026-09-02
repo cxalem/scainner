@@ -280,6 +280,7 @@ Describes diagnostic generations, not marketing alone. Exact record shape:
   "confidence": "high",
   "knowledge_state": "research_candidate",
   "source_refs": ["S01", "S05"],
+  "vds_patterns": ["^E1EA", "^E1EB"],
   "non_generalization_boundary": "Do not apply to MEB Gen2 without a matching fingerprint."
 }
 ```
@@ -296,6 +297,93 @@ Ambiguity is valid. Give each branch a selector: a vehicle-descriptor pattern
 hypothesis with its source, or explicit model, year and powertrain facts. A
 branch with no selector is inert at runtime, and you must say so in its
 record.
+
+### C6.1 Every platform carries a VIN classifier or an explicit gap
+
+This is the field that decides whether a platform can ever fire. A VIN is the
+only fact available before the first request, so a platform with no
+vehicle-descriptor rule is invisible to the planner however good the rest of
+its record is. Required, per platform record, one of exactly two things:
+
+**Either** a `vds_patterns` array of anchored regex strings, sourced by the
+platform's own `source_refs`:
+
+```json
+"vds_patterns": ["^KA1HK", "^KB1HK"],
+"source_refs": ["S03"]
+```
+
+**Or** a gap record in `conflicts-and-gaps.json` that names the platform and
+says what else could classify it — model year, mode 09 calibration
+identifiers, gateway identity:
+
+```json
+{
+  "gap_id": "examplebrand_gen2_not_vin_selectable",
+  "kind": "platform_not_vin_selectable",
+  "scope": { "platform_ids": ["examplebrand_gen2"] },
+  "priority": "P1",
+  "required_evidence": "A registry or type-approval table mapping this generation's descriptor characters, or a second confirmed VIN from the generation.",
+  "safe_next_action": "Classify by model year plus mode 09 calibration identifiers, or by gateway identity, until a descriptor rule is sourced; leave platform-scoped candidates inert.",
+  "retry_condition": "A registry table or a second confirmed VIN appears.",
+  "source_refs": ["S03"]
+}
+```
+
+Rules for `vds_patterns` entries:
+
+- Each entry is a plain **string**, a regex over the vehicle-descriptor
+  characters written in the shared subset both implementations parse:
+  literals `A-Z0-9`, `.`, `[...]` classes with ranges and negation, `(a|b)`
+  alternation, and the `^`, `$`, `?`, `*`, `+` operators. No `{n,m}` counts,
+  no capture semantics, no `\d`. `I`, `O` and `Q` never appear in a VIN, so
+  they never appear as literals.
+- **Anchor every pattern.** An unanchored pattern is a substring search and
+  will match descriptor characters it was never meant to describe. Start each
+  entry with `^`; inside one string, every top-level `|` alternative needs
+  its own anchor, so group them as `^(A|B)` rather than writing `^A|B`.
+- The runtime matcher evaluates a pattern against **VIN characters 4–10**:
+  the six vehicle-descriptor characters at positions 4–9 plus the model-year
+  character at position 10. A rule that constrains only positions 4–9 is
+  therefore anchored at the start and left open at the end — `^KA1` covers
+  positions 4–6 and leaves 7–10 free. Use a closing `$` only when you mean to
+  constrain the model-year character too, and then the pattern must account
+  for all seven characters.
+- One array entry per VIN family. Do not merge two families into one
+  loosened pattern; list them and let the compiler join them.
+- Sources are the platform's `source_refs`. A platform that declares patterns
+  with no `source_refs` is rejected: a pattern is a claim like any other.
+- Scope a pattern to a **generation**, never to a nameplate. Nameplates
+  outlive diagnostic architectures and get reused across them.
+- A pattern that matches the empty string is not a classifier. Neither is one
+  that is only `.` and quantifiers.
+
+Worked example. A fictional brand `examplebrand` whose second generation is
+built for Europe, where a registry table (source `S03`) shows the character
+at position 4 identifies the family, the character at position 5 the body,
+and positions 6–8 the engine:
+
+```json
+{
+  "platform_id": "examplebrand_gen2",
+  "scope": {
+    "brand_ids": ["examplebrand"],
+    "models": ["two"],
+    "years": { "from": 2019, "to": 2024 }
+  },
+  "vds_patterns": ["^KA1HK", "^KB1HK"],
+  "confidence": "medium",
+  "source_refs": ["S03"],
+  "non_generalization_boundary": "The five-door and estate bodies of this generation only; the van derivative shares the family character but not the diagnostic architecture."
+}
+```
+
+Two entries are fine — the compiler joins them into one alternation for the
+trusted map. What is not fine is one pattern widened with `.` until it
+swallows a neighbouring generation, or a bare family character that also
+matches another marque's vehicle under the same brand id. If you cannot
+separate two generations by descriptor characters, say so in a
+`platform_not_vin_selectable` gap instead of guessing.
 
 ## C7. ecu-routes.json
 
@@ -741,18 +829,22 @@ it, and do not summarize it.
 4. **Documentation-only records.** Every record with
    `automatic_execution_authorized: false`, listed by ID with the reason.
 5. **Gaps.** Every entry in `conflicts-and-gaps.json`, by ID and priority.
-6. **Foreign keys.** Confirm that every `route_id`, `platform_id`,
+6. **VIN classifiers.** Print the line `platforms without a VIN classifier: n`
+   — the count of platform records carrying neither a `vds_patterns` entry
+   nor a `platform_not_vin_selectable` gap naming them — and list those
+   platform IDs. Anything above zero is unfinished work, not a finding.
+7. **Foreign keys.** Confirm that every `route_id`, `platform_id`,
    `ecu_family_id`, `validation_recipe_id` and source ref referenced is
    defined, and name any that is not.
-7. **Vocabulary check.** Confirm every `protocol`, `support_status`,
+8. **Vocabulary check.** Confirm every `protocol`, `support_status`,
    observation `status`, `knowledge_state`, `vehicle_fit`, `route_state`,
    `identity_fit`, `activation` and `vehicle_applicability` value appears in
    the closed lists above, and name any that does not.
-8. **Safety check.** Confirm no record would cause a service from the C13
+9. **Safety check.** Confirm no record would cause a service from the C13
    never-automatic list to run automatically.
-9. **Budget check.** Confirm every value in
+10. **Budget check.** Confirm every value in
    `transport-session-safety-policy.json` is at or below the C14 ceilings.
-10. **Honest gaps.** State plainly what you could not establish, and what
+11. **Honest gaps.** State plainly what you could not establish, and what
     evidence would establish it.
 
 ===== PROMPT ENDS =====

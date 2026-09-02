@@ -43,8 +43,8 @@
 //! - [`gateway_behaviour_for_vin`]`(vin) -> GatewayBehaviour` — `unknown` /
 //!   `writes_blocked: false` when the pack has no sourced rule.
 //! - [`platform_for_vin`]`(vin) -> Option<Platform>` — first platform whose
-//!   `vds_pattern` matches VIN characters 4–10; platforms without a pattern
-//!   are never selected by VIN.
+//!   `vds_pattern` (a regex, possibly an alternation) matches VIN
+//!   characters 4–10; platforms without a pattern are never selected by VIN.
 //! - [`known_did`]`(vin, req, resp, did)` — module-bound entries only (v9:
 //!   no unscoped fallback); [`known_did_unscoped`] exists for browsing.
 //! - [`decode_value`]`(&Decode, &[u8]) -> Option<f64>` — the shared decode
@@ -371,8 +371,10 @@ pub struct IdentityBlock {
 /// A platform/generation split that changes service or addressing (v9).
 /// `vds_pattern` is a regex over VIN characters 4–10 restricted to the
 /// subset both implementations support (literals, `.`, `[...]` classes
-/// with ranges and negation, `^`, `$`, `?`, `*`, `+`); `None` means the
-/// platform is selectable by evidence only, never by VIN.
+/// with ranges and negation, `(a|b)` alternation, `^`, `$`, `?`, `*`,
+/// `+`); `None` means the platform is selectable by evidence only, never
+/// by VIN. Several VIN families for one platform are carried as a single
+/// alternation, which is the form the research compiler emits.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct Platform {
     pub key: String,
@@ -1233,6 +1235,8 @@ struct VdsPattern {
     tokens: Vec<(VdsAtom, VdsQuant)>,
 }
 
+/// Parse one alternative — `expand_vds_alternations` has already removed
+/// every group, so `(` and `)` cannot appear here.
 fn parse_vds_pattern(pattern: &str) -> Option<VdsPattern> {
     let chars: Vec<char> = pattern.chars().collect();
     let mut i = 0;
@@ -1337,22 +1341,159 @@ fn vds_match_here(p: &VdsPattern, ti: usize, text: &[char], pos: usize) -> bool 
     }
 }
 
+/// Expand `(a|b)` groups and top-level `|` into the concrete alternatives
+/// the atom matcher above understands, which has no notion of a group.
+///
+/// The trusted map stores one regex string per platform, so a platform with
+/// several VIN families carries them as one alternation — `^(KN3DU|KN36U)`,
+/// the form the research compiler emits. Patterns are a handful of
+/// characters, so expanding them is cheaper than teaching the matcher
+/// variable-width atoms. Unbalanced parentheses, or an expansion wider than
+/// `VDS_MAX_ALTERNATIVES`, yield `None` and therefore never match.
+const VDS_MAX_ALTERNATIVES: usize = 64;
+
+fn expand_vds_alternations(pattern: &str) -> Option<Vec<String>> {
+    fn split_top_level(pattern: &str) -> Option<Vec<String>> {
+        let mut parts = Vec::new();
+        let mut depth = 0usize;
+        let mut in_class = false;
+        let mut current = String::new();
+        for c in pattern.chars() {
+            if in_class {
+                if c == ']' {
+                    in_class = false;
+                }
+            } else if c == '[' {
+                in_class = true;
+            } else if c == '(' {
+                depth += 1;
+            } else if c == ')' {
+                depth = depth.checked_sub(1)?;
+            } else if c == '|' && depth == 0 {
+                parts.push(std::mem::take(&mut current));
+                continue;
+            }
+            current.push(c);
+        }
+        if depth != 0 || in_class {
+            return None;
+        }
+        parts.push(current);
+        Some(parts)
+    }
+
+    fn expand(pattern: &str, out: &mut Vec<String>) -> Option<()> {
+        for branch in split_top_level(pattern)? {
+            // The first group at depth zero; everything before it is a fixed
+            // prefix and everything after it is expanded again.
+            let chars: Vec<char> = branch.chars().collect();
+            let mut in_class = false;
+            let mut open = None;
+            for (i, c) in chars.iter().enumerate() {
+                if in_class {
+                    if *c == ']' {
+                        in_class = false;
+                    }
+                } else if *c == '[' {
+                    in_class = true;
+                } else if *c == '(' {
+                    open = Some(i);
+                    break;
+                }
+            }
+            let Some(open) = open else {
+                if out.len() >= VDS_MAX_ALTERNATIVES {
+                    return None;
+                }
+                out.push(branch);
+                continue;
+            };
+            let mut depth = 0usize;
+            let mut in_class = false;
+            let mut close = None;
+            for (i, c) in chars.iter().enumerate().skip(open) {
+                if in_class {
+                    if *c == ']' {
+                        in_class = false;
+                    }
+                } else if *c == '[' {
+                    in_class = true;
+                } else if *c == '(' {
+                    depth += 1;
+                } else if *c == ')' {
+                    depth -= 1;
+                    if depth == 0 {
+                        close = Some(i);
+                        break;
+                    }
+                }
+            }
+            let close = close?;
+            let prefix: String = chars[..open].iter().collect();
+            let inner: String = chars[open + 1..close].iter().collect();
+            let suffix: String = chars[close + 1..].iter().collect();
+            for alternative in split_top_level(&inner)? {
+                expand(&format!("{prefix}{alternative}{suffix}"), out)?;
+            }
+        }
+        Some(())
+    }
+
+    let mut out = Vec::new();
+    expand(pattern, &mut out)?;
+    if out.is_empty() || out.len() > VDS_MAX_ALTERNATIVES {
+        return None;
+    }
+    Some(out)
+}
+
 /// Match a VDS pattern (the subset above) against text. Malformed patterns
 /// never match.
 pub fn vds_matches(pattern: &str, text: &str) -> bool {
-    let Some(p) = parse_vds_pattern(pattern) else {
+    let Some(alternatives) = expand_vds_alternations(pattern) else {
         return false;
     };
     let chars: Vec<char> = text.chars().collect();
-    if p.anchored_start {
-        return vds_match_here(&p, 0, &chars, 0);
-    }
-    (0..=chars.len()).any(|start| vds_match_here(&p, 0, &chars, start))
+    alternatives.iter().any(|alternative| {
+        let Some(p) = parse_vds_pattern(alternative) else {
+            return false;
+        };
+        if p.anchored_start {
+            return vds_match_here(&p, 0, &chars, 0);
+        }
+        (0..=chars.len()).any(|start| vds_match_here(&p, 0, &chars, start))
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// One descriptor string a pattern matches: the first alternative of an
+    /// alternation, with literal characters kept, `.` filled and the first
+    /// member of each class chosen.
+    fn vds_literal(pattern: &str) -> String {
+        let expanded = expand_vds_alternations(pattern).expect("pattern expands");
+        let mut literal = String::new();
+        let mut chars = expanded[0].trim_start_matches('^').chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '[' => {
+                    let first = chars.next().unwrap();
+                    literal.push(first);
+                    for x in chars.by_ref() {
+                        if x == ']' {
+                            break;
+                        }
+                    }
+                }
+                '$' | '?' | '*' | '+' => {}
+                '.' => literal.push('A'),
+                c => literal.push(c),
+            }
+        }
+        literal
+    }
 
     /// A synthetic VIN for a brand id: its first WMI plus filler.
     fn vin_for(brand_id: &str, vds: &str) -> String {
@@ -2256,26 +2397,7 @@ mod tests {
                 .find(|p| p.vds_pattern.is_some())
                 .unwrap();
             let pattern = p.vds_pattern.as_deref().unwrap();
-            // Build a matching VDS from the pattern: literal characters, or
-            // the first member of a class.
-            let mut literal = String::new();
-            let mut chars = pattern.trim_start_matches('^').chars().peekable();
-            while let Some(c) = chars.next() {
-                match c {
-                    '[' => {
-                        let first = chars.next().unwrap();
-                        literal.push(first);
-                        for x in chars.by_ref() {
-                            if x == ']' {
-                                break;
-                            }
-                        }
-                    }
-                    '$' | '?' | '*' | '+' => {}
-                    '.' => literal.push('A'),
-                    c => literal.push(c),
-                }
-            }
+            let literal = vds_literal(pattern);
             let hit = platform_for_vin(Some(&vin_for(&b.id, &literal)));
             assert_eq!(
                 hit.as_ref().map(|p| p.key.as_str()),
@@ -2294,6 +2416,100 @@ mod tests {
             !b.platforms.is_empty() && b.platforms.iter().all(|p| p.vds_pattern.is_none())
         });
         assert!(platform_for_vin(Some(&vin_for(&unpatterned.id, "EXAMPLE"))).is_none());
+    }
+
+    /// The profiled vehicle's generation and the two alternation-carrying
+    /// platforms resolve from a VIN alone. Every VIN here is synthetic: the
+    /// brand's own WMI, the descriptor characters the map's pattern claims,
+    /// and filler for the year, plant and serial the pattern never reads.
+    #[test]
+    fn vin_alone_selects_the_profiled_generation_and_the_alternation_platforms() {
+        // Positions 4-5 "BA" — family then silhouette — with the engine,
+        // version and model-year characters left free by the pattern.
+        assert_eq!(
+            platform_for_vin(Some(&vin_for("psa", "BAHNSAN")))
+                .map(|p| p.key)
+                .as_deref(),
+            Some("c41")
+        );
+        // The same family, a different silhouette: not this platform.
+        assert_ne!(
+            platform_for_vin(Some(&vin_for("psa", "BCZKXAN")))
+                .map(|p| p.key)
+                .as_deref(),
+            Some("c41")
+        );
+
+        // An alternation reaches every branch it lists and nothing else.
+        for vds in ["KN3DUAB", "KN36UAB"] {
+            assert_eq!(
+                platform_for_vin(Some(&vin_for("toyota", vds)))
+                    .map(|p| p.key)
+                    .as_deref(),
+                Some("toyota_prius_xw30"),
+                "{vds}"
+            );
+        }
+        assert_ne!(
+            platform_for_vin(Some(&vin_for("toyota", "KN37UAB")))
+                .map(|p| p.key)
+                .as_deref(),
+            Some("toyota_prius_xw30")
+        );
+        for vds in ["ZB1BAAB", "ZB11AAB", "BC1BAAB", "BC11AAB"] {
+            assert_eq!(
+                platform_for_vin(Some(&vin_for("toyota", vds)))
+                    .map(|p| p.key)
+                    .as_deref(),
+                Some("lexus_rx_al10"),
+                "{vds}"
+            );
+        }
+        // The generations this pattern deliberately excludes stay unselected.
+        assert!(platform_for_vin(Some(&vin_for("toyota", "ZB1CAAB")))
+            .map(|p| p.key)
+            .is_none_or(|key| key != "lexus_rx_al10"));
+
+        // Every pattern in the shipped map is one the matcher can parse.
+        for brand in &map().brands {
+            for platform in &brand.platforms {
+                if let Some(pattern) = &platform.vds_pattern {
+                    assert!(
+                        expand_vds_alternations(pattern).is_some(),
+                        "{} {} {pattern}",
+                        brand.id,
+                        platform.key
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn alternation_expands_to_its_branches_and_malformed_groups_never_match() {
+        assert_eq!(
+            expand_vds_alternations("^(KN3DU|KN36U)").unwrap(),
+            vec!["^KN3DU".to_string(), "^KN36U".to_string()]
+        );
+        assert_eq!(
+            expand_vds_alternations("^A(B|C)(D|E)").unwrap(),
+            vec![
+                "^ABD".to_string(),
+                "^ABE".to_string(),
+                "^ACD".to_string(),
+                "^ACE".to_string()
+            ]
+        );
+        assert!(vds_matches("^(KN3DU|KN36U)", "KN36UAB"));
+        assert!(!vds_matches("^(KN3DU|KN36U)", "KN37UAB"));
+        assert!(vds_matches("^(ZB1BA|BC11A)", "BC11AAB"));
+        // A `|` inside a class is a literal, not an operator.
+        assert!(!vds_matches("^[AB]C", "ZC00000"));
+        assert!(vds_matches("^[AB]C", "BC00000"));
+        // Malformed groups are inert rather than partially matching.
+        assert!(!vds_matches("^(AB", "AB00000"));
+        assert!(!vds_matches("^AB)", "AB00000"));
+        assert!(expand_vds_alternations("^(AB").is_none());
     }
 
     #[test]

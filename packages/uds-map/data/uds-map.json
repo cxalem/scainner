@@ -1733,7 +1733,7 @@
       "platforms": [
         {
           "key": "c41",
-          "vds_pattern": null,
+          "vds_pattern": "^BA",
           "years": [
             2020,
             null
@@ -1743,13 +1743,13 @@
             "dae_uds2_psa",
             "cvm3_psa"
           ],
-          "notes": "C4 III generation; the vehicle this project's captures come from (engine 6A8/688, ABS 6AD/68D, EPS 6B5/695, camera 74A/64A). No registry-confirmed VDS pattern yet.",
+          "notes": "C4 III generation, five-door combustion body; the vehicle this project's captures come from (engine 6A8/688, ABS 6AD/68D, EPS 6B5/695, camera 74A/64A). VIN rule: position 4 is the vehicle family and position 5 the silhouette, so B at 4 selects this generation's family and A at 5 the five-door combustion body. Positions 6-8 (engine code) and 9 (gearbox and emissions version) are deliberately left free, because the generation spans several of each. The battery-electric and fastback siblings share the family character but not this module set, so they are not covered until there is evidence for them.",
           "source": {
-            "url": "apps/desktop/docs/workflows/parked-vehicle-verification.md",
-            "date": "2026-08-27",
-            "type": "project_capture",
-            "licence": "MIT",
-            "note": "this project's own reads on one vehicle; evidence under apps/desktop/docs/workflows/evidence/"
+            "url": "https://github.com/flobz/psa_car_controller/blob/c8bcbdcd876fc1ba2a34b8c70c3498d8c5a939b4/psa_car_controller/psacc/resources/car_models.yml",
+            "date": "2026-09-02",
+            "type": "open_implementation",
+            "licence": "GPL-3.0",
+            "note": "Owner-submitted VIN prefixes pinned at that revision give this generation's descriptor families: VR7BAHNS (2021 and 2023 combustion five-door), VR7BCZK (battery-electric five-door), VR7BFZK (battery-electric fastback). ISO 3779:2009 clause 4.3 establishes that the descriptor section is VIN positions 4-9 and that its coding is the manufacturer's own; the family/silhouette/engine/version split used here is documented by two independent community references, https://web.archive.org/web/20260902015803/https://citroen.c5x7.fr/vin and http://web.archive.org/web/20200204050310/http://www.folio.free.fr:80/voiture/206cc/VIN.txt. No manufacturer or registry document publishes the family codes, so the family character is validated inference from that VIN corpus, not a citation. Module evidence for this platform is this project's own reads under apps/desktop/docs/workflows/evidence/."
           }
         }
       ],
@@ -5345,7 +5345,7 @@
           "date": "2026-08-23",
           "type": "community",
           "licence": "MIT",
-          "note": "\u00a74 'VAG (VW, Audi) + \u0160koda, SEAT, Cupra': VSS is an unverified analogy from SEAT's confirmed VSS (same Martorell plant), not an independently confirmed Cupra code \u2014 the Born is built at VW Zwickau and may carry a different WMI. wmi-table.ts's shared-WMI tie-break (rows.has(code) => continue) routes VSS to `seat` because it is listed first in brands[] with the stronger claim; Cupra's badge is reachable today only via the ?brand= dev override. Get a real Cupra VIN (\u00a78 item 1) before changing this."
+          "note": "§4 'VAG (VW, Audi) + Škoda, SEAT, Cupra': VSS is an unverified analogy from SEAT's confirmed VSS (same Martorell plant), not an independently confirmed Cupra code — the Born is built at VW Zwickau and may carry a different WMI. wmi-table.ts's shared-WMI tie-break (rows.has(code) => continue) routes VSS to `seat` because it is listed first in brands[] with the stronger claim; Cupra's badge is reachable today only via the ?brand= dev override. Get a real Cupra VIN (§8 item 1) before changing this."
         }
       ]
     },
@@ -12867,6 +12867,93 @@
             "date": "2026-08-23",
             "type": "community",
             "licence": "CC-BY-SA-4.0"
+          }
+        },
+        {
+          "key": "toyota_prius_xw30",
+          "vds_pattern": "^(KN3DU|KN36U)",
+          "years": [
+            2010,
+            2015
+          ],
+          "ecu_families_expected": [],
+          "read_service": "21",
+          "notes": "Service-21 hybrid diagnostic branch. Two VIN families carried as one alternation; positions 4-8 only, so the model-year character stays free.",
+          "source": {
+            "url": "https://techinfo.toyota.com/techInfoPortal/staticcontent/en/techinfo/html/prelogin/docs/3rdprius.pdf",
+            "date": "2026-09-02",
+            "type": "oem",
+            "licence": "Toyota public technical information",
+            "note": "VIN families published in the 2010 emergency response guide for this hybrid generation; diagnostic branch corroborated by the OBDb signal set pinned at https://github.com/OBDb/Toyota-Prius/blob/0a8c4ec72be860861548a3aeb2be007eecd83941/signalsets/v3/default.json"
+          }
+        },
+        {
+          "key": "toyota_tnga_hybrid",
+          "vds_pattern": "^B[2375TAD]1HK",
+          "years": [
+            2018,
+            null
+          ],
+          "ecu_families_expected": [],
+          "notes": "Modern service-22 hybrid branch, narrower than the evidence-only modern_ths entry above. The pattern covers the hybrid saloon families only; it is not authority to reuse the earlier generation's routes.",
+          "source": {
+            "url": "https://www.toyota-tech.eu/HYBRID/HVDM/EN/Camry%20Hybrid.pdf",
+            "date": "2026-09-02",
+            "type": "oem",
+            "licence": "Toyota public technical information",
+            "note": "VIN families published in the hybrid dismantling manual; diagnostic branch corroborated by the OBDb signal set pinned at https://github.com/OBDb/Toyota-Camry/blob/3c1fc0cd77f27cdc4291b71e9a7a93fe525889b2/signalsets/v3/default.json"
+          }
+        },
+        {
+          "key": "toyota_ths5",
+          "vds_pattern": "^A[CDE]AAU",
+          "years": [
+            2023,
+            null
+          ],
+          "ecu_families_expected": [],
+          "notes": "Fifth-generation hybrid system branch, and the VIN-selectable form of the evidence-only ths5_e_four entry above. Rear-motor records do not apply to two-wheel-drive vehicles.",
+          "source": {
+            "url": "https://www.toyota-tech.eu/HYBRID/HVDM/EN/hvdm%20Prius%202023_%20MXH61.pdf",
+            "date": "2026-09-02",
+            "type": "oem",
+            "licence": "Toyota public technical information",
+            "note": "VIN families published in the 2023 hybrid dismantling manual; diagnostic branch corroborated by the OBDb signal set pinned at https://github.com/OBDb/Toyota-Prius/blob/0a8c4ec72be860861548a3aeb2be007eecd83941/signalsets/v3/default.json"
+          }
+        },
+        {
+          "key": "lexus_rx_al10",
+          "vds_pattern": "^(ZB1BA|ZB11A|BC1BA|BC11A)",
+          "years": [
+            2010,
+            2015
+          ],
+          "ecu_families_expected": [],
+          "read_service": "21",
+          "notes": "Service-21 branch of this marque's hybrid SUV generation. Four VIN families carried as one alternation; conventional variants of the same nameplate are not covered.",
+          "source": {
+            "url": "https://techinfo.toyota.com/techInfoPortal/staticcontent/en/techinfo/html/prelogin/docs/rx450h_erg.pdf",
+            "date": "2026-09-02",
+            "type": "oem",
+            "licence": "Toyota public technical information",
+            "note": "VIN families published in the 2010 emergency response guide for this hybrid SUV generation; diagnostic branch corroborated by the OBDb signal set pinned at https://github.com/OBDb/Lexus-RX/blob/9d3e76d70e91152e90acf4cd7c16dfe20fa48a37/signalsets/v3/default.json"
+          }
+        },
+        {
+          "key": "lexus_rx_al30",
+          "vds_pattern": "^C[BCJNFMDLE]BAZ",
+          "years": [
+            2023,
+            null
+          ],
+          "ecu_families_expected": [],
+          "notes": "Current service-22 branch of this marque's hybrid SUV. Exact ECU identity is still required before any decoder is reused.",
+          "source": {
+            "url": "https://techinfo.toyota.com/t3Portal/document/dm/L-DM-018-D/pdf/L-DM-018-D.pdf",
+            "date": "2026-09-02",
+            "type": "oem",
+            "licence": "Toyota public technical information",
+            "note": "VIN families published in the hybrid/plug-in dismantling manual for this generation; diagnostic branch corroborated by the OBDb signal set pinned at https://github.com/OBDb/Lexus-RX/blob/9d3e76d70e91152e90acf4cd7c16dfe20fa48a37/signalsets/v3/default.json"
           }
         }
       ],
