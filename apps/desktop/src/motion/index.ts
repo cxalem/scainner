@@ -18,6 +18,7 @@ export const growTransition: Transition = {
   height: { duration: DURATION.slow, ease: EASE_OUT },
   opacity: { duration: DURATION.base, ease: EASE_OUT },
 };
+// Non-visible overflow makes the flex auto-minimum zero, so flexShrink: 0 keeps the box from collapsing.
 export const growBoxStyle = { overflow: "hidden", flexShrink: 0 } as const;
 
 export const backdropVariants: Variants = {

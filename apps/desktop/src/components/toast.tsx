@@ -113,6 +113,7 @@ function raise(variant: ToastVariant, title: string, options: ToastOptions = {})
     options.secondaryAction != null ||
     (options.details != null && options.details !== "");
 
+  // Sonner has no pause API beyond hover or focus, so an open Details view is re-issued indefinitely.
   const emit = (detailsOpen: boolean) =>
     sonner[variant](title, {
       id,

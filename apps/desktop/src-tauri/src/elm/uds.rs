@@ -1277,6 +1277,7 @@ pub fn poll_probes(
 }
 
 fn should_poll_probe(probe: &crate::db::UdsProbe) -> bool {
+    // Discovery enables probes without consent, so only manual or hypothesis-linked probes may poll.
     probe.enabled && (probe.origin == "manual" || probe.hypothesis_id.is_some())
 }
 

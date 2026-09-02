@@ -67,6 +67,7 @@ pub trait BluetoothControl: Send + Sync {
 pub fn platform() -> Box<dyn BluetoothControl> {
     #[cfg(test)]
     {
+        // Tests never touch the radio because inquiry blocks for seconds and pairing opens a system dialog.
         return Box::new(Unsupported);
     }
     #[cfg(all(target_os = "macos", not(test)))]
@@ -193,6 +194,7 @@ impl BluetoothControl for MacosBlueutil {
         if let Some(pin) = pin.map(str::trim).filter(|p| !p.is_empty()) {
             command.arg(pin);
         }
+        // Closing stdin makes blueutil's interactive PIN prompt fail instead of hanging.
         let out = command.stdin(Stdio::null()).output().map_err(|e| {
             PairFailure::Other(format!(
                 "blueutil not runnable (brew install blueutil): {e}"

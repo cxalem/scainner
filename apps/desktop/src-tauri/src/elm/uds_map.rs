@@ -1105,9 +1105,11 @@ fn vds_match_here(p: &VdsPattern, ti: usize, text: &[char], pos: usize) -> bool 
     }
 }
 
+// The cap bounds VDS pattern expansion.
 const VDS_MAX_ALTERNATIVES: usize = 64;
 
 fn expand_vds_alternations(pattern: &str) -> Option<Vec<String>> {
+    // Unbalanced groups return None so malformed patterns never match.
     fn split_top_level(pattern: &str) -> Option<Vec<String>> {
         let mut parts = Vec::new();
         let mut depth = 0usize;

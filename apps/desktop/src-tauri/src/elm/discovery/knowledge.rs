@@ -115,6 +115,7 @@ pub fn last_auto_run(db: &Db, vehicle_id: i64) -> Option<AutoRunRecord> {
 
 pub fn record_auto_run(db: &Db, vehicle_id: i64, key: &str) -> AutoRunRecord {
     let at = now(db);
+    // Only a run completed within budget records its key, so truncated runs resume next connect.
     db.setting_set(&done_setting_key(vehicle_id), &format!("{at}|{key}"));
     AutoRunRecord {
         key: key.to_string(),

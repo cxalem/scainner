@@ -40,6 +40,7 @@ export default function SpanishRootLayout({ children }: { children: React.ReactN
   return (
     <html lang="es" className={inter.variable}>
       <body suppressHydrationWarning>
+        {/* React requires noscript to be the first child of the document body. */}
         <noscript>
           <style>{`[data-reveal]{opacity:1 !important;transform:none !important}`}</style>
         </noscript>

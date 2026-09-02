@@ -1,4 +1,3 @@
-// /* Work around lint_brand_tokens.py treating model asset paths as product tokens.
 import sceneModel from "@/data/scene-model.json";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";

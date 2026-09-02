@@ -49,6 +49,7 @@ where
         let (lock, cvar) = &*worker;
         let mut state = lock.lock().unwrap_or_else(|e| e.into_inner());
         if matches!(*state, Handoff::GaveUp) {
+            // A late descriptor is closed because leaking it keeps the callout device busy until restart.
             if let Ok(fd) = opened {
                 if fd >= 0 {
                     // SAFETY: fd is an unclaimed descriptor returned by libc::open.

@@ -221,6 +221,7 @@ const trustedVdsPattern = (platform: Json): string | null => {
   const patterns = vdsPatternsOf(platform);
   if (!patterns.length) return null;
   if (patterns.length === 1) return patterns[0];
+  // The trusted map stores one vds_pattern per platform.
   return `^(${patterns.map((pattern) => pattern.replace(/^\^/, "")).join("|")})`;
 };
 const vinSelectablePlatforms = (platformsFile.platforms ?? []).filter(platformHasVinRule).map((platform: Json) => platform.platform_id);

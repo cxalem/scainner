@@ -146,6 +146,7 @@ let holdReleased = false;
 
 async function holdAtStage(stage: string): Promise<void> {
   if (previewQuery().get("mock_discovery_hold") !== stage) return;
+  // Polling the query lets history.replaceState release the hold without a reload.
   while (!holdReleased && previewQuery().get("mock_discovery_hold") === stage) {
     await delay(150);
   }

@@ -391,6 +391,7 @@ export function validateResearchPack(input: string): ValidationResult {
     checkEnum(route.identity_fit, IDENTITY_FIT, where, "identity_fit", false);
     checkEnum(route.activation, ACTIVATION, where, "activation", false);
     if (route.automatic_execution_authorized !== true) {
+      // Documentation-only claims may cite mutable sources; immutability gates automatic execution.
       documentationOnlyRoutes.add(route.route_id);
       continue;
     }

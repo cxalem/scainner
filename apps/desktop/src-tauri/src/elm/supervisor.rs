@@ -593,6 +593,7 @@ fn run_loop(
             if dtc_schedule.due(tick) {
                 service_requests!();
             }
+            // Re-checking after requests lets a just-served manual scan cancel this periodic tick.
             if dtc_schedule.due(tick) {
                 match record_dtc_scan(&mut drv, &db, ctx) {
                     Ok(result) => {

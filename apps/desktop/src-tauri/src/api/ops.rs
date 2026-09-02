@@ -594,6 +594,7 @@ pub fn patch_hypothesis(
 ) -> Result<Option<db::HypothesisRow>, discovery::state::RuleViolation> {
     let learning_on = learning_state(state);
     let row = state.db.patch_hypothesis(id, patch, learning_on)?;
+    // Label and knowledge patches must not re-enable a probe the user switched off.
     if patch.activation.is_some() {
         if let Some(row) = &row {
             sync_hypothesis_probe(state, row);

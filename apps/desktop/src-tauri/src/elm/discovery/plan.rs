@@ -244,6 +244,7 @@ pub fn generate_for_vehicle(
     let platform_key = uds_map::platform_for_vin(vin)
         .map(|platform| platform.key)
         .or_else(|| research::platform_for_vehicle_facts(vin, model));
+    // Lower-trust research must not widen a plan from WMI alone; platform routes need an exact match.
     for candidate in research::routes_for_exploration(vin, platform_key.as_deref()) {
         let (Some(protocol), Some(read_service), Some(req), Some(resp)) = (
             candidate_protocol(&candidate.protocol),

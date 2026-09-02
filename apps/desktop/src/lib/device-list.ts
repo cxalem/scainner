@@ -83,6 +83,7 @@ export function listSections(scan: ScanState): ListSection[] {
   return showNearby ? ["nearby", "paired"] : ["paired"];
 }
 
+// Scroll anchoring would carry Nearby out of view when it opens above existing rows.
 export const deviceScrollColumnClass =
   "flex flex-1 flex-col overflow-y-auto p-3 [overflow-anchor:none]";
 

@@ -229,6 +229,7 @@ pub fn check_knowledge(
                      verification run in evidence_run_ids"
                 .into(),
         }),
+        // Fleet states can never be established from a single vehicle.
         KnowledgeState::CommunityVerified | KnowledgeState::OemConfirmed => Err(RuleViolation {
             rule: "fleet_state_not_settable_locally",
             reason: format!(

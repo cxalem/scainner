@@ -98,6 +98,7 @@ function GrowBox({
       initial={{ height: 0, opacity: 0 }}
       animate={{ height, opacity: 1 }}
       exit={{ height: 0, opacity: 0 }}
+      // MotionConfig reducedMotion="user" neutralises transforms but not height animation.
       transition={reduced ? { duration: 0 } : growTransition}
       {...rest}
     >

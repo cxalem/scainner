@@ -1,4 +1,3 @@
-// /* Work around lint_brand_tokens.py treating asset identifiers in this registry as product tokens.
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
@@ -225,6 +224,7 @@ export const PREVIEW_ONLY_EMBLEMS = [
 ] as const;
 
 export const EMBLEMS: Record<string, React.ComponentType> = {
+  // Suzuki stays excluded because its source geometry is torn.
   volvo: glbEmblem("volvo.glb"),
   citroen: glbEmblem("citroen.glb"),
   audi: glbEmblem("audi.glb"),
@@ -242,6 +242,7 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   fiat: glbEmblem("fiat.glb"),
   ford: glbEmblem("ford.glb"),
   geely: glbEmblem("geely.glb"),
+  // BYD's glyphs are mirrored in the source art; see public/emblems/README.md.
   byd: glbEmblem("byd.glb"),
   chery: glbEmblem("chery.glb"),
   tesla: glbEmblem("tesla.glb"),

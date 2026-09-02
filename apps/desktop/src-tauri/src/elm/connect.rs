@@ -5,6 +5,7 @@ use super::transport::{AdapterKind, AdapterProfile};
 use serde::Serialize;
 use std::time::{Duration, Instant};
 
+// RFCOMM needs a moment after blueutil connects before its node can be opened.
 const LINK_SETTLE: Duration = Duration::from_secs(1);
 
 const BUS_WAKE_TIMEOUT: Duration = Duration::from_secs(20);
@@ -131,6 +132,7 @@ pub(crate) fn connect_with(
             log::info!("connect stage link: {addr} reports the link down or {port} is missing, bringing it up");
             match bt.connect(&addr, &port) {
                 Ok(()) => std::thread::sleep(LINK_SETTLE),
+                // Missing Bluetooth control is not a connection failure.
                 Err(e) if bluetooth_unavailable(&e) => {
                     log::info!(
                         "connect stage link: skipped, no Bluetooth control on this machine ({e})"
@@ -156,6 +158,7 @@ pub(crate) fn connect_with(
     stage_done(Stage::Handshake, started);
 
     let started = stage_start(Stage::Bus, emit);
+    // NO DATA and UNABLE TO CONNECT are valid ignition-off replies; only silence or transport errors fail.
     match driver.cmd("0100", BUS_WAKE_TIMEOUT) {
         Ok(raw) => log::info!("connect stage bus: 0100 answered {:?}", raw.trim()),
         Err(e) => return Err(stage_failed(Stage::Bus, e.to_string(), started)),
