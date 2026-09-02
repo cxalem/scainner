@@ -1,19 +1,24 @@
-# Plan: Windows transport, pre-hardware increments
+# Plan: Windows transport, remaining streams
 
-Stream family: `windows-port`. Base: `origin/main@c612e1b`. No builder starts before the human gate.
+Base: `origin/main@6a5710e060c885df13306bdb7263b8f8cfdfd5be` (2026-09-02).
+Each stream has its own worktree, `ws/*` branch, PR, review, Codex cross-exam,
+and José/Alejandro human merge gate.
 
 ## Goal
 
 Preserve Wi-Fi and add Windows COM transport for USB ELM327 and manually paired Classic
 Bluetooth SPP. Prove each PR on Windows CI; preserve Unix termios and evidence-bounded claims.
 
-## Gate decisions and recommendations
+## Human gate accepted 2026-09-02 through José's relay
 
-1. **Serial:** accept Windows-only `serialport = "=4.10.0"` plus MPL notice. Recommended: yes; raw WinAPI is fallback.
-2. **Bluetooth v1:** manual pairing/COM selection; defer cycle/re-pair and RFCOMM. Recommended: yes.
-3. **Windows:** validate 11 first; treat 10 as best-effort until an owner supplies a test machine.
-4. **Claim:** not "user-ready Windows" until Choose adapter exists. Include it here or separately?
-5. **I/O fixture:** name an authorized Windows machine and verified serial pair before stream 2; no patched com0com. Without one, OS-I/O acceptance is incomplete.
+1. Windows-only `serialport = "=4.10.0"` plus MPL notice; raw WinAPI is fallback.
+2. Manual Windows Bluetooth pairing and COM selection; automatic cycle/re-pair and RFCOMM are deferred.
+3. Validate Windows 11 first; Windows 10 is best-effort until a machine is supplied.
+4. The device screen and adapter selection surface landed in #85/#86/#87/#91;
+   Windows is not user-ready until candidates and transport work.
+
+The only unresolved implementation dependency is the still-unnamed authorized
+Windows machine, serial pair, and mock ELM responder. No patched `com0com`.
 
 ## Non-goals
 
@@ -45,7 +50,7 @@ Boundary: `apps/desktop/src-tauri/{Cargo.toml,Cargo.lock,tauri.conf.json}`,
 - Add the exact crate version under `target.'cfg(windows)'.dependencies`; do not
   route Unix through it.
 - Give `ElmSerial` a Windows-owned port. Configure baud, 8N1 and no flow control;
-  retain the 15 second open deadline and close-on-drop. Do not guess DTR behavior;
+  retain the normal 10 second open deadline and close-on-drop. Do not guess DTR behavior;
   make the required fixture establish whether the target needs it.
 - Before each command clear input; write the full command plus carriage return;
   flush; map serial read timeouts to the existing zero-byte polling loop.
@@ -66,25 +71,9 @@ Boundary: `apps/desktop/src-tauri/{Cargo.toml,Cargo.lock,tauri.conf.json}`,
 - Risk fallback: if the fixture cannot reproduce the semantics, stop and re-plan
   raw `windows-sys` plus enumeration. Do not leave a hidden crate dependency.
 
-### 3. `ws/windows-port-supervisor` - make COM direct-open reachable
+### 3. `ws/windows-port-enumerate` - list present COM candidates
 
-Boundary: `apps/desktop/src-tauri/src/elm/supervisor.rs` and its tests.
-
-- Replace filesystem existence as the universal direct-open gate with an explicit
-  platform-aware decision. A configured Windows COM port gets attempt 0 directly.
-- Force start 0 even when a migrated profile has `bt_addr` and learned level 1 or 2.
-- Extract a pure retry-policy helper inside this file; feed it platform, configured
-  path and synthetic open/probe outcomes so its tests need no real COM device.
-- Preserve the learned macOS reconnect ladder. On Windows, a failed direct probe
-  returns a useful manual-pairing/port error without pretending automation ran.
-- Acceptance: tests cover configured COM direct-open including persisted levels 1/2,
-  missing configuration, USB/manual-SPP failure and unchanged Unix ladder decisions.
-
-### 4. `ws/windows-port-enumerate` - list present COM candidates
-
-Boundary: `apps/desktop/src-tauri/src/elm/transport/enumerate.rs`, its tests,
-`apps/desktop/src-tauri/src/api/openapi.rs`, `README.md` and
-`apps/desktop/docs/api.md`.
+Boundary: `apps/desktop/src-tauri/src/elm/transport/enumerate.rs` and its tests.
 
 - Use `serialport::available_ports()` only on Windows. Never probe/open candidates.
 - Return normalized `COMn` ids. Build the display name and `likely_obd` hint from
@@ -93,25 +82,24 @@ Boundary: `apps/desktop/src-tauri/src/elm/transport/enumerate.rs`, its tests,
 - Put conversion and sorting behind a pure helper accepting synthetic port records;
   CI fixtures cover COM3, COM10+, USB, Bluetooth and unknown ports without assuming
   the hosted runner owns real devices.
-- Preserve macOS/Linux discovery, filtering, ordering and path behavior while allowing
-  the candidate DTO migration required by `adapter-ui-spec.md`.
-- Correct docs: the HTTP API exists; the desktop Choose adapter UI does not yet.
+- Preserve macOS/Linux discovery, filtering, ordering and path behavior. The candidate
+  DTO and adapter screen already landed; do not add UI, HTTP, schema, or service files.
 - Acceptance: fixtures cover metadata, stable ordering and zero/multiple candidates;
   a live enumeration smoke is separate and non-gating.
 
-### 5. Adapter UI gate
+## Current-main supervisor/UI conclusion
 
-If gate 4 includes user-ready Windows, follow `adapter-ui-spec.md` after enumeration:
-first the Tauri/schema/DeviceService/mock bridge, then the Connect -> Choose adapter
-interaction. They are separate reviewed PRs and neither belongs to a transport
-builder. If deferred, the Phase 2 handoff says "developer-configured Windows
-transport."
+There is no supervisor stream. `connect.rs` already runs once, skips unsupported
+Windows Bluetooth control, and proceeds to Open; a serial profile without `bt_addr`
+goes directly to Open. No retry policy needs porting. The device screen and
+DTO/bridge are already landed in #85/#86/#87/#91. Any new UI or connection defect
+needs evidence and a separately scoped approval.
 
 ## Verification and demonstration
 
 - Every stream: inspect its exact diff; run uncached package tests plus Windows CI;
   record command output in the PR, not generated repository logs.
-- After streams 1-4: on an authorized Windows machine, enumerate a real or approved
+- After streams 1-3: on an authorized Windows machine, enumerate a real or approved
   virtual COM port and run a mock ELM responder through `ATZ`, `ATI` and prompt reads.
 - Phase 3: USB adapter, manually paired SPP adapter and Wi-Fi adapter each complete
   connect -> poll -> SQLite -> DTC read -> UDS Lab on a real vehicle. Any DTC clear

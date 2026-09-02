@@ -1,6 +1,7 @@
 # Research: Windows transport
 
-Date: 2026-08-31. Base: `origin/main@c612e1b`.
+Date: 2026-09-02. Base: `origin/main@6a5710e060c885df13306bdb7263b8f8cfdfd5be`.
+Status: reconciled after adapter/device work landed on `main`.
 
 ## Scope and method
 
@@ -17,36 +18,30 @@ Microsoft documentation and the current Rust crate's own documentation/source.
 - `enumerate.rs` returns no Windows candidates. Its reusable helper filters only
   macOS/Linux names and always builds `/dev/{name}` ids. Windows needs a separate
   candidate source and COM-name normalization, not another glob.
-- Enumeration is exposed by the local HTTP API (`GET /adapters`). No Tauri command
-  or current frontend consumes it. `docs/product/ui-flow-spec.md` specifies a future
-  Connect -> Choose adapter control, but that UI is not built. Assessment: backend
-  serial support alone is developer-usable, not a user-ready Windows port.
-- The reusable Rust operations already list, read and save adapters, but `lib.rs`
-  does not expose them as Tauri commands. `DeviceService`, its Live layer and
-  `mock.ts` have no adapter methods. The UI therefore needs a bridge/contracts PR
-  before a visual picker PR; HTTP calls from a React view would violate the existing
-  service boundary.
+- Enumeration is exposed by the local HTTP API (`GET /adapters`). PRs #85/#86/#87/#91
+  also landed the adapter picker, device screen, discovery, pairing, and the current
+  DTO/bridge/schema/mock contract. This is landed behavior, not a pending UI proposal;
+  no new UI stream is pre-authorized.
 - `elm_serial.rs` implements Unix raw termios only. Required parity is explicit:
   supported baud validation, 8 data bits, no parity/flow control, one stop bit,
-  roughly 100 ms read waits, a 15 second bounded open, stale-input purge before
-  every command, complete writes, output drain, and close-on-drop.
+  roughly 100 ms read waits, bounded open (10s normal/USB and 20s for macOS
+  Bluetooth nodes), stale-input purge before every command, complete writes,
+  output drain, and close-on-drop. Windows COM uses the normal 10s budget unless
+  fixture evidence justifies another value.
 - The file records a real prior observation that a `serialport` crate configuration
   left Alejandro's classic-Bluetooth dongle mute. The repository does not preserve
   that old implementation or its exact settings. This is evidence to reproduce, not
   proof that the current crate fails on Windows.
-- `supervisor.rs` treats `Path::exists(adapter.path)` as the direct-open gate. A COM
-  name is not a filesystem path, so Windows would call the unsupported Bluetooth
-  recovery path before trying an otherwise valid configured COM port. This is a
-  fourth required behavior seam outside Claude's three transport files.
-- A persisted learned Bluetooth level can also start at attempt 1 or 2 when
-  `bt_addr` exists. A profile migrated from macOS must not carry that skip onto
-  Windows; a configured COM port always needs a direct attempt first.
+- `connect.rs` is a four-stage single pass: Link, Open, Handshake, Bus. It has no
+  automatic retry, unpair, or re-pair ladder. `supervisor.rs` calls it once. The Link
+  stage may use `Path::exists` for Bluetooth-node wake decisions; unsupported Windows
+  Bluetooth control is skipped and Open still runs. A serial profile without `bt_addr`
+  goes directly to Open. No separate supervisor defect is evidenced.
 - The non-macOS Bluetooth control returns `manual pairing required`. Manual Windows
   SPP can work only when pairing has already exposed a COM port, its path is known,
   and the supervisor attempts it directly. Automatic cycle/re-pair is separate.
-- Pull-request CI runs Rust only on Ubuntu. SCAINNER-03's Windows release job is
-  tag/manual-triggered and independently unreviewed. It cannot prove each transport
-  PR compiles and tests on Windows.
+- Pull-request CI runs Rust only on Ubuntu. SCAINNER-03's release work is separate and
+  cannot prove each transport PR compiles and tests on Windows.
 
 ## External platform facts
 
@@ -105,7 +100,8 @@ than the current Unix termios implementation.
 Keep the proven Unix termios implementation unchanged. On Windows use the crate for
 COM open/configuration, enumeration and metadata; adapt `TimedOut` reads to zero-byte
 polls, call `clear(Input)` before each command, use `write_all` plus `flush`, and keep
-Scainner's outer 15 second open deadline. Trade-off: one MPL dependency, a project
+Scainner's normal 10 second open deadline (20s only for macOS Bluetooth nodes).
+Trade-off: one MPL dependency, a project
 seeking Windows maintainers, and hardware-specific settings still require proof.
 
 **Recommendation:** B. It minimizes new unsafe code and solves enumeration plus I/O
@@ -118,17 +114,18 @@ a second serial library inside Scainner. Pin the reviewed 4.10.0 release.
 - Keep Wi-Fi `tcp_elm` unchanged.
 - Add USB serial and manually paired Classic Bluetooth SPP through Windows COM ports.
 - Defer automatic Windows Bluetooth cycle/re-pair and direct RFCOMM sockets.
-- Add a real adapter-selection UI stream before calling the port user-ready. Until
-  that lands, document the API/environment setup as developer validation only.
-- Validate on Windows 11 first. Decide at the human gate whether Windows 10 is a
-  supported product target or only best-effort compatibility.
+- The landed device screen is the selection surface. Windows is not user-ready until
+  Windows candidates and transport work; evidence-driven UI changes need separate approval.
+- Validate Windows 11 first; Windows 10 remains best-effort until an owner supplies
+  a test machine.
 
 ## Verification before and after hardware
 
 1. Add PR-triggered Windows Rust CI before transport work; run format separately,
    then `cargo check`, Clippy where stable, and a real `cargo test --locked`.
 2. Unit-test candidate normalization, COM10+, timeout-to-empty-read mapping, stale
-   input purge calls, partial-write completion and connection-ladder decisions.
+   input purge calls, partial-write completion and profile behavior. The current
+   single-pass connect flow does not justify a retry-ladder stream.
 3. Do not install an unaudited virtual serial kernel driver in CI. The original
    com0com release is old and modern Windows signing is problematic; third-party
    signature patches are not an acceptable default. Before serial implementation,
@@ -142,5 +139,5 @@ a second serial library inside Scainner. Pin the reviewed 4.10.0 release.
 ## Deliberately not investigated
 
 - BLE adapters, automatic Windows pairing/re-pair, direct RFCOMM, ARM64 Windows,
-  installer correctness, and vehicle protocol changes. They do not decide the v1
-  serial boundary. SCAINNER-03's release diff remains its own formal review task.
+  installer/release correctness, and vehicle protocol changes. SCAINNER-03 owns
+  release work; current code justifies no supervisor or UI stream.

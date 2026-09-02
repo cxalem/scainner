@@ -1,135 +1,44 @@
-# Specification: adapter selection
+# Adapter selection: landed reconciliation reference
 
-Status: proposed for the SCAINNER-01 human gate. Base: `origin/main@c612e1b`.
-This specification completes the optional user-ready UI path in `plan.md`; it does
-not authorize implementation.
+Status: landed on current `main`; this is not an implementation plan. Base:
+`origin/main@6a5710e060c885df13306bdb7263b8f8cfdfd5be`.
 
-## Verified boundary
+## What landed
 
-- `api::ops::{list_adapters,adapter_profile,set_adapter_profile}` already contain
-  the reusable Rust operations. Only the local HTTP API exposes them today.
-- Tauri's `generate_handler!` list has no adapter commands. `DeviceService`,
-  `DeviceServiceLive` and `mock.ts` have no corresponding methods.
-- `ConnectGate` implements the disconnected experience. Connect is its primary action;
-  Browse offline and post-connect continuation also exist. `docs/product/ui-flow-spec.md`
-  already calls for a secondary Choose adapter action while disconnected.
-- The current candidate DTO overloads `id`: a serial candidate uses a port path,
-  while a Bluetooth candidate uses a MAC. That is not a safe UI selection contract
-  because an `elm_serial` profile always needs a path.
+- PRs #85, #86, #87, and #91 provided the adapter picker, device screen, candidate
+  discovery, pairing flow, and current `AdapterCandidate` DTO. The current Rust
+  candidate carries the legacy `kind`/`id` plus `display_name`, `device_kind`,
+  optional `path`/`bt_addr`, and `last_used`; the bridge, schemas, mock, and UI use it.
+- The current device screen lists candidates and exposes one device-row Connect
+  action. Selection saves the profile and starts connection in the same action;
+  there is no separate save step in the current implementation.
+- `api::ops::list_adapters` remains the backend source. This does not rewrite history
+  as though the old proposal landed verbatim: it supersedes the former UI-1/UI-2 plan.
+  No additional UI PR is pre-authorized.
 
-## Product contract
+## Windows-relevant contract that remains
 
-The picker answers one question: which already-visible ELM-compatible connection
-should Scainner try? It does not pair Bluetooth devices, install drivers or claim a
-candidate is really an OBD adapter.
+The current flow is one tap on a device row: the selected profile is saved and
+connection starts immediately. It does not pair Bluetooth devices automatically,
+install drivers, or claim a candidate is really an OBD adapter.
 
-- Open from ConnectGate while disconnected. Do not permit profile mutation during
-  connecting or connected states.
-- Show likely OBD candidates first without hiding unknown ports. Label the heuristic
-  as a hint, not compatibility proof.
-- Selecting a serial or Windows SPP candidate saves its port path. A paired Bluetooth
-  row without a corresponding serial path is informational and explains that system
-  pairing must expose a port before it can be selected.
-- Offer Wi-Fi as an explicit alternative with host and port. Never silently replace
-  a saved serial profile because no port happens to be visible now.
-- Put baud, timing and Bluetooth MAC under Connection details. Do not return, display
-  or accept the persisted Bluetooth PIN through the shared/Tauri UI contract. Its
-  storage is a separate security gate below. Preserve unrelated saved values.
-- Save first, show the validated stored profile, then let the user press Connect.
-  Backend validation errors remain actionable and no connection starts implicitly.
-- Provide loading, zero-candidate, refresh, save-error and saved states. Keyboard
-  focus returns to Choose adapter when the dialog closes; status changes use a live
-  region without announcing every decorative transition.
+The existing profile API/schema includes `pin`, and the current pairing flow can
+accept a user-entered PIN after a `pin_required` response. That is existing behavior.
+This reconciliation must not widen PIN exposure into candidate rows or new payloads;
+any storage or UI-security change is a separate decision.
 
-## Exact Tauri contract
+The remaining Windows expectation is narrow: USB and manually paired Classic
+Bluetooth SPP are selectable only when the OS exposes a COM `path`; paired-only
+rows remain informational. Keep every visible port because `likely_obd` is only a
+hint. Enumeration owns candidate construction, and refresh must not erase saved
+profile state or start a connection implicitly.
 
-Tauri commands use camelCase arguments and bare decoded results:
+Remaining Windows work is backend-only: add the pinned Windows serial transport,
+then feed Windows COM candidates into this landed surface. A visual or interaction
+change requires a concrete current-main defect, a new narrow specification, and approval.
 
-```text
-list_adapters() -> AdapterCandidate[]
-get_adapter_profile() -> AdapterProfileView
-patch_adapter_profile({ patch: AdapterProfilePatch }) -> AdapterProfileView
+## Superseded proposal
 
-AdapterCandidate = {
-  source: "serial" | "bluetooth" | "unknown",
-  path: string | null, bt_addr: string | null, name: string,
-  likely_obd: boolean, connected: boolean | null
-}
-AdapterProfileView = {
-  kind: "elm_serial" | "tcp_elm", path: string | null,
-  bt_addr: string | null, host: string | null, port: number,
-  baud: number, timing: "fast" | "default" | "slow",
-  pin_configured: boolean
-}
-AdapterProfilePatch = Partial<Omit<AdapterProfileView, "pin_configured">>
-```
-
-The Tauri list is a bare array; the existing HTTP endpoint may keep its
-`{ "adapters": [...] }` envelope. Null means unavailable/not supplied, never empty
-string. Windows USB and manual SPP rows are selectable only with a COM `path`; SPP may
-have `source: "bluetooth"` while `bt_addr` stays null. A macOS paired-device row may
-carry `bt_addr` with null `path` and is informational until a serial node is visible.
-Do not infer whether a value is a path or MAC from `source`. The enumeration stream
-owns the Rust candidate DTO; the bridge derives schemas only after that DTO lands.
-
-## Ordered documentation-approved PRs
-
-### UI-1: adapter bridge and contracts
-
-Boundary:
-
-- `apps/desktop/src-tauri/src/lib.rs` for three thin Tauri commands over `api::ops`;
-- `apps/desktop/src-tauri/src/api/ops.rs` and `elm/transport/profile.rs` for a
-  non-secret patch path that writes only changed non-PIN settings;
-- `packages/core/src/schema/adapter.ts` and its export barrel;
-- `packages/core/src/services/device-service.ts`;
-- `apps/desktop/src/core/services/device-service-live.ts`;
-- `apps/desktop/src/lib/mock.ts` and focused contract tests.
-
-Acceptance: each command decodes its exact result schema; omitted fields are preserved
-and explicit null clears an optional field. With `SCAINNER_OBD_PIN` set and no stored
-PIN, a non-secret patch leaves `adapter.pin` absent from SQLite; a pre-existing stored
-PIN remains byte-identical. Invalid combinations fail. The mock covers zero/multiple
-candidates, serial and Wi-Fi. New adapter files import neither raw Tauri nor the local
-HTTP API. No UI-facing value or mock contains `pin`.
-
-### UI-2: Choose adapter interaction
-
-Boundary:
-
-- a new component beside `ConnectGate.tsx` and the minimal ConnectGate integration;
-- adapter query/mutation helpers under the connection feature;
-- `i18n/{dictionary,en,es}.ts`;
-- pure picker-state/helper tests and `README.md` truthfulness update.
-
-Use existing `Dialog`, `Button`, form primitives, brand tokens and motion recipes.
-Do not create a dashboard-style settings page, generic form framework or new visual
-language.
-
-Acceptance: Node Vitest covers state transitions, DTO-to-row mapping and patch
-construction. A targeted browser mock review records screenshots and keyboard/focus
-evidence in the PR because this repo has no DOM component-test harness. Selecting and
-saving changes the displayed profile; refresh never erases it; Connect is unchanged;
-English and Spanish contain no hardcoded view copy.
-
-## Human decisions
-
-1. Include both UI PRs in SCAINNER-01 before using the phrase user-ready Windows?
-   Recommendation: yes.
-2. Expose Connection details in v1 or limit the UI to candidate/Wi-Fi selection?
-   Recommendation: keep a collapsed advanced section so existing profile capability
-   is not lost.
-3. Make the picker cross-platform now? Recommendation: yes; the missing UI is already
-   a macOS/Linux product gap and the same contracts avoid a Windows-only fork.
-4. Does Alejandro classify the pairing PIN as a secret under `engineering.md`?
-   Recommendation: yes. Commission a separate secret-storage research/plan stream
-   before any UI can read or change it; the two UI PRs above keep it redacted and do
-   not expand the current SQLite/HTTP exposure. An explicit exception is Alejandro's
-   decision, not a builder assumption.
-
-## Hardware wall
-
-No scanner is needed for DTO/schema tests, Tauri wrapper tests, mock interaction,
-validation errors, accessibility, i18n or visual review. A physical adapter is still
-required to prove that the selected USB/SPP/Wi-Fi profile opens, survives reconnect,
-identifies through `ATI`/`STI`, and remains stable during a real diagnostic session.
+The former UI-1/UI-2 and redacted patch contract were proposals based on an older
+base. Current implementation supersedes them; Git history retains their details.
+They are not actionable and do not authorize UI work.
