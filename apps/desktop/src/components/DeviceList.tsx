@@ -4,7 +4,19 @@ import { Bluetooth, Cable, Loader2, Radar, Usb } from "lucide-react";
 import { Effect } from "effect";
 import { AdapterProfile, DeviceService } from "@scainner/core";
 import { runPromise } from "@/core/runtime";
+import { BRAND } from "@/brand";
 import { Button, Kicker, Pill, inputClass } from "@/components/ui";
+import { Button as ShadcnButton } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/toast";
 import { fadeVariants } from "@/motion";
 import { Grow, Item, List } from "@/motion/components";
@@ -12,6 +24,7 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_PIN,
   defaultPin,
+  deviceRowAction,
   deviceRows,
   deviceScrollColumnClass,
   isPinRequired,
@@ -46,6 +59,8 @@ export function useDeviceList() {
   const [pinAddr, setPinAddr] = useState<string | null>(null);
   const [pin, setPin] = useState(DEFAULT_PIN);
   const [pairError, setPairError] = useState<string | null>(null);
+  const [forgettingRow, setForgettingRow] = useState<DeviceRow | null>(null);
+  const [forgetting, setForgetting] = useState(false);
 
   const refresh = useCallback(
     async (preferBtAddr?: string) => {
@@ -161,6 +176,32 @@ export function useDeviceList() {
     setPairError(null);
   }, []);
 
+  const forget = useCallback(async () => {
+    if (!forgettingRow) return;
+    const addr = forgettingRow.btAddr ?? forgettingRow.path;
+    if (!addr) return;
+    setForgetting(true);
+    try {
+      await runPromise(
+        Effect.flatMap(DeviceService, (device) => device.forgetAdapter(addr)),
+      );
+      const name = forgettingRow.name;
+      setForgettingRow(null);
+      await refresh();
+      toast.show("success", t.gate.forgot(name));
+    } catch (failure) {
+      const message = failure instanceof Error ? failure.message : String(failure);
+      toast.show(
+        "error",
+        message.includes("disconnect_first")
+          ? t.gate.disconnectBeforeForget
+          : message.replace(/^forget_adapter failed:\s*/, ""),
+      );
+    } finally {
+      setForgetting(false);
+    }
+  }, [forgettingRow, refresh, t.gate, toast]);
+
   const selected = rows.find((row) => row.id === selectedId) ?? null;
   const scan: ScanState = { scanning, scanned, error: scanError, found: nearby.length };
   return {
@@ -170,6 +211,10 @@ export function useDeviceList() {
     loading,
     error,
     refresh,
+    forgettingRow,
+    setForgettingRow,
+    forgetting,
+    forget,
     discovery: {
       nearby,
       scan,
@@ -217,12 +262,20 @@ export function DeviceList({
   onSelect,
   loading,
   discovery,
+  forgettingRow,
+  onForgetRow,
+  forgetting,
+  onConfirmForget,
 }: {
   rows: DeviceRow[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   loading: boolean;
   discovery: Discovery;
+  forgettingRow: DeviceRow | null;
+  onForgetRow: (row: DeviceRow | null) => void;
+  forgetting: boolean;
+  onConfirmForget: () => void;
 }) {
   const t = useT();
   const showNearby = listSections(discovery.scan).includes("nearby");
@@ -248,11 +301,25 @@ export function DeviceList({
           <NearbyGroup discovery={discovery} />
         </Grow>
         {rows.length > 0 ? (
-          <PairedRows rows={rows} selectedId={selectedId} onSelect={onSelect} />
+          <PairedRows
+            rows={rows}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            onForgetRow={onForgetRow}
+          />
         ) : (
           <EmptyDevices loading={loading} compact={showNearby} />
         )}
       </div>
+      <ForgetDialog
+        row={forgettingRow}
+        open={forgettingRow != null}
+        busy={forgetting}
+        onOpenChange={(open) => {
+          if (!open && !forgetting) onForgetRow(null);
+        }}
+        onConfirm={onConfirmForget}
+      />
     </div>
   );
 }
@@ -261,10 +328,12 @@ function PairedRows({
   rows,
   selectedId,
   onSelect,
+  onForgetRow,
 }: {
   rows: DeviceRow[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onForgetRow: (row: DeviceRow | null) => void;
 }) {
   const t = useT();
   const detail = (row: DeviceRow) => {
@@ -278,38 +347,94 @@ function PairedRows({
       {rows.map((row) => {
         const selected = row.id === selectedId;
         const Icon = row.kind === "usb_serial" ? Usb : Bluetooth;
+        const action = deviceRowAction(row);
         return (
-          <button
+          <div
             key={row.id}
-            type="button"
-            role="option"
-            aria-selected={selected}
-            disabled={!row.selectable}
-            onClick={() => onSelect(row.id)}
             className={cn(
-              "flex items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-              selected ? "border-accent bg-accent/10" : "border-divider bg-bg hover:border-neutral-600",
-              !row.selectable && "pointer-events-none opacity-55",
+              "group flex items-center rounded-md border bg-bg transition-colors",
+              selected ? "border-accent bg-accent/10" : "border-divider hover:border-neutral-600",
             )}
           >
-            <Icon
-              className={cn("h-4 w-4 shrink-0", row.selectable ? "text-accent-400" : "text-neutral-500")}
-              aria-hidden="true"
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] text-text">{row.name}</span>
-              <span className="num block truncate text-[11px] text-neutral-500">{detail(row)}</span>
-            </span>
-            {row.lastUsed && (
-              <Pill variant="info" className="shrink-0">
-                {t.gate.lastUsed}
-              </Pill>
+            <button
+              type="button"
+              role="option"
+              aria-selected={selected}
+              disabled={!row.selectable}
+              onClick={() => onSelect(row.id)}
+              className={cn(
+                "flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2.5 text-left",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                !row.selectable && "opacity-55",
+              )}
+            >
+              <Icon
+                className={cn("h-4 w-4 shrink-0", row.selectable ? "text-accent-400" : "text-neutral-500")}
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] text-text">{row.name}</span>
+                <span className="num block truncate text-[11px] text-neutral-500">{detail(row)}</span>
+              </span>
+              {row.lastUsed && (
+                <Pill variant="info" className="shrink-0" data-device-pill>
+                  {t.gate.lastUsed}
+                </Pill>
+              )}
+            </button>
+            {action && (
+              <ShadcnButton
+                type="button"
+                variant="ghost"
+                size="xs"
+                data-device-action
+                className="relative mr-2 h-[21px] shrink-0 px-2 text-[11px] opacity-0 before:absolute before:-inset-y-2.5 before:inset-x-0 before:content-[''] group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                onClick={() => onForgetRow(row)}
+              >
+                {action === "forget" ? t.gate.forget : t.gate.removeSavedAdapter}
+              </ShadcnButton>
             )}
-          </button>
+          </div>
         );
       })}
     </div>
+  );
+}
+
+function ForgetDialog({
+  row,
+  open,
+  busy,
+  onOpenChange,
+  onConfirm,
+}: {
+  row: DeviceRow | null;
+  open: boolean;
+  busy: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  const t = useT();
+  const action = row ? deviceRowAction(row) : null;
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {row && (action === "forget" ? t.gate.forgetTitle(row.name) : t.gate.removeSavedTitle(row.name))}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {action === "forget" ? t.gate.forgetDescription : t.gate.removeSavedDescription(BRAND.name)}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>{t.gate.cancelForget}</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" disabled={busy} aria-busy={busy} onClick={onConfirm}>
+            {action === "forget" ? t.gate.forgetConfirm : t.gate.removeConfirm}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

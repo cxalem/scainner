@@ -3,6 +3,7 @@ import type { AdapterCandidate, NearbyDevice } from "@scainner/core";
 import {
   DEFAULT_PIN,
   defaultPin,
+  deviceRowAction,
   deviceRows,
   deviceScrollColumnClass,
   gateScreen,
@@ -80,6 +81,24 @@ describe("deviceRows", () => {
       btAddr: "aa-bb-cc-dd-ee-03",
       selectable: false,
     });
+  });
+});
+
+describe("deviceRowAction", () => {
+  it("forgets every paired Bluetooth row", () => {
+    const rows = deviceRows([
+      candidate({ kind: "bluetooth", id: "aa-bb", name: "Radio", bt_addr: "aa-bb" }),
+      candidate({ id: "/dev/cu.Radio", name: "cu.Radio", bt_addr: "cc-dd", last_used: true }),
+    ]);
+    expect(rows.map(deviceRowAction)).toEqual(["forget", "forget"]);
+  });
+
+  it("only removes a USB row when it is the saved profile", () => {
+    const rows = deviceRows([
+      candidate({ id: "/dev/cu.saved", name: "cu.saved", last_used: true }),
+      candidate({ id: "/dev/cu.other", name: "cu.other", last_used: false }),
+    ]);
+    expect(rows.map(deviceRowAction)).toEqual(["remove_saved", null]);
   });
 });
 

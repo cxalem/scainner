@@ -192,6 +192,10 @@ export function ConnectGate({
                   onSelect={selectDevice}
                   loading={devices.loading}
                   discovery={devices.discovery}
+                  forgettingRow={devices.forgettingRow}
+                  onForgetRow={devices.setForgettingRow}
+                  forgetting={devices.forgetting}
+                  onConfirmForget={() => void devices.forget()}
                 />
               </motion.div>
             ) : (

@@ -107,8 +107,8 @@ let mockRideSeq = 0;
 let mockRideTimer: number | null = null;
 let adapterProfile: AdapterProfile = {
   kind: "elm_serial",
-  path: null,
-  bt_addr: null,
+  path: "/dev/cu.OBDLinkMX49489",
+  bt_addr: "aa-bb-cc-dd-ee-01",
   pin: "1234",
   host: null,
   port: 35000,
@@ -122,6 +122,7 @@ const NEARBY_IN_PREVIEW = [
 const PAIRS_WITHOUT_PIN = "aa-bb-cc-dd-ee-11";
 const askedForPin = new Set<string>();
 const pairedInPreview: Record<string, unknown>[] = [];
+const forgottenInPreview = new Set<string>();
 let discovered = false;
 const MOCK_KNOWLEDGE_KEY = "k1;map=9@2026-08-28;research=demo@1;packs=demo@1;plan=1";
 let autoScanDoneAt: string | null = null;
@@ -757,7 +758,11 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     }
     case "list_rides":
       return mockRideDone as T;
-    case "list_adapters":
+    case "list_adapters": {
+      const usbSaved = previewQuery().get("mock_saved") === "usb";
+      if (usbSaved) {
+        adapterProfile = { ...adapterProfile, path: "/dev/cu.usbserial-1410", bt_addr: null };
+      }
       return [
         ...pairedInPreview,
         {
@@ -770,7 +775,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           device_kind: "bluetooth_serial",
           path: "/dev/cu.OBDLinkMX49489",
           bt_addr: "aa-bb-cc-dd-ee-01",
-          last_used: true,
+          last_used: !usbSaved,
         },
         {
           kind: "serial",
@@ -782,7 +787,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           device_kind: "usb_serial",
           path: "/dev/cu.usbserial-1410",
           bt_addr: null,
-          last_used: false,
+          last_used: usbSaved,
         },
         {
           kind: "bluetooth",
@@ -796,7 +801,8 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
           bt_addr: "aa-bb-cc-dd-ee-02",
           last_used: false,
         },
-      ] as T;
+      ].filter((row) => !forgottenInPreview.has(String(row.bt_addr ?? ""))) as T;
+    }
     case "discover_adapters": {
       await delay(2000);
       return NEARBY_IN_PREVIEW.filter(
@@ -826,6 +832,17 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
         bt_addr: addr,
         last_used: false,
       });
+      return undefined as T;
+    }
+    case "forget_adapter": {
+      if (connState.state !== "disconnected") throw new Error("disconnect_first");
+      const addr = String(args?.addr ?? "");
+      const pairedIndex = pairedInPreview.findIndex((row) => row.bt_addr === addr);
+      if (pairedIndex >= 0) pairedInPreview.splice(pairedIndex, 1);
+      if (addr) forgottenInPreview.add(addr);
+      if (adapterProfile.bt_addr === addr || (adapterProfile.bt_addr == null && adapterProfile.path === addr)) {
+        adapterProfile = { ...adapterProfile, path: null, bt_addr: null, pin: "" };
+      }
       return undefined as T;
     }
     case "get_adapter_profile":

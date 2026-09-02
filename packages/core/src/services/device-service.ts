@@ -21,6 +21,7 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly listAdapters: () => Effect.Effect<AdapterCandidate[], InvokeError | ParseResult.ParseError>;
     readonly discoverAdapters: (seconds: number) => Effect.Effect<NearbyDevice[], InvokeError | ParseResult.ParseError>;
     readonly pairAdapter: (addr: string, pin: string | null) => Effect.Effect<void, InvokeError>;
+    readonly forgetAdapter: (addr: string) => Effect.Effect<void, InvokeError>;
     readonly adapterProfile: () => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     readonly setAdapterProfile: (profile: AdapterProfile) => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     readonly listVehicles: () => Effect.Effect<VehicleListRow[], InvokeError | ParseResult.ParseError>;

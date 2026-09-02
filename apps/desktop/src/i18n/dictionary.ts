@@ -851,6 +851,17 @@ export type Dictionary = {
     discoveryUnavailable: string;
     pairFailed: string;
     paired: (name: string) => string;
+    forget: string;
+    removeSavedAdapter: string;
+    forgetTitle: (name: string) => string;
+    forgetDescription: string;
+    removeSavedTitle: (name: string) => string;
+    removeSavedDescription: (app: string) => string;
+    forgetConfirm: string;
+    removeConfirm: string;
+    cancelForget: string;
+    forgot: (name: string) => string;
+    disconnectBeforeForget: string;
     chooseAnotherDevice: string;
     deviceListFailed: string;
     adapterSaveFailed: string;

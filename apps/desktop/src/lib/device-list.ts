@@ -10,6 +10,13 @@ export type DeviceRow = {
   selectable: boolean;
 };
 
+export type DeviceRowAction = "forget" | "remove_saved";
+
+export function deviceRowAction(row: DeviceRow): DeviceRowAction | null {
+  if (row.btAddr) return "forget";
+  return row.lastUsed ? "remove_saved" : null;
+}
+
 const stripNodePrefix = (name: string) => name.replace(/^(cu|tty)\./, "");
 
 export function deviceRows(candidates: readonly AdapterCandidate[]): DeviceRow[] {

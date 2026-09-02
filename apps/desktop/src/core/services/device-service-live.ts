@@ -56,6 +56,7 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   listAdapters: () => decoded(Schema.mutable(Schema.Array(AdapterCandidate)), "list_adapters"),
   discoverAdapters: (seconds) => decoded(Schema.mutable(Schema.Array(NearbyDevice)), "discover_adapters", { seconds }),
   pairAdapter: (addr, pin) => call<void>("pair_adapter", { addr, pin }),
+  forgetAdapter: (addr) => call<void>("forget_adapter", { addr }),
   adapterProfile: () => decoded(AdapterProfile, "get_adapter_profile"),
   setAdapterProfile: (profile) => decoded(AdapterProfile, "set_adapter_profile", { profile }),
 

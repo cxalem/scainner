@@ -314,6 +314,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/adapters", get(adapters))
         .route("/adapters/discover", post(adapters_discover))
         .route("/adapters/pair", post(adapters_pair))
+        .route("/adapters/forget", post(adapters_forget))
         .route("/adapter", get(adapter_get).put(adapter_set))
         .route("/sync/batch", get(sync_batch))
         .route("/db-path", get(db_path))
@@ -1049,7 +1050,7 @@ struct PairBody {
 
 async fn adapters_pair(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let b: PairBody = parse_required(&body)?;
-    let addr = b.addr.trim().to_ascii_lowercase();
+    let addr = b.addr.trim().to_string();
     if addr.is_empty() {
         return Err(ApiError::msg(
             StatusCode::BAD_REQUEST,
@@ -1067,6 +1068,28 @@ async fn adapters_pair(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiRes
         }
     })?;
     ok(json!({ "paired": true }))
+}
+
+#[derive(Deserialize)]
+struct ForgetBody {
+    addr: String,
+}
+
+async fn adapters_forget(State(api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
+    let b: ForgetBody = parse_required(&body)?;
+    let addr = b.addr.trim().to_ascii_lowercase();
+    if addr.is_empty() {
+        return Err(ApiError::msg(StatusCode::BAD_REQUEST, "addr is required"));
+    }
+    ops::forget_adapter(&api.state, addr)
+        .await
+        .map_err(|failure| match failure {
+            ops::ForgetFailure::DisconnectFirst => {
+                ApiError::new(StatusCode::CONFLICT, json!({ "error": "disconnect_first" }))
+            }
+            ops::ForgetFailure::Other(message) => ApiError::msg(StatusCode::BAD_REQUEST, message),
+        })?;
+    ok(json!({ "forgotten": true }))
 }
 
 async fn adapter_get(State(api): State<Arc<ApiState>>) -> ApiResult {
@@ -1153,10 +1176,40 @@ async fn export_json(State(api): State<Arc<ApiState>>, Query(q): Query<ExportQue
 mod tests {
     use super::*;
     use crate::db::Db;
+    use crate::elm::supervisor::{ConnStatus, Supervisor};
+    use crate::elm::transport::bluetooth::{
+        BluetoothControl, NearbyDevice, PairFailure, PairedDevice,
+    };
     use http_body_util::BodyExt;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::{mpsc, Mutex};
     use tower::ServiceExt;
 
     const TOKEN: &str = "test-token-abc";
+
+    #[derive(Default)]
+    struct FakeBluetooth {
+        forgotten: Mutex<Vec<String>>,
+    }
+
+    impl BluetoothControl for FakeBluetooth {
+        fn connect(&self, _addr: &str, _port_path: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn paired(&self) -> Vec<PairedDevice> {
+            Vec::new()
+        }
+        fn discover(&self, _seconds: u8) -> Result<Vec<NearbyDevice>, String> {
+            Ok(Vec::new())
+        }
+        fn pair(&self, _addr: &str, _pin: Option<&str>) -> Result<(), PairFailure> {
+            Ok(())
+        }
+        fn forget(&self, addr: &str) -> Result<(), String> {
+            self.forgotten.lock().unwrap().push(addr.into());
+            Ok(())
+        }
+    }
 
     fn test_api() -> (Arc<ApiState>, Arc<Db>) {
         let db = Arc::new(Db::open(std::path::Path::new(":memory:")).expect("in-memory db"));
@@ -1264,6 +1317,66 @@ mod tests {
             db.setting_get("adapter.bt_addr").as_deref(),
             Some("aa-bb-cc-dd-ee-ff")
         );
+    }
+
+    #[tokio::test]
+    async fn forgetting_a_bluetooth_adapter_unpairs_and_clears_its_saved_profile() {
+        let (api, db) = test_api();
+        db.setting_set("adapter.path", "/dev/cu.OBDII");
+        db.setting_set("adapter.bt_addr", "aa-bb-cc-dd-ee-ff");
+        db.setting_set("adapter.pin", "0000");
+        let bluetooth = Arc::new(FakeBluetooth::default());
+        *ops::lock_or_recover(&api.state.bluetooth) = Some(bluetooth.clone());
+
+        let (status, body) = call(
+            &api,
+            "POST",
+            "/adapters/forget",
+            Some(TOKEN),
+            Some(r#"{"addr":"AA-BB-CC-DD-EE-FF"}"#),
+        )
+        .await;
+
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body, json!({ "forgotten": true }));
+        assert_eq!(
+            bluetooth.forgotten.lock().unwrap().as_slice(),
+            ["aa-bb-cc-dd-ee-ff"]
+        );
+        assert_eq!(db.setting_get("adapter.path").as_deref(), Some(""));
+        assert_eq!(db.setting_get("adapter.bt_addr").as_deref(), Some(""));
+        assert_eq!(db.setting_get("adapter.pin").as_deref(), Some(""));
+    }
+
+    #[tokio::test]
+    async fn forgetting_the_connected_adapter_returns_disconnect_first_without_unpairing() {
+        let (api, db) = test_api();
+        db.setting_set("adapter.path", "/dev/cu.OBDII");
+        db.setting_set("adapter.bt_addr", "aa-bb-cc-dd-ee-ff");
+        let bluetooth = Arc::new(FakeBluetooth::default());
+        *ops::lock_or_recover(&api.state.bluetooth) = Some(bluetooth.clone());
+        let (tx, _rx) = mpsc::channel();
+        *ops::lock_or_recover(&api.state.supervisor) = Some(Supervisor {
+            tx,
+            status: Arc::new(Mutex::new(ConnStatus {
+                state: "connected".into(),
+                ..Default::default()
+            })),
+            cancel_scan: Arc::new(AtomicBool::new(false)),
+        });
+
+        let (status, body) = call(
+            &api,
+            "POST",
+            "/adapters/forget",
+            Some(TOKEN),
+            Some(r#"{"addr":"aa-bb-cc-dd-ee-ff"}"#),
+        )
+        .await;
+
+        assert_eq!(status, StatusCode::CONFLICT, "{body}");
+        assert_eq!(body, json!({ "error": "disconnect_first" }));
+        assert!(bluetooth.forgotten.lock().unwrap().is_empty());
     }
 
     #[tokio::test]
