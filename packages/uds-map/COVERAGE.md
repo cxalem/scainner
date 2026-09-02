@@ -96,22 +96,24 @@ Research candidates are evidence about *where to look*, never trusted knowledge:
 | psa | 2 | 53 (53 platform-scoped) | 49 | 7 | 0 |
 | renault | 1 | 76 (76 platform-scoped) | 0 | 23 | 0 |
 | rivian | 1 | 0 | 0 | 0 | 0 |
-| seat | 1 | 100 (12 platform-scoped) | 0 | 323 | 0 |
+| seat | 1 | 102 (102 platform-scoped) | 90 | 246 | 0 |
 | skoda | 1 | 3 | 0 | 0 | 0 |
 | subaru | 1 | 2 | 0 | 0 | 0 |
 | suzuki | 1 | 2 | 0 | 1 | 0 |
 | tesla | 1 | 0 | 0 | 0 | 0 |
 | toyota | 1 | 8 (8 platform-scoped) | 0 | 9 | 0 |
-| vag | 1 | 104 (14 platform-scoped) | 0 | 235 | 18 |
+| vag | 1 | 104 (104 platform-scoped) | 90 | 217 | 0 |
 | volvo | 1 | 0 | 0 | 0 | 0 |
-| **total** | 6 packs | 380 (194 platform-scoped) | 49 | 637 | 18 |
+| **total** | 8 packs | 382 (374 platform-scoped) | 229 | 542 | 0 |
 
 - `new-brand-research-v2` v2 (2026-08-29): byd, ferrari, jlr, livan_maple, lucid, maxus, mg, omoda, porsche, rivian, suzuki
-- `existing-brand-hypotheses-v3-delta` v5 (2026-08-31): bmw, gm, honda, hyundai_kia, mazda, mitsubishi, nissan, psa, seat, skoda, subaru, tesla, vag, volvo
+- `existing-brand-hypotheses-v3-delta` v6 (2026-09-02): bmw, gm, honda, hyundai_kia, mazda, mitsubishi, nissan, psa, skoda, subaru, tesla, volvo
 - `renault-deep-research-runtime-v1` v1 (2026-08-31): renault
 - `psa-deep-research-runtime-v1` v1 (2026-08-31): psa
 - `toyota-deep-research-runtime-v1` v1 (2026-09-02): toyota
 - `hyundai-kia-deep-research-runtime-v1` v1 (2026-09-02): hyundai_kia
+- `seat-deep-research-runtime-v2` v2 (2026-09-02): seat
+- `vag-deep-research-runtime-v2` v2 (2026-09-02): vag
 
 ## Sources
 

@@ -1,0 +1,432 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "seat_legacy_kline",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "ibiza_cordoba_6l",
+          "alhambra_7v",
+          "other_pre_can_holdovers"
+        ],
+        "years": {
+          "from": null,
+          "to": 2007
+        }
+      },
+      "architecture": "K-line ISO9141/KWP1281/KWP2000, sometimes partial CAN for emissions/selected ECUs",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [
+        "iso9141",
+        "kwp2000"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S08"
+      ],
+      "legacy_status": "platform_branch_required",
+      "legacy_transport_strategy": [
+        "kline_if_supported",
+        "standard_obd",
+        "do_not_assume_uds"
+      ],
+      "legacy_era": "pre-2008 / holdover-dependent",
+      "non_generalization_boundary": "Exact model/year/module protocol must be observed; not every ECU is necessarily K-line."
+    },
+    {
+      "platform_id": "seat_pq35_can",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "leon_1p",
+          "altea_5p",
+          "toledo_5p"
+        ],
+        "years": {
+          "from": 2004,
+          "to": 2013
+        }
+      },
+      "architecture": "CAN diagnostics with older VAG transport/protocol mixture; UDS appears on some ECUs",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [
+        "tp2_0"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S08",
+        "S04"
+      ],
+      "legacy_status": "strong_architecture_hypothesis",
+      "legacy_transport_strategy": [
+        "can11_500",
+        "tp2_or_uds_by_ecu",
+        "platform_route_catalog"
+      ],
+      "legacy_era": "2004-2013 depending model",
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to seat_pq35_can is treated as established."
+    },
+    {
+      "platform_id": "seat_pq25_mixed_ibiza_6j",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "ibiza_6j_6p"
+        ],
+        "years": {
+          "from": 2008,
+          "to": 2017
+        }
+      },
+      "architecture": "Mixed K-line KWP2000, CAN TP2.0, CAN TP1.6 and UDS in same vehicle",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [
+        "iso9141",
+        "kwp2000",
+        "tp1_6",
+        "tp2_0"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S09",
+        "S10"
+      ],
+      "legacy_status": "critical_special_case",
+      "legacy_transport_strategy": [
+        "kline",
+        "tp2_0",
+        "tp1_6",
+        "uds_can11"
+      ],
+      "legacy_era": "2008-2017",
+      "non_generalization_boundary": "Do not mark a silent UDS endpoint as an absent ECU until alternate transport support has been considered."
+    },
+    {
+      "platform_id": "seat_alhambra_7n",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "alhambra_7n"
+        ],
+        "years": {
+          "from": 2010,
+          "to": 2020
+        }
+      },
+      "architecture": "VW Sharan-related 7N CAN architecture; separate from MQB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S08",
+        "S05"
+      ],
+      "legacy_status": "separate_branch",
+      "legacy_transport_strategy": [
+        "can11_500",
+        "platform_specific_routes",
+        "uds_or_legacy_can_by_ecu"
+      ],
+      "legacy_era": "2010-2020",
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to seat_alhambra_7n is treated as established."
+    },
+    {
+      "platform_id": "seat_mii_electric_shared_up",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "mii_electric"
+        ]
+      },
+      "architecture": "11-bit ISO-TP/UDS; shared VW e-Up / Skoda Citigo-e implementation",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S06",
+        "S07"
+      ],
+      "legacy_status": "very_strong_platform_profile",
+      "legacy_transport_strategy": [
+        "can11_isotp",
+        "exact_route_allowlist",
+        "state_aware_polling"
+      ],
+      "legacy_era": "electric model generation; gen1/gen2 rules in OVMS shared e-Up implementation",
+      "non_generalization_boundary": "These routes are Mii electric platform knowledge, not generic SEAT MQB knowledge."
+    },
+    {
+      "platform_id": "seat_mqb",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "leon_5f",
+          "ateca"
+        ],
+        "years": {
+          "from": 2012,
+          "to": null
+        }
+      },
+      "architecture": "MQB; UDS/ODX/ASAM over CAN with J533 gateway",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S14",
+        "S15",
+        "S18",
+        "S19",
+        "S25"
+      ],
+      "legacy_status": "primary_spain_branch",
+      "legacy_transport_strategy": [
+        "can11_500",
+        "known_uds_routes_first",
+        "identity_fingerprint",
+        "bounded_11bit_fallback"
+      ],
+      "legacy_era": "Leon 2012/2013+, Ateca 2016+",
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to seat_mqb is treated as established."
+    },
+    {
+      "platform_id": "seat_mqb_a0",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "ibiza_kj_mk5",
+          "arona_kj"
+        ],
+        "years": {
+          "from": 2017,
+          "to": null
+        }
+      },
+      "architecture": "MQB A0; UDS/ODX/ASAM over CAN",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S12",
+        "S13",
+        "S22",
+        "S23"
+      ],
+      "legacy_status": "primary_spain_branch",
+      "legacy_transport_strategy": [
+        "can11_500",
+        "known_vag_routes_first",
+        "identity_fingerprint"
+      ],
+      "legacy_era": "2017+",
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to seat_mqb_a0 is treated as established."
+    },
+    {
+      "platform_id": "seat_mqb_a_lwb",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "tarraco_kn"
+        ],
+        "years": {
+          "from": 2018,
+          "to": null
+        }
+      },
+      "architecture": "MQB A+ / MQB-A LWB; UDS/ODX/ASAM over CAN",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S16",
+        "S24"
+      ],
+      "legacy_status": "strong_platform_profile",
+      "legacy_transport_strategy": [
+        "can11_500",
+        "mqb_route_allowlist",
+        "identity_fingerprint"
+      ],
+      "legacy_era": "2018+",
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to seat_mqb_a_lwb is treated as established."
+    },
+    {
+      "platform_id": "seat_mqb_evo",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "leon_kl_mk4",
+          "leon_e_hybrid"
+        ],
+        "years": {
+          "from": 2020,
+          "to": null
+        }
+      },
+      "architecture": "MQB Evo; GW2020; SFD on protected functions; UDS/ASAM basic reads remain available",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S17",
+        "S20",
+        "S21",
+        "S11"
+      ],
+      "legacy_status": "primary_modern_branch",
+      "legacy_transport_strategy": [
+        "can11_500",
+        "gateway_710_77a_first",
+        "sfd_read_only",
+        "identity_fingerprint"
+      ],
+      "legacy_era": "2020+",
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to seat_mqb_evo is treated as established."
+    },
+    {
+      "platform_id": "seat_special_unresolved",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "exeo_3r",
+          "toledo_nh",
+          "mii_ice"
+        ]
+      },
+      "architecture": "Known to be VAG-derived but not normalized in this pass",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "low",
+      "knowledge_state": "research_candidate",
+      "source_refs": [
+        "S08"
+      ],
+      "legacy_status": "research_gap",
+      "legacy_transport_strategy": [
+        "vin_model_identification",
+        "passive_first",
+        "known_route_only",
+        "fallback_with_terminal_state"
+      ],
+      "legacy_era": "varies",
+      "non_generalization_boundary": "Do not infer MQB rules from brand alone."
+    }
+  ],
+  "declared_count": 10
+}

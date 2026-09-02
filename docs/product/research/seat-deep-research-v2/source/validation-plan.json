@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "goal": "Promote online hypotheses into vehicle- and ECU-family-confirmed knowledge without overwriting stronger evidence.",
+  "validation_recipes": [
+    {
+      "validation_recipe_id": "wheel_speed",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "Low-speed straight-line roll, then gentle left/right turn; compare four wheel channels."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "steering_angle",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "Stationary center->left->center->right; confirm sign, zero and scale."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "brake_pressure",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "Stationary repeated light/medium brake presses; correlate pressure response."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "tpms",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "Compare displayed/known cold tire pressures; do not deflate tires solely for validation."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "ambient_cabin_temperature",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "Compare with stable independent thermometer after equilibration."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "12v_voltage_current",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "Compare with trusted external measurement where safely possible; observe ignition-state transitions."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "hv_soc",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "Compare with dashboard SOC and charging-state progression; no HV system access required."
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "voltage_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "Compare the candidate value against an independent reference for voltage cross check."
+      ],
+      "expected_behavior": [
+        "the value stays within the plausibility window recorded on the decoder variant",
+        "the value moves with the reference and not against it"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    }
+  ],
+  "declared_count": 8,
+  "test_fleet_priority": [
+    {
+      "vehicle": "Leon 5F",
+      "reason": "Large Spanish parc; core MQB and cross-VAG reuse"
+    },
+    {
+      "vehicle": "Ibiza KJ",
+      "reason": "Large Spanish parc; MQB A0"
+    },
+    {
+      "vehicle": "Leon KL",
+      "reason": "MQB Evo + SFD/GW2020"
+    },
+    {
+      "vehicle": "Arona KJ",
+      "reason": "MQB A0 SUV; compare with Ibiza"
+    },
+    {
+      "vehicle": "Ateca",
+      "reason": "MQB SUV; MK100 IPB family"
+    },
+    {
+      "vehicle": "Mii electric",
+      "reason": "Strong exact EV route/DID source and known steering-route exception"
+    },
+    {
+      "vehicle": "Ibiza 6J",
+      "reason": "Mixed transport edge case"
+    }
+  ],
+  "per_vehicle_sequence": [
+    "Record VIN/model/year/powertrain and adapter/firmware version.",
+    "Passive capture before requests.",
+    "Execute known-route presence phase within budget.",
+    "Read identity DIDs; save raw payloads.",
+    "Classify ECU family.",
+    "Query only model/platform/family candidates in default session.",
+    "Record all positive and negative responses, response times and raw payload lengths.",
+    "For candidate physical signals, perform controlled human actions (stationary where possible) and timestamp annotations.",
+    "Only use research-mode extended session when exact source+fingerprint gate is satisfied.",
+    "Compare the same ECU family on a second vehicle before family promotion."
+  ],
+  "promotion_rules": {
+    "vehicle_confirmed": "One physical SEAT vehicle reproduces route + DID + decoder and controlled behavior.",
+    "multi_vehicle_confirmed": "Two or more compatible SEAT vehicles reproduce it.",
+    "family_confirmed": "ECU identity/fingerprint matches and decoder is reproduced across two or more vehicles, potentially across VAG brands.",
+    "brand_wide": "Requires evidence across multiple platform families; expected to be rare."
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "authoring_contract": {
+    "title": "UDS brand research pack specification",
+    "version": "1.0",
+    "source": "docs/uds/brand-research-pack-specification.md"
+  },
+  "brand_ids": [
+    "seat"
+  ],
+  "marques": [
+    "seat"
+  ],
+  "research_date": "2026-09-02",
+  "original_research_date": "2026-08-30",
+  "migrated_from": "seat-deep-research-v1",
+  "baseline_reference": {
+    "map_version": 9,
+    "map_generated": "2026-08-28",
+    "brand_id": "seat",
+    "brand_name": "SEAT (VW Group platform, shared diagnostic stack)",
+    "wmis": [],
+    "existing_scan_policy": null,
+    "existing_profiled_level": "routes_sourced",
+    "known_module_count": 9,
+    "known_did_count": 4,
+    "platform_count": 0,
+    "merge_rule": "REFERENCE ONLY. This pack is an additive hypothesis overlay. Never replace locally_confirmed, vehicle_confirmed, family_confirmed, or newer project evidence with online research."
+  },
+  "merge_mode": "additive_only",
+  "knowledge_dimensions": {
+    "knowledge_state": "research_candidate/community_reported/inherited/locally_confirmed/community_verified/oem_confirmed/unknown",
+    "vehicle_fit": "untested/matched/conflicted/insufficient",
+    "route_state": "reached/refused/silent/transport_failed/closed",
+    "identity_fit": "provisional/stable/conflicted",
+    "activation": "disabled/learning/enabled"
+  },
+  "runtime_recommendation": {
+    "default_branch": "identify platform before proprietary scanning",
+    "generic_11bit_policy": "allowed only after CAN11/UDS transport confirmation and VAG route allowlist",
+    "generic_29bit_policy": "deny",
+    "legacy_protocol_policy": "explicit terminal states if unsupported",
+    "sfd_policy": "read-only discovery continues; no automatic unlock"
+  },
+  "claims": [
+    {
+      "claim_id": "seat.s01.make_level_obdb_fallback",
+      "exact_claim": "OBDb's SEAT make-level fallback signalset aggregates PQ/MQB/electrified command definitions across SEAT models into one make-wide UDS reference, and itself documents competing interpretations for some DIDs across those platforms.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium_high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ]
+      },
+      "source_refs": [
+        "S01"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use only as a last-resort candidate after platform-specific and model-specific routes are exhausted; never let a make-level guess overwrite a platform-scoped or project-confirmed finding.",
+      "promotion_test": "Fingerprint the responding ECU (F187/F191/F195) and reproduce the same route+DID+decoder on a second vehicle of the same platform before promoting to uds-map.json.",
+      "non_generalization_boundary": "Make-level fallback mixing PQ/MQB/electrified platform decoders; not one universal truth for the marque."
+    },
+    {
+      "claim_id": "seat.s02.leon_signalset",
+      "exact_claim": "OBDb's Leon default signalset documents model-specific UDS routes and DIDs for that model.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "leon"
+        ]
+      },
+      "source_refs": [
+        "S02"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Prioritize over make-level candidates on a confirmed vehicle of this model; still treat DIDs as unverified until read on project hardware.",
+      "promotion_test": "Read each candidate DID on a physical vehicle of this model in the default session, record the raw payload, and confirm the source decode formula against a reference measurement before promoting.",
+      "non_generalization_boundary": "One model only; the source's own year filters apply."
+    },
+    {
+      "claim_id": "seat.s03.ibiza_signalset",
+      "exact_claim": "OBDb's Ibiza default signalset documents model-specific UDS routes and DIDs for that model.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "models": [
+          "ibiza"
+        ]
+      },
+      "source_refs": [
+        "S03"
+      ],
+      "validation": {
+        "source_validation_status": "open_diagnostic_database",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Prioritize over make-level candidates on a confirmed vehicle of this model; still treat DIDs as unverified until read on project hardware.",
+      "promotion_test": "Read each candidate DID on a physical vehicle of this model in the default session, record the raw payload, and confirm the source decode formula against a reference measurement before promoting.",
+      "non_generalization_boundary": "One model only; the source's own year filters apply."
+    },
+    {
+      "claim_id": "seat.s04.group_uds_route_catalogue",
+      "exact_claim": "A community extraction of the manufacturer group's diagnostic database catalogues UDS module request/response CAN ID pairs shared across the group's platform family.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ]
+      },
+      "source_refs": [
+        "S04"
+      ],
+      "validation": {
+        "source_validation_status": "community_extraction",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Treat as a presence probe only: attempt the route, and if it answers, fingerprint before trusting any associated DID.",
+      "promotion_test": "Confirm the route answers on a physical vehicle, fingerprint the responding ECU, and cross-check against a second group-family vehicle before treating it as brand-confirmed rather than group-inherited.",
+      "non_generalization_boundary": "A route existing in this catalogue is not proof that a given vehicle carries that ECU."
+    },
+    {
+      "claim_id": "seat.s05.opendbc_platform_classification",
+      "exact_claim": "opendbc's manufacturer-group platform module classifies platform generations and firmware-query behavior, useful for fingerprinting which platform branch a connected vehicle is on.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ]
+      },
+      "source_refs": [
+        "S05"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "Use only to help classify which platform branch a connected vehicle is on; never as a route or DID source directly.",
+      "promotion_test": "Supporting classification context only; confirm any platform assignment it suggests against gateway identity before acting on it.",
+      "non_generalization_boundary": "Platform classification and firmware query logic; not a route or DID source."
+    },
+    {
+      "claim_id": "seat.s06.mii_electric_ovms_header",
+      "exact_claim": "OVMS's shared small-EV module defines exact UDS module routes and DIDs for that shared platform, in production use in a real vehicle telemetry project.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mii_electric_shared_up"
+        ]
+      },
+      "source_refs": [
+        "S06"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "High-fidelity for this exact platform; still unread on project hardware, so treat as a strong candidate, not a confirmed sensor.",
+      "promotion_test": "Read the candidate DIDs on a physical vehicle of this platform in the default session and compare against the source's own decode behavior before promoting to a trusted decode.",
+      "non_generalization_boundary": "The shared small-EV platform only; siblings from other marques share it, other platforms do not."
+    },
+    {
+      "claim_id": "seat.s07.mii_electric_ovms_decoder",
+      "exact_claim": "OVMS's shared small-EV decoder implementation shows the same shared-platform DIDs in live polling use, corroborating the header's route/DID list and supplying the decode arithmetic.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mii_electric_shared_up"
+        ]
+      },
+      "source_refs": [
+        "S07"
+      ],
+      "validation": {
+        "source_validation_status": "operational_open_source_implementation",
+        "project_physical_validation_status": "not_tested"
+      },
+      "action_if_connected": "High-fidelity for this exact platform; still unread on project hardware, so treat as a strong candidate, not a confirmed sensor.",
+      "promotion_test": "Read the candidate DIDs on a physical vehicle of this platform in the default session and compare against the source's own decode behavior before promoting to a trusted decode.",
+      "non_generalization_boundary": "The shared small-EV platform only; the source's cell-index reordering is implementation detail, not wire truth."
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "brand_ids": [
+    "seat"
+  ],
+  "central_policy_relationship": "Brand pack may only reduce central limits.",
+  "source_facts_vs_policy": "All numeric scan budgets below are project policy, not SEAT/VW OEM specifications.",
+  "automatic_discovery": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "passive_capture": "attempt only if the adapter reliably monitors the active pins; otherwise passive_capture_unavailable"
+  },
+  "never_automatic_services": [
+    "10_non_default",
+    "11",
+    "14",
+    "27",
+    "28",
+    "2E",
+    "2F",
+    "31",
+    "34",
+    "35",
+    "36",
+    "37",
+    "3D"
+  ],
+  "brand_budget_reductions": {
+    "whole_automatic_connection_seconds": 180
+  },
+  "brand_request_budgets": {
+    "known_route_presence": {
+      "max_requests": 64,
+      "rate_requests_per_second": 4,
+      "burst_max": 4,
+      "max_outstanding": 1,
+      "timeout_retry": 0
+    },
+    "identity_per_ecu": {
+      "max_requests": 7,
+      "rate_requests_per_second": 2,
+      "max_outstanding": 1,
+      "timeout_retry": 1,
+      "retry_backoff_ms": 250
+    },
+    "remaining_vag_route_catalog": {
+      "max_requests": 96,
+      "rate_requests_per_second": 4,
+      "max_outstanding": 1,
+      "timeout_retry": 0
+    },
+    "generic_can11_if_authorized": {
+      "from": "0x700",
+      "to": "0x7F6",
+      "exclude": [
+        "0x7DF"
+      ],
+      "max_requests": 247,
+      "rate_requests_per_second": 4,
+      "max_outstanding": 1,
+      "timeout_retry": 0
+    },
+    "global": {
+      "max_requests": 600,
+      "max_wallclock_ms": 180000,
+      "phase_cooldown_ms": 500
+    }
+  },
+  "29bit_policy": {
+    "generic_enumeration_authorized": false,
+    "exact_platform_routes_authorized": [],
+    "conditions": [
+      "exact platform classification supports the route",
+      "route comes from an immutable licensed source",
+      "full request/response pair is canonical"
+    ],
+    "not_authorized_by": [
+      "11-bit silence",
+      "an unresolved source header notation",
+      "another marque or platform using 29-bit"
+    ]
+  },
+  "session_policy": {
+    "product": "default_only",
+    "extended_session": "Lab only with an exact route, identifier, fingerprint, immutable source, stationary vehicle and a return to the default session.",
+    "security_access_after_extended_session": false
+  },
+  "nrc_policy": {
+    "0x10": {
+      "meaning": "generalReject",
+      "action": "stop_current_request"
+    },
+    "0x11": {
+      "meaning": "serviceNotSupported",
+      "action": "mark_service_unsupported"
+    },
+    "0x12": {
+      "meaning": "subFunctionNotSupported",
+      "action": "mark_subfunction_unsupported"
+    },
+    "0x13": {
+      "meaning": "incorrectMessageLengthOrInvalidFormat",
+      "action": "fallback_multi_did_to_single_did_or_stop_format"
+    },
+    "0x21": {
+      "meaning": "busyRepeatRequest",
+      "action": "retry_with_backoff",
+      "max_retries": 2,
+      "backoff_ms": 500
+    },
+    "0x22": {
+      "meaning": "conditionsNotCorrect",
+      "action": "terminal_current_state"
+    },
+    "0x25": {
+      "meaning": "noResponseFromSubnetComponent",
+      "action": "gateway_or_subnet_unreachable"
+    },
+    "0x31": {
+      "meaning": "requestOutOfRange",
+      "action": "mark_did_absent_on_this_ecu"
+    },
+    "0x33": {
+      "meaning": "securityAccessDenied",
+      "action": "protected_terminal_no_security_attempt"
+    },
+    "0x35": {
+      "meaning": "invalidKey",
+      "action": "protected_terminal_no_security_attempt"
+    },
+    "0x36": {
+      "meaning": "exceedNumberOfAttempts",
+      "action": "protected_terminal_no_security_attempt"
+    },
+    "0x37": {
+      "meaning": "requiredTimeDelayNotExpired",
+      "action": "protected_terminal_no_security_attempt"
+    },
+    "0x78": {
+      "meaning": "requestCorrectlyReceivedResponsePending",
+      "action": "wait_without_resend",
+      "max_wait_ms": 3000
+    },
+    "0x7E": {
+      "meaning": "subFunctionNotSupportedInActiveSession",
+      "action": "record_session_mismatch_do_not_switch_generically"
+    },
+    "0x7F": {
+      "meaning": "serviceNotSupportedInActiveSession",
+      "action": "record_session_mismatch_do_not_switch_generically"
+    }
+  },
+  "timeouts": {
+    "presence_first_response_ms": 250,
+    "identity_first_response_ms": 500,
+    "isotp_multiframe_completion_ms": 3000,
+    "response_pending_max_ms": 3000,
+    "abort_immediately_on": [
+      "CAN bus-off",
+      "user_cancel",
+      "adapter_reports_unsafe_bus_state"
+    ],
+    "abort_phase_after": {
+      "transport_protocol_errors": 8,
+      "malformed_isotp_responses": 5,
+      "bus_error_escalations": 3
+    },
+    "no_response_policy": "Silence is normal for absent routes; finish bounded allowlist/range unless budget is hit. On legacy/mixed SEAT platforms, silence may also indicate wrong transport."
+  },
+  "abort_conditions": [
+    "CAN bus-off",
+    "user_cancel",
+    "adapter_reports_unsafe_bus_state"
+  ],
+  "legacy_transport_detection": {
+    "passive_listen_ms": 2000,
+    "record_11bit": true,
+    "record_29bit": true,
+    "legacy_branch_rules": {
+      "seat_legacy_kline": "attempt K-line only if adapter supports it; otherwise terminal unsupported_transport_legacy_kline",
+      "seat_pq25_mixed_ibiza_6j": "do not conclude ECU absent until KWP2000 K-line / TP2.0 / TP1.6 / UDS possibilities are resolved"
+    },
+    "authorize_can11_active_if_any": [
+      "platform branch is documented as CAN diagnostic",
+      "adapter identifies ISO15765-4 CAN11",
+      "passive traffic or standard OBD reply confirms 11-bit CAN"
+    ],
+    "authorize_29bit_active_if_any": [
+      "exact normalized SEAT platform profile explicitly defines 29-bit request/response behavior",
+      "passive capture reproduces a source-backed 29-bit diagnostic pattern and response",
+      "known 29-bit route on exact ECU/platform is physically validated"
+    ],
+    "29bit_not_authorized_by": [
+      "11-bit silence",
+      "the make-level OBDb file containing pri/tst/hdr fields",
+      "another VAG brand/platform using 29-bit"
+    ]
+  }
+}

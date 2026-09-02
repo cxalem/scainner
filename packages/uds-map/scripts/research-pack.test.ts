@@ -1,7 +1,7 @@
 // `research:validate` over a fictional minimal pack: one fixture that is
 // valid, and one mutation per rejection class in specification §6.
 import { createHash } from "node:crypto";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -572,5 +572,44 @@ describe("VIN classifiers on platforms", () => {
       }),
       /declares vds_patterns with no source_refs; a VIN rule is a sourced claim/,
     );
+  });
+});
+
+// The projector drops every unauthorized candidate, so a DID a physically
+// tested vehicle refused must not reappear in a runtime pack. This walks the
+// real authoring directories rather than a fixture: it is the check that the
+// negative evidence a pack records actually costs those identifiers their
+// place in a plan.
+describe("negative command evidence", () => {
+  const repo = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+  const docs = join(repo, "docs/product/research");
+  const NEGATIVE = new Set(["unsupported", "explicitly_unsupported_on_test_vehicle"]);
+
+  /** Authoring directories that compiled to a runtime pack of the same name. */
+  const compiledPacks = readdirSync(docs, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      name: entry.name,
+      authored: [join(docs, entry.name), join(docs, entry.name, "source")].find((dir) => existsSync(join(dir, "index.json"))),
+      runtime: join(repo, "packages/uds-map/data/research", `${entry.name}.json`),
+    }))
+    .filter((pack) => pack.authored && existsSync(pack.runtime));
+
+  it("never reaches the runtime as an executable candidate", () => {
+    let checked = 0;
+    for (const pack of compiledPacks) {
+      const evidence: any[] = JSON.parse(readFileSync(join(pack.authored!, "command-support-evidence.json"), "utf8")).evidence ?? [];
+      const disproven = evidence.filter((record) => record.route_id && (NEGATIVE.has(record.support_status) || NEGATIVE.has(record.outcome?.status)));
+      const runtime = JSON.parse(readFileSync(pack.runtime, "utf8"));
+      const byRoute = new Map<string, any[]>();
+      for (const profile of runtime.profiles ?? []) for (const route of profile.routes ?? []) byRoute.set(route.route_id, route.candidate_dids ?? []);
+      for (const record of disproven) {
+        checked += 1;
+        const candidates = byRoute.get(record.route_id) ?? [];
+        const offender = candidates.find((candidate) => (typeof candidate === "string" ? candidate : candidate.did) === record.did);
+        expect(offender, `${pack.name}: ${record.did} was refused on ${record.route_id} and must not be a runtime candidate`).toBeUndefined();
+      }
+    }
+    expect(checked, "no pack carries route-bound negative evidence to check").toBeGreaterThan(0);
   });
 });

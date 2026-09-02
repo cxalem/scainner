@@ -1,0 +1,521 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "vw_pq",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "golf_mk5_mk6",
+          "jetta_mk6",
+          "caddy_mk3",
+          "sharan_mk2"
+        ]
+      },
+      "architecture": "PQ-family; CAN diagnostics with older VAG protocol/UDS mix depending ECU",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [
+        "tp2_0"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11",
+        "legacy_vag_transport_possible",
+        "uds_by_ecu"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_pq is treated as established."
+    },
+    {
+      "platform_id": "vw_mqb",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "golf_mk7",
+          "passat_b8",
+          "tiguan_mk2",
+          "t_roc",
+          "arteon"
+        ]
+      },
+      "architecture": "MQB; UDS/ODX/ASAM via J533 gateway",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01",
+        "S02",
+        "S03"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "known_routes_first"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_mqb is treated as established."
+    },
+    {
+      "platform_id": "vw_mqb_a0",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "polo_mk6",
+          "t_cross"
+        ]
+      },
+      "architecture": "MQB A0; UDS over CAN; some later cars combine gateway+BCM",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_mqb_a0 is treated as established."
+    },
+    {
+      "platform_id": "vw_mqb_evo",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "golf_mk8",
+          "newer_mqb_evo_derivatives"
+        ]
+      },
+      "architecture": "MQB Evo / GW2020 / SFD-capable",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01",
+        "S12"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "sfd_read_only"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_mqb_evo is treated as established."
+    },
+    {
+      "platform_id": "vw_meb_gen1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "id_3",
+          "id_4_2021_23",
+          "id_5"
+        ]
+      },
+      "architecture": "MEB generation 1",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01",
+        "S05"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "meb_known_routes"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_meb_gen1 is treated as established."
+    },
+    {
+      "platform_id": "vw_meb_gen2",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "id_4_2024_25_and_newer_meb_gen2_examples"
+        ]
+      },
+      "architecture": "MEB generation 2; openDBC uses distinct generated DBC flag",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "gen2_fingerprint_required"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_meb_gen2 is treated as established."
+    },
+    {
+      "platform_id": "vw_commercial",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "models": [
+          "crafter",
+          "transporter_caravelle_california"
+        ]
+      },
+      "architecture": "Commercial-vehicle branches; MQB/PQ-like families vary by model",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "platform_specific_can",
+        "do_not_assume_passenger_routes"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to vw_commercial is treated as established."
+    },
+    {
+      "platform_id": "audi_mqb",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "a3_8v",
+          "q2",
+          "q3_f3"
+        ]
+      },
+      "architecture": "Transverse MQB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01",
+        "S04"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "vag_route_catalog"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_mqb is treated as established."
+    },
+    {
+      "platform_id": "audi_mlb",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "q5_8r",
+          "longitudinal_audi_generations"
+        ]
+      },
+      "architecture": "MLB longitudinal; route/DID grammar differs materially from MQB/MEB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01",
+        "S06"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "powertrain_first",
+        "negative_evidence_matters"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_mlb is treated as established."
+    },
+    {
+      "platform_id": "audi_mlb_evo_ev",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "audi_e_tron_suv_q8_e_tron_first_architecture"
+        ]
+      },
+      "architecture": "Adapted MLB evo battery-electric architecture",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S09",
+        "S04"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "ev_routes",
+        "unresolved_extended_header_family"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_mlb_evo_ev is treated as established."
+    },
+    {
+      "platform_id": "audi_meb",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "q4_e_tron"
+        ]
+      },
+      "architecture": "MEB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S09",
+        "S08"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "meb_routes",
+        "current_model_source_sparse"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_meb is treated as established."
+    },
+    {
+      "platform_id": "audi_j1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ]
+      },
+      "architecture": "J1 performance EV platform",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S09",
+        "S07"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "can11_uds",
+        "platform_support_matrix",
+        "unresolved_extended_header_family"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_j1 is treated as established."
+    },
+    {
+      "platform_id": "audi_ppe",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "q6_e_tron",
+          "a6_e_tron"
+        ]
+      },
+      "architecture": "PPE + E3 1.2 electronics",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S10"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "platform_known_routes_unknown"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_ppe is treated as established."
+    },
+    {
+      "platform_id": "audi_ppc",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "models": [
+          "new_a5",
+          "new_q5_family"
+        ]
+      },
+      "architecture": "PPC + E3 electronics",
+      "transport_candidates": [],
+      "unsupported_transport_candidates": [],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [],
+      "vds_patterns": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S11"
+      ],
+      "legacy_status": null,
+      "legacy_transport_strategy": [
+        "platform_known_routes_unknown"
+      ],
+      "legacy_era": null,
+      "non_generalization_boundary": "Exact model/year/module behavior must be observed before anything scoped to audi_ppc is treated as established."
+    }
+  ],
+  "declared_count": 14
+}
