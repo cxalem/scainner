@@ -52,6 +52,21 @@ type SyncBatch = {
     key: string;
     value: number;
   }[];
+  rides: {
+    cloud_id: string;
+    vehicle_cloud_id: string;
+    connection_cloud_id: string;
+    started_at: string;
+    ended_at: string;
+    sample_count: number;
+    sensor_count: number;
+    dtc_events_count: number;
+    dtc_codes_appeared: number;
+    max_speed: number | null;
+    max_coolant: number | null;
+    min_voltage: number | null;
+    notes: string | null;
+  }[];
   probes: {
     cloud_id: string; vehicle_cloud_id: string; module: string; did: number;
     label: string; unit: string; offset: number; len: number; scale: number;
@@ -289,6 +304,28 @@ async function runSyncOnce(): Promise<void> {
         { onConflict: "connection_id,local_id", ignoreDuplicates: true },
       );
       fail("readings", error);
+    }
+    if (batch.rides.length > 0) {
+      const { error } = await supabase.from("rides").upsert(
+        batch.rides.map((ride) => ({
+          id: ride.cloud_id,
+          user_id: userId,
+          vehicle_id: ride.vehicle_cloud_id,
+          connection_id: ride.connection_cloud_id,
+          started_at: toIso(ride.started_at),
+          ended_at: toIso(ride.ended_at),
+          sample_count: ride.sample_count,
+          sensor_count: ride.sensor_count,
+          dtc_events_count: ride.dtc_events_count,
+          dtc_codes_appeared: ride.dtc_codes_appeared,
+          max_speed: ride.max_speed,
+          max_coolant: ride.max_coolant,
+          min_voltage: ride.min_voltage,
+          notes: ride.notes,
+        })),
+        { onConflict: "id" },
+      );
+      fail("rides", error);
     }
     if (batch.probes.length > 0) {
       const { error } = await supabase.from("uds_probes").upsert(

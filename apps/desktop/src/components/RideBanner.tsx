@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Grow } from "@/motion/components";
 import { useT } from "@/i18n";
 import { rideSummaryCopyKey } from "@/lib/ride-copy";
-
-export const AI_REPORT_PRICE = "€—";
+import { ReportAction } from "@/components/ReportAction";
 
 function elapsedSeconds(startedAt: string, endedAt?: string | null): number {
   const start = new Date(startedAt).getTime();
@@ -79,7 +78,7 @@ export function RideBanner({ ride, completed, stopping, onStop, onDone }: {
                   <AlertTitle>{firstLine}</AlertTitle>
                   <AlertDescription className="text-[12px]">{t.ride.location}</AlertDescription>
                 </div>
-                <Button className="min-h-10" disabled>{t.ride.report(AI_REPORT_PRICE)}</Button>
+                <ReportAction input={{ kind: "ride", ride_id: completed!.cloud_id }} label={(price) => t.ride.report(price)} />
                 <Button className="min-h-10" variant="outline" onClick={onDone}>{t.ride.done}</Button>
               </>
             )}

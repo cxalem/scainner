@@ -9,7 +9,6 @@ import { useDtcHistory } from "@/features/diagnose/queries";
 import { detectVoltageCluster } from "@/lib/dtc-grouping";
 import { ScanConsole } from "@/views/diagnose/ScanConsole";
 import { DtcDetailModal } from "@/views/diagnose/DtcDetailModal";
-import { AiReportCard } from "@/views/diagnose/AiReportCard";
 import { useLocale, useT } from "@/i18n";
 import { formatVoltage } from "@/lib/format";
 
@@ -85,10 +84,6 @@ export function Diagnose({ connected, vehicleId = null }: { connected: boolean; 
             )}
           </Card>
         </div>
-      </Reveal>
-
-      <Reveal when={scan !== null || history.length > 0}>
-        <AiReportCard hasAnyData={history.length > 0 || scan !== null} vehicleId={vehicleId} />
       </Reveal>
 
       <Block>

@@ -740,6 +740,9 @@ export const en: Dictionary = {
       syncTitle: "Account and sync",
       syncedNote: "Signed in, so this Mac's records back up to your account. Sensor candidates go up de-identified, never your VIN or location.",
       contributeKnowledge: "Share de-identified ECU knowledge to improve recognition for everyone",
+      reportCredits: "report credits",
+      subscriptionState: (used, allowance) => `${allowance - used} of ${allowance} monthly reports left`,
+      buyReports: "Buy reports",
     },
   },
   discoveryFlow: {

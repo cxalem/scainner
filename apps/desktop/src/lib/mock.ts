@@ -6,7 +6,7 @@ import type { ClearOutcome, UdsModule, UdsProbe } from "@scainner/core";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "@scainner/core";
 import type { HistoryPoint } from "@scainner/core";
 import type { SensorReading } from "@scainner/core";
-import type { Ride } from "@scainner/core";
+import type { CatalogItemKey, GenerateReportInput, Pricing, ReportRow, Ride } from "@scainner/core";
 import udsMap from "../../../../packages/uds-map/data/uds-map.json";
 
 
@@ -28,6 +28,58 @@ type PackBrand = {
 };
 
 const PACK_BRANDS = (udsMap as unknown as { brands: PackBrand[] }).brands;
+
+let mockReportBalance = 0;
+const mockReports = new Map<string, ReportRow>();
+
+const sampleReport = (locale: "en" | "es") => locale === "es"
+  ? `# Veredicto\nNada requiere atención inmediata. La temperatura del refrigerante varió entre 79 y 101 °C.\n\n# Forma del trayecto / Contexto\nEl trayecto incluyó ciudad y carretera durante 17 minutos.\n\n# Sensores estándar\nEl régimen varió entre 0 y 3.533 rpm. La tensión media en marcha fue de 13,85 V.\n\n# Sensores de módulos\nLos módulos alcanzados no aportaron señales adicionales anómalas.\n\n# Observaciones\nLa temperatura osciló durante el crucero. No se registraron códigos de avería.\n\n# Qué revisar después\nCompara la temperatura en el próximo trayecto con el motor caliente.`
+  : `# Verdict\nNothing needs immediate attention. Coolant temperature moved between 79 and 101 °C.\n\n# Drive shape / Context\nThe 17-minute ride covered town and faster roads.\n\n# Standard sensors\nEngine speed ranged from 0 to 3,533 rpm. Running voltage averaged 13.85 V.\n\n# Module sensors\nThe reached modules added no unusual signals.\n\n# Observations\nCoolant cycled during the cruise. No fault codes were recorded.\n\n# What to check next\nCompare coolant temperature on the next fully warm ride.`;
+
+export const mockBilling = {
+  pricing: async (): Promise<Pricing> => ({
+    catalog: {
+      single: { price_id: "price_mock_single", currency: "eur", unit_amount: 499 },
+      pack_5: { price_id: "price_mock_5", currency: "eur", unit_amount: 1999 },
+      pack_20: { price_id: "price_mock_20", currency: "eur", unit_amount: 5999 },
+      subscription_monthly: { price_id: "price_mock_monthly", currency: "eur", unit_amount: 999 },
+    },
+    account: { balance: mockReportBalance, subscription: null },
+  } as Pricing),
+  createCheckout: async (_item: CatalogItemKey): Promise<string> => {
+    window.setTimeout(() => { mockReportBalance += 1; }, 3000);
+    return "https://checkout.stripe.test/session/mock";
+  },
+  generateReport: async (input: GenerateReportInput) => {
+    await new Promise((resolve) => window.setTimeout(resolve, 3000));
+    mockReportBalance = Math.max(0, mockReportBalance - 1);
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    mockReports.set(id, {
+      id,
+      user_id: "00000000-0000-4000-8000-000000000001",
+      kind: input.kind,
+      ride_id: input.kind === "ride" ? input.ride_id : null,
+      scan_event_id: input.kind === "code" ? (input.scan_event_id ?? "00000000-0000-4000-8000-000000000002") : null,
+      dtc_code: input.kind === "code" ? input.dtc_code : null,
+      locale: input.locale,
+      status: "done",
+      model: "claude-opus-5",
+      content_md: sampleReport(input.locale),
+      summary: { verdict: input.locale === "es" ? "Nada requiere atención inmediata." : "Nothing needs immediate attention.", readings: 4280, channels: 12, events: 0 },
+      error: null,
+      created_at: now,
+      finished_at: now,
+    } as ReportRow);
+    return { report_id: id, status: "done" };
+  },
+  getReport: async (id: string): Promise<ReportRow> => {
+    const report = mockReports.get(id);
+    if (!report) throw new Error("Report not found");
+    return report;
+  },
+  listReports: async (): Promise<ReportRow[]> => [...mockReports.values()].reverse(),
+};
 
 type DemoVehicle = {
   id: number;

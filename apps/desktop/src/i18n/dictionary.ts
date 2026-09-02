@@ -684,6 +684,9 @@ export type Dictionary = {
       syncTitle: string;
       syncedNote: string;
       contributeKnowledge: string;
+      reportCredits: string;
+      subscriptionState: (used: number, allowance: number) => string;
+      buyReports: string;
     };
   };
   discoveryFlow: {
