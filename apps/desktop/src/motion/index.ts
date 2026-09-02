@@ -114,14 +114,11 @@ export const pageBlock: Variants = {
 };
 
 // --- Messages over the layout ------------------------------------------------
-/** A toast: it arrives from the edge it sits on and leaves the same way,
- *  with a hair of scale so it reads as landing rather than sliding past.
- *  Nothing under it moves — the whole point of a toast. */
-export const toastVariants: Variants = {
-  hidden: { opacity: 0, y: 16, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: riseTransition },
-  exit: { opacity: 0, y: 8, scale: 0.98, transition: fadeTransition },
-};
+// Toasts do not have a variant here: they are sonner's now
+// (components/ui/sonner.tsx), and it owns their entrance and exit — one
+// animation, driven by the same library that owns the stack, rather than
+// two systems agreeing on a timing by hand. Everything else that appears
+// over the layout (modals, banners) still uses the variants above.
 
 /** Full-screen gate ↔ gate ↔ shell handoff: cross-fade with a tiny rise. */
 export const screenVariants: Variants = {

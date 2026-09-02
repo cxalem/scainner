@@ -901,6 +901,8 @@ export type Dictionary = {
     noNearby: string;
     discoveryUnavailable: string;
     pairFailed: string;
+    /** The receipt after a radio pairs: it is a row in the list now. */
+    paired: (name: string) => string;
     chooseAnotherDevice: string;
     deviceListFailed: string;
     adapterSaveFailed: string;

@@ -912,6 +912,7 @@ export const en: Dictionary = {
     discoveryUnavailable:
       "Bluetooth discovery is not available on this machine. Pair the dongle in your system Bluetooth settings.",
     pairFailed: "Pairing failed. Check the dongle is powered and in range, then try again.",
+    paired: (name) => `Paired ${name}`,
     chooseAnotherDevice: "Choose another device",
     deviceListFailed: "The devices could not be listed.",
     adapterSaveFailed: "The adapter could not be saved.",

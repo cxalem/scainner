@@ -155,9 +155,93 @@ let autoScanDoneAt: string | null = null;
 
 const sqlNow = () => new Date().toISOString().slice(0, 19).replace("T", " ");
 
+// ---------- preview pacing ----------
+// The demo walks its stages faster than anyone can look at them, which
+// makes three real states unverifiable in the browser preview: Overview's
+// scan banner, Live's "the gauges are paused" notice, and the Lab card's
+// progress bar (owner, 2026-09-02 — "the scanning process is too fast").
+//
+// So the pace is a knob, read fresh on every stage rather than captured at
+// load, and the URL wins over the env var because the URL is what you can
+// change without restarting the dev server:
+//
+//   ?mock_discovery_ms=6000     6 s per discovery stage (default 900)
+//   ?mock_connect_ms=2000       2 s per connect stage   (default 300)
+//   ?mock_discovery_hold=join   park the run ON that stage, indefinitely
+//   ?mock_connect_fail=handshake  fail the connect at that stage
+//
+// and, as env defaults for a session, VITE_MOCK_DISCOVERY_MS /
+// VITE_MOCK_CONNECT_MS. All of it is preview-only by construction: this
+// module is loaded only when the app is running outside a Tauri window
+// (see tauri.ts).
+
+const DISCOVERY_STAGE_MS = 900;
+const CONNECT_STAGE_MS = 300;
+
+const previewQuery = (): URLSearchParams =>
+  new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+
+/** URL query > env var > the default. A value that is not a non-negative
+ *  number is ignored rather than obeyed — a typo should not freeze the
+ *  preview. */
+function pacedMs(param: string, envValue: string | undefined, fallback: number): number {
+  const raw = previewQuery().get(param) ?? envValue;
+  if (raw == null || raw === "") return fallback;
+  const ms = Number(raw);
+  return Number.isFinite(ms) && ms >= 0 ? ms : fallback;
+}
+
+const discoveryStageMs = () =>
+  pacedMs("mock_discovery_ms", import.meta.env.VITE_MOCK_DISCOVERY_MS, DISCOVERY_STAGE_MS);
+const connectStageMs = () =>
+  pacedMs("mock_connect_ms", import.meta.env.VITE_MOCK_CONNECT_MS, CONNECT_STAGE_MS);
+
+/** Set by `window.__sonda_mock.release()`. Cleared when a run starts, so a
+ *  hold that was released stays released for that run only. */
+let holdReleased = false;
+
+/**
+ * Park the run on `stage` for as long as `?mock_discovery_hold=<stage>` says
+ * so — the knob that actually makes a state inspectable, because it holds
+ * still while you read it, take a screenshot, or open devtools.
+ *
+ * Two ways out, and it polls for both: `window.__sonda_mock.release()` from
+ * the console, or the query parameter going away (`history.replaceState`,
+ * which is how you drop it without reloading and losing the run).
+ */
+async function holdAtStage(stage: string): Promise<void> {
+  if (previewQuery().get("mock_discovery_hold") !== stage) return;
+  while (!holdReleased && previewQuery().get("mock_discovery_hold") === stage) {
+    await delay(150);
+  }
+}
+
+/** The preview's console handle. Documented in apps/desktop/README.md. */
+function installMockHandle(): void {
+  if (typeof window === "undefined") return;
+  (window as unknown as Record<string, unknown>).__sonda_mock = {
+    /** Let a held discovery run carry on. */
+    release: () => {
+      holdReleased = true;
+    },
+    /** Hold (or stop holding) a stage without reloading the page. */
+    hold: (stage: string | null) => {
+      const url = new URL(window.location.href);
+      if (stage) url.searchParams.set("mock_discovery_hold", stage);
+      else url.searchParams.delete("mock_discovery_hold");
+      window.history.replaceState(null, "", url);
+      holdReleased = false;
+    },
+    /** What the pacing currently resolves to, in ms per stage. */
+    pacing: () => ({ discovery: discoveryStageMs(), connect: connectStageMs() }),
+  };
+}
+installMockHandle();
+
 /** Walks the four protocol stages on conn-status, then records the run. */
 async function runMockAutoScan(): Promise<void> {
   const started_at = sqlNow();
+  holdReleased = false;
   const stages = [
     { stage: "census" as const, total: 12 },
     { stage: "identity" as const, total: 6 },
@@ -180,7 +264,8 @@ async function runMockAutoScan(): Promise<void> {
       },
     };
     emit("conn-status", connState);
-    await delay(900);
+    await holdAtStage(stage);
+    await delay(discoveryStageMs());
   }
   autoScanDoneAt = sqlNow();
   connState = {
@@ -697,10 +782,22 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "connect": {
       // The same four stages the backend pipeline walks, so the gate's
       // stage labels are exercised in the browser preview too.
+      const failAt = previewQuery().get("mock_connect_fail");
       for (const stage of ["link", "open", "handshake", "bus"] as const) {
         connState = { state: "connecting", stage };
         emit("conn-status", connState);
-        await delay(300);
+        await delay(connectStageMs());
+        // The one failure path the preview can reach, so the gate's failure
+        // toast — its copy, its two actions, its Details — is verifiable
+        // without unplugging a real dongle mid-handshake.
+        if (failAt === stage) {
+          connState = {
+            state: "disconnected",
+            error: { stage, reason: `mock: forced failure at ${stage}` },
+          };
+          emit("conn-status", connState);
+          return undefined as T;
+        }
       }
       // First demo connect reports vehicle_is_new (schema v2), so the
       // discovery flow runs in the browser preview too.

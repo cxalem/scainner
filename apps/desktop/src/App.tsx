@@ -15,6 +15,7 @@ import { useVehicles } from "@/features/vehicle/queries";
 import { signOut, useSession } from "@/features/account/useSession";
 import { resolveVehicleView } from "@/lib/vehicle-view";
 import { Skeleton } from "@/components/ui";
+import { Toaster } from "@/components/ui/sonner";
 import { useT } from "@/i18n";
 import { Overview } from "@/views/Overview";
 import { Live } from "@/views/Live";
@@ -238,6 +239,11 @@ export default function App() {
           )}
         </Shell>
       )}
+
+      {/* One rail for the whole app, mounted once and never unmounted: a
+          toast raised as a gate hands off to the shell has to survive the
+          screen it was raised from. */}
+      <Toaster closeLabel={t.common.close} />
 
       {discoverVin && (
         // Same radial-gradient ground DiscoveryFlow's own root paints —

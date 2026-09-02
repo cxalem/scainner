@@ -1,6 +1,20 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "./theme/tokens.css";
+/* shadcn/ui's own base layer: `shadcn/tailwind.css` carries the data-*
+   variants and utilities its components are written against, `tw-animate-css`
+   the enter/exit keyframes they use. Both are purely additive — they declare
+   variants and utilities, they restyle nothing — which is why they can sit
+   over this app's token layer without touching a single existing component.
+   The Sonda font stays Inter; the CLI's Geist import was removed. */
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* shadcn components are written for a `.dark` ancestor. This app is
+   single-theme light and never sets that class (see main.tsx), so the dark
+   values below are inert today and exist so a shadcn component dropped on
+   the one dark ground the brand has renders in Sonda's dark voice. */
+@custom-variant dark (&:is(.dark *));
 
 /* Tailwind v4 theme mapping. The values live in theme/tokens.css — this
    block only names them for the utility layer (`bg-surface`, `text-accent-300`,
@@ -57,19 +71,54 @@
   --color-white: var(--surface);
   --color-transparent: transparent;
 
-  /* Legacy aliases — the names the pre-redesign views used. Mapped onto the
-     new tokens so nothing breaks mid-migration; new code should use the
-     names above. */
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
-  --color-card: var(--surface);
-  --color-card-foreground: var(--text);
-  --color-muted: var(--neutral-900);
-  --color-muted-foreground: var(--neutral-500);
-  --color-border: var(--divider);
-  --color-primary: var(--accent);
-  --color-primary-foreground: var(--surface);
-  --color-destructive: var(--stop);
+  /* --- the shadcn/ui bridge -------------------------------------------
+     shadcn components are written against a fixed set of semantic role
+     names (background/foreground/card/popover/primary/…). They are NOT a
+     second palette: every one resolves to a Sonda token from
+     theme/tokens.css, so a component installed from the registry comes out
+     in the brand's colours with no restyling. These names also happen to be
+     the ones the pre-redesign views used, which is why some of them already
+     existed here.
+
+     One collision, on purpose: shadcn's `accent` role means "a subtle hover
+     surface", while this app's `accent` is the solid blurple and 90-odd call
+     sites already depend on that. The app's meaning wins. A shadcn component
+     that reaches for `hover:bg-accent` should be edited in
+     components/ui/ to use `bg-accent-900` instead — see
+     docs/redesign/03-shadcn.md. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  /* `--color-accent` stays the solid blurple above; only the foreground
+     that pairs with it is new. */
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
@@ -79,6 +128,10 @@
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-full: var(--radius-full);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 
   --font-sans: var(--font-body);
   --font-heading: var(--font-heading);
@@ -157,3 +210,4 @@ a:hover { color: var(--accent-300); }
     animation: none;
   }
 }
+
