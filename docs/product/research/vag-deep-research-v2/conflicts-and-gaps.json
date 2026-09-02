@@ -51,6 +51,15 @@
   "gaps": [
     {
       "gap_id": "vw_pq_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_pq"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_pq vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_pq-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -61,6 +70,15 @@
     },
     {
       "gap_id": "vw_mqb_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_mqb"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_mqb vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_mqb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -73,6 +91,15 @@
     },
     {
       "gap_id": "vw_mqb_a0_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_mqb_a0"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_mqb_a0 vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_mqb_a0-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -83,6 +110,15 @@
     },
     {
       "gap_id": "vw_mqb_evo_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_mqb_evo"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_mqb_evo vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_mqb_evo-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -94,6 +130,15 @@
     },
     {
       "gap_id": "vw_meb_gen1_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_meb_gen1"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_meb_gen1 vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_meb_gen1-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -105,6 +150,15 @@
     },
     {
       "gap_id": "vw_meb_gen2_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_meb_gen2"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_meb_gen2 vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_meb_gen2-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -115,6 +169,15 @@
     },
     {
       "gap_id": "vw_commercial_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "vw_commercial"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed vw_commercial vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every vw_commercial-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -125,6 +188,15 @@
     },
     {
       "gap_id": "audi_mqb_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_mqb"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_mqb vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_mqb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -136,6 +208,15 @@
     },
     {
       "gap_id": "audi_mlb_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_mlb"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_mlb vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_mlb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -147,6 +228,15 @@
     },
     {
       "gap_id": "audi_mlb_evo_ev_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_mlb_evo_ev"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_mlb_evo_ev vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_mlb_evo_ev-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -158,6 +248,15 @@
     },
     {
       "gap_id": "audi_meb_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_meb"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_meb vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_meb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -169,6 +268,15 @@
     },
     {
       "gap_id": "audi_j1_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_j1 vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_j1-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -180,6 +288,15 @@
     },
     {
       "gap_id": "audi_ppe_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_ppe"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_ppe vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_ppe-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -190,6 +307,15 @@
     },
     {
       "gap_id": "audi_ppc_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "platform_ids": [
+          "audi_ppc"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed audi_ppc vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every audi_ppc-scoped candidate inert; the trusted map decides platform selection, never this pack.",

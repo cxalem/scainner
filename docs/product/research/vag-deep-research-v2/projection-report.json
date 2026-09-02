@@ -38,7 +38,7 @@
   "archived_files": [
     {
       "path": "index.json",
-      "sha256": "4b55cf7fd551ef2bc02103c92b380c22959c65a7d221b1e5cc67f8dec0f23c0a"
+      "sha256": "5c69ce93d2cd547376a306cac36709491a363d5d2abee926388ba7a1b972d62c"
     },
     {
       "path": "README.md",
@@ -50,7 +50,7 @@
     },
     {
       "path": "conflicts-and-gaps.json",
-      "sha256": "3428efa492379b82d31ff9b3f33887e2a8513ef3a3c5abb41017cb9aba6842a9"
+      "sha256": "4dd9db108eb488d0fdf998b4d217ec10597a414606ea8524a9d5c0767ba58815"
     },
     {
       "path": "connection-playbook.json",

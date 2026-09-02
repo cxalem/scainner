@@ -20,6 +20,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "J1 performance EV platform",
       "transport_candidates": [
@@ -46,7 +47,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "audi_meb",
@@ -62,6 +63,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MEB",
       "transport_candidates": [
@@ -90,7 +92,7 @@
           "reliability": "medium"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "audi_mlb",
@@ -107,6 +109,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MLB longitudinal; route/DID grammar differs materially from MQB/MEB",
       "transport_candidates": [
@@ -133,7 +136,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "audi_mlb_evo_ev",
@@ -149,6 +152,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Adapted MLB evo battery-electric architecture",
       "transport_candidates": [
@@ -175,7 +179,7 @@
           "reliability": "medium_high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "audi_mqb",
@@ -193,6 +197,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Transverse MQB",
       "transport_candidates": [
@@ -219,7 +224,7 @@
           "reliability": "medium_high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "audi_ppc",
@@ -236,6 +241,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "PPC + E3 electronics",
       "transport_candidates": [],
@@ -252,7 +258,7 @@
           "reliability": "oem_confirmed"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "audi_ppe",
@@ -269,6 +275,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "PPE + E3 1.2 electronics",
       "transport_candidates": [],
@@ -285,7 +292,7 @@
           "reliability": "oem_confirmed"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_commercial",
@@ -302,6 +309,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Commercial-vehicle branches; MQB/PQ-like families vary by model",
       "transport_candidates": [],
@@ -318,7 +326,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_meb_gen1",
@@ -336,6 +344,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MEB generation 1",
       "transport_candidates": [
@@ -364,7 +373,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_meb_gen2",
@@ -380,6 +389,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MEB generation 2; openDBC uses distinct generated DBC flag",
       "transport_candidates": [
@@ -400,7 +410,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_mqb",
@@ -420,6 +430,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MQB; UDS/ODX/ASAM via J533 gateway",
       "transport_candidates": [
@@ -454,7 +465,7 @@
           "reliability": "medium_high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_mqb_a0",
@@ -471,6 +482,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MQB A0; UDS over CAN; some later cars combine gateway+BCM",
       "transport_candidates": [
@@ -489,7 +501,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_mqb_evo",
@@ -506,6 +518,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "MQB Evo / GW2020 / SFD-capable",
       "transport_candidates": [
@@ -532,7 +545,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "vw_pq",
@@ -551,6 +564,7 @@
       "powertrains": [],
       "years": null,
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "PQ-family; CAN diagnostics with older VAG protocol/UDS mix depending ECU",
       "transport_candidates": [
@@ -569,7 +583,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     }
   ]
 }

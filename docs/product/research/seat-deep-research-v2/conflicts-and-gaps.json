@@ -137,6 +137,15 @@
     },
     {
       "gap_id": "seat_legacy_kline_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_legacy_kline"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_legacy_kline vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_legacy_kline-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -147,6 +156,15 @@
     },
     {
       "gap_id": "seat_pq35_can_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_pq35_can"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_pq35_can vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_pq35_can-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -158,6 +176,15 @@
     },
     {
       "gap_id": "seat_pq25_mixed_ibiza_6j_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_pq25_mixed_ibiza_6j"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_pq25_mixed_ibiza_6j vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_pq25_mixed_ibiza_6j-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -169,6 +196,15 @@
     },
     {
       "gap_id": "seat_alhambra_7n_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_alhambra_7n"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_alhambra_7n vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_alhambra_7n-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -180,6 +216,15 @@
     },
     {
       "gap_id": "seat_mii_electric_shared_up_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mii_electric_shared_up"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_mii_electric_shared_up vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_mii_electric_shared_up-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -191,6 +236,15 @@
     },
     {
       "gap_id": "seat_mqb_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_mqb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -205,6 +259,15 @@
     },
     {
       "gap_id": "seat_mqb_a0_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_a0"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb_a0 vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_mqb_a0-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -218,6 +281,15 @@
     },
     {
       "gap_id": "seat_mqb_a_lwb_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_a_lwb"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb_a_lwb vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_mqb_a_lwb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -229,6 +301,15 @@
     },
     {
       "gap_id": "seat_mqb_evo_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_evo"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb_evo vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_mqb_evo-scoped candidate inert; the trusted map decides platform selection, never this pack.",
@@ -242,6 +323,15 @@
     },
     {
       "gap_id": "seat_special_unresolved_platform_not_vin_selectable",
+      "kind": "platform_not_vin_selectable",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_special_unresolved"
+        ]
+      },
       "priority": "P1",
       "required_evidence": "A VIN descriptor pattern from a confirmed seat_special_unresolved vehicle, or a normalized vehicle-model fact that selects only this platform.",
       "safe_next_action": "Leave every seat_special_unresolved-scoped candidate inert; the trusted map decides platform selection, never this pack.",

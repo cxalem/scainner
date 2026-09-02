@@ -407,6 +407,24 @@ function assertNoFleetPromotion(records: Json[], kind: string): void {
     }
   }
 }
+
+/**
+ * §9.2: a platform with no VIN descriptor rule must say so in a gap record,
+ * or the pack is silently unclassifiable. The validator matches on the gap's
+ * `kind` and `scope.platform_ids`, so this guard checks exactly what it
+ * reads rather than the gap id.
+ */
+function assertEveryPlatformIsClassifiedOrDeclared(platforms: Json[], gaps: Json[]): void {
+  const declared = new Set<string>();
+  for (const gap of gaps) {
+    if (gap.kind !== "platform_not_vin_selectable") continue;
+    for (const id of gap.scope?.platform_ids ?? []) declared.add(id);
+  }
+  for (const platform of platforms) {
+    if ((platform.vds_patterns ?? []).length || declared.has(platform.platform_id)) continue;
+    throw new Error(`platform ${platform.platform_id} has neither a vds_patterns entry nor a platform_not_vin_selectable gap naming it`);
+  }
+}
 const knowledgeState = (legacy: string | undefined, fallback = "research_candidate"): string =>
   (legacy && KNOWLEDGE_STATE[legacy]) || fallback;
 
@@ -1170,9 +1188,15 @@ function main(): void {
       source_refs: [],
     });
   }
+  // §9.2: neither legacy package carried a VIN descriptor rule, so every
+  // platform declares the limit rather than leaving it to be inferred. The
+  // validator reads `kind` and `scope.platform_ids`, not the id, so both
+  // must be present for the gap to count as the declaration.
   for (const platform of platforms) {
     gaps.push({
       gap_id: `${platform.platform_id}_platform_not_vin_selectable`,
+      kind: "platform_not_vin_selectable",
+      scope: { brand_ids: config.brand_ids, platform_ids: [platform.platform_id] },
       priority: "P1",
       required_evidence: `A VIN descriptor pattern from a confirmed ${platform.platform_id} vehicle, or a normalized vehicle-model fact that selects only this platform.`,
       safe_next_action: `Leave every ${platform.platform_id}-scoped candidate inert; the trusted map decides platform selection, never this pack.`,
@@ -1236,12 +1260,16 @@ function main(): void {
 
   const playbook = { schema_version: 1, ...legacyPlaybook };
 
-  rmSync(output, { recursive: true, force: true });
-  mkdirSync(output, { recursive: true });
-
+  // Both guards run before anything is written: a migration that would
+  // produce an invalid pack leaves the previous output untouched.
   for (const [kind, records] of [["route", routes], ["candidate", candidates], ["platform", platforms], ["ecu family", families], ["claim", config.claims]] as Array<[string, Json[]]>) {
     assertNoFleetPromotion(records, kind);
   }
+  assertEveryPlatformIsClassifiedOrDeclared(platforms, gaps);
+
+  rmSync(output, { recursive: true, force: true });
+  mkdirSync(output, { recursive: true });
+
 
   const files: Array<[string, unknown]> = [
     [`${args.get("brand")}-profile-overlay.json`, overlay],
