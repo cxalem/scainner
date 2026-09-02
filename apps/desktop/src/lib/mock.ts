@@ -735,7 +735,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       if (connState.state !== "connected" || mockRide) throw new Error("ride cannot start");
       mockRideSeq += 1;
       mockRide = { id: mockRideSeq, cloud_id: `mock-ride-${mockRideSeq}`, vehicle_id: CONNECTED.id, connection_id: 1, started_at: new Date().toISOString(), ended_at: null, sample_count: 0, sensor_count: 0, dtc_events_count: 0, dtc_codes_appeared: 0, max_speed: null, max_coolant: null, min_voltage: null, notes: null };
-      connState = { ...connState, ride: { id: mockRide.id, started_at: mockRide.started_at, sample_count: 0 } };
+      connState = { ...connState, ride: { id: mockRide.id, started_at: mockRide.started_at, sample_count: 0 }, learning: { cohort: 8, module: "6B5/695", samples_this_ride: 0, suspended: false } };
       emit("conn-status", connState);
       mockRideTimer = window.setInterval(() => {
         if (!mockRide) return;
@@ -752,7 +752,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       const finished: Ride = { ...mockRide, ended_at: new Date().toISOString(), sensor_count: 12, dtc_events_count: 1, dtc_codes_appeared: previewQuery().get("mock_ride_dtc") === "1" ? 1 : 0, max_speed: 83, max_coolant: 91, min_voltage: 13.7 };
       mockRideDone = [finished, ...mockRideDone];
       mockRide = null;
-      connState = { ...connState, ride: null };
+      connState = { ...connState, ride: null, learning: null };
       emit("conn-status", connState);
       return finished as T;
     }

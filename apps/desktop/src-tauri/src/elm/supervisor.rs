@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::Emitter;
 
 #[derive(Clone, Serialize, Default)]
@@ -28,6 +29,7 @@ pub struct ConnStatus {
     pub scanning: bool,
     pub discovery: Option<DiscoveryStatus>,
     pub ride: Option<RideStatus>,
+    pub learning: Option<discovery::learn::LearningStatus>,
 }
 
 #[derive(Clone, Serialize, Debug, PartialEq)]
@@ -243,6 +245,13 @@ fn notify(app: &tauri::AppHandle, title: &str, body: &str) {
     let _ = app.notification().builder().title(title).body(body).show();
 }
 
+fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64
+}
+
 fn run_loop(
     app: tauri::AppHandle,
     db: Arc<Db>,
@@ -391,6 +400,9 @@ fn run_loop(
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
         let mut ride = db.active_ride();
+        let mut learning = ride
+            .as_ref()
+            .map(|active| discovery::learn::LearningRun::new(&db, active.vehicle_id));
 
         macro_rules! service_requests {
             () => {
@@ -413,6 +425,9 @@ fn run_loop(
                                 dtc_schedule.record(tick);
                             }
                             if let Some(active) = ride.take() {
+                                if let Some(run) = learning.take() {
+                                    discovery::learn::analyze_ride(&db, &run.sampled_ids());
+                                }
                                 let _ = db.stop_ride(active.id);
                             }
                             db.end_connection(ctx.connection_id);
@@ -465,9 +480,11 @@ fn run_loop(
                             let result = ctx.vehicle_id.ok_or_else(|| "not connected to an identified vehicle".to_string()).and_then(|vehicle_id| db.start_ride(vehicle_id, ctx.connection_id));
                             if let Ok(started) = &result {
                                 ride = Some(started.clone());
+                                learning = Some(discovery::learn::LearningRun::new(&db, started.vehicle_id));
                                 let snapshot = {
                                     let mut guard = status.lock().unwrap();
                                     guard.ride = Some(RideStatus { id: started.id, started_at: started.started_at.clone(), sample_count: 0 });
+                                    guard.learning = learning.as_mut().map(|run| run.status());
                                     guard.clone()
                                 };
                                 let _ = app.emit("conn-status", &snapshot);
@@ -482,14 +499,21 @@ fn run_loop(
                                     let scan = record_dtc_scan(&mut drv, &db, ctx);
                                     dtc_schedule.record(tick);
                                     if let Ok(value) = &scan { announce_dtc_scan(&app, value); }
-                                    scan.and_then(|_| db.stop_ride(id))
+                                    scan.and_then(|_| {
+                                        if let Some(run) = learning.as_ref() {
+                                            discovery::learn::analyze_ride(&db, &run.sampled_ids());
+                                        }
+                                        db.stop_ride(id)
+                                    })
                                 }
                             };
                             if result.is_ok() {
                                 ride = None;
+                                learning = None;
                                 let snapshot = {
                                     let mut guard = status.lock().unwrap();
                                     guard.ride = None;
+                                    guard.learning = None;
                                     guard.clone()
                                 };
                                 let _ = app.emit("conn-status", &snapshot);
@@ -507,6 +531,7 @@ fn run_loop(
             service_requests!();
 
             let mut values: HashMap<String, f64> = HashMap::new();
+            let mut reference_values: HashMap<String, (f64, i64)> = HashMap::new();
             for pid in parser::PIDS {
                 if !supported_pids.is_empty() {
                     let n = u8::from_str_radix(&pid.pid[2..], 16).unwrap_or(0);
@@ -522,6 +547,7 @@ fn run_loop(
                             parser::payload_bytes(&lines, &format!("41 {}", &pid.pid[2..]));
                         if let Some(v) = (pid.decode)(&payload) {
                             values.insert(pid.key.to_string(), v);
+                            reference_values.insert(pid.key.to_string(), (v, now_ms()));
                             db.insert_reading(ctx.connection_id, ctx.vehicle_id, pid.key, v);
                         }
                         consecutive_failures = 0;
@@ -552,6 +578,9 @@ fn run_loop(
                                 dtc_schedule.record(tick);
                             }
                             if let Some(active) = ride.take() {
+                                if let Some(run) = learning.take() {
+                                    discovery::learn::analyze_ride(&db, &run.sampled_ids());
+                                }
                                 let _ = db.stop_ride(active.id);
                             }
                             db.end_connection(ctx.connection_id);
@@ -567,6 +596,7 @@ fn run_loop(
                         .and_then(|l| parser::decode_voltage(l))
                     {
                         values.insert("voltage".into(), v);
+                        reference_values.insert("voltage".into(), (v, now_ms()));
                         db.insert_reading(ctx.connection_id, ctx.vehicle_id, "voltage", v);
                     }
                 }
@@ -628,6 +658,56 @@ fn run_loop(
                 let uds_values = uds::poll_probes(&mut drv, &db, ctx);
                 for (k, v) in uds_values {
                     values.insert(k, v);
+                }
+                if ride.is_some() {
+                    if let Some(run) = learning.as_mut() {
+                        let now = Instant::now();
+                        if let Some((module, cohort)) = run.current(now) {
+                            let dids: Vec<u16> = cohort.iter().map(|(_, did)| *did).collect();
+                            let started = Instant::now();
+                            let vin = current_vin(&db, ctx);
+                            let result =
+                                uds::read_many(&mut drv, &db, vin.as_deref(), &module, &dids);
+                            let elapsed = started.elapsed();
+                            let hits = result
+                                .as_ref()
+                                .map(|hits| {
+                                    hits.iter()
+                                        .map(|hit| (hit.did, hit.hex.clone()))
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default();
+                            let refs = discovery::learn::reference_readings(&reference_values);
+                            let refs_json = serde_json::to_string(&refs).ok();
+                            for (hypothesis_id, did) in &cohort {
+                                if let Some((_, payload)) =
+                                    hits.iter().find(|(hit_did, _)| hit_did == did)
+                                {
+                                    db.insert_hypothesis_sample(
+                                        *hypothesis_id,
+                                        now_ms(),
+                                        payload,
+                                        refs_json.as_deref(),
+                                    );
+                                }
+                            }
+                            run.record(&module, elapsed, &hits);
+                            let suspended = run.suspended(Instant::now()) || run.slow(elapsed);
+                            if run.take_suspend_log(suspended) {
+                                log::warn!(
+                                    "learning suspended: {:.1}% occupancy, last read {:.2}s",
+                                    elapsed.as_secs_f64() * 100.0 / 60.0,
+                                    elapsed.as_secs_f64()
+                                );
+                            }
+                        }
+                        let snapshot = {
+                            let mut guard = status.lock().unwrap();
+                            guard.learning = Some(run.status());
+                            guard.clone()
+                        };
+                        let _ = app.emit("conn-status", &snapshot);
+                    }
                 }
             }
             if tick % 20 == 0 {
@@ -1244,6 +1324,12 @@ mod tests {
                 last_run_at: None,
                 knowledge_key: discovery::knowledge_key(),
             }),
+            learning: Some(discovery::learn::LearningStatus {
+                cohort: 8,
+                module: Some("700/708".into()),
+                samples_this_ride: 12,
+                suspended: false,
+            }),
             ..Default::default()
         };
         let json = serde_json::to_value(&status).unwrap();
@@ -1255,6 +1341,10 @@ mod tests {
             json["discovery"]["knowledge_key"],
             discovery::knowledge_key()
         );
+        assert_eq!(json["learning"]["cohort"], 8);
+        assert_eq!(json["learning"]["module"], "700/708");
+        assert_eq!(json["learning"]["samples_this_ride"], 12);
+        assert_eq!(json["learning"]["suspended"], false);
         let empty = serde_json::to_value(ConnStatus {
             state: "disconnected".into(),
             ..Default::default()

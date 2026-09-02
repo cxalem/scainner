@@ -321,8 +321,7 @@ A person who deliberately leaves the car connected can ask for more:
 Passive validation is **not** background polling of every unknown. It is an
 experiment queue that runs only in a **learning state**:
 
-- **Entering the learning state.** Onboarding offers a "learning drive" on
-  first connection; the app can also be put in a learning state explicitly.
+- **Entering the learning state.** Starting a recorded ride enters the learning state; stopping it exits immediately.
   Outside it, `activation` never becomes `learning` and no hypothesis traffic
   exists — consistent with the acquisition protocol's rule that discovered
   DIDs never become background traffic by themselves.

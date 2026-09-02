@@ -4,6 +4,7 @@ pub mod family;
 pub mod identity;
 pub mod join;
 pub mod knowledge;
+pub mod learn;
 pub mod pack_ext;
 pub mod packs;
 pub mod plan;

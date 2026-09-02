@@ -2,6 +2,7 @@ use super::state::KnowledgeState;
 use crate::db::Db;
 use crate::elm::uds_map;
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 pub const SCHEMA_VERSION: u32 = 1;
@@ -57,6 +58,17 @@ pub struct RequestDid {
     pub byte_length: Option<i64>,
     pub shape_class: String,
     pub samples: i64,
+    pub shape: Option<Value>,
+    pub correlations: Vec<RequestCorrelation>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RequestCorrelation {
+    pub reference: String,
+    pub r: f64,
+    pub slope: f64,
+    pub bias: f64,
+    pub residual: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -83,6 +95,57 @@ fn shape_class(shape_json: Option<&str>) -> String {
         })
         .map(|variability| variability.to_ascii_lowercase())
         .unwrap_or_else(|| "unsampled".into())
+}
+
+fn compact_shape(raw: Option<&str>) -> Option<Value> {
+    let value = serde_json::from_str::<Value>(raw?).ok()?;
+    Some(serde_json::json!({
+        "min": value.get("min")?,
+        "max": value.get("max")?,
+        "variability": value.get("variability")?,
+        "sentinels": value.get("sentinels").cloned().unwrap_or_else(|| serde_json::json!([])),
+    }))
+}
+
+fn top_correlations(raw: Option<&str>) -> Vec<RequestCorrelation> {
+    let mut rows: Vec<RequestCorrelation> = serde_json::from_str::<Value>(raw.unwrap_or("{}"))
+        .ok()
+        .and_then(|value| value.get("reference_correlations").cloned())
+        .and_then(|value| value.as_array().cloned())
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|value| {
+            Some(RequestCorrelation {
+                reference: value.get("reference")?.as_str()?.into(),
+                r: value.get("r")?.as_f64()?,
+                slope: value.get("slope")?.as_f64()?,
+                bias: value.get("bias")?.as_f64()?,
+                residual: value.get("residual_sd")?.as_f64()?,
+            })
+        })
+        .collect();
+    rows.sort_by(|a, b| b.r.abs().total_cmp(&a.r.abs()));
+    rows.truncate(3);
+    rows
+}
+
+fn silent_family(outcome: &crate::db::RouteOutcomeRow) -> String {
+    let route = serde_json::from_str::<Value>(outcome.route_json.as_deref().unwrap_or("{}"))
+        .unwrap_or(Value::Null);
+    for key in ["catalogue_group", "catalogue", "group"] {
+        if let Some(group) = route.get(key).and_then(Value::as_str) {
+            return format!("catalogue group {group}");
+        }
+    }
+    let address = outcome.address.to_ascii_uppercase();
+    if address
+        .split('/')
+        .any(|part| part.starts_with("18DA") && part.ends_with("F1"))
+    {
+        "29-bit 18DAxxF1 range".into()
+    } else {
+        "11-bit range".into()
+    }
 }
 
 pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
@@ -131,13 +194,17 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
 
     let mut unlabeled_dids: Vec<RequestDid> = Vec::new();
     for module in &module_rows {
-        let shapes: BTreeMap<u16, (Option<String>, i64)> = hypotheses
+        let shapes: BTreeMap<u16, (Option<String>, Option<String>, i64)> = hypotheses
             .iter()
             .filter(|hypothesis| hypothesis.module_id == module.id)
             .map(|hypothesis| {
                 (
                     hypothesis.did,
-                    (hypothesis.shape_json.clone(), hypothesis.sample_count),
+                    (
+                        hypothesis.shape_json.clone(),
+                        hypothesis.interpretations_json.clone(),
+                        hypothesis.sample_count,
+                    ),
                 )
             })
             .collect();
@@ -145,13 +212,16 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
             if did.label.is_some() {
                 continue;
             }
-            let (shape, samples) = shapes.get(&did.did).cloned().unwrap_or((None, 0));
+            let (shape, interpretations, samples) =
+                shapes.get(&did.did).cloned().unwrap_or((None, None, 0));
             unlabeled_dids.push(RequestDid {
                 address: module.address.clone(),
                 did: hex_did(did.did),
                 byte_length: did.byte_length,
                 shape_class: shape_class(shape.as_deref()),
                 samples,
+                shape: compact_shape(shape.as_deref()),
+                correlations: top_correlations(interpretations.as_deref()),
             });
         }
     }
@@ -189,12 +259,18 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
     }
 
     let mut questions: Vec<String> = Vec::new();
+    let mut silent_counts: BTreeMap<String, usize> = BTreeMap::new();
+    for outcome in &db.route_outcomes(vehicle_id) {
+        if outcome.route_state == "silent" {
+            *silent_counts.entry(silent_family(outcome)).or_default() += 1;
+        }
+    }
+    for (family, count) in silent_counts {
+        questions.push(format!("{count} silent routes in the {family}: which modules are fitted or gateway-routed on this platform?"));
+    }
     for outcome in &route_outcomes {
         match outcome.state.as_str() {
-            "silent" => questions.push(format!(
-                "route {} silent on {} connection(s): is there a module there on this platform, and behind which gateway?",
-                outcome.address, outcome.attempts
-            )),
+            "silent" => {}
             "refused" => questions.push(match outcome.nrc {
                 Some(nrc) => format!(
                     "route {} refused with NRC 0x{nrc:02X} on {} connection(s): which read service and session does it want?",
@@ -227,6 +303,26 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
             did.byte_length.unwrap_or_default(),
             did.shape_class
         ));
+    }
+    for hypothesis in &hypotheses {
+        let disagreements = hypothesis
+            .interpretations_json
+            .as_deref()
+            .and_then(|raw| serde_json::from_str::<Value>(raw).ok())
+            .and_then(|value| {
+                value
+                    .get("candidate_interpretations")
+                    .and_then(Value::as_array)
+                    .map(Vec::len)
+            })
+            .unwrap_or(0);
+        if hypothesis
+            .confidence
+            .is_some_and(|confidence| confidence >= 0.8)
+            && disagreements > 1
+        {
+            questions.push(format!("high-confidence interpretations disagree for DID {} on {}: which discriminating test resolves them?", hex_did(hypothesis.did), hypothesis.module_address));
+        }
     }
 
     Some(ResearchRequest {
@@ -281,6 +377,15 @@ mod tests {
     fn research_request_reports_outcomes_unlabeled_dids_and_questions() {
         let db = Db::open(std::path::Path::new(":memory:")).unwrap();
         let vehicle_id = seed(&db);
+        let hypothesis_id = db.list_hypotheses(vehicle_id)[0].id;
+        db.insert_hypothesis_sample(hypothesis_id, 1, "00 12", Some("[]"));
+        db.write_hypothesis_analysis(
+            hypothesis_id,
+            r#"{"byte_length":2,"variability":"fast","min":[0,1],"max":[3,9],"sentinels":[]}"#,
+            r#"{"reference_correlations":[{"reference":"speed","r":0.95,"slope":1.0,"bias":0.0,"residual_sd":0.2}]}"#,
+            0.7,
+            None,
+        );
         let request = research_request(&db, vehicle_id).unwrap();
 
         assert_eq!(request.schema_version, 1);
@@ -308,13 +413,28 @@ mod tests {
             .collect();
         assert_eq!(dids, ["D410"]);
         assert_eq!(request.unlabeled_dids[0].byte_length, Some(2));
-        assert_eq!(request.unlabeled_dids[0].shape_class, "unsampled");
+        assert_eq!(request.unlabeled_dids[0].shape_class, "fast");
+        assert_eq!(request.unlabeled_dids[0].samples, 1);
+        assert_eq!(
+            request.unlabeled_dids[0].shape.as_ref().unwrap()["min"],
+            serde_json::json!([0, 1])
+        );
+        assert_eq!(request.unlabeled_dids[0].correlations[0].reference, "speed");
 
         assert_eq!(request.open_hypotheses.get("unknown"), Some(&1));
         assert!(request
             .questions
             .iter()
-            .any(|question| question.contains("752/652") && question.contains("silent on 2")));
+            .any(|question| question.contains("1 silent routes")
+                && question.contains("11-bit range")));
+        assert_eq!(
+            request
+                .questions
+                .iter()
+                .filter(|question| question.contains("silent routes"))
+                .count(),
+            1
+        );
         assert!(request
             .questions
             .iter()
