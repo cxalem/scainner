@@ -574,9 +574,7 @@ pub async fn pair_adapter(
         elm::transport::bluetooth::platform().pair(&addr, pin.as_deref())
     })
     .await
-    .map_err(|e| {
-        elm::transport::bluetooth::PairFailure::Other(format!("worker join error: {e}"))
-    })?
+    .map_err(|e| elm::transport::bluetooth::PairFailure::Other(format!("worker join error: {e}")))?
 }
 
 /// The active adapter profile: `adapter.*` settings with the

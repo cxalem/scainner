@@ -272,7 +272,9 @@ impl BluetoothControl for MacosBlueutil {
         // `classify_pair_failure` reads — instead of a wait on a terminal
         // nobody is looking at.
         let out = command.stdin(Stdio::null()).output().map_err(|e| {
-            PairFailure::Other(format!("blueutil not runnable (brew install blueutil): {e}"))
+            PairFailure::Other(format!(
+                "blueutil not runnable (brew install blueutil): {e}"
+            ))
         })?;
         log::info!(
             "blueutil pair {addr} (with pin: {}): code={:?}",
