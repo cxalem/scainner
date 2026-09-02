@@ -367,7 +367,7 @@ lists backlog ids only.
 
 | Id | What | Evidence | Size | Depends on |
 |---|---|---|---|---|
-| DA-10 | Fix S4 target selection: modules with no inherited decodes and the most open hypotheses; read `hypotheses`. | F3, `plan.rs:369-374` | S | none |
+| DA-10 | **Done 2026-09-02:** rank S4 targets by answered DIDs without decodes, then fewer prior sweeps, then known decodes. | F3, `plan.rs` | S | none |
 | DA-11 | Exclude `F4xx` for real, as an exclusion band or a hard filter. | A#49, `plan.rs:197-206`, `uds-map.json:2686-2691,4059-4064` | S | none |
 | DA-12 | Persist sweep carry-over; add a global ceiling that spans the whole run. | F4, `uds.rs:788-792`, `auto.rs:44,57` | M | none |
 | DA-13 | Identity on `21`/`1A` modules: `request_for` handles DIDs above 0xFF or data-declared local ids. | F9, `uds.rs:443-459` | M | none |

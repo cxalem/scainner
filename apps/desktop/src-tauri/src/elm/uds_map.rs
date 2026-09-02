@@ -2061,6 +2061,24 @@ mod tests {
     }
 
     #[test]
+    fn signed_scaled_payload_decodes_below_zero() {
+        let decode = Decode {
+            offset: 0,
+            len: 2,
+            signed: true,
+            encoding: DecodeEncoding::Be,
+            bit_offset: None,
+            bit_len: None,
+            scale: 0.1,
+            bias: 0.0,
+            unit: "°".into(),
+            quantity: "angle".into(),
+            label: "Angle".into(),
+        };
+        assert_eq!(decode_value(&decode, &[0xFF, 0xF6]), Some(-1.0));
+    }
+
+    #[test]
     fn profiled_level_and_gateway_behaviour_come_from_data_on_two_brands() {
         assert_eq!(
             profiled_level_for_vin(Some("VR7EXAMPLE0000001")),

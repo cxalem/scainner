@@ -474,11 +474,34 @@ pub fn reached_routes(db: &Db, vehicle_id: i64) -> Vec<(u32, u32)> {
 
 pub fn parked_verification(
     drv: &mut ElmDriver,
+    db: &Db,
+    vehicle_id: i64,
     vin: Option<&str>,
     model: Option<&str>,
     reached: &[(u32, u32)],
 ) -> ParkedVerificationReport {
-    let plan = plan::generate_for_vehicle(vin, model, reached, uds_map::map());
+    let mut stats = std::collections::HashMap::new();
+    for (address, did) in db.discovered_addresses_and_dids(vehicle_id) {
+        let Some((req, resp)) = parse_module_address(&address) else {
+            continue;
+        };
+        if uds_map::decodes_for_did(vin, req, resp, did).is_empty() {
+            stats
+                .entry((req, resp))
+                .or_insert_with(plan::SweepTargetStats::default)
+                .answered_without_decode += 1;
+        }
+    }
+    for (route, count) in db.parked_sweep_counts(vehicle_id) {
+        let Some((req, resp)) = parse_module_address(&route) else {
+            continue;
+        };
+        stats
+            .entry((req, resp))
+            .or_insert_with(plan::SweepTargetStats::default)
+            .previous_sweeps = count;
+    }
+    let plan = plan::generate_for_vehicle_with_stats(vin, model, reached, uds_map::map(), &stats);
     execute_plan(drv, &plan)
 }
 
@@ -1544,7 +1567,8 @@ fn engine_likely_started(current: f64, baseline: f64) -> bool {
 }
 
 fn parse_module_address(addr: &str) -> Option<(u32, u32)> {
-    let (req, resp) = addr.split_once('/')?;
+    let (req, resp) = addr.split_once('/').or_else(|| addr.split_once('→'))?;
+    let resp = resp.split_whitespace().next()?;
     Some((uds_map::can_address(req)?, uds_map::can_address(resp)?))
 }
 
@@ -2430,8 +2454,9 @@ mod tests {
     }
 
     #[test]
-    fn parses_the_exact_module_address_format_discover_writes() {
+    fn parses_stored_module_and_verification_route_formats() {
         assert_eq!(parse_module_address("6B4/694"), Some((0x6B4, 0x694)));
+        assert_eq!(parse_module_address("6B4→694"), Some((0x6B4, 0x694)));
         assert_eq!(parse_module_address("garbage"), None);
         assert_eq!(parse_module_address("ZZZ/694"), None);
     }

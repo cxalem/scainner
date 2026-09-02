@@ -2,6 +2,7 @@ use super::pack_ext::{self, BandClass, ProfileModule};
 use super::research::{self, CandidateDecodeHypothesis};
 use crate::elm::uds_map::{self, hex16, ReadService, Route, RouteProtocol, UdsMap};
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -43,6 +44,12 @@ pub struct ParkedPlan {
 }
 
 pub const SWEEP_BUDGET_SECS: u64 = 240;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SweepTargetStats {
+    pub answered_without_decode: usize,
+    pub previous_sweeps: usize,
+}
 
 pub fn plan_version(vin: Option<&str>) -> String {
     let brand = uds_map::brand_for_vin(vin)
@@ -194,6 +201,16 @@ pub fn generate_for_vehicle(
     reached: &[(u32, u32)],
     map: &UdsMap,
 ) -> ParkedPlan {
+    generate_for_vehicle_with_stats(vin, model, reached, map, &HashMap::new())
+}
+
+pub fn generate_for_vehicle_with_stats(
+    vin: Option<&str>,
+    model: Option<&str>,
+    reached: &[(u32, u32)],
+    map: &UdsMap,
+    sweep_stats: &HashMap<(u32, u32), SweepTargetStats>,
+) -> ParkedPlan {
     let profile = pack_ext::profile_modules_for_vin(map, vin);
     let brand_id = uds_map::brand_for_vin_in(map, vin).map(|b| b.id.clone());
     let mut modules: Vec<ProfileModule> = if reached.is_empty() {
@@ -342,10 +359,19 @@ pub fn generate_for_vehicle(
     let sweep_target = modules
         .iter()
         .enumerate()
-        .map(|(i, m)| (data_evidence(map, vin, m), i))
-        .filter(|(evidence, _)| *evidence > 0)
-        .max_by_key(|(evidence, i)| (*evidence, usize::MAX - *i))
-        .map(|(_, i)| i);
+        .max_by_key(|(i, module)| {
+            let stats = sweep_stats
+                .get(&(module.req, module.resp))
+                .copied()
+                .unwrap_or_default();
+            (
+                stats.answered_without_decode,
+                usize::MAX - stats.previous_sweeps,
+                data_evidence(map, vin, module),
+                usize::MAX - *i,
+            )
+        })
+        .map(|(i, _)| i);
     if let Some(index) = sweep_target {
         let module = &modules[index];
         let bands = sweep_bands(map, vin, module.family_id.as_deref());
@@ -361,7 +387,7 @@ pub fn generate_for_vehicle(
                 read_service: base.read_service,
                 dids: Vec::new(),
                 sweep: bands,
-                source: "bounded default-session sweep over the brand's data bands (identity and configuration classes excluded), on the route with the most decoded evidence in the pack".into(),
+                source: "bounded default-session sweep over the brand's data bands (identity and configuration classes excluded), prioritised by unanswered decode gaps and sweep history".into(),
             };
             targets.push(sweep);
         }
@@ -457,6 +483,51 @@ mod tests {
             );
         }
         assert_eq!(plan.sweep_budget_secs, SWEEP_BUDGET_SECS);
+    }
+
+    #[test]
+    fn sweep_target_prefers_decode_gaps_then_fewer_sweeps_then_known_decodes() {
+        let vin = verified_brand_vin();
+        let reached = routes_reached_by_the_verified_vehicle();
+        let mut stats = HashMap::from([
+            (
+                (0x74A, 0x64A),
+                SweepTargetStats {
+                    answered_without_decode: 8,
+                    previous_sweeps: 0,
+                },
+            ),
+            (
+                (0x6AD, 0x68D),
+                SweepTargetStats {
+                    answered_without_decode: 9,
+                    previous_sweeps: 3,
+                },
+            ),
+            (
+                (0x6B5, 0x695),
+                SweepTargetStats {
+                    answered_without_decode: 9,
+                    previous_sweeps: 1,
+                },
+            ),
+        ]);
+        let plan = generate_for_vehicle_with_stats(Some(&vin), None, &reached, map(), &stats);
+        let sweep = plan
+            .targets
+            .iter()
+            .find(|target| target.key.ends_with("_sweep"))
+            .unwrap();
+        assert_eq!((sweep.req.as_str(), sweep.resp.as_str()), ("6B5", "695"));
+
+        stats.get_mut(&(0x6AD, 0x68D)).unwrap().previous_sweeps = 1;
+        let plan = generate_for_vehicle_with_stats(Some(&vin), None, &reached, map(), &stats);
+        let sweep = plan
+            .targets
+            .iter()
+            .find(|target| target.key.ends_with("_sweep"))
+            .unwrap();
+        assert_eq!((sweep.req.as_str(), sweep.resp.as_str()), ("6AD", "68D"));
     }
 
     #[test]

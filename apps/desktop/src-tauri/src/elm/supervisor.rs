@@ -1072,7 +1072,8 @@ fn handle_request(
                     let model = vehicle.as_ref().and_then(|value| value.model.as_deref());
                     let reached = uds::reached_routes(db, vehicle_id);
                     set_scanning(app, status, true);
-                    let mut report = uds::parked_verification(drv, vin, model, &reached);
+                    let mut report =
+                        uds::parked_verification(drv, db, vehicle_id, vin, model, &reached);
                     set_scanning(app, status, false);
                     match serde_json::to_string(&report)
                         .map_err(|error| error.to_string())
