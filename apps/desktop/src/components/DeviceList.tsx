@@ -1,39 +1,3 @@
-// The first screen of connecting: the OBD devices this machine can see.
-// Was a modal behind a "Choose adapter" button; it is now the gate's own
-// opening state, so the common case is one tap on Connect.
-//
-// A dongle out of the box is not in that list yet, so the screen can also
-// scan for radios in range and pair the one the user picks — scan, tap,
-// paired, and it is an ordinary row ready to connect. The scan is a first-
-// class action in the card's own header, and its results land above the
-// paired rows, because a 230 px card cannot ask the user to go looking for
-// what they just clicked. Scan results are UI state only: Refresh clears
-// them, and only a real pairing turns one into a row.
-//
-// Pairing sends no PIN (Brief K, 2026-09-02). Secure Simple Pairing is what
-// current dongles use and an already-paired radio needs nothing at all, so
-// the field only appears when the radio itself asks — the backend's
-// `pin_required` answer — and the attempt is then retried with the code.
-//
-// The Nearby group OPENS rather than appears (Brief M, 2026-09-02): it
-// grows from nothing to its own measured height, so the paired rows below
-// are carried down by the growth instead of being shoved. The same
-// measurement keeps following the group afterwards, so the countdown
-// becoming a result — or a PIN field opening on a row — resizes it smoothly
-// too. See <Grow> in motion/components.tsx.
-//
-// Nothing here ever moves the scroll (Brief P, 2026-09-02). The group is
-// pinned above the paired rows and cannot be shrunk out of existence, so it
-// is already where the click was; scrolling to it as well only stole the
-// position the user was reading from. The scanning line went missing for
-// exactly the opposite reason: the growing box is a flex item, and an
-// `overflow: hidden` flex item has an automatic minimum size of 0, so a card
-// already full of paired rows squashed the whole group back to nothing while
-// framer went on animating a height nobody could see.
-//
-// Presentational on purpose — the gate owns the selection, because it also
-// needs the chosen device's name for the connecting screen and its path
-// for the profile it saves.
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bluetooth, Cable, Loader2, Radar, Usb } from "lucide-react";
@@ -49,6 +13,7 @@ import {
   DEFAULT_PIN,
   defaultPin,
   deviceRows,
+  deviceScrollColumnClass,
   isPinRequired,
   listSections,
   nearbyRows,
@@ -305,9 +270,6 @@ export function DeviceList({
 
   return (
     <div className="flex h-full flex-col">
-      {/* The scan is the answer whenever the dongle is not in the list yet,
-          so it is the card's own header action rather than a ghost button
-          under everything the user would have to scroll past. */}
       <div className="flex shrink-0 items-center gap-2 border-b border-divider px-3 py-2">
         <Kicker className="flex-1">{t.gate.devicesHeading}</Kicker>
         <Button
@@ -322,10 +284,7 @@ export function DeviceList({
         </Button>
       </div>
 
-      {/* No `gap` on this column: the space under the Nearby group belongs
-          to the group, so it collapses with it instead of leaving a gap
-          behind when the group closes. */}
-      <div className="flex flex-1 flex-col overflow-y-auto p-3">
+      <div className={deviceScrollColumnClass}>
         <Grow when={showNearby} className="pb-3">
           <NearbyGroup discovery={discovery} />
         </Grow>

@@ -121,6 +121,10 @@ export function listSections(scan: ScanState): ListSection[] {
   return showNearby ? ["nearby", "paired"] : ["paired"];
 }
 
+// Scroll anchoring would carry the opening Nearby group out of the card, Pair buttons and all.
+export const deviceScrollColumnClass =
+  "flex flex-1 flex-col overflow-y-auto p-3 [overflow-anchor:none]";
+
 /** Did the radio ask for a PIN? The backend answers a pairing attempt that
  *  carried no PIN with the `pin_required` marker (409 over HTTP, an error
  *  string over Tauri) when — and only when — the device itself asked for a
