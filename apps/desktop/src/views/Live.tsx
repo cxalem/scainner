@@ -30,6 +30,7 @@ import { Trend } from "@/views/live/Trend";
 import { GAUGE_RANGES, percentOf } from "@/views/live/ranges";
 import { usePins } from "@/views/live/pins";
 import { showLiveDiscoveryNotice } from "@/lib/discovery-notice";
+import { Button as RideButton } from "@/components/ui/button";
 
 type SensorState = "standard" | "verified" | "inherited" | "candidate";
 
@@ -190,6 +191,8 @@ export function Live({
   discovery = null,
   vehicleId = null,
   onNavigate,
+  onStartRide,
+  canStartRide = false,
 }: {
   live: LiveMap;
   connected: boolean;
@@ -198,6 +201,8 @@ export function Live({
   connState?: string;
   vehicleId?: number | null;
   onNavigate?: (view: "lab") => void;
+  onStartRide?: () => void;
+  canStartRide?: boolean;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -251,6 +256,7 @@ export function Live({
 
   return (
     <>
+      {canStartRide ? <div className="flex justify-end"><RideButton className="min-h-10" onClick={onStartRide}>{t.ride.record}</RideButton></div> : null}
       <Block className="flex items-center gap-3">
         <Seg
           size="md"

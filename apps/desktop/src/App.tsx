@@ -22,7 +22,7 @@ import { Live } from "@/views/Live";
 import { Diagnose } from "@/views/Diagnose";
 import { Lab } from "@/views/Lab";
 import { Workshop } from "@/views/Workshop";
-import type { ConnStatus, Live as LiveMap } from "@scainner/core";
+import type { ConnStatus, Live as LiveMap, Ride } from "@scainner/core";
 
 const Vehicle = lazy(() => import("@/views/Vehicle").then((m) => ({ default: m.Vehicle })));
 const DiscoveryFlow = lazy(() =>
@@ -37,6 +37,8 @@ export default function App() {
   const [view, setView] = useState<ViewKey>("overview");
   const [conn, setConn] = useState<ConnStatus>({ state: "disconnected" });
   const [live, setLive] = useState<LiveMap>({});
+  const [completedRide, setCompletedRide] = useState<Ride | null>(null);
+  const [rideBusy, setRideBusy] = useState(false);
   const staleTimer = useRef<number | null>(null);
 
   const [discoverVin, setDiscoverVin] = useState<string | null>(null);
@@ -100,7 +102,20 @@ export default function App() {
       : ((vehicles.data ?? []).find((v) => v.id === currentVehicleId)?.vin ?? null);
   const currentVehicle = (vehicles.data ?? []).find((v) => v.id === currentVehicleId);
   const currentName = currentVehicle?.display_name || currentVehicle?.vin || conn.display_name || null;
-  const recording = connected && Object.keys(live).length > 0;
+  const recording = conn.ride != null;
+  const startRide = async () => {
+    setRideBusy(true);
+    try { await runPromise(Effect.flatMap(DeviceService, (device) => device.startRide())); }
+    finally { setRideBusy(false); }
+  };
+  const stopRide = async () => {
+    if (!conn.ride) return;
+    setRideBusy(true);
+    try {
+      const result = await runPromise(Effect.flatMap(DeviceService, (device) => device.stopRide(conn.ride!.id)));
+      setCompletedRide(result);
+    } finally { setRideBusy(false); }
+  };
   const onConnectedCarDiscovery = liveEnabled ? (conn.discovery ?? null) : null;
 
   const connect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()));
@@ -151,6 +166,10 @@ export default function App() {
           onNavigate={setView}
           conn={conn}
           recording={recording}
+          completedRide={completedRide}
+          stoppingRide={rideBusy}
+          onStopRide={() => void stopRide()}
+          onDismissRide={() => setCompletedRide(null)}
           onConnect={connect}
           onDisconnect={disconnect}
           vehicles={vehicles.data ?? []}
@@ -168,6 +187,8 @@ export default function App() {
               vin={currentVin}
               discovery={onConnectedCarDiscovery}
               onNavigate={setView}
+              onStartRide={() => void startRide()}
+              canStartRide={connected && !recording && !rideBusy && completedRide == null}
             />
           )}
           {view === "diagnose" && <Diagnose connected={liveEnabled} vehicleId={currentVehicleId} />}
@@ -180,6 +201,8 @@ export default function App() {
               connState={conn.state}
               vehicleId={currentVehicleId}
               onNavigate={setView}
+              onStartRide={() => void startRide()}
+              canStartRide={connected && !recording && !rideBusy && completedRide == null}
             />
           )}
           {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}

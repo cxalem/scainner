@@ -123,6 +123,22 @@ pub async fn scan_dtcs(state: &AppState) -> Result<DtcResult, String> {
     ask(state, Request::ScanDtcs).await
 }
 
+pub async fn start_ride(state: &AppState) -> Result<db::Ride, String> {
+    ask(state, Request::StartRide).await
+}
+
+pub async fn stop_ride(state: &AppState, id: i64) -> Result<db::Ride, String> {
+    ask(state, |tx| Request::StopRide { id, tx }).await
+}
+
+pub fn list_rides(state: &AppState, vehicle_id: i64) -> Vec<db::Ride> {
+    state.db.rides(vehicle_id)
+}
+
+pub fn ride(state: &AppState, id: i64) -> Option<db::Ride> {
+    state.db.ride(id)
+}
+
 pub async fn clear_dtcs(
     state: &AppState,
     confirmed: bool,

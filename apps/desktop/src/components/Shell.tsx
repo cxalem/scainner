@@ -19,6 +19,8 @@ import { MOCK_MODE } from "@/lib/tauri";
 import { Wordmark } from "@/brand";
 import { Banner, Button, Dot, LiveChip, PageHeader, Pill, Seg, useCyclingLabel } from "@/components/ui";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { RideBanner } from "@/components/RideBanner";
+import type { Ride } from "@scainner/core";
 import { Page, Reveal } from "@/motion/components";
 import { appearVariants } from "@/motion";
 import type { ConnStatus } from "@scainner/core";
@@ -44,6 +46,10 @@ export function Shell({
   onNavigate,
   conn,
   recording,
+  completedRide,
+  stoppingRide,
+  onStopRide,
+  onDismissRide,
   onConnect,
   onDisconnect,
   vehicles = [],
@@ -60,6 +66,10 @@ export function Shell({
   onNavigate: (v: ViewKey) => void;
   conn: ConnStatus;
   recording: boolean;
+  completedRide: Ride | null;
+  stoppingRide: boolean;
+  onStopRide: () => void;
+  onDismissRide: () => void;
   onConnect: () => void;
   onDisconnect: () => Promise<unknown>;
   vehicles?: VehicleOption[];
@@ -277,6 +287,7 @@ export function Shell({
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <UpdateBanner />
+        <RideBanner ride={conn.ride ?? null} completed={completedRide} stopping={stoppingRide} onStop={onStopRide} onDone={onDismissRide} />
         <Reveal when={browsing} mode="fade">
           <Banner
             tone="warn"

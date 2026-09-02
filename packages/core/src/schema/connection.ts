@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { RideStatus } from "./ride";
 
 export const ConnectStage = Schema.Literal("link", "open", "handshake", "bus");
 export type ConnectStage = typeof ConnectStage.Type;
@@ -47,6 +48,7 @@ export class ConnStatus extends Schema.Class<ConnStatus>("ConnStatus")({
   vehicle_is_new: Schema.optional(Schema.Boolean),
   scanning: Schema.optional(Schema.Boolean),
   discovery: Schema.optional(Schema.NullOr(DiscoveryStatus)),
+  ride: Schema.optional(Schema.NullOr(RideStatus)),
 }) {}
 
 export type Live = Record<string, number>;

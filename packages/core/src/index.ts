@@ -8,6 +8,7 @@ export * from "./schema/diagnose";
 export * from "./schema/lab";
 export * from "./schema/live";
 export * from "./schema/history";
+export * from "./schema/ride";
 
 export * from "./services/device-service";
 export * from "./services/ai-service";

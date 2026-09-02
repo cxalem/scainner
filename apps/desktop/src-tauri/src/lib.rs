@@ -79,6 +79,21 @@ async fn scan_dtcs(state: State<'_>) -> Result<DtcResult, String> {
 }
 
 #[tauri::command]
+async fn start_ride(state: State<'_>) -> Result<db::Ride, String> {
+    ops::start_ride(&state).await
+}
+
+#[tauri::command]
+async fn stop_ride(state: State<'_>, id: i64) -> Result<db::Ride, String> {
+    ops::stop_ride(&state, id).await
+}
+
+#[tauri::command]
+fn list_rides(state: State, vehicle_id: i64) -> Vec<db::Ride> {
+    ops::list_rides(&state, vehicle_id)
+}
+
+#[tauri::command]
 async fn clear_dtcs(
     state: State<'_>,
     confirmed: bool,
@@ -447,6 +462,9 @@ pub fn run() {
             set_adapter_profile,
             conn_status,
             scan_dtcs,
+            start_ride,
+            stop_ride,
+            list_rides,
             clear_dtcs,
             read_ecu_info,
             readiness,

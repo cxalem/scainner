@@ -1,6 +1,20 @@
 import type { Dictionary } from "./dictionary";
 
 export const en: Dictionary = {
+  ride: {
+    record: "Record ride",
+    recording: "Recording your ride",
+    stop: "Stop",
+    samples: (count) => `${count} samples`,
+    saved: {
+      none: (minutes, sensors) => `Ride recorded. ${minutes} min, ${sensors} sensors, no fault codes.`,
+      one: (minutes, sensors) => `Ride recorded. ${minutes} min, ${sensors} sensors, 1 fault code appeared.`,
+      many: (minutes, sensors, codes) => `Ride recorded. ${minutes} min, ${sensors} sensors, ${codes} fault codes appeared.`,
+    },
+    location: "Your data is in the app: Live for the sensors, Diagnose for the codes.",
+    report: (price) => `Get the AI report · ${price}`,
+    done: "Done",
+  },
   common: {
     cancel: "Cancel",
     retry: "Retry",
