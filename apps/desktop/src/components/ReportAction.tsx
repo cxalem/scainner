@@ -21,7 +21,8 @@ export function ReportAction({ input }: { input: ReportSubject }) {
   const copy = t.reportOffer;
   const queryClient = useQueryClient();
   const session = useSession();
-  const signedIn = (MOCK_MODE && new URLSearchParams(window.location.search).get("report-state") !== "signed-out") || typeof session === "string";
+  const previewSignedOut = MOCK_MODE && new URLSearchParams(window.location.search).get("report-state") === "signed-out";
+  const signedIn = !previewSignedOut && typeof session === "string";
   const [open, setOpen] = useState(false);
   const [language, setLanguage] = useState<Locale>(locale);
   const [waiting, setWaiting] = useState(false);

@@ -12,7 +12,6 @@ export const en: Dictionary = {
       many: (minutes, sensors, codes) => `Ride recorded. ${minutes} min, ${sensors} sensors, ${codes} fault codes appeared.`,
     },
     location: "Your data is in the app: Live for the sensors, Diagnose for the codes.",
-    report: "Get report",
     done: "Done",
   },
   reportOffer: {

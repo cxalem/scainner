@@ -78,7 +78,7 @@ export function RideBanner({ ride, completed, stopping, onStop, onDone }: {
                   <AlertTitle>{firstLine}</AlertTitle>
                   <AlertDescription className="text-[12px]">{t.ride.location}</AlertDescription>
                 </div>
-                <ReportAction input={{ kind: "ride", ride_id: completed!.cloud_id }} />
+                {completed ? <ReportAction input={{ kind: "ride", ride_id: completed.cloud_id }} /> : null}
                 <Button className="min-h-10" variant="outline" onClick={onDone}>{t.ride.done}</Button>
               </>
             )}

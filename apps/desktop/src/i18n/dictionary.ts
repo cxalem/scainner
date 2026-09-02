@@ -10,7 +10,6 @@ export type Dictionary = {
       many: (minutes: number, sensors: number, codes: number) => string;
     };
     location: string;
-    report: string;
     done: string;
   };
   reportOffer: {
