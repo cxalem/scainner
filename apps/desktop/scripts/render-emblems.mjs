@@ -226,6 +226,7 @@ const YAW = num("yaw", 6) * Math.PI / 180;
 const ELEV = num("elev", 10) * Math.PI / 180;
 const MARGIN = num("margin", 0.88);
 const KEEP_TEXT = Q.get("keepText") === "1";
+const ROTATE = (Q.get("rotate") || "0,0,0").split(",").map(Number);
 const BAND = { maxYFrac: num("bandMaxYFrac", 0.35), minWidthFrac: num("bandMinWidthFrac", 0.5), minCount: num("bandMinCount", 3) };
 const TARGET_WIDTH = num("targetWidth", 2.6);
 
@@ -340,6 +341,15 @@ new GLTFLoader().load("/model.glb" + location.search, (gltf) => {
   const obj = gltf.scene;
   let meshes = 0;
   obj.traverse((o) => { if (o.isMesh) { o.material = material; meshes += 1; } });
+
+  // Not every badge is exported face-up toward +Z: some sit face-down, so a
+  // camera on +Z sees the back of the extrusion and the mark reads mirrored
+  // or upside down. Nothing in the geometry says which way is "up" for a
+  // logo, so the correction is a per-file override.
+  if (ROTATE.some((d) => d)) {
+    obj.rotation.set(...ROTATE.map((d) => d * Math.PI / 180));
+    obj.updateMatrixWorld(true);
+  }
 
   const dropped = KEEP_TEXT ? 0 : stripWordmark(obj);
 
@@ -491,6 +501,7 @@ for (const glb of inputs) {
     elev: String(ov.elevDeg ?? DEFAULT_ELEV_DEG),
     margin: String(ov.margin ?? DEFAULT_MARGIN),
     keepText: opts.keepText || ov.keepText ? "1" : "0",
+    rotate: (ov.rotateDeg ?? [0, 0, 0]).join(","),
     bandMaxYFrac: String(ov.bandMaxYFrac ?? DEFAULT_BAND.maxYFrac),
     bandMinWidthFrac: String(ov.bandMinWidthFrac ?? DEFAULT_BAND.minWidthFrac),
     bandMinCount: String(ov.bandMinCount ?? DEFAULT_BAND.minCount),

@@ -107,11 +107,14 @@ export const RECOGNISED_BRANDS: readonly BrandInfo[] = (() => {
 // so it can't silently drift. saic/vauxhall/cupra have a modeled emblem
 // but no WMI entry (see emblems.tsx's own comment) — named by hand in the
 // JSON's unroutedNames since WMI has no casing for them to borrow.
-// The JSON's order leads with "dacia" — its GLB is by far the smallest of
-// the 24 (166 KB vs. several multi-MB files, volvo/audi over 9 MB) — on a
+// The JSON's order leads with "dacia" — the smallest GLB of the routed
+// brands (166 KB vs. several multi-MB files, volvo/audi over 9 MB) — on a
 // genuinely cold app launch (nothing preloaded yet), the first carousel
 // brand is whatever EmblemFallback's "loading" window is shortest for
-// (2026-08-30). The rest of the order is otherwise arbitrary.
+// (2026-08-30). The rest of the order is otherwise arbitrary. The
+// 2026-09-02 batch added two smaller files still (mg 35 KB, maxus 46 KB),
+// but both are preview-only, and the lead slot should be a brand a VIN can
+// actually route to.
 const MODELED_EMBLEM_KEYS = modeledEmblems.keys;
 const UNROUTED_EMBLEM_NAMES: Record<string, string> = modeledEmblems.unroutedNames;
 

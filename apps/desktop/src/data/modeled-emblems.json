@@ -2,8 +2,20 @@
   "keys": [
     "dacia", "volvo", "citroen", "audi", "bmw", "mercedes", "peugeot", "renault",
     "skoda", "toyota", "volkswagen", "hyundai", "kia", "opel", "fiat", "ford",
-    "geely", "byd", "chery", "tesla", "seat", "land-rover",
-    "saic", "vauxhall", "cupra"
+    "geely", "byd", "chery", "tesla", "seat", "land-rover", "porsche", "jaguar",
+    "saic", "vauxhall", "cupra",
+    "ferrari", "livan", "lucid", "maxus", "mg", "omoda", "rivian"
   ],
-  "unroutedNames": { "saic": "SAIC", "vauxhall": "Vauxhall", "cupra": "Cupra" }
+  "unroutedNames": {
+    "saic": "SAIC",
+    "vauxhall": "Vauxhall",
+    "cupra": "Cupra",
+    "ferrari": "Ferrari",
+    "livan": "Livan",
+    "lucid": "Lucid",
+    "maxus": "Maxus",
+    "mg": "MG",
+    "omoda": "Omoda",
+    "rivian": "Rivian"
+  }
 }

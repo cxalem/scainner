@@ -340,7 +340,18 @@ function glbEmblem(file: string, opts?: { targetWidth?: number }): React.Compone
 // Registry: brand.key -> modeled emblem component. Anything not listed here
 // falls back to NameplateEmblem in VehicleScene. Adding a new brand is just
 // a new component plus a new entry, no changes needed elsewhere.
-export const PREVIEW_ONLY_EMBLEMS = ["saic", "vauxhall", "cupra"] as const;
+export const PREVIEW_ONLY_EMBLEMS = [
+  "saic",
+  "vauxhall",
+  "cupra",
+  "ferrari",
+  "livan",
+  "lucid",
+  "maxus",
+  "mg",
+  "omoda",
+  "rivian",
+] as const;
 
 export const EMBLEMS: Record<string, React.ComponentType> = {
   volvo: glbEmblem("volvo.glb"),
@@ -367,16 +378,27 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   // Added 2026-08-30: already had real WMI routing (brand.ts) and was
   // rendering the plain nameplate fallback for lack of a modeled mark — no
   // VIN-reachability question to resolve, unlike saic/vauxhall/cupra below.
-  // porsche, jaguar and suzuki were sourced in the same pass but visually
-  // rejected before shipping: porsche's badge text rendered mirrored/
-  // backward (the same defect volvo's bundled file already had — a real,
-  // pre-existing issue in this asset batch, not something introduced
-  // here), suzuki's geometry was outright broken (jagged, unrecognizable
-  // as the real mark), and jaguar rendered flat with no shading detail —
-  // uncertain enough to hold rather than guess. Their .glb files were
-  // removed, not just left unregistered. Follow-up: re-source from a
-  // batch that doesn't have this defect.
+  //
+  // porsche and jaguar were sourced in the same pass and held back then:
+  // porsche's badge text rendered mirrored/backward, and the jaguar file of
+  // the day rendered flat with no shading detail. Both are resolved as of
+  // 2026-09-02 and are registered below. The porsche defect turned out to be
+  // orientation, not art: that batch exports some badges face-down, so a
+  // camera on +Z sees the back of the extrusion and the mark reads mirrored
+  // or upside down. Jaguar is a different, re-meshed file (a solid leaper
+  // with real extrusion, not the paper-thin shell with punched-through
+  // cutouts that was rejected) and it had the same face-down export. Both
+  // carry a half-turn about X baked into the .glb itself
+  // (scripts/rotate-emblem-glb.mjs) rather than corrected per-consumer, so
+  // this canvas and the PNG pipeline agree.
+  //
+  // suzuki stays out: its source geometry is genuinely broken (torn,
+  // sawtooth edges and a bowed face — unrecognizable as the real mark), and
+  // no orientation or material change touches that. Its .glb is removed,
+  // not just left unregistered. Follow-up: re-source it from a clean batch.
   "land-rover": glbEmblem("land-rover.glb"),
+  porsche: glbEmblem("porsche.glb"),
+  jaguar: glbEmblem("jaguar.glb"),
   // saic, vauxhall, and cupra have no brand.ts WMI entry on purpose — see
   // brand.ts and decisions-build.md. SAIC Motor doesn't retail cars under
   // its own name (badges as MG/Roewe/Maxus instead). Vauxhall and Cupra
@@ -394,4 +416,15 @@ export const EMBLEMS: Record<string, React.ComponentType> = {
   saic: glbEmblem("saic.glb"),
   vauxhall: glbEmblem("vauxhall.glb"),
   cupra: glbEmblem("cupra.glb"),
+  // Added 2026-09-02, same preview-only footing and for the plainer reason:
+  // wmi.json has no code for any of them yet, so nothing routes a VIN here.
+  // The marks are modeled and ready; each becomes reachable the moment its
+  // WMI lands in the table, with no change needed in this file.
+  ferrari: glbEmblem("ferrari.glb"),
+  livan: glbEmblem("livan.glb"),
+  lucid: glbEmblem("lucid.glb"),
+  maxus: glbEmblem("maxus.glb"),
+  mg: glbEmblem("mg.glb"),
+  omoda: glbEmblem("omoda.glb"),
+  rivian: glbEmblem("rivian.glb"),
 };
