@@ -894,6 +894,43 @@ mod tests {
     }
 
     #[test]
+    fn hyundai_group_pack_keeps_egmp_models_and_marques_isolated() {
+        let vin = vin_for_brand("hyundai_kia");
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("IONIQ 5")),
+            Some("hyundai_ioniq5_ne".into())
+        );
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("EV6")),
+            Some("kia_ev6_cv".into())
+        );
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("GV60")),
+            Some("genesis_gv60_jw".into())
+        );
+
+        let ioniq = routes_for_context(Some(&vin), Some("hyundai_ioniq5_ne"));
+        assert_eq!(ioniq.len(), 3);
+        assert!(ioniq
+            .iter()
+            .any(|route| route.route_id == "hyundai_ioniq5_ne_bms_7e4_7ec"));
+        assert!(ioniq
+            .iter()
+            .all(|route| !route.route_id.starts_with("kia_")));
+
+        let ev6 = routes_for_context(Some(&vin), Some("kia_ev6_cv"));
+        assert_eq!(ev6.len(), 3);
+        assert!(ev6
+            .iter()
+            .any(|route| route.route_id == "kia_ev6_cv_vcms_744_74c"));
+        assert!(ev6
+            .iter()
+            .all(|route| !route.route_id.starts_with("hyundai_")));
+
+        assert!(routes_for_context(Some(&vin), Some("genesis_gv60_jw")).is_empty());
+    }
+
+    #[test]
     fn psa_catalogue_is_exploration_only_and_model_branches_stay_isolated() {
         let vin = vin_for_brand("psa");
         let normal = routes_for_context(Some(&vin), Some("psa_c41_project_observed"));

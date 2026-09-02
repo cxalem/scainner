@@ -1,0 +1,676 @@
+{
+  "schema_version": 1,
+  "pack_id": "hyundai-kia-deep-research-runtime-v1",
+  "version": 1,
+  "research_date": "2026-09-02",
+  "mode": "candidate_discovery_only",
+  "policy": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "forbidden_services": [
+      "10",
+      "11",
+      "14",
+      "27",
+      "28",
+      "2E",
+      "2F",
+      "31",
+      "34",
+      "35",
+      "36",
+      "37",
+      "3D"
+    ],
+    "candidate_decodes_are_hypotheses": true
+  },
+  "profiles": [
+    {
+      "brand_id": "hyundai_kia",
+      "brand_name": "Hyundai / Kia / Genesis",
+      "status": "research_candidate",
+      "wmis": [],
+      "platforms": [
+        {
+          "platform_id": "hyundai_ioniq5_ne",
+          "models": [
+            "ioniq_5"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "kia_ev6_cv",
+          "models": [
+            "ev6"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        },
+        {
+          "platform_id": "genesis_gv60_jw",
+          "models": [
+            "gv60"
+          ],
+          "powertrains": [
+            "bev"
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "route_id": "hyundai_ioniq5_ne_abs_730_738",
+          "platform": "hyundai_ioniq5_ne",
+          "protocol": "can11_500",
+          "req": "730",
+          "resp": "738",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "hyundai-kia-deep-research.source.s01"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "F010",
+              "semantic": "wheel speeds and steering angle",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "le",
+                      "signed": false,
+                      "scale": 0.03125,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "front right wheel speed"
+                    },
+                    {
+                      "offset": 2,
+                      "len": 2,
+                      "encoding": "le",
+                      "signed": false,
+                      "scale": 0.03125,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "front left wheel speed"
+                    },
+                    {
+                      "offset": 4,
+                      "len": 2,
+                      "encoding": "le",
+                      "signed": false,
+                      "scale": 0.03125,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "rear right wheel speed"
+                    },
+                    {
+                      "offset": 6,
+                      "len": 2,
+                      "encoding": "le",
+                      "signed": false,
+                      "scale": 0.03125,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "rear left wheel speed"
+                    },
+                    {
+                      "offset": 8,
+                      "len": 2,
+                      "encoding": "le",
+                      "signed": true,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "deg",
+                      "quantity": "angle",
+                      "label": "steering wheel angle"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "capture stationary baseline",
+                  "drive straight slowly",
+                  "perform gentle left and right turns",
+                  "stop and recapture baseline"
+                ],
+                "expected_behavior": [
+                  "wheel speeds are near zero at rest",
+                  "wheel speeds track vehicle motion",
+                  "steering changes sign and returns near center"
+                ]
+              },
+              "validation_recipe_id": "chassis_motion_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "hyundai_ioniq5_ne_tpms_7a0_7a8",
+          "platform": "hyundai_ioniq5_ne",
+          "protocol": "can11_500",
+          "req": "7A0",
+          "resp": "7A8",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "hyundai-kia-deep-research.source.s01"
+          ],
+          "module_role": "bcm_tpms",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "C00B",
+              "semantic": "four tire pressures",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "front left tire pressure"
+                    },
+                    {
+                      "offset": 5,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "front right tire pressure"
+                    },
+                    {
+                      "offset": 10,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "rear left tire pressure"
+                    },
+                    {
+                      "offset": 15,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "rear right tire pressure"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "measure all four tires with a calibrated gauge",
+                  "capture candidate payload",
+                  "repeat after a small controlled pressure change"
+                ],
+                "expected_behavior": [
+                  "wheel ordering matches",
+                  "values track gauge readings",
+                  "changed tire alone moves consistently"
+                ]
+              },
+              "validation_recipe_id": "tpms_reference_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "hyundai_ioniq5_ne_bms_7e4_7ec",
+          "platform": "hyundai_ioniq5_ne",
+          "protocol": "can11_500",
+          "req": "7E4",
+          "resp": "7EC",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "hyundai-kia-deep-research.source.s01"
+          ],
+          "module_role": "bms",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "0101",
+              "semantic": "traction battery state",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.5,
+                      "bias": 0,
+                      "unit": "%",
+                      "quantity": "percentage",
+                      "label": "displayed state of charge"
+                    },
+                    {
+                      "offset": 6,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": true,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "A",
+                      "quantity": "current",
+                      "label": "battery current"
+                    },
+                    {
+                      "offset": 8,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "battery DC voltage"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "capture READY stationary",
+                  "capture acceleration",
+                  "capture regenerative braking",
+                  "compare SOC with cluster"
+                ],
+                "expected_behavior": [
+                  "voltage stays physically plausible",
+                  "current behavior differs between propulsion and regeneration",
+                  "SOC tracks cluster direction"
+                ]
+              },
+              "validation_recipe_id": "battery_power_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "kia_ev6_cv_vcms_744_74c",
+          "platform": "kia_ev6_cv",
+          "protocol": "can11_500",
+          "req": "744",
+          "resp": "74C",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "hyundai-kia-deep-research.source.s02"
+          ],
+          "module_role": "charging_control",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "E003",
+              "semantic": "charging state and target",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S02-a",
+                  "signals": [
+                    {
+                      "offset": 12,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.5,
+                      "bias": 0,
+                      "unit": "%",
+                      "quantity": "percentage",
+                      "label": "HV battery state of charge"
+                    },
+                    {
+                      "offset": 13,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "target voltage"
+                    },
+                    {
+                      "offset": 15,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "A",
+                      "quantity": "current",
+                      "label": "target current"
+                    }
+                  ],
+                  "source_refs": [
+                    "S02"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "record charger display",
+                  "capture at charging start and steady state",
+                  "compare target values and SOC"
+                ],
+                "expected_behavior": [
+                  "SOC stays within 0-100 percent",
+                  "targets remain plausible for connected charger",
+                  "values change consistently with charge state"
+                ]
+              },
+              "validation_recipe_id": "charging_reference_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "kia_ev6_cv_tpms_7a0_7a8",
+          "platform": "kia_ev6_cv",
+          "protocol": "can11_500",
+          "req": "7A0",
+          "resp": "7A8",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "hyundai-kia-deep-research.source.s02"
+          ],
+          "module_role": "bcm_tpms",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "C00B",
+              "semantic": "four tire pressures",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S02-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "front left tire pressure"
+                    },
+                    {
+                      "offset": 4,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "front right tire pressure"
+                    },
+                    {
+                      "offset": 8,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "rear right tire pressure"
+                    },
+                    {
+                      "offset": 12,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.2,
+                      "bias": 0,
+                      "unit": "psi",
+                      "quantity": "pressure",
+                      "label": "rear left tire pressure"
+                    }
+                  ],
+                  "source_refs": [
+                    "S02"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "measure all four tires with a calibrated gauge",
+                  "capture candidate payload",
+                  "repeat after a small controlled pressure change"
+                ],
+                "expected_behavior": [
+                  "wheel ordering matches",
+                  "values track gauge readings",
+                  "changed tire alone moves consistently"
+                ]
+              },
+              "validation_recipe_id": "tpms_reference_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "kia_ev6_cv_bms_7e4_7ec",
+          "platform": "kia_ev6_cv",
+          "protocol": "can11_500",
+          "req": "7E4",
+          "resp": "7EC",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "hyundai-kia-deep-research.source.s02"
+          ],
+          "module_role": "bms",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "0101",
+              "semantic": "displayed traction battery state of charge",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S02-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.5,
+                      "bias": 0,
+                      "unit": "%",
+                      "quantity": "percentage",
+                      "label": "displayed state of charge"
+                    }
+                  ],
+                  "source_refs": [
+                    "S02"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "record displayed SOC",
+                  "capture candidate",
+                  "repeat after charge or drive"
+                ],
+                "expected_behavior": [
+                  "candidate remains within 0-100 percent",
+                  "direction tracks displayed SOC"
+                ]
+              },
+              "validation_recipe_id": "battery_soc_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "hyundai-kia-deep-research.source.s01",
+      "exact_claim": "OBDb Hyundai IONIQ 5 signal set supplies research evidence scoped to Hyundai IONIQ 5 model family; source year filters apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Hyundai IONIQ 5 model family; source year filters apply",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Hyundai-IONIQ-5/blob/5ef99de5aec3466260e9bd99b7338bf40d961408/signalsets/v3/default.json",
+        "revision": "5ef99de5aec3466260e9bd99b7338bf40d961408",
+        "retrieved_at": "2026-09-02",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "hyundai-kia-deep-research.source.s02",
+      "exact_claim": "OBDb Kia EV6 signal set supplies research evidence scoped to Kia EV6 model family; source year filters apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Kia EV6 model family; source year filters apply",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Kia-EV6/blob/78819b208a425633dc67bb1de23a7f937f9038f2/signalsets/v3/default.json",
+        "revision": "78819b208a425633dc67bb1de23a7f937f9038f2",
+        "retrieved_at": "2026-09-02",
+        "license": "CC-BY-SA-4.0"
+      }
+    }
+  ]
+}

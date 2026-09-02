@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {"conflict_id": "hyundai_kia_egmp_shared_addresses_not_decoder_identity", "finding": "IONIQ 5 and EV6 share several E-GMP diagnostic addresses, but their source payload inventories differ and no stable ECU fingerprint proves decoder equivalence across models or Genesis.", "automatic_merge": "forbidden", "resolution": "Keep model-specific routes and decoders separate until exact ECU identity and payload behavior reproduce.", "source_refs": ["S01", "S02", "S05"]}
+  ],
+  "gaps": [
+    {"gap_id": "hyundai_kia_no_project_vehicle", "priority": "P0", "required_evidence": "A de-identified Hyundai/Kia/Genesis research-request export from Scainner.", "safe_next_action": "Retain all candidates as untested and disabled.", "retry_condition": "Group vehicle connected and export available.", "source_refs": []},
+    {"gap_id": "genesis_gv60_routes_missing", "priority": "P0", "required_evidence": "Immutable GV60-specific route/DID evidence or a bounded project capture with stable identity.", "safe_next_action": "Use GV60 VDS only for classification and do not inherit IONIQ 5 or EV6 candidates.", "retry_condition": "Model-specific diagnostic evidence becomes available.", "source_refs": ["S05", "S06"]},
+    {"gap_id": "hyundai_kia_vds_market_coverage", "priority": "P1", "required_evidence": "OEM VIN rules for additional trims, drivetrains and production markets.", "safe_next_action": "Use only the exact narrow VDS patterns; otherwise require a generation-qualified model fact.", "retry_condition": "Applicable OEM or manufacturer-filed VIN guide is available.", "source_refs": ["S03", "S04", "S05", "S06"]},
+    {"gap_id": "hyundai_kia_no_stable_fingerprints", "priority": "P1", "required_evidence": "Repeated ISO identity payloads on project hardware for each selected route.", "safe_next_action": "Do not create an E-GMP ECU family or cross-model decoder inheritance.", "retry_condition": "Stable identity captured across vehicles and connections.", "source_refs": ["S01", "S02"]}
+  ],
+  "terminal_state_guidance": [
+    {"state": "platform_known_route_knowledge_incomplete", "reason": "Platform is classified but no model-specific route is authorized.", "safe_next_action": "Use trusted-map behavior only.", "retry_condition": "New immutable route evidence or physical capture."},
+    {"state": "signals_observed", "reason": "Candidate payload answered.", "safe_next_action": "Run its guided validation recipe and preserve raw bytes.", "retry_condition": "Validation completed."}
+  ]
+}

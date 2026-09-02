@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "compiler": "compile-research-pack.ts",
+  "input_pack": "hyundai-kia-deep-research",
+  "input_version": 1,
+  "output_pack": "hyundai-kia-deep-research-runtime-v1",
+  "counts": {
+    "input_routes": 6,
+    "projected_routes": 6,
+    "input_candidates": 6,
+    "projected_candidates": 6,
+    "projected_decoder_signals": 20,
+    "deferred": 0,
+    "confirmed_route_matches": 0
+  },
+  "vin_selectable_platforms": [
+    "hyundai_ioniq5_ne",
+    "kia_ev6_cv",
+    "genesis_gv60_jw"
+  ],
+  "vehicle_fact_selectable_platforms": [
+    "hyundai_ioniq5_ne",
+    "kia_ev6_cv",
+    "genesis_gv60_jw"
+  ],
+  "warnings": [],
+  "platform_proposals": 3,
+  "confirmed_routes": [],
+  "archived_files": [
+    {
+      "path": "index.json",
+      "sha256": "85b310a516efd81208fe59ec72b2b2c562a3ac084249220ccd6fbc95bf0d18c2"
+    },
+    {
+      "path": "README.md",
+      "sha256": "118a2d36588ac7cdfa352ff14a71238595246ab87a2a82bd3e33b9df6fccb9c5"
+    },
+    {
+      "path": "hyundai-kia-profile-overlay.json",
+      "sha256": "31c72e32763a323562061a1016ac21e7059766464c3e4f1782af6e83c357e923"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "b7e3b0ee3a60cf9e6e5d41e266c8bf159d9f3a25d33c8dd53f55dd3d37143cbc"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "a79d29237008762e4a9407325a92218e38eeeadb1bbb748b48fe87c25e6f9e5a"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "eb85c3f35c13d5fb2a2201faff8cd4d4238b7f56709d962d110e4b231f81d2af"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "9f4197ec6780f3547dad22cb32d5cbd5bfc425c4cc4421734b9db1f0bd1ccd62"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "9e81b0e36ecbe24892b7f8014157464621d6e67408ec27b53cb380816212d136"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "eac5d168a44977e0859849b4960579462ecf78344367deee9b7d98a2dd7083e2"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "2423bcb52e9bfa0e81a12210420fefa4ef865cbf8d0c5ba0241c34c1a9754bb3"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "a7a4c1d9157e3eff2512bf01fd2eba069bacb5fe2536a54b2d7a6fc0a18d17b2"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "dba9438c3b8acf78fc24b14c3f4fbe58af852c8213208e95904c33d5007f821a"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "5976afc1bba6b9ca30e04dd8b3fc3cffa62e12ac9c393df1f543c04edd21f0e3"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "ff24dfdd1e357715eed999ba2ba48e372210dd2fbef5160171ad21242f359585"
+    }
+  ],
+  "deferred": []
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "artifact_type": "brand_research_hypothesis_overlay",
+  "brand_ids": ["hyundai_kia"],
+  "marques": ["hyundai", "kia", "genesis"],
+  "research_date": "2026-09-02",
+  "baseline_reference": {"uds_map_version": 9, "wmis": ["KMH", "KM8", "KME", "KMF", "KMT", "KMU", "TMA", "NLH", "KNA", "KND", "5NM", "5NT", "5NP", "5XY", "5XX", "U5Y", "U6Y", "3KP"], "existing_platform_count": 3, "existing_module_count": 14, "existing_known_did_count": 18, "rule": "Reference only; this pack never replaces trusted or vehicle evidence."},
+  "merge_mode": "additive_only",
+  "claims": [
+    {"claim_id": "hyundai_kia.ioniq5.egmp_routes", "exact_claim": "The immutable Hyundai IONIQ 5 signal set carries model-scoped E-GMP reads on chassis, TPMS and BMS routes.", "scope": {"brand_ids": ["hyundai_kia"], "marques": ["hyundai"], "models": ["ioniq_5"], "powertrains": ["bev"]}, "source_refs": ["S01"], "validation": {"source_validation_status": "immutable_open_diagnostic_database", "project_physical_validation_status": "not_tested"}, "action_if_connected": "Select only after IONIQ 5 platform classification and probe route presence before candidate reads.", "promotion_test": "Reproduce route and meaning on project hardware with stable ECU identity.", "non_generalization_boundary": "IONIQ 5 source scope only."},
+    {"claim_id": "hyundai_kia.ev6.egmp_routes", "exact_claim": "The immutable Kia EV6 signal set carries model-scoped E-GMP reads on charging, TPMS and BMS routes.", "scope": {"brand_ids": ["hyundai_kia"], "marques": ["kia"], "models": ["ev6"], "powertrains": ["bev"]}, "source_refs": ["S02"], "validation": {"source_validation_status": "immutable_open_diagnostic_database", "project_physical_validation_status": "not_tested"}, "action_if_connected": "Select only after EV6 platform classification and probe route presence before candidate reads.", "promotion_test": "Reproduce route and meaning on project hardware with stable ECU identity.", "non_generalization_boundary": "EV6 source scope only."},
+    {"claim_id": "hyundai_kia.gv60.classification_only", "exact_claim": "Genesis identifies GV60 as the JW platform, while public VIN evidence provides a narrow GV60 VDS family.", "scope": {"brand_ids": ["hyundai_kia"], "marques": ["genesis"], "models": ["gv60"], "powertrains": ["bev"]}, "source_refs": ["S05", "S06"], "validation": {"source_validation_status": "oem_and_registry_reported", "project_physical_validation_status": "not_tested"}, "action_if_connected": "Classify the platform but use trusted-map behavior only; do not inherit sibling E-GMP candidates.", "promotion_test": "Obtain immutable GV60 route evidence and reproduce it on project hardware.", "non_generalization_boundary": "Platform identity does not establish ECU route or DID equivalence."}
+  ]
+}

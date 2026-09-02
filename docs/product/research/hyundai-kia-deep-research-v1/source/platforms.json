@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "hyundai_ioniq5_ne",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "ioniq_5"
+        ],
+        "years": {
+          "from": 2022,
+          "to": null
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Hyundai IONIQ 5 E-GMP NE branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Hyundai VIN decoder identifies IONIQ 5 model and trim positions",
+        "narrow decoded North-American VDS family"
+      ],
+      "vds_patterns": [
+        "^KNDAF"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S01",
+        "S04",
+        "S07"
+      ],
+      "non_generalization_boundary": "Narrow AWD/SEL-style North-American VDS family; other trims and markets remain model-fact only."
+    },
+    {
+      "platform_id": "kia_ev6_cv",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "ev6"
+        ],
+        "years": {
+          "from": 2022,
+          "to": null
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Kia EV6 E-GMP CV branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Kia service literature identifies EV6 as CV",
+        "narrow decoded North-American VDS family"
+      ],
+      "vds_patterns": [
+        "^C3DLC"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S08"
+      ],
+      "non_generalization_boundary": "Narrow North-American EV6 VDS family; other trims and markets remain model-fact only."
+    },
+    {
+      "platform_id": "genesis_gv60_jw",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "genesis"
+        ],
+        "models": [
+          "gv60"
+        ],
+        "years": {
+          "from": 2023,
+          "to": null
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Genesis GV60 E-GMP JW branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Genesis emergency guide identifies GV60/JW",
+        "narrow decoded North-American VDS family"
+      ],
+      "vds_patterns": [
+        "^KB4SA"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S05",
+        "S06"
+      ],
+      "non_generalization_boundary": "Classification only; no sibling E-GMP route or decoder inheritance."
+    }
+  ]
+}

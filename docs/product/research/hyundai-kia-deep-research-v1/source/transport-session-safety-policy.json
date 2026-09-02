@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "automatic_discovery": {"read_only": true, "default_session_only": true, "max_outstanding_requests": 1, "allowed_services": ["21", "22", "3E"], "forbidden_services": ["10", "11", "14", "27", "28", "2E", "2F", "31", "34", "35", "36", "37", "3D"], "generic_29bit_enumeration": "denied", "extended_addressing": "exact_source_and_runtime_representation_required"},
+  "budgets_seconds": {"s0_standard_handshake": 30, "s1_census_and_s2_identity": 180, "s4_bounded_parked_sweep": 180, "whole_automatic_connection": 480},
+  "learning_drive_max_link_occupancy_percent": 20,
+  "abort_conditions": ["user_cancel", "unsafe_adapter_state", "bus_health_failure", "security_related_nrc", "budget_exhausted"],
+  "response_pending_policy": "wait within bounded deadline without resending"
+}

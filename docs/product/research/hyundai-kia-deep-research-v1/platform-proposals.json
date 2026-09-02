@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "pack_id": "hyundai-kia-deep-research",
+  "pack_version": 1,
+  "research_date": "2026-09-02",
+  "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+  "proposals": [
+    {
+      "platform_id": "genesis_gv60_jw",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "genesis"
+      ],
+      "models": [
+        "gv60"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2023,
+        "to": null
+      },
+      "vds_patterns": [
+        "^KB4SA"
+      ],
+      "vin_selectable": true,
+      "architecture": "Genesis GV60 E-GMP JW branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S05",
+          "url": "https://www.genesistechinfo.com/external/emergency_response_guide/default.aspx",
+          "revision": "GV60 Electric 2023MY-on",
+          "retrieved_at": "2026-09-02",
+          "licence": "Genesis public technical information",
+          "reliability": "high"
+        },
+        {
+          "ref": "S06",
+          "url": "https://vinassessment.com/specs/genesis/gv60/2026/kmukb4sa-t",
+          "revision": "retrieved-2026-09-02",
+          "retrieved_at": "2026-09-02",
+          "licence": "public_web",
+          "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_ioniq5_ne",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "ioniq_5"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2022,
+        "to": null
+      },
+      "vds_patterns": [
+        "^KNDAF"
+      ],
+      "vin_selectable": true,
+      "architecture": "Hyundai IONIQ 5 E-GMP NE branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/OBDb/Hyundai-IONIQ-5/blob/5ef99de5aec3466260e9bd99b7338bf40d961408/signalsets/v3/default.json",
+          "revision": "5ef99de5aec3466260e9bd99b7338bf40d961408",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S04",
+          "url": "https://static.nhtsa.gov/odi/inv/2021/INRD-PE21010-15928.pdf",
+          "revision": "2021 Hyundai VIN decoder",
+          "retrieved_at": "2026-09-02",
+          "licence": "public regulatory filing",
+          "reliability": "high"
+        },
+        {
+          "ref": "S07",
+          "url": "https://vinassessment.com/vehicle/2023-Hyundai-Ioniq-5-SEL-KM8KNDAF2PU209341",
+          "revision": "retrieved-2026-09-02",
+          "retrieved_at": "2026-09-02",
+          "licence": "public_web",
+          "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_ev6_cv",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "ev6"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2022,
+        "to": null
+      },
+      "vds_patterns": [
+        "^C3DLC"
+      ],
+      "vin_selectable": true,
+      "architecture": "Kia EV6 E-GMP CV branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S02",
+          "url": "https://github.com/OBDb/Kia-EV6/blob/78819b208a425633dc67bb1de23a7f937f9038f2/signalsets/v3/default.json",
+          "revision": "78819b208a425633dc67bb1de23a7f937f9038f2",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        },
+        {
+          "ref": "S03",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10209434-0001.pdf",
+          "revision": "SA495",
+          "retrieved_at": "2026-09-02",
+          "licence": "public regulatory filing",
+          "reliability": "high"
+        },
+        {
+          "ref": "S08",
+          "url": "https://vinassessment.com/specs/kia/ev6/2022/kndc3dlc-n",
+          "revision": "retrieved-2026-09-02",
+          "retrieved_at": "2026-09-02",
+          "licence": "public_web",
+          "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    }
+  ]
+}

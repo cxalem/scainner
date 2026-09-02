@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "brand_ids": ["hyundai_kia"],
+  "planner_contract": "evidence_aware_candidate_planner",
+  "projection_rules": [
+    {"research_fact": "VIN-selected model platform with immutable route", "runtime_projection": "presence_and_identity_candidate"},
+    {"research_fact": "candidate DID", "runtime_projection": "read only after route reached"},
+    {"research_fact": "proposed decoder", "runtime_projection": "disabled until vehicle_fit matched"},
+    {"research_fact": "shared E-GMP architecture", "runtime_projection": "no cross-marque inheritance without identity evidence"}
+  ],
+  "planning_phases": [
+    {"phase": "brand_and_platform_selection", "actions": ["Select Hyundai/Kia/Genesis group by WMI.", "Apply only exact published VDS hypotheses or generation-qualified model facts.", "Keep unmatched and ambiguous vehicles on trusted-map behavior only."]},
+    {"phase": "transport_detection", "actions": ["Use supported OBD-II transport detection.", "Keep one request outstanding."]},
+    {"phase": "route_census", "actions": ["Try trusted-map routes first.", "Add only routes belonging to the selected model platform.", "Do not sweep sibling E-GMP model candidates."]},
+    {"phase": "identity", "actions": ["Read preferred ISO identity before proprietary candidates.", "Preserve unreadable identity as an outcome."]},
+    {"phase": "candidate_reads", "actions": ["Read candidates only after route response.", "Preserve raw payload and negative response separately.", "Keep decoder output a hypothesis until guided validation."]},
+    {"phase": "stop", "actions": ["Stop on safety, budget, cancellation or low information gain.", "For GV60, stop after trusted behavior because no model-specific research route is authorized."]}
+  ],
+  "priority_model": "exact platform + immutable source + reached route + user value - traffic cost - ambiguity",
+  "brand_specific_priority": ["VIN-selected model branch", "identity before data", "battery and chassis signals with independent references", "no group-wide decoder reuse"]
+}
