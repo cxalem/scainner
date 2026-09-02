@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Ride, RideStatus } from "@scainner/core";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Grow } from "@/motion/components";
 import { useT } from "@/i18n";
 import { rideSummaryCopyKey } from "@/lib/ride-copy";
 
@@ -45,39 +48,44 @@ export function RideBanner({ ride, completed, stopping, onStop, onDone }: {
   })() : null;
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {(ride || completed) ? (
-        <motion.section
-          key={ride ? "recording" : "completed"}
-          role="status"
-          aria-live="polite"
-          initial={reduced ? false : { opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduced ? { opacity: 1 } : { opacity: 0, y: -10 }}
-          transition={transition}
-          className="relative z-30 flex min-h-14 w-full items-center gap-3 border-b border-divider bg-surface px-6 py-2 shadow-sm"
-        >
-          {ride ? (
-            <>
-              <span className="h-2 w-2 shrink-0 rounded-full bg-stop" aria-hidden="true" />
-              <span className="font-medium">{t.ride.recording}</span>
-              <span className="num text-neutral-400">{elapsedLabel(elapsed)}</span>
-              <span className="num text-neutral-500">{t.ride.samples(ride.sample_count)}</span>
-              <span className="flex-1" />
-              <Button className="min-h-10" variant="destructive" size="sm" disabled={stopping} onClick={onStop}>{t.ride.stop}</Button>
-            </>
-          ) : (
-            <>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{firstLine}</p>
-                <p className="text-[12px] text-neutral-500">{t.ride.location}</p>
-              </div>
-              <Button className="min-h-10" disabled>{t.ride.report(AI_REPORT_PRICE)}</Button>
-              <Button className="min-h-10" variant="outline" onClick={onDone}>{t.ride.done}</Button>
-            </>
-          )}
-        </motion.section>
-      ) : null}
-    </AnimatePresence>
+    <Grow when={Boolean(ride || completed)} boxClassName="relative z-30 shadow-sm">
+      <Alert
+        role="status"
+        aria-live="polite"
+        className="grid min-h-14 w-full gap-0 rounded-none border-0 border-b border-divider px-6 py-2 text-[13px]"
+      >
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={ride ? "recording" : "completed"}
+            style={{ gridArea: "1 / 1" }}
+            className="flex items-center gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={transition}
+          >
+            {ride ? (
+              <>
+                <span className="h-2 w-2 shrink-0 rounded-full bg-stop" aria-hidden="true" />
+                <AlertTitle>{t.ride.recording}</AlertTitle>
+                <Badge variant="secondary" className="num">{elapsedLabel(elapsed)}</Badge>
+                <Badge variant="secondary" className="num">{t.ride.samples(ride.sample_count)}</Badge>
+                <span className="flex-1" />
+                <Button className="min-h-10" variant="destructive" size="sm" disabled={stopping} onClick={onStop}>{t.ride.stop}</Button>
+              </>
+            ) : (
+              <>
+                <div className="min-w-0 flex-1">
+                  <AlertTitle>{firstLine}</AlertTitle>
+                  <AlertDescription className="text-[12px]">{t.ride.location}</AlertDescription>
+                </div>
+                <Button className="min-h-10" disabled>{t.ride.report(AI_REPORT_PRICE)}</Button>
+                <Button className="min-h-10" variant="outline" onClick={onDone}>{t.ride.done}</Button>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </Alert>
+    </Grow>
   );
 }

@@ -102,6 +102,8 @@ export function mockListen<T>(event: string, cb: Listener<T>): Promise<() => voi
 
 let connState: ConnStatus = { state: "disconnected" };
 let mockRide: Ride | null = null;
+let mockRideDone: Ride[] = [];
+let mockRideSeq = 0;
 let mockRideTimer: number | null = null;
 let adapterProfile: AdapterProfile = {
   kind: "elm_serial",
@@ -722,6 +724,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       if (mockRideTimer != null) window.clearInterval(mockRideTimer);
       mockRideTimer = null;
       mockRide = null;
+      mockRideDone = [];
       stopLiveTicking();
       connState = { state: "disconnected" };
       emit("conn-status", connState);
@@ -729,7 +732,8 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     }
     case "start_ride": {
       if (connState.state !== "connected" || mockRide) throw new Error("ride cannot start");
-      mockRide = { id: 1, cloud_id: "mock-ride-1", vehicle_id: CONNECTED.id, connection_id: 1, started_at: new Date().toISOString(), ended_at: null, sample_count: 0, sensor_count: 0, dtc_events_count: 0, dtc_codes_appeared: 0, max_speed: null, max_coolant: null, min_voltage: null, notes: null };
+      mockRideSeq += 1;
+      mockRide = { id: mockRideSeq, cloud_id: `mock-ride-${mockRideSeq}`, vehicle_id: CONNECTED.id, connection_id: 1, started_at: new Date().toISOString(), ended_at: null, sample_count: 0, sensor_count: 0, dtc_events_count: 0, dtc_codes_appeared: 0, max_speed: null, max_coolant: null, min_voltage: null, notes: null };
       connState = { ...connState, ride: { id: mockRide.id, started_at: mockRide.started_at, sample_count: 0 } };
       emit("conn-status", connState);
       mockRideTimer = window.setInterval(() => {
@@ -744,13 +748,15 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       if (!mockRide || mockRide.id !== Number(args?.id)) throw new Error("ride is not active");
       if (mockRideTimer != null) window.clearInterval(mockRideTimer);
       mockRideTimer = null;
-      mockRide = { ...mockRide, ended_at: new Date().toISOString(), sensor_count: 12, dtc_events_count: 1, dtc_codes_appeared: previewQuery().get("mock_ride_dtc") === "1" ? 1 : 0, max_speed: 83, max_coolant: 91, min_voltage: 13.7 };
+      const finished: Ride = { ...mockRide, ended_at: new Date().toISOString(), sensor_count: 12, dtc_events_count: 1, dtc_codes_appeared: previewQuery().get("mock_ride_dtc") === "1" ? 1 : 0, max_speed: 83, max_coolant: 91, min_voltage: 13.7 };
+      mockRideDone = [finished, ...mockRideDone];
+      mockRide = null;
       connState = { ...connState, ride: null };
       emit("conn-status", connState);
-      return mockRide as T;
+      return finished as T;
     }
     case "list_rides":
-      return (mockRide?.ended_at ? [mockRide] : []) as T;
+      return mockRideDone as T;
     case "list_adapters":
       return [
         ...pairedInPreview,

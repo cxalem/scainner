@@ -170,6 +170,8 @@ export default function App() {
           stoppingRide={rideBusy}
           onStopRide={() => void stopRide()}
           onDismissRide={() => setCompletedRide(null)}
+          onStartRide={() => void startRide()}
+          canStartRide={connected && !recording && !rideBusy && completedRide == null}
           onConnect={connect}
           onDisconnect={disconnect}
           vehicles={vehicles.data ?? []}
@@ -201,8 +203,6 @@ export default function App() {
               connState={conn.state}
               vehicleId={currentVehicleId}
               onNavigate={setView}
-              onStartRide={() => void startRide()}
-              canStartRide={connected && !recording && !rideBusy && completedRide == null}
             />
           )}
           {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}

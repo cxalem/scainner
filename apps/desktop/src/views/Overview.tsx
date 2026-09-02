@@ -298,8 +298,8 @@ export function Overview({
             )}
           </div>
           {onNavigate && (
-            <div className="flex gap-2">
-              {canStartRide ? <RideButton className="min-h-10" size="sm" onClick={onStartRide}>{t.ride.record}</RideButton> : null}
+            <div className="flex items-center gap-2">
+              {canStartRide ? <RideButton size="sm" className="px-2.5 text-[12px]" onClick={onStartRide}>{t.ride.record}</RideButton> : null}
               <Button variant="primary" size="sm" onClick={() => onNavigate("diagnose")}>
                 {t.overview.verdict.openFaults}
               </Button>
