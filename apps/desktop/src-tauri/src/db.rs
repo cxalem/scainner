@@ -1163,6 +1163,40 @@ impl Db {
         .ok()
     }
 
+    pub fn parked_sweep_counts(&self, vehicle_id: i64) -> Vec<(String, usize)> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn
+            .prepare("SELECT result_json FROM verification_runs WHERE vehicle_id = ?1")
+            .unwrap();
+        let rows = stmt
+            .query_map(params![vehicle_id], |row| row.get::<_, String>(0))
+            .unwrap();
+        let mut counts = std::collections::HashMap::new();
+        for json in rows.filter_map(Result::ok) {
+            let Ok(value) = serde_json::from_str::<serde_json::Value>(&json) else {
+                continue;
+            };
+            let Some(targets) = value.get("targets").and_then(|value| value.as_array()) else {
+                continue;
+            };
+            for target in targets {
+                let is_sweep = target
+                    .get("key")
+                    .and_then(|value| value.as_str())
+                    .is_some_and(|key| key.ends_with("_sweep"));
+                if let (true, Some(route)) = (
+                    is_sweep,
+                    target.get("route").and_then(|value| value.as_str()),
+                ) {
+                    *counts.entry(route.to_string()).or_insert(0) += 1;
+                }
+            }
+        }
+        let mut counts: Vec<_> = counts.into_iter().collect();
+        counts.sort_by(|a, b| a.0.cmp(&b.0));
+        counts
+    }
+
     pub fn ensure_vehicle(&self, vin: &str) -> (i64, bool) {
         let conn = self.0.lock().unwrap();
         if let Ok(id) = conn.query_row(
