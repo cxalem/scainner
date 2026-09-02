@@ -264,12 +264,19 @@ mod tests {
     }
 
     const ADDR: &str = "aa-bb-cc-dd-ee-ff";
-    const EXISTING_PORT: &str = "/dev/null";
     const MISSING_PORT: &str = "/dev/scainner-no-such-port";
 
     fn bluetooth_profile() -> AdapterProfile {
         AdapterProfile {
-            path: Some(EXISTING_PORT.into()),
+            // The test only needs a path that exists so the link stage treats
+            // it as an already-created port node. The test binary itself is
+            // present on every platform, unlike a POSIX-only device node.
+            path: Some(
+                std::env::current_exe()
+                    .expect("the current test executable must exist")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
             bt_addr: Some(ADDR.into()),
             ..Default::default()
         }
@@ -523,23 +530,24 @@ mod tests {
         let (mut unpairs, mut pairs) = (Vec::new(), Vec::new());
         walk(&src, &mut |path, text| {
             if text.contains(&unpair) {
-                unpairs.push(path.display().to_string());
+                unpairs.push(path.to_path_buf());
             }
             if text.contains(&pair) {
-                pairs.push(path.display().to_string());
+                pairs.push(path.to_path_buf());
             }
         });
-        let stray_unpairs: Vec<&String> = unpairs
+        let allowed_pair_source = std::path::Path::new("transport").join("bluetooth.rs");
+        let stray_unpairs: Vec<&std::path::PathBuf> = unpairs
             .iter()
-            .filter(|p| !p.ends_with("transport/bluetooth.rs"))
+            .filter(|p| !p.ends_with(&allowed_pair_source))
             .collect();
         assert!(
-            stray_unpairs.is_empty() && unpairs.len() == 1,
+            unpairs.len() == 1 && stray_unpairs.is_empty(),
             "unpairing belongs to BluetoothControl::forget only: {unpairs:?}"
         );
-        let stray: Vec<&String> = pairs
+        let stray: Vec<&std::path::PathBuf> = pairs
             .iter()
-            .filter(|p| !p.ends_with("transport/bluetooth.rs"))
+            .filter(|p| !p.ends_with(&allowed_pair_source))
             .collect();
         assert!(
             stray.is_empty(),
