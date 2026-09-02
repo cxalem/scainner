@@ -931,6 +931,47 @@ mod tests {
     }
 
     #[test]
+    fn hyundai_group_popular_models_stay_model_scoped_despite_shared_dids() {
+        let vin = vin_for_brand("hyundai_kia");
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("Kona Electric")),
+            Some("hyundai_kona_electric_os".into())
+        );
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("Kona")),
+            Some("hyundai_kona_os".into())
+        );
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("Sportage")),
+            Some("kia_sportage_nq5".into())
+        );
+
+        let kona_ev = routes_for_context(Some(&vin), Some("hyundai_kona_electric_os"));
+        assert_eq!(kona_ev.len(), 2);
+        assert!(kona_ev.iter().any(|route| {
+            route.route_id == "hyundai_kona_electric_os_bms_7e4_7ec"
+                && route
+                    .candidate_dids
+                    .iter()
+                    .any(|candidate| candidate.did() == "0101")
+        }));
+
+        let kona = routes_for_context(Some(&vin), Some("hyundai_kona_os"));
+        assert_eq!(kona.len(), 1);
+        assert!(kona.iter().all(|route| route.route_id.contains("_tpms_")));
+        assert!(kona
+            .iter()
+            .all(|route| !route.route_id.starts_with("hyundai_kona_electric_")));
+
+        let sportage = routes_for_context(Some(&vin), Some("kia_sportage_nq5"));
+        assert_eq!(sportage.len(), 1);
+        assert!(sportage
+            .iter()
+            .all(|route| !route.route_id.contains("ioniq")));
+        assert!(routes_for_context(Some(&vin), Some("genesis_g80_rg3")).is_empty());
+    }
+
+    #[test]
     fn psa_catalogue_is_exploration_only_and_model_branches_stay_isolated() {
         let vin = vin_for_brand("psa");
         let normal = routes_for_context(Some(&vin), Some("psa_c41_project_observed"));

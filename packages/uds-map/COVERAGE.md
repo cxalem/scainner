@@ -82,7 +82,7 @@ Research candidates are evidence about *where to look*, never trusted knowledge:
 | ferrari | 1 | 0 | 0 | 0 | 0 |
 | gm | 1 | 0 | 0 | 0 | 0 |
 | honda | 1 | 0 | 0 | 0 | 0 |
-| hyundai_kia | 2 | 6 (6 platform-scoped) | 0 | 6 | 0 |
+| hyundai_kia | 2 | 23 (23 platform-scoped) | 0 | 23 | 0 |
 | jlr | 1 | 3 (3 platform-scoped) | 0 | 0 | 0 |
 | livan_maple | 1 | 0 | 0 | 0 | 0 |
 | lucid | 1 | 0 | 0 | 0 | 0 |
@@ -104,7 +104,7 @@ Research candidates are evidence about *where to look*, never trusted knowledge:
 | toyota | 1 | 8 (8 platform-scoped) | 0 | 9 | 0 |
 | vag | 1 | 104 (14 platform-scoped) | 0 | 235 | 18 |
 | volvo | 1 | 0 | 0 | 0 | 0 |
-| **total** | 6 packs | 363 (177 platform-scoped) | 49 | 620 | 18 |
+| **total** | 6 packs | 380 (194 platform-scoped) | 49 | 637 | 18 |
 
 - `new-brand-research-v2` v2 (2026-08-29): byd, ferrari, jlr, livan_maple, lucid, maxus, mg, omoda, porsche, rivian, suzuki
 - `existing-brand-hypotheses-v3-delta` v5 (2026-08-31): bmw, gm, honda, hyundai_kia, mazda, mitsubishi, nissan, psa, seat, skoda, subaru, tesla, vag, volvo

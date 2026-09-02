@@ -6,6 +6,46 @@
   "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
   "proposals": [
     {
+      "platform_id": "genesis_g80_rg3",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "genesis"
+      ],
+      "models": [
+        "g80"
+      ],
+      "powertrains": [
+        "ice",
+        "bev"
+      ],
+      "years": {
+        "from": 2021,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Third-generation Genesis G80 RG3 classification-only branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S22",
+          "url": "https://github.com/OBDb/Genesis-G80/blob/6efba7aad275f6d8a44d98aa984ff31b90e2b561/signalsets/v3/default.json",
+          "revision": "6efba7aad275f6d8a44d98aa984ff31b90e2b561",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
       "platform_id": "genesis_gv60_jw",
       "brand_ids": [
         "hyundai_kia"
@@ -50,6 +90,46 @@
           "retrieved_at": "2026-09-02",
           "licence": "public_web",
           "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_elantra_cn7",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "elantra"
+      ],
+      "powertrains": [
+        "ice",
+        "hev"
+      ],
+      "years": {
+        "from": 2021,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Seventh-generation Hyundai Elantra CN7 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S13",
+          "url": "https://github.com/OBDb/Hyundai-Elantra/blob/3098c4a656ad24ff435309f7cee3895da1473172/signalsets/v3/default.json",
+          "revision": "3098c4a656ad24ff435309f7cee3895da1473172",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
         }
       ],
       "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
@@ -112,6 +192,286 @@
       "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
     },
     {
+      "platform_id": "hyundai_ioniq6_ce",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "ioniq_6"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2023,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Hyundai IONIQ 6 E-GMP CE branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S18",
+          "url": "https://github.com/OBDb/Hyundai-IONIQ-6/blob/4f41d2314164c46aed9f84de6b83862c5b05135d/signalsets/v3/default.json",
+          "revision": "4f41d2314164c46aed9f84de6b83862c5b05135d",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_kona_electric_os",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "kona_electric"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2018,
+        "to": 2023
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "First-generation Hyundai Kona Electric OS EV branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S09",
+          "url": "https://github.com/OBDb/Hyundai-Kona-Electric/blob/e4a4b5b14256531f991f6ac4ff686518efb3db6f/signalsets/v3/default.json",
+          "revision": "e4a4b5b14256531f991f6ac4ff686518efb3db6f",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_kona_os",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "kona"
+      ],
+      "powertrains": [
+        "ice",
+        "hev"
+      ],
+      "years": {
+        "from": 2018,
+        "to": 2023
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Hyundai Kona OS branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S10",
+          "url": "https://github.com/OBDb/Hyundai-Kona/blob/7cd2c8c80468e7ff547905fdfc79488931ca7caa/signalsets/v3/default.json",
+          "revision": "7cd2c8c80468e7ff547905fdfc79488931ca7caa",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_santa_fe_tm",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "santa_fe"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "phev"
+      ],
+      "years": {
+        "from": 2019,
+        "to": 2023
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Fourth-generation Hyundai Santa Fe TM branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S12",
+          "url": "https://github.com/OBDb/Hyundai-Santa-Fe/blob/a7a23870edbf02446ec8e5d20a5b17974b7e04d1/signalsets/v3/default.json",
+          "revision": "a7a23870edbf02446ec8e5d20a5b17974b7e04d1",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_sonata_dn8",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "sonata"
+      ],
+      "powertrains": [
+        "ice",
+        "hev"
+      ],
+      "years": {
+        "from": 2020,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Eighth-generation Hyundai Sonata DN8 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S14",
+          "url": "https://github.com/OBDb/Hyundai-Sonata/blob/5133b988578d809ed5e4693c368ae15095e78b72/signalsets/v3/default.json",
+          "revision": "5133b988578d809ed5e4693c368ae15095e78b72",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "hyundai_tucson_nx4",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "hyundai"
+      ],
+      "models": [
+        "tucson"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "phev"
+      ],
+      "years": {
+        "from": 2021,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Fourth-generation Hyundai Tucson NX4 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S11",
+          "url": "https://github.com/OBDb/Hyundai-Tucson/blob/20964238fc28e3748cf2b060dc60abea545d2f1e/signalsets/v3/default.json",
+          "revision": "20964238fc28e3748cf2b060dc60abea545d2f1e",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_carnival_ka4",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "carnival"
+      ],
+      "powertrains": [
+        "ice",
+        "hev"
+      ],
+      "years": {
+        "from": 2022,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Fourth-generation Kia Carnival KA4 classification-only branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S21",
+          "url": "https://github.com/OBDb/Kia-Carnival/blob/1cebf9e61a0300b87d0417b564114cba32bdc967/signalsets/v3/default.json",
+          "revision": "1cebf9e61a0300b87d0417b564114cba32bdc967",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
       "platform_id": "kia_ev6_cv",
       "brand_ids": [
         "hyundai_kia"
@@ -164,6 +524,206 @@
           "retrieved_at": "2026-09-02",
           "licence": "public_web",
           "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_ev9_mv",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "ev9"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2024,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Kia EV9 E-GMP MV branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S19",
+          "url": "https://github.com/OBDb/Kia-EV9/blob/85d8cff25e849a6e421cda20cbadfd4630fe85e7/signalsets/v3/default.json",
+          "revision": "85d8cff25e849a6e421cda20cbadfd4630fe85e7",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_niro_ev_de_sg2",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "niro_ev",
+        "e_niro"
+      ],
+      "powertrains": [
+        "bev"
+      ],
+      "years": {
+        "from": 2019,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Kia Niro EV public model corpus; DE and SG2 remain unresolved.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S16",
+          "url": "https://github.com/OBDb/Kia-Niro-EV/blob/1500ec578559e0e69161a942bb1491dd54e268d0/signalsets/v3/default.json",
+          "revision": "1500ec578559e0e69161a942bb1491dd54e268d0",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_seltos_sp2",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "seltos"
+      ],
+      "powertrains": [
+        "ice"
+      ],
+      "years": {
+        "from": 2020,
+        "to": 2025
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "First-generation Kia Seltos SP2 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S17",
+          "url": "https://github.com/OBDb/Kia-Seltos/blob/b0e580b7c9c0cacae830b0a2b36900d40a3bb4e9/signalsets/v3/default.json",
+          "revision": "b0e580b7c9c0cacae830b0a2b36900d40a3bb4e9",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_sorento_mq4",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "sorento"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "phev"
+      ],
+      "years": {
+        "from": 2021,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Fourth-generation Kia Sorento MQ4 classification-only branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S20",
+          "url": "https://github.com/OBDb/Kia-Sorento/blob/0a5c471845bff907b19dca24cd557e8ad3cbe3d8/signalsets/v3/default.json",
+          "revision": "0a5c471845bff907b19dca24cd557e8ad3cbe3d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "kia_sportage_nq5",
+      "brand_ids": [
+        "hyundai_kia"
+      ],
+      "marques": [
+        "kia"
+      ],
+      "models": [
+        "sportage"
+      ],
+      "powertrains": [
+        "ice",
+        "hev",
+        "phev"
+      ],
+      "years": {
+        "from": 2022,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Fifth-generation Kia Sportage NQ5 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S15",
+          "url": "https://github.com/OBDb/Kia-Sportage/blob/d79dd7ddb0d2289b56f931fda04183d72504610c/signalsets/v3/default.json",
+          "revision": "d79dd7ddb0d2289b56f931fda04183d72504610c",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
         }
       ],
       "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."

@@ -125,6 +125,538 @@
         "S06"
       ],
       "non_generalization_boundary": "Classification only; no sibling E-GMP route or decoder inheritance."
+    },
+    {
+      "platform_id": "hyundai_kona_os",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "kona"
+        ],
+        "years": {
+          "from": 2018,
+          "to": 2023
+        },
+        "powertrains": [
+          "ice",
+          "hev"
+        ]
+      },
+      "architecture": "Hyundai Kona OS branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S10)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S10"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "hyundai_kona_electric_os",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "kona_electric"
+        ],
+        "years": {
+          "from": 2018,
+          "to": 2023
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "First-generation Hyundai Kona Electric OS EV branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S09)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S09"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "hyundai_tucson_nx4",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "tucson"
+        ],
+        "years": {
+          "from": 2021,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "hev",
+          "phev"
+        ]
+      },
+      "architecture": "Fourth-generation Hyundai Tucson NX4 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S11)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S11"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "hyundai_santa_fe_tm",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "santa_fe"
+        ],
+        "years": {
+          "from": 2019,
+          "to": 2023
+        },
+        "powertrains": [
+          "ice",
+          "hev",
+          "phev"
+        ]
+      },
+      "architecture": "Fourth-generation Hyundai Santa Fe TM branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S12)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S12"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "hyundai_elantra_cn7",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "elantra"
+        ],
+        "years": {
+          "from": 2021,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "hev"
+        ]
+      },
+      "architecture": "Seventh-generation Hyundai Elantra CN7 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S13)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S13"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "hyundai_sonata_dn8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "sonata"
+        ],
+        "years": {
+          "from": 2020,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "hev"
+        ]
+      },
+      "architecture": "Eighth-generation Hyundai Sonata DN8 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S14)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S14"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "kia_sportage_nq5",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "sportage"
+        ],
+        "years": {
+          "from": 2022,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "hev",
+          "phev"
+        ]
+      },
+      "architecture": "Fifth-generation Kia Sportage NQ5 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S15)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S15"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "kia_niro_ev_de_sg2",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "niro_ev",
+          "e_niro"
+        ],
+        "years": {
+          "from": 2019,
+          "to": null
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Kia Niro EV public model corpus; DE and SG2 remain unresolved.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S16)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S16"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "kia_seltos_sp2",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "seltos"
+        ],
+        "years": {
+          "from": 2020,
+          "to": 2025
+        },
+        "powertrains": [
+          "ice"
+        ]
+      },
+      "architecture": "First-generation Kia Seltos SP2 branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S17)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S17"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "hyundai_ioniq6_ce",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "hyundai"
+        ],
+        "models": [
+          "ioniq_6"
+        ],
+        "years": {
+          "from": 2023,
+          "to": null
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Hyundai IONIQ 6 E-GMP CE branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S18)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S18"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "kia_ev9_mv",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "ev9"
+        ],
+        "years": {
+          "from": 2024,
+          "to": null
+        },
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "architecture": "Kia EV9 E-GMP MV branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S19)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S19"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "kia_sorento_mq4",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "sorento"
+        ],
+        "years": {
+          "from": 2021,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "hev",
+          "phev"
+        ]
+      },
+      "architecture": "Fourth-generation Kia Sorento MQ4 classification-only branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S20)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S20"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "kia_carnival_ka4",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "kia"
+        ],
+        "models": [
+          "carnival"
+        ],
+        "years": {
+          "from": 2022,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "hev"
+        ]
+      },
+      "architecture": "Fourth-generation Kia Carnival KA4 classification-only branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S21)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S21"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+    },
+    {
+      "platform_id": "genesis_g80_rg3",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "marques": [
+          "genesis"
+        ],
+        "models": [
+          "g80"
+        ],
+        "years": {
+          "from": 2021,
+          "to": null
+        },
+        "powertrains": [
+          "ice",
+          "bev"
+        ]
+      },
+      "architecture": "Third-generation Genesis G80 RG3 classification-only branch.",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": [
+        "Immutable OBDb model repository and generation metadata (S22)"
+      ],
+      "vds_patterns": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": [
+        "S22"
+      ],
+      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
     }
   ]
 }

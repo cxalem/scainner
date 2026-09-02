@@ -1,12 +1,907 @@
 {
   "schema_version": 1,
-  "declared_count": 6,
+  "declared_count": 23,
   "routes": [
-    {"route_id": "hyundai_ioniq5_ne_abs_730_738", "scope": {"brand_ids": ["hyundai_kia"], "platform_ids": ["hyundai_ioniq5_ne"], "models": ["ioniq_5"]}, "module_role": "abs_esc", "route": {"protocol": "can11_500", "req": "730", "resp": "738", "target_byte": null, "address_extension": null, "gateway": null}, "read_services": ["22"], "session": "default_only", "requires_identity": true, "confidence": "high", "knowledge_state": "community_reported", "vehicle_fit": "untested", "identity_fit": "provisional", "activation": "disabled", "source_refs": ["S01"], "automatic_execution_authorized": true, "non_generalization_boundary": "IONIQ 5 NE only."},
-    {"route_id": "hyundai_ioniq5_ne_tpms_7a0_7a8", "scope": {"brand_ids": ["hyundai_kia"], "platform_ids": ["hyundai_ioniq5_ne"], "models": ["ioniq_5"]}, "module_role": "bcm_tpms", "route": {"protocol": "can11_500", "req": "7A0", "resp": "7A8", "target_byte": null, "address_extension": null, "gateway": null}, "read_services": ["22"], "session": "default_only", "requires_identity": true, "confidence": "high", "knowledge_state": "community_reported", "vehicle_fit": "untested", "identity_fit": "provisional", "activation": "disabled", "source_refs": ["S01"], "automatic_execution_authorized": true, "non_generalization_boundary": "IONIQ 5 NE payload layout only."},
-    {"route_id": "hyundai_ioniq5_ne_bms_7e4_7ec", "scope": {"brand_ids": ["hyundai_kia"], "platform_ids": ["hyundai_ioniq5_ne"], "models": ["ioniq_5"], "powertrains": ["bev"]}, "module_role": "bms", "route": {"protocol": "can11_500", "req": "7E4", "resp": "7EC", "target_byte": null, "address_extension": null, "gateway": null}, "read_services": ["22"], "session": "default_only", "requires_identity": true, "confidence": "high", "knowledge_state": "community_reported", "vehicle_fit": "untested", "identity_fit": "provisional", "activation": "disabled", "source_refs": ["S01"], "automatic_execution_authorized": true, "non_generalization_boundary": "IONIQ 5 NE BMS layout only."},
-    {"route_id": "kia_ev6_cv_vcms_744_74c", "scope": {"brand_ids": ["hyundai_kia"], "platform_ids": ["kia_ev6_cv"], "models": ["ev6"], "powertrains": ["bev"]}, "module_role": "charging_control", "route": {"protocol": "can11_500", "req": "744", "resp": "74C", "target_byte": null, "address_extension": null, "gateway": null}, "read_services": ["22"], "session": "default_only", "requires_identity": true, "confidence": "high", "knowledge_state": "community_reported", "vehicle_fit": "untested", "identity_fit": "provisional", "activation": "disabled", "source_refs": ["S02"], "automatic_execution_authorized": true, "non_generalization_boundary": "Kia EV6 CV only."},
-    {"route_id": "kia_ev6_cv_tpms_7a0_7a8", "scope": {"brand_ids": ["hyundai_kia"], "platform_ids": ["kia_ev6_cv"], "models": ["ev6"]}, "module_role": "bcm_tpms", "route": {"protocol": "can11_500", "req": "7A0", "resp": "7A8", "target_byte": null, "address_extension": null, "gateway": null}, "read_services": ["22"], "session": "default_only", "requires_identity": true, "confidence": "high", "knowledge_state": "community_reported", "vehicle_fit": "untested", "identity_fit": "provisional", "activation": "disabled", "source_refs": ["S02"], "automatic_execution_authorized": true, "non_generalization_boundary": "Kia EV6 CV payload layout only."},
-    {"route_id": "kia_ev6_cv_bms_7e4_7ec", "scope": {"brand_ids": ["hyundai_kia"], "platform_ids": ["kia_ev6_cv"], "models": ["ev6"], "powertrains": ["bev"]}, "module_role": "bms", "route": {"protocol": "can11_500", "req": "7E4", "resp": "7EC", "target_byte": null, "address_extension": null, "gateway": null}, "read_services": ["22"], "session": "default_only", "requires_identity": true, "confidence": "high", "knowledge_state": "community_reported", "vehicle_fit": "untested", "identity_fit": "provisional", "activation": "disabled", "source_refs": ["S02"], "automatic_execution_authorized": true, "non_generalization_boundary": "Kia EV6 CV BMS layout only."}
+    {
+      "route_id": "hyundai_ioniq5_ne_abs_730_738",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq5_ne"
+        ],
+        "models": [
+          "ioniq_5"
+        ]
+      },
+      "module_role": "abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "730",
+        "resp": "738",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "IONIQ 5 NE only."
+    },
+    {
+      "route_id": "hyundai_ioniq5_ne_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq5_ne"
+        ],
+        "models": [
+          "ioniq_5"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "IONIQ 5 NE payload layout only."
+    },
+    {
+      "route_id": "hyundai_ioniq5_ne_bms_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq5_ne"
+        ],
+        "models": [
+          "ioniq_5"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "bms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "IONIQ 5 NE BMS layout only."
+    },
+    {
+      "route_id": "kia_ev6_cv_vcms_744_74c",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev6_cv"
+        ],
+        "models": [
+          "ev6"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "charging_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "74C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Kia EV6 CV only."
+    },
+    {
+      "route_id": "kia_ev6_cv_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev6_cv"
+        ],
+        "models": [
+          "ev6"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Kia EV6 CV payload layout only."
+    },
+    {
+      "route_id": "kia_ev6_cv_bms_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev6_cv"
+        ],
+        "models": [
+          "ev6"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "bms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Kia EV6 CV BMS layout only."
+    },
+    {
+      "route_id": "hyundai_kona_os_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_kona_os"
+        ],
+        "models": [
+          "kona"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S10"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "kona payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_kona_electric_os_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_kona_electric_os"
+        ],
+        "models": [
+          "kona_electric"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S09"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "kona_electric payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_kona_electric_os_bms_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_kona_electric_os"
+        ],
+        "models": [
+          "kona_electric"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "bms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S09"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "kona_electric payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_tucson_nx4_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_tucson_nx4"
+        ],
+        "models": [
+          "tucson"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S11"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "tucson payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_santa_fe_tm_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_santa_fe_tm"
+        ],
+        "models": [
+          "santa_fe"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S12"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "santa_fe payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_elantra_cn7_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_elantra_cn7"
+        ],
+        "models": [
+          "elantra"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S13"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "elantra payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_sonata_dn8_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_sonata_dn8"
+        ],
+        "models": [
+          "sonata"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S14"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "sonata payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_sportage_nq5_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_sportage_nq5"
+        ],
+        "models": [
+          "sportage"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S15"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "sportage payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_niro_ev_de_sg2_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_niro_ev_de_sg2"
+        ],
+        "models": [
+          "niro_ev"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S16"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "niro_ev payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_niro_ev_de_sg2_bms_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_niro_ev_de_sg2"
+        ],
+        "models": [
+          "niro_ev"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "bms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S16"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "niro_ev payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_seltos_sp2_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_seltos_sp2"
+        ],
+        "models": [
+          "seltos"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S17"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "seltos payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_ioniq6_ce_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq6_ce"
+        ],
+        "models": [
+          "ioniq_6"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S18"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "ioniq_6 payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_ioniq6_ce_bms_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq6_ce"
+        ],
+        "models": [
+          "ioniq_6"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "bms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S18"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "ioniq_6 payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "hyundai_ioniq6_ce_vcms_744_74c",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq6_ce"
+        ],
+        "models": [
+          "ioniq_6"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "charging_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "74C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S18"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "ioniq_6 payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_ev9_mv_tpms_7a0_7a8",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev9_mv"
+        ],
+        "models": [
+          "ev9"
+        ]
+      },
+      "module_role": "bcm_tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7A0",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S19"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "ev9 payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_ev9_mv_bms_7e4_7ec",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev9_mv"
+        ],
+        "models": [
+          "ev9"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "bms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E4",
+        "resp": "7EC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S19"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "ev9 payload layout only; a matching address or DID on another model is not decoder identity."
+    },
+    {
+      "route_id": "kia_ev9_mv_vcms_744_74c",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev9_mv"
+        ],
+        "models": [
+          "ev9"
+        ],
+        "powertrains": [
+          "bev"
+        ]
+      },
+      "module_role": "charging_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "74C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S19"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "ev9 payload layout only; a matching address or DID on another model is not decoder identity."
+    }
   ]
 }

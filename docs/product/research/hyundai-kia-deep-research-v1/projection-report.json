@@ -5,11 +5,11 @@
   "input_version": 1,
   "output_pack": "hyundai-kia-deep-research-runtime-v1",
   "counts": {
-    "input_routes": 6,
-    "projected_routes": 6,
-    "input_candidates": 6,
-    "projected_candidates": 6,
-    "projected_decoder_signals": 20,
+    "input_routes": 23,
+    "projected_routes": 23,
+    "input_candidates": 23,
+    "projected_candidates": 23,
+    "projected_decoder_signals": 78,
     "deferred": 0,
     "confirmed_route_matches": 0
   },
@@ -21,19 +21,33 @@
   "vehicle_fact_selectable_platforms": [
     "hyundai_ioniq5_ne",
     "kia_ev6_cv",
-    "genesis_gv60_jw"
+    "genesis_gv60_jw",
+    "hyundai_kona_os",
+    "hyundai_kona_electric_os",
+    "hyundai_tucson_nx4",
+    "hyundai_santa_fe_tm",
+    "hyundai_elantra_cn7",
+    "hyundai_sonata_dn8",
+    "kia_sportage_nq5",
+    "kia_niro_ev_de_sg2",
+    "kia_seltos_sp2",
+    "hyundai_ioniq6_ce",
+    "kia_ev9_mv",
+    "kia_sorento_mq4",
+    "kia_carnival_ka4",
+    "genesis_g80_rg3"
   ],
   "warnings": [],
-  "platform_proposals": 3,
+  "platform_proposals": 17,
   "confirmed_routes": [],
   "archived_files": [
     {
       "path": "index.json",
-      "sha256": "85b310a516efd81208fe59ec72b2b2c562a3ac084249220ccd6fbc95bf0d18c2"
+      "sha256": "9edd999663209564d1b069921d0d54dbbd88940590aebf3d1ef80464ba0c6446"
     },
     {
       "path": "README.md",
-      "sha256": "118a2d36588ac7cdfa352ff14a71238595246ab87a2a82bd3e33b9df6fccb9c5"
+      "sha256": "c6384edb662aff3576fc8c94b4d8951ae3e84e069a3091511cb4ee71056d8c0a"
     },
     {
       "path": "hyundai-kia-profile-overlay.json",
@@ -41,7 +55,7 @@
     },
     {
       "path": "platforms.json",
-      "sha256": "b7e3b0ee3a60cf9e6e5d41e266c8bf159d9f3a25d33c8dd53f55dd3d37143cbc"
+      "sha256": "212c8b47e6951967606c25507ab32585b807097a2cd7cf37edc19c20c88fa486"
     },
     {
       "path": "connection-playbook.json",
@@ -53,11 +67,11 @@
     },
     {
       "path": "ecu-routes.json",
-      "sha256": "9f4197ec6780f3547dad22cb32d5cbd5bfc425c4cc4421734b9db1f0bd1ccd62"
+      "sha256": "d42014831a907d922a2d4b0f5994a929419359cdc9e1d1185dbb4a75a824668c"
     },
     {
       "path": "did-candidates.json",
-      "sha256": "9e81b0e36ecbe24892b7f8014157464621d6e67408ec27b53cb380816212d136"
+      "sha256": "ebd9f230e75c62a5d29e541bb1287ba4e8f336e22dafa40d2266441ad81e556f"
     },
     {
       "path": "command-support-evidence.json",
@@ -77,11 +91,11 @@
     },
     {
       "path": "conflicts-and-gaps.json",
-      "sha256": "5976afc1bba6b9ca30e04dd8b3fc3cffa62e12ac9c393df1f543c04edd21f0e3"
+      "sha256": "a31f7f99e9ab5b18adcfa0d493c10dcfeb2329e4cd4b4a8f15d81542cace555f"
     },
     {
       "path": "source-ledger.json",
-      "sha256": "ff24dfdd1e357715eed999ba2ba48e372210dd2fbef5160171ad21242f359585"
+      "sha256": "c3c9a19158f456238f3645bb93a989ea53f44a87cef98fc91a45bbc2b41955f3"
     }
   ],
   "deferred": []
