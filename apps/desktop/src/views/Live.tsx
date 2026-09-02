@@ -2,7 +2,7 @@
 // set plus whatever this car's probes push, grouped and pinnable; "Over
 // time" is the stored history of the same keys (views/live/Trend.tsx).
 import { useMemo, useRef, useState } from "react";
-import { Activity, ChartLine, ListFilter, Pin, PinOff } from "lucide-react";
+import { Activity, ChartLine, ListFilter, Pin, PinOff, Radar } from "lucide-react";
 import {
   Button,
   Card,
@@ -25,13 +25,14 @@ import {
 } from "@/components/ui";
 import { Block, Reveal, Swap } from "@/motion/components";
 import { GAUGES, gaugeLabel, hex4 } from "@/shared/domain/gauges";
-import type { Live as LiveMap, UdsProbe } from "@scainner/core";
+import type { DiscoveryStatus, Live as LiveMap, UdsProbe } from "@scainner/core";
 import { useAllSensors } from "@/features/live/queries";
 import { useListProbes } from "@/features/lab/queries";
 import { useLocale, useT } from "@/i18n";
 import { Trend } from "@/views/live/Trend";
 import { GAUGE_RANGES, percentOf } from "@/views/live/ranges";
 import { usePins } from "@/views/live/pins";
+import { showLiveDiscoveryNotice } from "@/lib/discovery-notice";
 
 type SensorState = "standard" | "verified" | "inherited" | "candidate";
 
@@ -195,14 +196,19 @@ export function Live({
   live,
   connected,
   scanning = false,
+  discovery = null,
   vehicleId = null,
+  onNavigate,
 }: {
   live: LiveMap;
   connected: boolean;
   /** A UDS scan pauses standard polling; say so instead of going stale. */
   scanning?: boolean;
+  /** The automatic sensor run, off the conn-status broadcast. */
+  discovery?: DiscoveryStatus | null;
   connState?: string;
   vehicleId?: number | null;
+  onNavigate?: (view: "lab") => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -253,6 +259,10 @@ export function Live({
   }, [defs, pins, t]);
 
   const note = mode === "trend" ? t.live.noteStored : scanning ? t.live.noteScanning : connected ? t.live.noteLive : t.live.noteOffline;
+  // A whole grid of dashes is not an honest empty state while the car is
+  // being scanned — it reads as broken. Say what is happening and where to
+  // watch it instead (owner, 2026-09-01).
+  const scanNotice = showLiveDiscoveryNotice(discovery, mode);
 
   return (
     <>
@@ -269,8 +279,25 @@ export function Live({
         <span className="flex-1 text-[12px] text-neutral-500">{note}</span>
       </Block>
 
-      <Swap k={mode} className="flex flex-col gap-4">
-        {mode === "now" ? (
+      {/* The notice is its own Swap key, so the gauges cross-fade back in
+          when the scan ends instead of snapping. */}
+      <Swap k={scanNotice ? "scanning" : mode} className="flex flex-col gap-4">
+        {scanNotice ? (
+          <Card>
+            <EmptyState
+              icon={Radar}
+              title={t.autoScan.live.title}
+              body={t.autoScan.live.body}
+              action={
+                onNavigate && (
+                  <Button variant="secondary" size="sm" onClick={() => onNavigate("lab")}>
+                    {t.autoScan.live.action}
+                  </Button>
+                )
+              }
+            />
+          </Card>
+        ) : mode === "now" ? (
           <>
             {groups.map((g) => (
               <div key={g.name} className="flex flex-col gap-[7px]">

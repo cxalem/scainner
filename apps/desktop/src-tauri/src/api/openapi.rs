@@ -56,7 +56,7 @@ pub const ROUTES: &[RouteDoc] = &[
     // connection
     r("POST", "/connect", "Run the connect pipeline once (same as the UI's Connect: link, open, handshake, bus). No automatic retry — call it again to try again. Idempotent while a connection is running.", &[], None, false, false),
     r("POST", "/disconnect", "Stop the supervisor (cancels any running scan first)", &[], None, false, false),
-    r("GET", "/status", "ConnStatus: state, stage (link|open|handshake|bus while connecting), error {stage, reason} after a failed attempt, ELM version, VIN/vehicle identity, scanning flag", &[], None, false, false),
+    r("GET", "/status", "ConnStatus: state, stage (link|open|handshake|bus while connecting), error {stage, reason} after a failed attempt, ELM version, VIN/vehicle identity, scanning flag, and discovery {state: idle|running|skipped|done, reason, stage, started_at, last_run_at, knowledge_key}", &[], None, false, false),
     r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Workshop courtesy car"}"#), true, false),
     // standard OBD
     r("GET", "/live", "Latest live PID readings (the last live-update broadcast) with their age", &[], None, false, false),
@@ -102,6 +102,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/vehicles/{id}/coverage", "Coverage report from data: vehicle, standard, routes, identified modules, decode states, hypotheses, learning; every line carries evidence ids", &[], None, false, false),
     r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation, plus the evidence.run_ids a confirmation rests on", &[], None, false, false),
     r("POST", "/vehicles/{id}/join", "S3 join: match fingerprinted modules to ecu_families, register inherited + unknown hypotheses. Local, idempotent, no car needed", &[], None, false, false),
+    r("POST", "/vehicles/{id}/discovery/run", "Scan again: forget the stored knowledge key for this vehicle (so its next connection runs the automatic S1-S3 pass) and, when it is the connected car, run that pass now without reconnecting. Answers {triggered, cleared, knowledge_key, detail, summary}. Minutes on a live car; watch /events for conn-status discovery.stage", &[], None, false, false),
     r("GET", "/knowledge/candidates", "De-identified reusable signal knowledge, independent of private vehicle records", &[], None, false, false),
     r("PATCH", "/hypotheses/{id}", "State transition; evidence_run_ids names the verification runs a knowledge_state promotion rests on and comes back as evidence. 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on, locally_confirmed needs matched fit + a run of this vehicle, community_verified/oem_confirmed are never set locally)", &[], Some(r#"{"vehicle_fit": "matched", "knowledge_state": "locally_confirmed", "evidence_run_ids": [12], "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
     r("GET", "/learning-state", "Whether learning activation is allowed ({\"on\": bool})", &[], None, false, false),

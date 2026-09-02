@@ -59,6 +59,35 @@ pub struct ConnStatus {
     // state instead of a silently frozen/empty one, and the state itself
     // survives switching tabs for free (owner, 2026-08-24).
     pub scanning: bool,
+    // What automatic discovery did on this connection. None until the
+    // connect phase has decided; then it stays on the status for the whole
+    // session, because "why is live data empty right now" and "when was
+    // this car last scanned" are both answered by it. Rides the same
+    // conn-status broadcast as `scanning`, for the same reason.
+    pub discovery: Option<DiscoveryStatus>,
+}
+
+/// The automatic run's state, as the UI and the agent API see it.
+#[derive(Clone, Serialize, Debug, Default, PartialEq)]
+pub struct DiscoveryStatus {
+    /// `idle` (switched off, or no vehicle to file findings against) |
+    /// `running` | `skipped` | `done`.
+    pub state: String,
+    /// Machine token, not a sentence — the UI translates it:
+    /// `never_run` | `knowledge_changed` | `requested` | `knowledge_unchanged`.
+    pub reason: Option<String>,
+    /// While running: `census` | `identity` | `join` | `coverage`.
+    pub stage: Option<String>,
+    /// How far through the current stage, when the stage counts anything.
+    pub stage_done: Option<u32>,
+    pub stage_total: Option<u32>,
+    /// When THIS run started (running / done).
+    pub started_at: Option<String>,
+    /// When the last COMPLETED run finished (skipped / done) — the "since"
+    /// in "nothing new since then".
+    pub last_run_at: Option<String>,
+    /// The maps this build ships, as `discovery::knowledge_key`.
+    pub knowledge_key: String,
 }
 
 /// The live connection's identity context, threaded into every handler that
@@ -214,6 +243,10 @@ pub enum Request {
         tx: Sender<Result<uds::DiscoveryReport, String>>,
     },
     ParkedVerification(Sender<Result<uds::ParkedVerificationReport, String>>),
+    /// "Scan again": run the automatic S1–S3 pass on the connected vehicle
+    /// without reconnecting. The gate (`discovery::knowledge`) is bypassed
+    /// — the user asking IS the reason.
+    RunAutoDiscovery(Sender<Result<discovery::auto::AutoSummary, String>>),
     /// One guided-correlation capture (read-only, default session), saved as
     /// a verification run carrying the operator's condition label.
     CorrelationCapture {
@@ -289,6 +322,19 @@ fn set_scanning(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, scannin
     let snapshot = {
         let mut guard = status.lock().unwrap();
         guard.scanning = scanning;
+        guard.clone()
+    };
+    let _ = app.emit("conn-status", &snapshot);
+}
+
+/// Same one-field-and-rebroadcast trick as `set_scanning`, for the
+/// discovery block: every tab already listens to conn-status, so this is
+/// how Overview's banner and Live's notice learn a run is under way
+/// without a second event or a poll (owner, 2026-09-01).
+fn set_discovery(app: &tauri::AppHandle, status: &Arc<Mutex<ConnStatus>>, d: DiscoveryStatus) {
+    let snapshot = {
+        let mut guard = status.lock().unwrap();
+        guard.discovery = Some(d);
         guard.clone()
     };
     let _ = app.emit("conn-status", &snapshot);
@@ -425,65 +471,55 @@ fn run_loop(
         // the default session, within the protocol's budgets. Switched off
         // with `app_settings.auto_discovery = off`; an unidentified car has
         // nowhere to file findings, so it is skipped too.
-        if let Some(vehicle_id) = ctx.vehicle_id {
-            if discovery::auto::enabled(&db) {
-                discovery::auto::notify_unknown_brand(resolved_vin.as_deref(), |notice| {
-                    log::info!(
-                        "discovery profile callback: reason={}, wmi={:?}; policy={}, scan_allowed={}",
-                        notice.reason,
-                        notice.wmi,
-                        notice.fallback_policy,
-                        notice.discovery_continues
-                    );
-                    let _ = app.emit(
-                        "unknown-brand",
-                        serde_json::json!({
-                            "vehicleId": vehicle_id,
-                            "classification": notice.classification,
-                            "reason": notice.reason,
-                            "wmi": notice.wmi,
-                            "brandId": notice.brand_id,
-                            "fallbackPolicy": notice.fallback_policy,
-                            "discoveryContinues": notice.discovery_continues,
-                        }),
-                    );
-                });
-                cancel_scan.store(false, Ordering::Relaxed);
-                set_scanning(&app, &status, true);
-                let progress = |phase: &str, current: u32, total: u32, detail: &str| {
-                    let _ = app.emit(
-                        "discovery-progress",
-                        serde_json::json!({
-                            "phase": phase, "current": current, "total": total,
-                            "detail": detail, "modulesFound": 0, "didsFound": 0,
-                        }),
-                    );
-                };
-                let summary = discovery::auto::run(
-                    &mut drv,
-                    &db,
-                    vehicle_id,
-                    resolved_vin.as_deref(),
-                    connection_id,
-                    &cancel_scan,
-                    &discovery::auto::AutoConfig::default(),
-                    &progress,
-                );
-                set_scanning(&app, &status, false);
-                log::info!(
-                    "automatic discovery: {} candidates, {} reached, {} refused, {} silent; {} fingerprinted; coverage {}; {} ms{}",
-                    summary.census.candidates,
-                    summary.census.reached,
-                    summary.census.refused,
-                    summary.census.silent,
-                    summary.identity.fingerprinted,
-                    summary.coverage_status.as_deref().unwrap_or("none"),
-                    summary.elapsed_ms,
-                    summary.stopped.as_deref().map(|s| format!(" ({s})")).unwrap_or_default()
-                );
-                if let Ok(json) = serde_json::to_string(&summary) {
-                    let _ =
-                        db.insert_verification_run(vehicle_id, connection_id, "auto-s1-s3", &json);
+        //
+        // And it is gated on the knowledge key (`discovery::knowledge`):
+        // the same maps on the same car find the same things, so a repeat
+        // run is minutes of blocked live data for nothing (owner,
+        // 2026-09-01). It runs again when the app ships new maps, or when
+        // the user presses "Scan again".
+        let knowledge_key = discovery::knowledge_key();
+        match ctx.vehicle_id.filter(|_| discovery::auto::enabled(&db)) {
+            None => set_discovery(
+                &app,
+                &status,
+                DiscoveryStatus {
+                    state: "idle".into(),
+                    knowledge_key: knowledge_key.clone(),
+                    ..Default::default()
+                },
+            ),
+            Some(vehicle_id) => {
+                let stored = discovery::knowledge::last_auto_run(&db, vehicle_id);
+                match discovery::knowledge::decide(stored.as_ref(), &knowledge_key, false) {
+                    discovery::knowledge::RunDecision::Skip { since } => {
+                        log::info!("discovery skipped: knowledge unchanged since {since}");
+                        set_discovery(
+                            &app,
+                            &status,
+                            DiscoveryStatus {
+                                state: "skipped".into(),
+                                reason: Some(discovery::knowledge::SKIP_REASON.into()),
+                                last_run_at: Some(since),
+                                knowledge_key: knowledge_key.clone(),
+                                ..Default::default()
+                            },
+                        );
+                    }
+                    discovery::knowledge::RunDecision::Run(reason) => {
+                        log::info!("discovery running: {}", reason.explain());
+                        run_auto_discovery(
+                            &mut drv,
+                            &db,
+                            &app,
+                            &status,
+                            &cancel_scan,
+                            vehicle_id,
+                            resolved_vin.as_deref(),
+                            connection_id,
+                            reason,
+                            &knowledge_key,
+                        );
+                    }
                 }
             }
         }
@@ -862,6 +898,146 @@ fn current_vin(db: &Db, ctx: ConnCtx) -> Option<String> {
         .and_then(|v| v.vin)
 }
 
+/// One automatic S1–S3 pass, with the whole world told what is happening:
+/// `scanning` (standard PID polling is paused for its duration) and the
+/// `discovery` block on conn-status, updated on STAGE change only — the
+/// per-probe `discovery-progress` event already exists for the Lab's own
+/// progress bar, and re-broadcasting the full status per probe would be a
+/// broadcast per bus round-trip.
+///
+/// Called from the connect phase (behind the knowledge gate) and from
+/// `Request::RunAutoDiscovery` ("Scan again"), so both paths report and
+/// record identically.
+#[allow(clippy::too_many_arguments)]
+fn run_auto_discovery(
+    drv: &mut ElmDriver,
+    db: &Db,
+    app: &tauri::AppHandle,
+    status: &Arc<Mutex<ConnStatus>>,
+    cancel_scan: &AtomicBool,
+    vehicle_id: i64,
+    vin: Option<&str>,
+    connection_id: i64,
+    reason: discovery::knowledge::RunReason,
+    knowledge_key: &str,
+) -> discovery::auto::AutoSummary {
+    discovery::auto::notify_unknown_brand(vin, |notice| {
+        log::info!(
+            "discovery profile callback: reason={}, wmi={:?}; policy={}, scan_allowed={}",
+            notice.reason,
+            notice.wmi,
+            notice.fallback_policy,
+            notice.discovery_continues
+        );
+        let _ = app.emit(
+            "unknown-brand",
+            serde_json::json!({
+                "vehicleId": vehicle_id,
+                "classification": notice.classification,
+                "reason": notice.reason,
+                "wmi": notice.wmi,
+                "brandId": notice.brand_id,
+                "fallbackPolicy": notice.fallback_policy,
+                "discoveryContinues": notice.discovery_continues,
+            }),
+        );
+    });
+    cancel_scan.store(false, Ordering::Relaxed);
+    set_scanning(app, status, true);
+    let started_at = discovery::knowledge::now(db);
+    let running = DiscoveryStatus {
+        state: "running".into(),
+        reason: Some(reason.as_str().into()),
+        started_at: Some(started_at.clone()),
+        knowledge_key: knowledge_key.to_string(),
+        ..Default::default()
+    };
+    set_discovery(app, status, running.clone());
+
+    // `auto::run`'s phases, mapped to the four the protocol names. The
+    // last phase writes the coverage report, which is what the UI calls it.
+    let stage_of = |phase: &str| match phase {
+        "auto-census" => "census",
+        "auto-identity" => "identity",
+        "auto-join" => "join",
+        _ => "coverage",
+    };
+    let stage = std::cell::RefCell::new(String::new());
+    let progress = |phase: &str, current: u32, total: u32, detail: &str| {
+        let _ = app.emit(
+            "discovery-progress",
+            serde_json::json!({
+                "phase": phase, "current": current, "total": total,
+                "detail": detail, "modulesFound": 0, "didsFound": 0,
+            }),
+        );
+        let next = stage_of(phase);
+        if *stage.borrow() != next {
+            *stage.borrow_mut() = next.to_string();
+            set_discovery(
+                app,
+                status,
+                DiscoveryStatus {
+                    stage: Some(next.to_string()),
+                    stage_done: Some(current),
+                    stage_total: Some(total),
+                    ..running.clone()
+                },
+            );
+        }
+    };
+    let summary = discovery::auto::run(
+        drv,
+        db,
+        vehicle_id,
+        vin,
+        connection_id,
+        cancel_scan,
+        &discovery::auto::AutoConfig::default(),
+        &progress,
+    );
+    set_scanning(app, status, false);
+    log::info!(
+        "automatic discovery: {} candidates, {} reached, {} refused, {} silent; {} fingerprinted; coverage {}; {} ms{}",
+        summary.census.candidates,
+        summary.census.reached,
+        summary.census.refused,
+        summary.census.silent,
+        summary.identity.fingerprinted,
+        summary.coverage_status.as_deref().unwrap_or("none"),
+        summary.elapsed_ms,
+        summary.stopped.as_deref().map(|s| format!(" ({s})")).unwrap_or_default()
+    );
+    if let Ok(json) = serde_json::to_string(&summary) {
+        let _ = db.insert_verification_run(vehicle_id, connection_id, "auto-s1-s3", &json);
+    }
+    // Only a run that finished the protocol closes the gate. One that hit
+    // a budget left candidates unprobed, and the next connect is what
+    // picks them up — recording it as done would strand them.
+    let last_run_at = if discovery::knowledge::completed(&summary) {
+        Some(discovery::knowledge::record_auto_run(db, vehicle_id, knowledge_key).at)
+    } else {
+        log::info!(
+            "discovery not recorded as done: {}",
+            summary.stopped.as_deref().unwrap_or("cancelled")
+        );
+        discovery::knowledge::last_auto_run(db, vehicle_id).map(|r| r.at)
+    };
+    set_discovery(
+        app,
+        status,
+        DiscoveryStatus {
+            state: "done".into(),
+            stage: None,
+            stage_done: None,
+            stage_total: None,
+            last_run_at,
+            ..running
+        },
+    );
+    summary
+}
+
 /// Dispatch one request to the right business-logic module. This is the only
 /// place that knows both "how to talk to the car" (via `drv`) and "what the
 /// UI asked for" (via `Request`) — everything past this point is either
@@ -1038,6 +1214,29 @@ fn handle_request(
             };
             let _ = tx.send(result);
         }
+        Request::RunAutoDiscovery(tx) => match ctx.vehicle_id {
+            None => {
+                let _ = tx.send(Err(
+                    "this connection has no identified vehicle, so findings would have nowhere to live".into(),
+                ));
+            }
+            Some(vehicle_id) => {
+                let vin = status.lock().unwrap().vin.clone();
+                let summary = run_auto_discovery(
+                    drv,
+                    db,
+                    app,
+                    status,
+                    cancel_scan,
+                    vehicle_id,
+                    vin.as_deref(),
+                    ctx.connection_id,
+                    discovery::knowledge::RunReason::Requested,
+                    &discovery::knowledge_key(),
+                );
+                let _ = tx.send(Ok(summary));
+            }
+        },
         Request::ParkedVerification(tx) => {
             let result = match ctx.vehicle_id {
                 None => Err(
@@ -1211,6 +1410,43 @@ mod tests {
 
     fn test_db() -> Db {
         Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    /// The whole point of the discovery block is that every tab reads it
+    /// off the one broadcast it already listens to, so its wire shape is
+    /// the contract (packages/core/src/schema/connection.ts decodes it).
+    #[test]
+    fn the_status_carries_the_discovery_block_on_the_wire() {
+        let status = ConnStatus {
+            state: "connected".into(),
+            discovery: Some(DiscoveryStatus {
+                state: "running".into(),
+                reason: Some(discovery::knowledge::RunReason::NeverRun.as_str().into()),
+                stage: Some("census".into()),
+                stage_done: Some(3),
+                stage_total: Some(12),
+                started_at: Some("2026-09-01 10:00:00".into()),
+                last_run_at: None,
+                knowledge_key: discovery::knowledge_key(),
+            }),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json["discovery"]["state"], "running");
+        assert_eq!(json["discovery"]["reason"], "never_run");
+        assert_eq!(json["discovery"]["stage"], "census");
+        assert_eq!(json["discovery"]["stage_total"], 12);
+        assert_eq!(
+            json["discovery"]["knowledge_key"],
+            discovery::knowledge_key()
+        );
+        // A disconnected status has no block at all, not a fake idle one.
+        let empty = serde_json::to_value(ConnStatus {
+            state: "disconnected".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(empty["discovery"].is_null());
     }
 
     #[test]

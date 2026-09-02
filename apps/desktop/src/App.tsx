@@ -135,6 +135,10 @@ export default function App() {
   const currentVehicle = (vehicles.data ?? []).find((v) => v.id === currentVehicleId);
   const currentName = currentVehicle?.display_name || currentVehicle?.vin || conn.display_name || null;
   const recording = connected && Object.keys(live).length > 0;
+  // The discovery block describes the CONNECTED car's run. While browsing a
+  // stored car it must not be shown against that car's pages — same rule
+  // as liveEnabled, and the same bug it exists to prevent.
+  const onConnectedCarDiscovery = liveEnabled ? (conn.discovery ?? null) : null;
 
   const connect = () => runPromise(Effect.flatMap(DeviceService, (device) => device.connect()));
   // A manual disconnect is a deliberate "I'm done with this car" — resets
@@ -197,13 +201,36 @@ export default function App() {
           onSignOut={session ? () => void signOut() : undefined}
           liveLabel={connected && liveEnabled && currentName ? `${currentName} · ${t.shell.switcher.connectedNote}` : null}
         >
-          {view === "overview" && <Overview connState={conn.state} vehicleId={currentVehicleId} vin={currentVin} onNavigate={setView} />}
+          {view === "overview" && (
+            <Overview
+              connState={conn.state}
+              vehicleId={currentVehicleId}
+              vin={currentVin}
+              discovery={onConnectedCarDiscovery}
+              onNavigate={setView}
+            />
+          )}
           {view === "diagnose" && <Diagnose connected={liveEnabled} vehicleId={currentVehicleId} />}
           {view === "live" && (
-            <Live live={live} connected={liveEnabled} scanning={conn.scanning ?? false} connState={conn.state} vehicleId={currentVehicleId} />
+            <Live
+              live={live}
+              connected={liveEnabled}
+              scanning={conn.scanning ?? false}
+              discovery={onConnectedCarDiscovery}
+              connState={conn.state}
+              vehicleId={currentVehicleId}
+              onNavigate={setView}
+            />
           )}
           {view === "workshop" && <Workshop connectedVehicleId={currentVehicleId} />}
-          {view === "lab" && <Lab connected={liveEnabled} vehicleId={currentVehicleId} scanning={conn.scanning ?? false} />}
+          {view === "lab" && (
+            <Lab
+              connected={liveEnabled}
+              vehicleId={currentVehicleId}
+              scanning={conn.scanning ?? false}
+              discovery={onConnectedCarDiscovery}
+            />
+          )}
           {view === "vehicle" && (
             <Suspense fallback={<Skeleton className="h-64 w-full" />}>
               <Vehicle connected={liveEnabled} vehicleId={currentVehicleId} />

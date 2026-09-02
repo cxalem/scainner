@@ -332,6 +332,7 @@ pub fn router(api: Arc<ApiState>) -> Router {
         .route("/vehicles/{id}/guided-steps", get(vehicle_guided_steps))
         .route("/vehicles/{id}/hypotheses", get(vehicle_hypotheses))
         .route("/vehicles/{id}/join", post(vehicle_join))
+        .route("/vehicles/{id}/discovery/run", post(vehicle_discovery_run))
         .route("/knowledge/candidates", get(knowledge_candidates))
         .route("/hypotheses/{id}", axum::routing::patch(patch_hypothesis))
         .route(
@@ -860,6 +861,17 @@ async fn vehicle_join(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> 
     }
 }
 
+/// "Scan again": forget the stored knowledge key for this vehicle and, when
+/// it is the connected one, run the automatic pass now without
+/// reconnecting. Minutes on a live car — watch `/events` for conn-status
+/// `discovery.stage` while it runs.
+async fn vehicle_discovery_run(State(api): State<Arc<ApiState>>, Path(id): Path<i64>) -> ApiResult {
+    if api.state.db.vehicle(id).is_none() {
+        return Err(no_vehicle(id));
+    }
+    ok(ops::run_discovery(&api.state, id).await.map_err(op_err)?)
+}
+
 /// State transition on one hypothesis. A rule violation is a 409 whose body
 /// names the rule and the reason, so an agent can explain instead of retry.
 /// `evidence_run_ids` carries the verification runs a knowledge-state
@@ -1309,6 +1321,45 @@ mod tests {
         let (status, body) = call(&api, "GET", "/status", Some(TOKEN), None).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["state"], "disconnected");
+    }
+
+    /// "Scan again" without the car plugged in still has to do something
+    /// durable, or the button lies: it forgets the stored knowledge key,
+    /// so the next connection runs the pass.
+    #[tokio::test]
+    async fn scan_again_clears_the_gate_when_the_car_is_not_connected() {
+        use crate::elm::discovery::knowledge;
+        let (api, db) = test_api();
+        let vin = crate::elm::discovery::join::fixtures::verified_vin();
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
+        let key = crate::elm::discovery::knowledge_key();
+        knowledge::record_auto_run(&db, vehicle_id, &key);
+        assert!(knowledge::last_auto_run(&db, vehicle_id).is_some());
+
+        let (status, body) = call(
+            &api,
+            "POST",
+            &format!("/vehicles/{vehicle_id}/discovery/run"),
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body["triggered"], false);
+        assert_eq!(body["cleared"], true);
+        assert_eq!(body["knowledge_key"], key);
+        assert!(body["summary"].is_null());
+        assert!(knowledge::last_auto_run(&db, vehicle_id).is_none());
+
+        let (status, _) = call(
+            &api,
+            "POST",
+            "/vehicles/999/discovery/run",
+            Some(TOKEN),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
@@ -1971,6 +2022,7 @@ mod tests {
             "/uds/scan",
             "/uds/scan/cancel",
             "/uds/discover",
+            "/vehicles/{id}/discovery/run",
             "/uds/modules/{key}/dtcs",
             "/uds/clear",
             "/verification/parked",
