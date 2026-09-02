@@ -271,6 +271,54 @@ pub async fn discover_sensors(
     ask_within(state, LONG_ASK_TIMEOUT, |tx| Request::Discover { full, tx }).await
 }
 
+/// What "Scan again" did. Both halves are reported because they answer
+/// different questions: `triggered` is "is it running right now", `cleared`
+/// is "will the next connection run it".
+#[derive(serde::Serialize, Clone, Debug)]
+pub struct DiscoveryRunOutcome {
+    pub triggered: bool,
+    pub cleared: bool,
+    pub knowledge_key: String,
+    /// Plain-English explanation for the agent API's reader; the UI keys
+    /// off `triggered` and uses its own translated copy.
+    pub detail: String,
+    pub summary: Option<discovery::auto::AutoSummary>,
+}
+
+/// "Scan again" for one vehicle. Always forgets the stored knowledge key,
+/// so the next connection runs the pass even if this call cannot; and when
+/// that vehicle is the one on the wire, runs it now through the supervisor
+/// — no reconnect, since the supervisor already owns a live driver.
+///
+/// The run is the same S1–S3 pass connect does, so it can take minutes;
+/// progress arrives on conn-status (`discovery.stage`) meanwhile.
+pub async fn run_discovery(
+    state: &AppState,
+    vehicle_id: i64,
+) -> Result<DiscoveryRunOutcome, String> {
+    let knowledge_key = discovery::knowledge_key();
+    discovery::knowledge::clear_auto_run(&state.db, vehicle_id);
+    if conn_status(state).vehicle_id != Some(vehicle_id) {
+        return Ok(DiscoveryRunOutcome {
+            triggered: false,
+            cleared: true,
+            knowledge_key,
+            detail:
+                "this vehicle is not the connected one, so the scan runs on its next connection"
+                    .into(),
+            summary: None,
+        });
+    }
+    let summary = ask_within(state, LONG_ASK_TIMEOUT, Request::RunAutoDiscovery).await?;
+    Ok(DiscoveryRunOutcome {
+        triggered: true,
+        cleared: true,
+        knowledge_key,
+        detail: "the scan ran on the connected car".into(),
+        summary: Some(summary),
+    })
+}
+
 /// Reproducible parked-car research pass over the plan generated from the
 /// vehicle's profile (`discovery::plan`). Read-only requests on each
 /// module's read service; the complete evidence is attached to this vehicle

@@ -137,6 +137,56 @@ const pairedInPreview: Record<string, unknown>[] = [];
 // same seeded history as before — a pragmatic demo choice, not a claim that
 // a freshly discovered car would already have 47 sessions of history.
 let discovered = false;
+// The knowledge key the preview pretends to ship, and whether the demo car
+// has already been scanned with it — the run-once gate, mocked, so the
+// second demo connect exercises the "skipped" state the way a real second
+// connect does.
+const MOCK_KNOWLEDGE_KEY = "k1;map=9@2026-08-28;research=demo@1;packs=demo@1;plan=1";
+let autoScanDoneAt: string | null = null;
+
+const sqlNow = () => new Date().toISOString().slice(0, 19).replace("T", " ");
+
+/** Walks the four protocol stages on conn-status, then records the run. */
+async function runMockAutoScan(): Promise<void> {
+  const started_at = sqlNow();
+  const stages = [
+    { stage: "census" as const, total: 12 },
+    { stage: "identity" as const, total: 6 },
+    { stage: "join" as const, total: 1 },
+    { stage: "coverage" as const, total: 1 },
+  ];
+  for (const { stage, total } of stages) {
+    connState = {
+      ...connState,
+      scanning: true,
+      discovery: {
+        state: "running",
+        reason: autoScanDoneAt ? "requested" : "never_run",
+        stage,
+        stage_done: 0,
+        stage_total: total,
+        started_at,
+        last_run_at: autoScanDoneAt,
+        knowledge_key: MOCK_KNOWLEDGE_KEY,
+      },
+    };
+    emit("conn-status", connState);
+    await delay(900);
+  }
+  autoScanDoneAt = sqlNow();
+  connState = {
+    ...connState,
+    scanning: false,
+    discovery: {
+      state: "done",
+      reason: "never_run",
+      started_at,
+      last_run_at: autoScanDoneAt,
+      knowledge_key: MOCK_KNOWLEDGE_KEY,
+    },
+  };
+  emit("conn-status", connState);
+}
 let fuelPrice = 1.62;
 let fuelLevel = 57; // %, drains gently over a demo session
 let liveTimer: number | null = null;
@@ -657,6 +707,22 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       emit("conn-status", connState);
       startLiveTicking();
       discovered = true;
+      // Same gate as the backend's: the first connect scans, every later
+      // one skips because the maps have not moved.
+      if (autoScanDoneAt == null) {
+        void runMockAutoScan();
+      } else {
+        connState = {
+          ...connState,
+          discovery: {
+            state: "skipped",
+            reason: "knowledge_unchanged",
+            last_run_at: autoScanDoneAt,
+            knowledge_key: MOCK_KNOWLEDGE_KEY,
+          },
+        };
+        emit("conn-status", connState);
+      }
       return undefined as T;
     }
     case "disconnect": {
@@ -932,6 +998,19 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
     case "parked_verification":
       await delay(500);
       return buildParkedVerification(vehicleFor(args)) as T;
+    case "run_discovery": {
+      const triggered = connState.state === "connected";
+      autoScanDoneAt = null;
+      if (triggered) void runMockAutoScan();
+      return {
+        triggered,
+        cleared: true,
+        knowledge_key: MOCK_KNOWLEDGE_KEY,
+        detail: triggered
+          ? "the scan ran on the connected car"
+          : "this vehicle is not the connected one, so the scan runs on its next connection",
+      } as T;
+    }
     case "discover_sensors": {
       // Mirror the backend's global status broadcast so switching between
       // Lab and Live during a demo scan exercises the real architecture.

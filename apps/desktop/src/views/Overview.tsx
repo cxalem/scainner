@@ -8,19 +8,23 @@ import {
   Cable,
   Database,
   History,
+  Radar,
   ShieldCheck,
   ShieldQuestion,
   Timer,
   Waves,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import { Button, Card, CardHead, CardSkeleton, EmptyState, Field, Input, Mono, Pill, Skeleton } from "@/components/ui";
-import { Block } from "@/motion/components";
+import { Banner, Button, Card, CardHead, CardSkeleton, EmptyState, Field, IconButton, Input, Mono, Pill, Skeleton } from "@/components/ui";
+import { Block, Reveal } from "@/motion/components";
 import type { SceneStatus } from "@/components/VehicleScene";
 import { useNameCurrentVehicle, useVehicleReport, useVehicles } from "@/features/vehicle/queries";
 import { buildVerdicts } from "@/views/overview/buildVerdicts";
 import { FuelCard } from "@/views/overview/FuelCard";
 import { useLocale, useT } from "@/i18n";
+import { discoveryRunId, showDiscoveryBanner } from "@/lib/discovery-notice";
+import type { DiscoveryStatus } from "@scainner/core";
 
 // Code-split: three.js only loads once the scene actually mounts.
 const VehicleScene = lazy(() =>
@@ -53,6 +57,7 @@ export function Overview({
   connState = "disconnected",
   vehicleId = null,
   vin = null,
+  discovery = null,
   onNavigate,
 }: {
   connState?: string;
@@ -60,7 +65,9 @@ export function Overview({
   vehicleId?: number | null;
   /** VIN for the brand emblem (VehicleScene decodes make from it). */
   vin?: string | null;
-  onNavigate?: (view: "diagnose" | "live") => void;
+  /** The automatic sensor run, off the conn-status broadcast. */
+  discovery?: DiscoveryStatus | null;
+  onNavigate?: (view: "diagnose" | "live" | "lab") => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -70,6 +77,43 @@ export function Overview({
   const sceneStatus: SceneStatus =
     connState === "connected" ? "connected" : connState === "connecting" ? "connecting" : "disconnected";
   const reportQuery = useVehicleReport(vehicleId);
+  // Dismissal is per run, not per session: the next run blocks live data
+  // all over again, so it earns the banner again (lib/discovery-notice.ts).
+  const [dismissedRun, setDismissedRun] = useState<string | null>(null);
+  const scanBanner = showDiscoveryBanner(discovery, dismissedRun);
+  // Every branch below returns through this, so the banner sits at the top
+  // of the content area whatever state the report itself is in — the scan
+  // is the reason several of those states look empty.
+  const withScanBanner = (content: ReactNode) => (
+    <>
+      {/* Reveal, not Block: the banner appears mid-session, not with the
+          page, so it fades in on its own rather than joining the entrance
+          stagger — same shape as UpdateBanner. */}
+      <Reveal when={scanBanner} mode="fade">
+        <Banner
+          tone="info"
+          icon={Radar}
+          className="rounded-md"
+          action={
+            <span className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={() => onNavigate?.("lab")}>
+                {t.autoScan.banner.action}
+              </Button>
+              <IconButton
+                icon={X}
+                label={t.autoScan.banner.dismiss}
+                onClick={() => setDismissedRun(discoveryRunId(discovery))}
+              />
+            </span>
+          }
+        >
+          <span className="block text-[13px] text-neutral-300">{t.autoScan.banner.title}</span>
+          <span className="block text-[12px] text-neutral-500">{t.autoScan.banner.line}</span>
+        </Banner>
+      </Reveal>
+      {content}
+    </>
+  );
 
   const hero = (right: ReactNode) => (
     // items-start, not items-stretch: the verdict card's line count varies
@@ -94,16 +138,16 @@ export function Overview({
 
   // Still discovering whether any vehicle exists at all.
   if (vehiclesQuery.isPending) {
-    return (
+    return withScanBanner((
       <>
         {hero(<CardSkeleton rows={4} />)}
         {tilesSkeleton}
       </>
-    );
+    ));
   }
 
   if (vehiclesQuery.isError && vehicleId == null) {
-    return hero(
+    return withScanBanner(hero(
       <Card>
         <EmptyState
           icon={AlertTriangle}
@@ -116,12 +160,12 @@ export function Overview({
           }
         />
       </Card>,
-    );
+    ));
   }
 
   // Connected, but this car answered no VIN: name it to create its row.
   if (connState === "connected" && vehicleId == null) {
-    return hero(
+    return withScanBanner(hero(
       <Card className="justify-center">
         <EmptyState
           icon={ShieldQuestion}
@@ -157,20 +201,20 @@ export function Overview({
         />
         {nameVehicle.isError && <p className="text-center text-[12px] text-stop">{t.overview.nameVehicleFailed}</p>}
       </Card>,
-    );
+    ));
   }
 
   // Confirmed empty: the fetch succeeded and found nothing.
   if (vehicleId == null) {
-    return hero(
+    return withScanBanner(hero(
       <Card className="justify-center">
         <EmptyState icon={Database} tone="muted" title={t.overview.noDataYet} body={t.overview.noDataYetExplainer} />
       </Card>,
-    );
+    ));
   }
 
   if (reportQuery.isPending) {
-    return (
+    return withScanBanner((
       <>
         {hero(<CardSkeleton rows={4} />)}
         {tilesSkeleton}
@@ -179,11 +223,11 @@ export function Overview({
           <CardSkeleton rows={3} />
         </Block>
       </>
-    );
+    ));
   }
 
   if (reportQuery.isError || !reportQuery.data) {
-    return hero(
+    return withScanBanner(hero(
       <Card>
         <EmptyState
           icon={AlertTriangle}
@@ -196,7 +240,7 @@ export function Overview({
           }
         />
       </Card>,
-    );
+    ));
   }
 
   const report = reportQuery.data;
@@ -259,7 +303,7 @@ export function Overview({
     },
   ];
 
-  return (
+  return withScanBanner((
     <>
       {/* h-[190px], not h-full: matches SCENE_CLASS's own fixed height now
           that the grid is items-start (each cell sizes to its own content,
@@ -338,5 +382,5 @@ export function Overview({
         </Card>
       </Block>
     </>
-  );
+  ));
 }

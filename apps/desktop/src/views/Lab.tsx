@@ -5,13 +5,14 @@
 // mode switch, the module the by-hand tools address, and the drawer.
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Hand, ListChecks, Wand2 } from "lucide-react";
-import type { UdsHit } from "@scainner/core";
+import type { DiscoveryStatus, UdsHit } from "@scainner/core";
 import { useUdsModules } from "@/features/lab/queries";
 import { Card, ChoiceCard, ExpanderButton, Select } from "@/components/ui";
 import { Block, Reveal, Swap } from "@/motion/components";
 import { DidReader } from "@/views/lab/DidReader";
 import { ModuleFaults } from "@/views/lab/ModuleFaults";
 import { AutoDiscovery } from "@/views/lab/AutoDiscovery";
+import { AutoScanState } from "@/views/lab/AutoScanState";
 import { ModuleManager, RemoveModuleButton } from "@/views/lab/ModuleManager";
 import { ProbeManager } from "@/views/lab/ProbeManager";
 import { RangeScanner } from "@/views/lab/RangeScanner";
@@ -26,10 +27,13 @@ export function Lab({
   connected,
   vehicleId = null,
   scanning = false,
+  discovery = null,
 }: {
   connected: boolean;
   vehicleId?: number | null;
   scanning?: boolean;
+  /** The automatic sensor run, off the conn-status broadcast. */
+  discovery?: DiscoveryStatus | null;
 }) {
   const t = useT();
   const [mode, setMode] = useState<Mode>("auto");
@@ -56,6 +60,13 @@ export function Lab({
 
   return (
     <>
+      {/* The automatic run first: it is what happened without anyone
+          pressing anything, so it is what a reader arriving from
+          Overview's banner or Live's notice came here to see. */}
+      <Block>
+        <AutoScanState vehicleId={vehicleId} discovery={discovery} />
+      </Block>
+
       <Block>
         <Card flush>
           <div className="flex gap-[9px] px-[17px] pt-[15px]">

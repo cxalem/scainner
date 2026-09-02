@@ -15,7 +15,7 @@ import type { ConnStatus } from "../schema/connection";
 import type { AdapterCandidate, AdapterProfile, NearbyDevice } from "../schema/adapter";
 import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/vehicle";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
-import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
+import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, DiscoveryRun, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
 import type { HistoryPoint, ReadingKey } from "../schema/history";
 
@@ -85,6 +85,12 @@ export class DeviceService extends Context.Tag("DeviceService")<
     /// only a prior pass's findings on this car (fast); true forces the
     /// complete blind sweep. Cancel via udsCancelScan.
     readonly discoverSensors: (full: boolean) => Effect.Effect<DiscoveryReport, InvokeError | ParseResult.ParseError>;
+    /// "Scan again" for one vehicle: forget the knowledge key its last
+    /// completed automatic run recorded — so its next connection runs the
+    /// pass — and, when it is the connected car, run that pass now without
+    /// reconnecting. Minutes on a live car; progress arrives on
+    /// `conn-status` as `discovery.stage`.
+    readonly runDiscovery: (vehicleId: number) => Effect.Effect<DiscoveryRun, InvokeError | ParseResult.ParseError>;
     readonly discoveredModules: (vehicleId: number) => Effect.Effect<DiscoveredModule[], InvokeError | ParseResult.ParseError>;
     readonly discoveredDids: (moduleId: number) => Effect.Effect<DiscoveredDid[], InvokeError | ParseResult.ParseError>;
     readonly fingerprintExperiment: () => Effect.Effect<FingerprintExperimentReport, InvokeError | ParseResult.ParseError>;
