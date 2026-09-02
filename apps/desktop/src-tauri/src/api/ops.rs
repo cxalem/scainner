@@ -689,9 +689,10 @@ pub fn patch_hypothesis(
 /// `decode_json` carries (the shape the family join writes). A hypothesis
 /// without a decode still gets a probe — reading the raw first byte is what
 /// a probe with no formula has always meant, and the DID has to be read
-/// before anyone can work out its formula. `signed` is deliberately
-/// dropped: the stored probe shape has no such column, so carrying it over
-/// would be a claim the poller cannot honour.
+/// before anyone can work out its formula. `signed` rides along with the
+/// rest of the formula (schema v14): the probe row carries it and the
+/// poller honours it, so a two's-complement sensor no longer arrives as
+/// its wrapped positive twin.
 fn probe_from_hypothesis(row: &db::HypothesisRow, module: String) -> db::UdsProbe {
     let decode = row
         .decode_json
@@ -705,6 +706,7 @@ fn probe_from_hypothesis(row: &db::HypothesisRow, module: String) -> db::UdsProb
             .and_then(serde_json::Value::as_str)
             .map(str::to_string)
     };
+    let flag = |key: &str| decode.get(key).and_then(serde_json::Value::as_bool);
     db::UdsProbe {
         id: 0,
         vehicle_id: Some(row.vehicle_id),
@@ -723,6 +725,7 @@ fn probe_from_hypothesis(row: &db::HypothesisRow, module: String) -> db::UdsProb
         enabled: true,
         origin: "discovery".into(),
         hypothesis_id: Some(row.id),
+        signed: flag("signed").unwrap_or(false),
     }
 }
 
@@ -1294,6 +1297,7 @@ mod tests {
         assert_eq!((probe.offset, probe.len), (0, 2));
         assert_eq!((probe.scale, probe.bias), (0.01, 0.0));
         assert_eq!(probe.unit, "km/h");
+        assert!(!probe.signed, "this decode says the window is unsigned");
         // The discovered address is not a module key. Writing it would give
         // a probe that fails silently forever.
         assert_ne!(probe.module, "6AD/68D");
@@ -1306,6 +1310,39 @@ mod tests {
         // Enabling again is the same decision, not a second sensor.
         enable(&state, hypothesis_id);
         assert_eq!(list_probes(&state, Some(vehicle_id)).len(), 1);
+    }
+
+    #[test]
+    fn an_activated_hypothesis_carries_its_signed_flag_onto_the_probe() {
+        // A two's-complement decode used to lose its sign on the way to the
+        // probe row, which is how a −2.0° steering angle reached the
+        // readings table as 6551.6° (2026-09-01 ride).
+        let state = test_state();
+        let (vehicle_id, _) = state.db.ensure_vehicle("VR7EXAMPLE0000001");
+        let module_id =
+            state
+                .db
+                .upsert_discovered_module(vehicle_id, "6AD/68D", Some("Chassis module"));
+        let (hypothesis_id, _) = state.db.upsert_hypothesis(&HypothesisUpsert {
+            vehicle_id,
+            module_id,
+            did: 0xD422,
+            knowledge_state: "research_candidate".into(),
+            label: Some("Steering angle".into()),
+            decode_json: Some(
+                r#"{"offset":0,"len":2,"scale":0.1,"bias":0.0,"unit":"deg","signed":true}"#.into(),
+            ),
+            ..Default::default()
+        });
+
+        enable(&state, hypothesis_id);
+
+        let probes = list_probes(&state, Some(vehicle_id));
+        assert_eq!(probes.len(), 1);
+        assert!(
+            probes[0].signed,
+            "the probe must read the window the way the decode says"
+        );
     }
 
     #[test]
@@ -1333,6 +1370,7 @@ mod tests {
             enabled: false,
             origin: "manual".into(),
             hypothesis_id: None,
+            signed: false,
         };
         let manual_id = state.db.add_probe(&manual, Some(vehicle_id));
 
@@ -1428,6 +1466,7 @@ mod tests {
             enabled: true,
             origin: "manual".into(),
             hypothesis_id: None,
+            signed: false,
         };
 
         let err = add_probe(&state, &probe("typo_module"), Some(vehicle_id)).unwrap_err();

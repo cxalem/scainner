@@ -75,9 +75,17 @@ export default function App() {
       if (staleTimer.current) window.clearTimeout(staleTimer.current);
       staleTimer.current = window.setTimeout(() => setLive({}), 10000);
     });
+    // The poller runs its own fault-code scan every few minutes and one
+    // more as the session ends, so Diagnose has to refresh on a scan
+    // nobody pressed a button for — a manual scan invalidates the same
+    // query from its own mutation.
+    const un3 = listen("dtc-scan", () => {
+      void queryClient.invalidateQueries({ queryKey: ["dtc_history"] });
+    });
     return () => {
       un1.then((f) => f());
       un2.then((f) => f());
+      un3.then((f) => f());
     };
   }, [queryClient]);
 

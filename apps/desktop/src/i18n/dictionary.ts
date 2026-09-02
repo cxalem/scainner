@@ -510,6 +510,8 @@ export type Dictionary = {
     };
     probeManager: {
       newProbeTitle: (did: string, module: string) => string;
+      signed: string;
+      signedHint: string;
       saving: string;
       saveProbe: string;
       recordedCardTitle: string;

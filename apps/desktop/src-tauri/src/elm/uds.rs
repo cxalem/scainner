@@ -1033,15 +1033,33 @@ pub fn to_hit(did: u16, data: &[u8]) -> UdsHit {
 
 /// Extract a numeric value out of a DID payload: big-endian integer at
 /// `offset`, `len` bytes, then value * scale + bias.
-pub fn extract(data: &[u8], offset: usize, len: usize, scale: f64, bias: f64) -> Option<f64> {
+///
+/// `signed` reads the window as two's complement over its own `len` bytes.
+/// Without it a steering-angle probe reporting −2.0° came back as 6551.6°
+/// — the same bits, read as unsigned (2026-09-01 ride). Offset-binary
+/// sensors stay unsigned with a negative `bias`, as they always were.
+pub fn extract(
+    data: &[u8],
+    offset: usize,
+    len: usize,
+    scale: f64,
+    bias: f64,
+    signed: bool,
+) -> Option<f64> {
     if offset + len > data.len() || len == 0 || len > 4 {
         return None;
     }
-    let mut v: u32 = 0;
+    let mut v: u64 = 0;
     for &b in &data[offset..offset + len] {
-        v = (v << 8) | b as u32;
+        v = (v << 8) | b as u64;
     }
-    Some(v as f64 * scale + bias)
+    let bits = (len * 8) as u32;
+    let magnitude = if signed && v >= (1u64 << (bits - 1)) {
+        v as f64 - (1u64 << bits) as f64
+    } else {
+        v as f64
+    };
+    Some(magnitude * scale + bias)
 }
 
 // ---------------------------------------------------------------------------
@@ -1425,7 +1443,7 @@ pub fn poll_probes(
                 m.service_for(vin.as_deref(), p.did),
                 p.did,
             ) {
-                if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias) {
+                if let Some(v) = extract(&data, p.offset, p.len, p.scale, p.bias, p.signed) {
                     let key = p.reading_key();
                     db.insert_reading(ctx.connection_id, ctx.vehicle_id, &key, v);
                     out.insert(key, v);
@@ -2241,6 +2259,7 @@ fn discover_inner(
                                 len as usize,
                                 scale,
                                 bias,
+                                k.primary_decode().is_some_and(|d| d.signed),
                             );
                             if added {
                                 sensors_added += 1;
@@ -2471,6 +2490,7 @@ fn fast_refresh(
                             len as usize,
                             scale,
                             bias,
+                            k.primary_decode().is_some_and(|d| d.signed),
                         ) {
                             sensors_added += 1;
                         }
@@ -2520,18 +2540,45 @@ mod tests {
     #[test]
     fn extract_single_byte_percent() {
         // e.g. SOC byte 0x50 = 80 %
-        assert_eq!(extract(&[0x50], 0, 1, 1.0, 0.0), Some(80.0));
+        assert_eq!(extract(&[0x50], 0, 1, 1.0, 0.0, false), Some(80.0));
     }
 
     #[test]
     fn extract_u16_millivolts() {
         // 0x36B0 = 14000 mV * 0.001 = 14.0 V
-        assert_eq!(extract(&[0x36, 0xB0], 0, 2, 0.001, 0.0), Some(14.0));
+        assert_eq!(extract(&[0x36, 0xB0], 0, 2, 0.001, 0.0, false), Some(14.0));
     }
 
     #[test]
     fn extract_out_of_range() {
-        assert_eq!(extract(&[0x01], 1, 1, 1.0, 0.0), None);
+        assert_eq!(extract(&[0x01], 1, 1, 1.0, 0.0, false), None);
+    }
+
+    #[test]
+    fn extract_reads_a_signed_window_as_twos_complement() {
+        // The 2026-09-01 ride: a steering angle two degrees off centre.
+        // 0xFFEC is -20 at 0.1°/bit = -2.0°, and the same bytes read
+        // unsigned are the 6551.6° that was actually recorded.
+        assert_eq!(extract(&[0xFF, 0xEC], 0, 2, 0.1, 0.0, true), Some(-2.0));
+        let unsigned = extract(&[0xFF, 0xEC], 0, 2, 0.1, 0.0, false).expect("in range");
+        assert!(
+            (unsigned - 6551.6).abs() < 1e-6,
+            "the unsigned read is the wrapped twin, got {unsigned}"
+        );
+    }
+
+    #[test]
+    fn a_signed_window_still_reads_positives_and_respects_its_own_width() {
+        // Positive half: untouched by the sign extension.
+        assert_eq!(extract(&[0x00, 0xC8], 0, 2, 0.1, 0.0, true), Some(20.0));
+        // The sign bit is the top bit of `len` bytes, not of the payload:
+        // one byte 0xFF is -1, and the byte after it is not part of it.
+        assert_eq!(extract(&[0x00, 0xFF], 1, 1, 1.0, 0.0, true), Some(-1.0));
+        // Four bytes is the widest window `extract` accepts.
+        assert_eq!(
+            extract(&[0xFF, 0xFF, 0xFF, 0xFF], 0, 4, 1.0, 0.0, true),
+            Some(-1.0)
+        );
     }
 
     #[test]
@@ -2663,6 +2710,7 @@ mod tests {
             enabled: true,
             origin: "discovery".into(),
             hypothesis_id: None,
+            signed: false,
         };
         assert!(!should_poll_probe(&probe));
         assert!(should_poll_probe(&crate::db::UdsProbe {
@@ -2691,6 +2739,7 @@ mod tests {
             enabled: true,
             origin: "discovery".into(),
             hypothesis_id: Some(42),
+            signed: false,
         };
         assert!(should_poll_probe(&linked));
         assert!(!should_poll_probe(&crate::db::UdsProbe {

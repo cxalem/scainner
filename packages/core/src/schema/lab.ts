@@ -37,6 +37,11 @@ export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
   // row is what the poller reads, so a linked probe polls whatever its
   // origin says. Absent on every probe created before that link existed.
   hypothesis_id: Schema.optional(Schema.NullOr(Schema.Number)),
+  // The window is two's complement. Optional because older clients omit it
+  // when creating a probe and every row saved before schema v14 predates
+  // the flag; the Rust boundary defaults it to false, which is the
+  // unsigned big-endian read those probes have always had.
+  signed: Schema.optional(Schema.Boolean),
 }) {}
 // Verified per-module UDS clear (before/after fault code lists).
 export class ClearOutcome extends Schema.Class<ClearOutcome>("ClearOutcome")({
