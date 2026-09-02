@@ -725,6 +725,7 @@ export const en: Dictionary = {
       signOut: "Sign out",
       syncTitle: "Account and sync",
       syncedNote: "Signed in, so this Mac's records back up to your account. Sensor candidates go up de-identified, never your VIN or location.",
+      contributeKnowledge: "Share de-identified ECU knowledge to improve recognition for everyone",
     },
   },
   discoveryFlow: {

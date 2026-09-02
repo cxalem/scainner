@@ -1,9 +1,10 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { CloudUpload } from "lucide-react";
 import { Button, Card, CardHead, Dot, Field, Input, Note } from "@/components/ui";
 import { Swap } from "@/motion/components";
 import { useEmailOtp } from "@/features/account/useEmailOtp";
 import { getSyncStatus, requestSync, subscribeSyncStatus } from "@/lib/sync";
+import { invoke } from "@/lib/tauri";
 import { useT } from "@/i18n";
 
 export function AccountSyncCard() {
@@ -11,10 +12,34 @@ export function AccountSyncCard() {
   const sync = useSyncExternalStore(subscribeSyncStatus, getSyncStatus);
   const { email, setEmail, code, setCode, step, setStep, busy, authError, userEmail, sendCode, verify, signOut } = useEmailOtp();
   const a = t.vehicle.account;
+  const [contributeKnowledge, setContributeKnowledge] = useState(true);
+
+  useEffect(() => {
+    void invoke<string | null>("app_setting_get", { key: "contribute_knowledge" }).then((value) => {
+      setContributeKnowledge(value !== "false");
+    });
+  }, []);
+
+  const updateContribution = (enabled: boolean) => {
+    setContributeKnowledge(enabled);
+    void invoke<void>("app_setting_set", {
+      key: "contribute_knowledge",
+      value: String(enabled),
+    });
+  };
 
   return (
     <Card className="gap-[11px]">
       <CardHead icon={CloudUpload} title={a.syncTitle} />
+      <label className="flex items-start gap-2.5 text-[12px] leading-[1.5] text-neutral-300">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={contributeKnowledge}
+          onChange={(event) => updateContribution(event.target.checked)}
+        />
+        <span>{a.contributeKnowledge}</span>
+      </label>
       <Swap k={userEmail == null ? step : "in"} className="flex flex-col gap-[9px]">
         {userEmail == null ? (
           step === "email" ? (
