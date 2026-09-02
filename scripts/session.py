@@ -41,16 +41,15 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 
 REPO = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 READ_MANY_MAX = 64
-STEER_THRESHOLD = 10.0  # decoded steering units beyond which a turn is called
+STEER_THRESHOLD = 10.0
 
 
-# ---- session context -------------------------------------------------------
 
 class Session:
     """Lazy API client plus the vehicle facts every subcommand needs."""
 
     def __init__(self, vehicle_id: int | None, out_dir: str | None = None):
-        from scainner_api import Client  # imported late so --help works app-less
+        from scainner_api import Client
         self.api = Client()
         self._vehicle_id = vehicle_id
         self._plan = None
@@ -100,7 +99,6 @@ class Session:
         if s.get("state") != "connected":
             sys.exit("not connected; run `connect` first")
 
-    # -- modules / hypotheses --
     def resolve_module(self, spec: str) -> dict:
         """Accept a module key, `req/resp` or `req_resp`; return the /uds/modules entry."""
         want = spec.strip().lower()
@@ -119,7 +117,6 @@ class Session:
         return sorted({int(h["did"]) for h in self.hypotheses()
                        if str(h.get("module_address", "")).lower() == pair})
 
-    # -- evidence --
     def save_evidence(self, kind: str, args: dict, result, correlation: bool = False) -> str:
         brand = self.plan.get("brand_id") or self.coverage.get("vehicle", {}).get("brand_id") or "unknown"
         platform = self.plan.get("platform") or "unknown"
@@ -160,7 +157,6 @@ def decode(payload_hex: str | None, spec: dict) -> float | None:
         return None
 
 
-# ---- subcommands -----------------------------------------------------------
 
 def cmd_connect(a):
     s = Session(a.vehicle_id, a.out)
@@ -208,7 +204,7 @@ def cmd_sweep(a):
     mod = s.resolve_module(a.module)
     start, end = hex_did(a.start), hex_did(a.end)
     hits = []
-    for lo in range(start, end + 1, 0x100):  # the API clamps a scan to 256 identifiers
+    for lo in range(start, end + 1, 0x100):
         hi = min(lo + 0xFF, end)
         print(f"{mod['key']}: scanning {lo:04X}-{hi:04X} ...", flush=True)
         for h in s.api.uds_scan(mod["key"], lo, hi) or []:
@@ -307,7 +303,6 @@ def cmd_coverage(a):
     print(f"status: {cov.get('status')}; remaining: {'; '.join(remaining) if remaining else 'nothing'}")
 
 
-# ---- CLI -------------------------------------------------------------------
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

@@ -49,9 +49,6 @@ DEFAULT_OUT = os.path.join(ROOT, "apps", "desktop", "src-tauri", "tests", "fixtu
 CC_BY_SA = "CC BY-SA 4.0"
 MIT = "MIT"
 
-# ---------------------------------------------------------------------------
-# Minimal YAML reader for OBDb test-case files
-# ---------------------------------------------------------------------------
 
 
 def _scalar(text):
@@ -130,9 +127,6 @@ def _read_case(lines, index, first, case):
     return index
 
 
-# ---------------------------------------------------------------------------
-# OBDb signalsets and decoder semantics
-# ---------------------------------------------------------------------------
 
 
 def year_file_score(filename, year):
@@ -294,9 +288,6 @@ def values_match(expected, actual):
     return abs(float(expected) - float(actual)) <= 1e-6 + 1e-6 * abs(float(expected))
 
 
-# ---------------------------------------------------------------------------
-# ISO-TP reassembly of OBDb responses
-# ---------------------------------------------------------------------------
 
 
 def parse_command_id(command_id):
@@ -352,9 +343,6 @@ def echo_length(service):
     return 3 if service == "22" else 2
 
 
-# ---------------------------------------------------------------------------
-# ELM rendering (what an ELM327 prints with ATCAF1 ATH0) and route setup
-# ---------------------------------------------------------------------------
 
 
 def hexs(data):
@@ -378,15 +366,12 @@ def route(parsed):
     if parsed["bits29"]:
         priority = int(props.get("c", "18"), 16)
         if "ta" in props:
-            # ISO 15765-2 extended format: request hdr<<8|target, response id as recorded.
             target = int(props["ta"], 16)
             request = (priority << 24) | (int(hdr, 16) << 8) | target
             response = (priority << 24) | int(rax, 16)
         else:
             request = (priority << 24) | (int(hdr, 16) << 8) | 0xF1
             if rax is None:
-                # `DAxx` header without a recorded receive address: ISO 15765-4
-                # physical response 18 DA F1 xx.
                 response = (priority << 24) | 0x00DAF100 | (int(hdr, 16) & 0xFF)
             elif int(rax, 16) <= 0xFF:
                 response = (priority << 24) | 0x00DAF100 | int(rax, 16)
@@ -434,9 +419,6 @@ def synthetic_frames(message, extension):
     return frames
 
 
-# ---------------------------------------------------------------------------
-# Fixture builders
-# ---------------------------------------------------------------------------
 
 
 def dumps(value):
@@ -590,7 +572,6 @@ def build_obdb_file(corpus, entry, out_files, report):
     }
 
 
-# opendbc brand → (request bytes, response echo bytes, stored payload starts with the DID echo)
 FW_QUERIES = {
     "toyota": (bytes.fromhex("1A8801"), bytes.fromhex("5A8801"), False),
     "honda": (bytes.fromhex("22F181"), bytes.fromhex("62F181"), False),
@@ -648,7 +629,6 @@ def build_opendbc_file(corpus, entry, out_files, report):
         if len(samples) >= entry.get("max_cases", 20):
             break
         message = echo + payload
-        # The echo is as long as the request (service + parameter bytes).
         data = message[len(request) :]
         if parsed is None:
             if address > 0x7FF:

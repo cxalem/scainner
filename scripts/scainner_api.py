@@ -53,9 +53,8 @@ class Client:
             raise RuntimeError(f"no API token: start the Scainner app once, or set SCAINNER_API_TOKEN ({data_dir}/api-token)")
         port = os.environ.get("SCAINNER_API_PORT") or _read(os.path.join(data_dir, "api-port")) or DEFAULT_PORT
         self.base = (base or f"http://127.0.0.1:{port}").rstrip("/")
-        self.timeout = timeout  # long: scans and verification plans take minutes
+        self.timeout = timeout
 
-    # ---- transport ----
     def request(self, method: str, path: str, body=None, params: dict | None = None):
         url = self.base + path
         if params:
@@ -86,7 +85,6 @@ class Client:
     def post(self, path, body=None):
         return self.request("POST", path, body=body if body is not None else {})
 
-    # ---- meta ----
     def health(self): return self.get("/health")
     def index(self): return self.get("/")
     def openapi(self): return self.get("/openapi.json")
@@ -111,7 +109,6 @@ class Client:
                     yield name, payload
                     name, data = None, []
 
-    # ---- connection ----
     def connect(self): return self.post("/connect")
     def disconnect(self): return self.post("/disconnect")
     def status(self): return self.get("/status")
@@ -127,7 +124,6 @@ class Client:
                 raise TimeoutError(f"not connected after {timeout}s: {s}")
             time.sleep(poll)
 
-    # ---- standard OBD ----
     def live(self): return self.get("/live")
     def readings(self, key: str, vehicle_id=None, since_hours=24.0, limit=None):
         return self.get("/readings", key=key, vehicle_id=vehicle_id, since=since_hours, limit=limit)
@@ -141,7 +137,6 @@ class Client:
     def sensors(self): return self.get("/sensors")
     def writes_log(self, vehicle_id=None, limit=50): return self.get("/writes-log", vehicle_id=vehicle_id, limit=limit)
 
-    # ---- UDS ----
     def uds_modules(self): return self.get("/uds/modules")
     def add_uds_module(self, key, label, req, resp):
         return self.post("/uds/modules", {"key": key, "label": label, "req": req, "resp": resp})
@@ -158,7 +153,6 @@ class Client:
     def uds_clear(self, module: str, confirmed: bool = False):
         return self.post("/uds/clear", {"module": module, "confirmed": confirmed})
 
-    # ---- evidence protocol ----
     def parked_verification(self): return self.post("/verification/parked")
     def capture(self, req: str, resp: str, dids: list[int], step: str, condition: str,
                 plan_version: str, repeats: int = 3):
@@ -184,7 +178,6 @@ class Client:
                 out[r["did"]] = (b["payloads"][0], r["payloads"][0])
         return out
 
-    # ---- knowledge ----
     def vehicles(self): return self.get("/vehicles")
     def vehicle(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}")
     def vehicle_modules(self, vehicle_id: int): return self.get(f"/vehicles/{vehicle_id}/modules")
@@ -213,7 +206,6 @@ class Client:
         return self.get("/sync/batch", after_reading_id=after_reading_id, limit=limit)
     def db_path(self): return self.get("/db-path")
 
-    # ---- discovery knowledge layer (Universal Discovery Protocol S3 + coverage) ----
     def join_vehicle(self, vehicle_id: int):
         """S3 join: match fingerprinted modules to ecu_families and register inherited
         + unknown hypotheses. Local and idempotent; the car need not be connected."""
@@ -237,7 +229,6 @@ class Client:
     def learning_state(self): return self.get("/learning-state")
     def set_learning_state(self, on: bool): return self.request("PUT", "/learning-state", {"on": on})
 
-    # ---- export ----
     def export_markdown(self, vehicle_id=None, since_hours=168.0):
         return self.get("/export/markdown", vehicle_id=vehicle_id, since_hours=since_hours)
     def export_json(self, vehicle_id=None, since_hours=168.0):

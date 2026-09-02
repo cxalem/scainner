@@ -7,7 +7,6 @@ compares the per-file counts with `scripts/brand_token_baseline.json`.
 
     python3 scripts/lint_brand_tokens.py            # check against the baseline
     python3 scripts/lint_brand_tokens.py --update   # rewrite the baseline (only
-                                                    # after a phase that removed tokens)
 
 It fails when any file's count is above its baseline, or when a file that is
 not in the baseline contains tokens. It prints the diff either way.
@@ -44,33 +43,24 @@ BASELINE = os.path.join(ROOT, "scripts", "brand_token_baseline.json")
 SCAN_DIRS = ["apps/desktop/src-tauri/src", "apps/desktop/src"]
 EXTENSIONS = (".rs", ".ts", ".tsx")
 
-# Every token is matched as a whole identifier: not preceded or followed by an
-# alphanumeric character. Hex/decimal ids additionally accept a `0x` prefix.
 TOKENS = [
-    # brands / groups
     "citroen",
     "citroën",
     "peugeot",
     "psa",
     "stellantis",
-    # platform
     "c41",
-    # adapters
     "vgate",
     "v-link",
-    # the vehicle's CAN ids
     "6A8",
     "6AD",
     "6B5",
     "74A",
     "752",
     "75F",
-    # vendor identity DIDs
     "F080",
     "F0FE",
-    # plan prefix
     "citroen-c41",
-    # part references seen on the vehicle
     "9846124980",
     "9844551780",
     "9817137180",
@@ -127,7 +117,7 @@ def code_lines(path: str) -> list[str]:
     text = strip_block_comments(open(path, encoding="utf-8").read())
     lines = text.split("\n")
     kept: list[str] = []
-    depth = 0  # >0 while inside a #[cfg(test)] mod block
+    depth = 0
     pending_test_mod = False
     for line in lines:
         if depth > 0:
@@ -151,7 +141,7 @@ def code_lines(path: str) -> list[str]:
 def count_file(path: str) -> int:
     total = 0
     for line in code_lines(path):
-        code = line.split("//", 1)[0]  # trailing comment on a code line
+        code = line.split("//", 1)[0]
         for _, pat in PATTERNS:
             total += len(pat.findall(code))
     return total
