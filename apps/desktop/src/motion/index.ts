@@ -42,6 +42,18 @@ export const growTransition: Transition = {
   height: { duration: DURATION.slow, ease: EASE_OUT },
   opacity: { duration: DURATION.base, ease: EASE_OUT },
 };
+/** The <Grow> box's own style. Both properties are load-bearing, and they
+ *  are a pair.
+ *
+ *  `overflow: hidden` is what turns an animated height into a reveal instead
+ *  of a squash. It is also what makes `flexShrink: 0` mandatory: a flex item
+ *  whose overflow is not `visible` has an automatic minimum size of 0, so in
+ *  a `flex flex-col` parent whose other children already fill it, flexbox is
+ *  free to shrink the box from its measured height back to nothing. The
+ *  animation still runs and the inline height is still right — there is
+ *  simply nothing on screen. That is how the device screen lost its scanning
+ *  row (Brief P, 2026-09-02); grow.test.ts pins it. */
+export const growBoxStyle = { overflow: "hidden", flexShrink: 0 } as const;
 
 // --- Modals -----------------------------------------------------------------
 // Backdrop: fade only — the dimming is the cue, motion on it would be noise.

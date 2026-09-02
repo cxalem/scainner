@@ -22,10 +22,19 @@
 // becoming a result — or a PIN field opening on a row — resizes it smoothly
 // too. See <Grow> in motion/components.tsx.
 //
+// Nothing here ever moves the scroll (Brief P, 2026-09-02). The group is
+// pinned above the paired rows and cannot be shrunk out of existence, so it
+// is already where the click was; scrolling to it as well only stole the
+// position the user was reading from. The scanning line went missing for
+// exactly the opposite reason: the growing box is a flex item, and an
+// `overflow: hidden` flex item has an automatic minimum size of 0, so a card
+// already full of paired rows squashed the whole group back to nothing while
+// framer went on animating a height nobody could see.
+//
 // Presentational on purpose — the gate owns the selection, because it also
 // needs the chosen device's name for the connecting screen and its path
 // for the profile it saves.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bluetooth, Cable, Loader2, Radar, Usb } from "lucide-react";
 import { Effect } from "effect";
@@ -339,7 +348,9 @@ function PairedRows({
   };
 
   return (
-    <div className="flex flex-col gap-2" role="listbox" aria-label={t.gate.chooseDeviceTitle}>
+    // shrink-0 for the same reason the Grow box carries it: this column
+    // scrolls, so nothing in it should be compressed to make room.
+    <div className="flex shrink-0 flex-col gap-2" role="listbox" aria-label={t.gate.chooseDeviceTitle}>
       {rows.map((row) => {
         const selected = row.id === selectedId;
         const Icon = row.kind === "usb_serial" ? Usb : Bluetooth;
@@ -405,17 +416,6 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
   const t = useT();
   const { nearby, scan, secondsLeft, pairingAddr, pinAddr } = discovery;
   const status = scanRow(scan);
-  const statusRef = useRef<HTMLElement>(null);
-
-  // A list taller than the 230 px card would otherwise hide the very thing
-  // the click just started. Bring the scan's own row into view instead.
-  useEffect(() => {
-    if (!scan.scanning) return;
-    statusRef.current?.scrollIntoView({
-      block: "start",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-    });
-  }, [scan.scanning]);
 
   // The one line the scan owns. Keyed by `status`, so the countdown ticking
   // down redraws in place and only a real change of state cross-fades.
@@ -435,10 +435,7 @@ function NearbyGroup({ discovery }: { discovery: Discovery }) {
     ) : null;
 
   return (
-    <section
-      ref={statusRef}
-      className="flex flex-col gap-2 rounded-md border border-dashed border-divider p-2.5"
-    >
+    <section className="flex flex-col gap-2 rounded-md border border-dashed border-divider p-2.5">
       <h2 className="text-[11px] uppercase tracking-[0.1em] text-neutral-500">{t.gate.nearby}</h2>
 
       {/* One grid cell for every state of the line, so the countdown and
