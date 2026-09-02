@@ -29,7 +29,8 @@ type PackBrand = {
 
 const PACK_BRANDS = (udsMap as unknown as { brands: PackBrand[] }).brands;
 
-let mockReportBalance = 0;
+const mockReportVariant = new URLSearchParams(window.location.search).get("report-cost");
+let mockReportBalance = mockReportVariant === "credit" ? 3 : 0;
 const mockReports = new Map<string, ReportRow>();
 
 const sampleReport = (locale: "en" | "es") => locale === "es"
@@ -44,7 +45,12 @@ export const mockBilling = {
       pack_20: { price_id: "price_mock_20", currency: "eur", unit_amount: 5999 },
       subscription_monthly: { price_id: "price_mock_monthly", currency: "eur", unit_amount: 999 },
     },
-    account: { balance: mockReportBalance, subscription: null },
+    account: {
+      balance: mockReportBalance,
+      subscription: mockReportVariant === "plan"
+        ? { status: "active", plan: "monthly", monthly_allowance: 5, allowance_used: 2, current_period_end: null }
+        : null,
+    },
   } as Pricing),
   createCheckout: async (_item: CatalogItemKey): Promise<string> => {
     window.setTimeout(() => { mockReportBalance += 1; }, 3000);

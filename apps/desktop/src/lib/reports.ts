@@ -1,6 +1,20 @@
 import type { PriceItem } from "@scainner/core";
 
 export type ReportButtonState = "signed_out" | "no_credit" | "ready" | "waiting" | "generating" | "done";
+export type ReportCostKey = "price" | "credit" | "plan";
+export type ReportPrimaryKey = "price" | "covered" | "signedOut";
+
+export function reportOfferKeys(input: {
+  signedIn: boolean;
+  balance: number;
+  subscription: { monthly_allowance: number; allowance_used: number } | null;
+}): { cost: ReportCostKey; primary: ReportPrimaryKey; planLeft: number } {
+  const planLeft = Math.max(0, (input.subscription?.monthly_allowance ?? 0) - (input.subscription?.allowance_used ?? 0));
+  if (!input.signedIn) return { cost: input.subscription && planLeft > 0 ? "plan" : input.balance > 0 ? "credit" : "price", primary: "signedOut", planLeft };
+  if (input.subscription && planLeft > 0) return { cost: "plan", primary: "covered", planLeft };
+  if (input.balance > 0) return { cost: "credit", primary: "covered", planLeft };
+  return { cost: "price", primary: "price", planLeft };
+}
 
 export function reportButtonState(input: {
   signedIn: boolean;

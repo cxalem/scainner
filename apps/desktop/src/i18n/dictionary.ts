@@ -10,8 +10,37 @@ export type Dictionary = {
       many: (minutes: number, sensors: number, codes: number) => string;
     };
     location: string;
-    report: (price: string) => string;
+    report: string;
     done: string;
+  };
+  reportOffer: {
+    getReport: string;
+    rideTitle: string;
+    codeTitle: (code: string) => string;
+    rideDescription: string;
+    codeDescription: string;
+    structure: string;
+    language: string;
+    english: string;
+    spanish: string;
+    cost: {
+      price: (price: string) => string;
+      credit: (balance: number) => string;
+      plan: (left: number, total: number) => string;
+    };
+    primary: {
+      price: (price: string) => string;
+      covered: string;
+      signedOut: string;
+    };
+    notNow: string;
+    waiting: string;
+    signInToast: string;
+    writing: readonly string[];
+    open: string;
+    complete: string;
+    failed: string;
+    bought: string;
   };
   common: {
     cancel: string;

@@ -99,10 +99,7 @@ export function DtcDetailModal({
         )}
 
         <div className="flex flex-col gap-2 border-t border-divider pt-3">
-          <ReportAction
-            input={{ kind: "code", dtc_code: code }}
-            label={(price) => locale === "es" ? `Informe con IA sobre ${code} · ${price}` : `Get the AI report on ${code} · ${price}`}
-          />
+          <ReportAction input={{ kind: "code", dtc_code: code }} />
         </div>
       </div>
     </Dialog>
