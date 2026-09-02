@@ -734,6 +734,7 @@ export const es: Dictionary = {
       signOut: "Cerrar sesión",
       syncTitle: "Cuenta y sincronización",
       syncedNote: "Con la sesión iniciada, los registros de este Mac se respaldan en tu cuenta. Los candidatos a sensor suben sin identificar, nunca tu VIN ni tu ubicación.",
+      contributeKnowledge: "Comparte conocimiento de ECU desidentificado para mejorar el reconocimiento para todos",
     },
   },
   discoveryFlow: {

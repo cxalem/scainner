@@ -669,6 +669,7 @@ export type Dictionary = {
       signOut: string;
       syncTitle: string;
       syncedNote: string;
+      contributeKnowledge: string;
     };
   };
   discoveryFlow: {

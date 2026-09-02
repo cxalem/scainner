@@ -6,7 +6,7 @@ use std::sync::Mutex;
 
 pub struct Db(pub Mutex<Connection>);
 
-const SCHEMA_VERSION: i64 = 15;
+const SCHEMA_VERSION: i64 = 16;
 
 #[derive(Serialize, Clone)]
 pub struct DiagnosticCase {
@@ -138,6 +138,7 @@ pub struct HypothesisSampleRow {
 #[derive(Serialize, Clone, Debug)]
 pub struct KnowledgeCandidateRow {
     pub id: i64,
+    pub cloud_id: String,
     pub compatibility_key: String,
     pub scope: String,
     pub family_id: Option<String>,
@@ -159,6 +160,34 @@ pub struct KnowledgeCandidateRow {
     pub discriminating_test: Option<String>,
     pub first_observed_at: String,
     pub last_observed_at: String,
+}
+
+fn map_knowledge_candidate(r: &rusqlite::Row<'_>) -> rusqlite::Result<KnowledgeCandidateRow> {
+    Ok(KnowledgeCandidateRow {
+        id: r.get(0)?,
+        cloud_id: r.get(1)?,
+        compatibility_key: r.get(2)?,
+        scope: r.get(3)?,
+        family_id: r.get(4)?,
+        module_address: r.get(5)?,
+        supplier: r.get(6)?,
+        spare_part_number: r.get(7)?,
+        hardware_version: r.get(8)?,
+        software_version: r.get(9)?,
+        system_name: r.get(10)?,
+        route_json: r.get(11)?,
+        did: r.get::<_, i64>(12)? as u16,
+        payload_length: r.get(13)?,
+        knowledge_state: r.get(14)?,
+        label: r.get(15)?,
+        decode_json: r.get(16)?,
+        shape_json: r.get(17)?,
+        interpretations_json: r.get(18)?,
+        confidence: r.get(19)?,
+        discriminating_test: r.get(20)?,
+        first_observed_at: r.get(21)?,
+        last_observed_at: r.get(22)?,
+    })
 }
 
 #[allow(dead_code)]
@@ -534,7 +563,6 @@ pub struct SyncProbe {
 #[derive(Serialize)]
 pub struct SyncDiscoveredDid {
     pub did: u16,
-    pub raw_sample: Option<String>,
     pub byte_length: Option<i64>,
     pub label: Option<String>,
     pub confidence: Option<String>,
@@ -554,7 +582,10 @@ pub struct SyncDiscoveredModule {
     pub software_version: Option<String>,
     pub system_name: Option<String>,
     pub fingerprint_match_key: Option<String>,
-    pub fingerprint_evidence: Option<serde_json::Value>,
+    pub route_json: Option<String>,
+    pub family_id: Option<String>,
+    pub route_state: Option<String>,
+    pub supplier: Option<String>,
     pub dids: Vec<SyncDiscoveredDid>,
 }
 
@@ -581,6 +612,7 @@ pub struct SyncBatch {
     pub readings: Vec<SyncReading>,
     pub probes: Vec<SyncProbe>,
     pub discovered_modules: Vec<SyncDiscoveredModule>,
+    pub knowledge_candidates: Vec<KnowledgeCandidateRow>,
     pub diagnostic_cases: Vec<SyncDiagnosticCase>,
     pub last_reading_id: i64,
 }
@@ -626,7 +658,8 @@ impl Db {
                 elm_version TEXT,
                 protocol TEXT,
                 started_at TEXT NOT NULL DEFAULT (datetime('now')),
-                ended_at TEXT
+                ended_at TEXT,
+                upload_readings INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS readings (
                 id INTEGER PRIMARY KEY,
@@ -786,11 +819,19 @@ impl Db {
         )?;
         let _ = conn.execute("ALTER TABLE vehicles ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE connections ADD COLUMN cloud_id TEXT", []);
+        let _ = conn.execute(
+            "ALTER TABLE connections ADD COLUMN upload_readings INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
         let _ = conn.execute("ALTER TABLE dtc_scan_events ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE writes_log ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute("ALTER TABLE uds_probes ADD COLUMN cloud_id TEXT", []);
         let _ = conn.execute(
             "ALTER TABLE discovered_modules ADD COLUMN cloud_id TEXT",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE knowledge_candidates ADD COLUMN cloud_id TEXT",
             [],
         );
         for column in [
@@ -889,6 +930,7 @@ impl Db {
             -- table intentionally has no FK to private vehicle history.
             CREATE TABLE IF NOT EXISTS knowledge_candidates (
                 id INTEGER PRIMARY KEY,
+                cloud_id TEXT,
                 compatibility_key TEXT NOT NULL,
                 scope TEXT NOT NULL CHECK (scope IN ('ecu_family','exact_ecu','observation')),
                 family_id TEXT,
@@ -928,6 +970,7 @@ impl Db {
             CREATE UNIQUE INDEX IF NOT EXISTS idx_writes_cloud ON writes_log(cloud_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_uds_probes_cloud ON uds_probes(cloud_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_discovered_modules_cloud ON discovered_modules(cloud_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_candidates_cloud ON knowledge_candidates(cloud_id);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_discovered_modules_vehicle_address
                 ON discovered_modules(vehicle_id, module_address);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_discovered_dids_module_did
@@ -945,6 +988,7 @@ impl Db {
             "writes_log",
             "uds_probes",
             "discovered_modules",
+            "knowledge_candidates",
         ] {
             let ids: Vec<i64> = {
                 let mut stmt =
@@ -1741,12 +1785,12 @@ impl Db {
         }
         let _ = conn.execute(
             "INSERT INTO knowledge_candidates
-               (compatibility_key, scope, family_id, module_address, supplier,
+               (cloud_id, compatibility_key, scope, family_id, module_address, supplier,
                 spare_part_number, hardware_version, software_version, system_name,
                 route_json, did, payload_length, knowledge_state, label, decode_json,
                 shape_json, interpretations_json, confidence, discriminating_test)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
-                     ?14, ?15, ?16, ?17, ?18, ?19)
+                     ?14, ?15, ?16, ?17, ?18, ?19, ?20)
              ON CONFLICT(compatibility_key, did) DO UPDATE SET
                payload_length = COALESCE(excluded.payload_length, payload_length),
                knowledge_state = CASE
@@ -1762,6 +1806,7 @@ impl Db {
                discriminating_test = COALESCE(excluded.discriminating_test, discriminating_test),
                last_observed_at = datetime('now')",
             params![
+                Self::new_cloud_id(),
                 compatibility_key,
                 scope,
                 family,
@@ -1809,7 +1854,7 @@ impl Db {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
             .prepare(
-                "SELECT id, compatibility_key, scope, family_id, module_address,
+                "SELECT id, cloud_id, compatibility_key, scope, family_id, module_address,
                         supplier, spare_part_number, hardware_version, software_version,
                         system_name, route_json, did, payload_length, knowledge_state,
                         label, decode_json, shape_json, interpretations_json, confidence,
@@ -1817,35 +1862,10 @@ impl Db {
                  FROM knowledge_candidates ORDER BY compatibility_key, did",
             )
             .unwrap();
-        stmt.query_map([], |r| {
-            Ok(KnowledgeCandidateRow {
-                id: r.get(0)?,
-                compatibility_key: r.get(1)?,
-                scope: r.get(2)?,
-                family_id: r.get(3)?,
-                module_address: r.get(4)?,
-                supplier: r.get(5)?,
-                spare_part_number: r.get(6)?,
-                hardware_version: r.get(7)?,
-                software_version: r.get(8)?,
-                system_name: r.get(9)?,
-                route_json: r.get(10)?,
-                did: r.get::<_, i64>(11)? as u16,
-                payload_length: r.get(12)?,
-                knowledge_state: r.get(13)?,
-                label: r.get(14)?,
-                decode_json: r.get(15)?,
-                shape_json: r.get(16)?,
-                interpretations_json: r.get(17)?,
-                confidence: r.get(18)?,
-                discriminating_test: r.get(19)?,
-                first_observed_at: r.get(20)?,
-                last_observed_at: r.get(21)?,
-            })
-        })
-        .unwrap()
-        .filter_map(Result::ok)
-        .collect()
+        stmt.query_map([], map_knowledge_candidate)
+            .unwrap()
+            .filter_map(Result::ok)
+            .collect()
     }
 
     pub fn discovered_summary(&self, vehicle_id: i64) -> Vec<DiscoveredModuleRow> {
@@ -3086,6 +3106,14 @@ impl Db {
 
     pub fn sync_batch(&self, after_reading_id: i64, limit: i64) -> SyncBatch {
         let conn = self.0.lock().unwrap();
+        let contribute_knowledge = conn
+            .query_row(
+                "SELECT value FROM app_settings WHERE key = 'contribute_knowledge'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .map(|value| !matches!(value.as_str(), "0" | "false" | "off"))
+            .unwrap_or(true);
         let vehicles = {
             let mut stmt = conn
                 .prepare("SELECT cloud_id, vin, display_name, make, model, year, trim, fuel_price FROM vehicles WHERE cloud_id IS NOT NULL")
@@ -3233,7 +3261,8 @@ impl Db {
                      FROM readings r
                      JOIN connections c ON c.id = r.connection_id
                      JOIN vehicles v ON v.id = r.vehicle_id
-                     WHERE r.id > ?1 AND c.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL
+                     WHERE r.id > ?1 AND c.upload_readings = 1
+                       AND c.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL
                      ORDER BY r.id LIMIT ?2",
                 )
                 .unwrap();
@@ -3281,13 +3310,14 @@ impl Db {
             .filter_map(Result::ok)
             .collect()
         };
-        let discovered_modules = {
+        let discovered_modules = if contribute_knowledge {
             let mut stmt = conn
                 .prepare(
                     "SELECT m.id, m.cloud_id, v.cloud_id, m.module_address, m.module_name, m.discovered_at,
                             COALESCE(m.last_seen_at, m.discovered_at),
                             m.spare_part_number, m.hardware_version, m.software_version,
-                            m.system_name, m.fingerprint_match_key, m.fingerprint_evidence_json
+                            m.system_name, m.fingerprint_match_key, m.route_json, m.family_id,
+                            m.route_state, m.supplier
                      FROM discovered_modules m JOIN vehicles v ON v.id = m.vehicle_id
                      WHERE m.cloud_id IS NOT NULL AND v.cloud_id IS NOT NULL",
                 )
@@ -3308,9 +3338,10 @@ impl Db {
                             software_version: r.get(9)?,
                             system_name: r.get(10)?,
                             fingerprint_match_key: r.get(11)?,
-                            fingerprint_evidence: r
-                                .get::<_, Option<String>>(12)?
-                                .and_then(|json| serde_json::from_str(&json).ok()),
+                            route_json: r.get(12)?,
+                            family_id: r.get(13)?,
+                            route_state: r.get(14)?,
+                            supplier: r.get(15)?,
                             dids: Vec::new(),
                         },
                     ))
@@ -3322,7 +3353,7 @@ impl Db {
                 .map(|(module_id, mut module)| {
                     let mut did_stmt = conn
                         .prepare(
-                            "SELECT did, raw_sample, byte_length, label, confidence, first_seen_at
+                            "SELECT did, byte_length, label, confidence, first_seen_at
                      FROM discovered_dids WHERE module_id = ?1 ORDER BY did",
                         )
                         .unwrap();
@@ -3330,11 +3361,10 @@ impl Db {
                         .query_map(params![module_id], |r| {
                             Ok(SyncDiscoveredDid {
                                 did: r.get::<_, i64>(0)? as u16,
-                                raw_sample: r.get(1)?,
-                                byte_length: r.get(2)?,
-                                label: r.get(3)?,
-                                confidence: r.get(4)?,
-                                first_seen_at: r.get(5)?,
+                                byte_length: r.get(1)?,
+                                label: r.get(2)?,
+                                confidence: r.get(3)?,
+                                first_seen_at: r.get(4)?,
                             })
                         })
                         .unwrap()
@@ -3343,6 +3373,27 @@ impl Db {
                     module
                 })
                 .collect()
+        } else {
+            Vec::new()
+        };
+        let knowledge_candidates = if contribute_knowledge {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT id, cloud_id, compatibility_key, scope, family_id, module_address,
+                            supplier, spare_part_number, hardware_version, software_version,
+                            system_name, route_json, did, payload_length, knowledge_state,
+                            label, decode_json, shape_json, interpretations_json, confidence,
+                            discriminating_test, first_observed_at, last_observed_at
+                     FROM knowledge_candidates WHERE cloud_id IS NOT NULL
+                     ORDER BY compatibility_key, did",
+                )
+                .unwrap();
+            stmt.query_map([], map_knowledge_candidate)
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        } else {
+            Vec::new()
         };
         SyncBatch {
             vehicles,
@@ -3352,6 +3403,7 @@ impl Db {
             readings,
             probes,
             discovered_modules,
+            knowledge_candidates,
             diagnostic_cases,
             last_reading_id,
         }
@@ -4152,7 +4204,7 @@ mod tests {
     }
 
     #[test]
-    fn sync_batch_only_ships_identified_rows_and_advances_watermark() {
+    fn sync_batch_applies_telemetry_and_knowledge_policy() {
         let db = test_db();
         let (v, _) = db.ensure_vehicle("VR7EXAMPLE0000001");
         let c = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
@@ -4171,6 +4223,14 @@ mod tests {
         );
         let module_id = db.upsert_discovered_module(v, "6A8/688", Some("Engine ECU"));
         db.upsert_discovered_did(module_id, 0xD422, "05 78", 2, Some("Battery voltage"));
+        db.0
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE discovered_modules SET fingerprint_evidence_json = '{\"raw\":true}' WHERE id = ?1",
+                params![module_id],
+            )
+            .unwrap();
         db.upsert_probe_from_discovery(
             v,
             "engine",
@@ -4187,6 +4247,16 @@ mod tests {
             .unwrap();
         let c2 = db.start_connection("ELM327 v2.3", "vgate_icar_pro");
         db.insert_reading(c2, None, "rpm", 900.0);
+        let local_only = db.sync_batch(0, 100);
+        assert!(local_only.readings.is_empty());
+        assert_eq!(local_only.last_reading_id, 0);
+        db.0.lock()
+            .unwrap()
+            .execute(
+                "UPDATE connections SET upload_readings = 1 WHERE id = ?1",
+                params![c],
+            )
+            .unwrap();
         let batch = db.sync_batch(0, 100);
         assert_eq!(batch.vehicles.len(), 1);
         assert_eq!(batch.connections.len(), 1);
@@ -4196,6 +4266,11 @@ mod tests {
         assert_eq!(batch.probes.len(), 1);
         assert_eq!(batch.discovered_modules.len(), 1);
         assert_eq!(batch.discovered_modules[0].dids.len(), 1);
+        assert_eq!(batch.knowledge_candidates.len(), 1);
+        let json = serde_json::to_value(&batch).unwrap();
+        assert!(json.get("hypothesis_samples").is_none());
+        assert!(!json.to_string().contains("raw_sample"));
+        assert!(!json.to_string().contains("fingerprint_evidence"));
         assert_eq!(batch.diagnostic_cases.len(), 1);
         assert_eq!(batch.diagnostic_cases[0].reference, "JOB-0001");
         assert_eq!(
@@ -4209,6 +4284,43 @@ mod tests {
         assert!(!batch.vehicles[0].cloud_id.is_empty());
         assert!(!batch.connections[0].cloud_id.is_empty());
         assert!(!batch.scan_events[0].cloud_id.is_empty());
+
+        db.setting_set("contribute_knowledge", "false");
+        let private_batch = db.sync_batch(0, 100);
+        assert!(private_batch.discovered_modules.is_empty());
+        assert!(private_batch.knowledge_candidates.is_empty());
+    }
+
+    #[test]
+    fn sync_policy_migration_is_idempotent() {
+        let path = std::env::temp_dir().join(format!(
+            "scainner-sync-policy-{}.sqlite3",
+            uuid::Uuid::new_v4()
+        ));
+        Db::open(&path).expect("first migration");
+        let db = Db::open(&path).expect("second migration");
+        let conn = db.0.lock().unwrap();
+        let upload_readings: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('connections') WHERE name = 'upload_readings'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let candidate_cloud_id: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('knowledge_candidates') WHERE name = 'cloud_id'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(upload_readings, 1);
+        assert_eq!(candidate_cloud_id, 1);
+        assert_eq!(
+            conn.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+                .unwrap(),
+            SCHEMA_VERSION
+        );
     }
 
     #[test]

@@ -63,8 +63,19 @@ type SyncBatch = {
     last_seen_at: string;
     spare_part_number: string | null; hardware_version: string | null;
     software_version: string | null; system_name: string | null;
-    fingerprint_match_key: string | null; fingerprint_evidence: unknown | null;
-    dids: { did: number; raw_sample: string | null; byte_length: number | null; label: string | null; confidence: string | null; first_seen_at: string }[];
+    fingerprint_match_key: string | null; route_json: string | null;
+    family_id: string | null; route_state: string | null; supplier: string | null;
+    dids: { did: number; byte_length: number | null; label: string | null; confidence: string | null; first_seen_at: string }[];
+  }[];
+  knowledge_candidates: {
+    id: number; cloud_id: string; compatibility_key: string;
+    scope: "ecu_family" | "exact_ecu" | "observation"; family_id: string | null;
+    module_address: string; supplier: string | null; spare_part_number: string | null;
+    hardware_version: string | null; software_version: string | null; system_name: string | null;
+    route_json: string | null; did: number; payload_length: number | null;
+    knowledge_state: string; label: string | null; decode_json: string | null;
+    shape_json: string | null; interpretations_json: string | null; confidence: number | null;
+    discriminating_test: string | null; first_observed_at: string; last_observed_at: string;
   }[];
   diagnostic_cases: {
     cloud_id: string; vehicle_cloud_id: string; reference: string;
@@ -105,6 +116,37 @@ export function getSyncStatus(): SyncStatus {
 }
 
 const toIso = (ts: string) => `${ts.replace(" ", "T")}Z`;
+
+export function mapKnowledgeCandidate(
+  candidate: SyncBatch["knowledge_candidates"][number],
+  userId: string,
+) {
+  return {
+    id: candidate.cloud_id,
+    contributor_user_id: userId,
+    compatibility_key: candidate.compatibility_key,
+    scope: candidate.scope,
+    family_id: candidate.family_id,
+    module_address: candidate.module_address,
+    supplier: candidate.supplier,
+    spare_part_number: candidate.spare_part_number,
+    hardware_version: candidate.hardware_version,
+    software_version: candidate.software_version,
+    system_name: candidate.system_name,
+    route: candidate.route_json ? JSON.parse(candidate.route_json) : null,
+    did: candidate.did,
+    payload_length: candidate.payload_length,
+    knowledge_state: candidate.knowledge_state,
+    label: candidate.label,
+    decode: candidate.decode_json ? JSON.parse(candidate.decode_json) : null,
+    shape: candidate.shape_json ? JSON.parse(candidate.shape_json) : null,
+    interpretations: candidate.interpretations_json ? JSON.parse(candidate.interpretations_json) : null,
+    confidence: candidate.confidence,
+    discriminating_test: candidate.discriminating_test,
+    first_observed_at: toIso(candidate.first_observed_at),
+    last_observed_at: toIso(candidate.last_observed_at),
+  };
+}
 
 async function getWatermark(): Promise<number> {
   const raw = await invoke<string | null>("app_setting_get", { key: WATERMARK_KEY });
@@ -268,13 +310,14 @@ async function runSyncOnce(): Promise<void> {
           spare_part_number: m.spare_part_number, hardware_version: m.hardware_version,
           software_version: m.software_version, system_name: m.system_name,
           fingerprint_match_key: m.fingerprint_match_key,
-          fingerprint_evidence: m.fingerprint_evidence,
+          route: m.route_json ? JSON.parse(m.route_json) : null,
+          family_id: m.family_id, route_state: m.route_state, supplier: m.supplier,
         })),
         { onConflict: "id" },
       );
       fail("discovered_modules", error);
       const dids = batch.discovered_modules.flatMap((m) => m.dids.map((d) => ({
-        module_id: m.cloud_id, did: d.did, raw_sample: d.raw_sample,
+        module_id: m.cloud_id, did: d.did,
         byte_length: d.byte_length, label: d.label, confidence: d.confidence,
         first_seen_at: toIso(d.first_seen_at),
       })));
@@ -284,6 +327,13 @@ async function runSyncOnce(): Promise<void> {
           .upsert(dids, { onConflict: "module_id,did" });
         fail("discovered_dids", didError);
       }
+    }
+    if (batch.knowledge_candidates.length > 0) {
+      const { error } = await supabase.from("knowledge_candidates").upsert(
+        batch.knowledge_candidates.map((candidate) => mapKnowledgeCandidate(candidate, userId)),
+        { onConflict: "contributor_user_id,compatibility_key,did" },
+      );
+      fail("knowledge_candidates", error);
     }
     await invoke<void>("app_setting_set", { key: WATERMARK_KEY, value: String(batch.last_reading_id) });
     setStatus({
