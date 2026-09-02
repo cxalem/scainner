@@ -6,7 +6,7 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 
 | Brand | WMIs | Modules | DIDs | Decodable | Bound | Families | Decodes | On vehicle | Read svc | Identity | Platforms | Level | Gateway | Conf |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---:|---|---|---|
-| psa | 8 | 23 | 33 | 21 | 33 | 3 | 21 (16 ev.) | 17 | 22 | iso + 4 vendor | 1 | decodes_verified | unreachable_pins | high |
+| psa | 8 | 23 | 33 | 21 | 33 | 3 | 21 (16 ev.) | 17 | 22 | iso + 4 vendor | 1 (1 vds) | decodes_verified | unreachable_pins | high |
 | opel_psa | 3 | 6 | 3 | 3 | 3 | 0 | 3 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
 | vag | 15 | 20 | 31 | 17 | 26 (5 unknown) | 0 | 18 | 0 | 22 | iso + 1 vendor | 3 | routes_sourced | unknown | high |
 | skoda | 4 | 10 | 4 | 0 | 4 | 0 | 0 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
@@ -20,14 +20,14 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 | ford | 22 | 9 | 18 | 16 | 15 (3 unknown) | 0 | 16 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
 | gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 1A, 22 | iso | 2 | routes_sourced | unknown | low |
 | fca | 21 | 7 (1) | 7 | 5 | 3 (4 unknown) | 0 | 5 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown, writes blocked | low |
-| toyota | 29 | 10 | 11 | 7 | 6 (5 unknown) | 0 | 8 | 0 | 22 | iso | 3 | routes_sourced | unknown | high |
+| toyota | 29 | 10 | 11 | 7 | 6 (5 unknown) | 0 | 8 | 0 | 21, 22 | iso | 8 (5 vds) | routes_sourced | unknown | high |
 | honda | 20 | 7 (6) | 7 | 0 | 6 (1 unknown) | 0 | 0 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown | medium |
 | mazda | 15 | 4 | 13 | 11 | 8 (5 unknown) | 0 | 11 | 0 | 22 | iso | 0 | routes_sourced | unknown | medium |
 | volvo | 9 | 1 (1) | 2 | 2 | 0 (2 unknown) | 0 | 2 | 0 | 22 | iso | 2 (1 vds) | routes_sourced | unknown | medium |
 | subaru | 7 | 0 | 1 | 0 | 0 (1 unknown) | 0 | 0 | 0 | — | iso + 1 vendor | 1 | standard_only | unknown | low |
 | mitsubishi | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 1 | standard_only | unknown | low |
 | tesla | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 2 (2 vds) | standard_only | unknown | high |
-| **total** | 251 | 179 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 18 brands | 21 brands | 33 (5 vds) | 1 decodes_verified / 0 routes_verified / 17 routes_sourced / 3 standard_only | 3 brands | |
+| **total** | 251 | 179 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 18 brands | 21 brands | 38 (11 vds) | 1 decodes_verified / 0 routes_verified / 17 routes_sourced / 3 standard_only | 3 brands | |
 
 ## Profiled levels
 

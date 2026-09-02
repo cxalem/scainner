@@ -49,11 +49,12 @@ describe("the valid mini pack", () => {
       unresolved_references: 0,
       scope_conflicts: 1,
       decoder_variants: 1,
+      platforms_without_vin_classifier: 0,
     });
     expect(result.report.valid_records).toBeGreaterThan(0);
     expect(result.report.blocked_transport_records).toBeGreaterThan(0);
     const text = formatValidationReport(result);
-    for (const line of ["valid records", "documentation-only records", "executable routes", "executable DIDs", "negative evidence", "blocked transport records", "missing immutable sources", "unresolved references", "scope conflicts", "decoder variants"]) {
+    for (const line of ["valid records", "documentation-only records", "executable routes", "executable DIDs", "negative evidence", "blocked transport records", "missing immutable sources", "unresolved references", "scope conflicts", "decoder variants", "platforms without a VIN classifier"]) {
       expect(text).toContain(line);
     }
   });
@@ -484,6 +485,92 @@ describe("malformed input", () => {
         writeRaw("platforms.json", "{ not json");
       }),
       /file does not parse: platforms\.json/,
+    );
+  });
+});
+
+describe("VIN classifiers on platforms", () => {
+  it("accepts the fixture, where a gap record declares the platform not VIN-selectable", () => {
+    const result = validateResearchPack(MINI);
+    expect(result.failures).toEqual([]);
+    expect(result.warnings.filter((warning) => warning.startsWith("platform_without_vin_classifier"))).toEqual([]);
+    expect(result.report.platforms_without_vin_classifier).toBe(0);
+  });
+
+  it("warns, without failing, when a platform has neither a pattern nor a gap", () => {
+    const dir = fixture(({ read, write }) => {
+      const gaps = read("conflicts-and-gaps.json");
+      delete gaps.gaps[0].kind;
+      write("conflicts-and-gaps.json", gaps);
+    });
+    const result = validateResearchPack(dir);
+    expect(result.failures).toEqual([]);
+    expect(result.warnings).toContain(
+      "platform_without_vin_classifier: examplebrand_gen1 has neither a vds_patterns entry nor a platform_not_vin_selectable gap, so a VIN alone can never select it",
+    );
+    expect(result.report.platforms_without_vin_classifier).toBe(1);
+    expect(formatValidationReport(result)).toMatch(/platforms without a VIN classifier\s+1/);
+  });
+
+  it("does not warn when the platform carries sourced patterns instead of a gap", () => {
+    const dir = fixture(({ read, write }) => {
+      const gaps = read("conflicts-and-gaps.json");
+      delete gaps.gaps[0].kind;
+      write("conflicts-and-gaps.json", gaps);
+      const platforms = read("platforms.json");
+      platforms.platforms[0].vds_patterns = ["^KA1HK", "^(KB1HK|KC1HK)"];
+      write("platforms.json", platforms);
+    });
+    const result = validateResearchPack(dir);
+    expect(result.failures).toEqual([]);
+    expect(result.warnings.filter((warning) => warning.startsWith("platform_without_vin_classifier"))).toEqual([]);
+    expect(result.report.platforms_without_vin_classifier).toBe(0);
+  });
+
+  const withPatterns = (patterns: unknown) =>
+    fixture(({ read, write }) => {
+      const platforms = read("platforms.json");
+      platforms.platforms[0].vds_patterns = patterns;
+      write("platforms.json", platforms);
+    });
+
+  it("rejects an unanchored pattern", () => {
+    rejects(withPatterns(["KA1HK"]), /platform examplebrand_gen1: vds_patterns\[0\]: pattern "KA1HK" is not anchored/);
+  });
+
+  it("rejects an alternation whose second branch is unanchored", () => {
+    rejects(withPatterns(["^KA1HK|KB1HK"]), /has an unanchored alternative "KB1HK"/);
+  });
+
+  it("rejects a pattern that matches the empty string", () => {
+    rejects(withPatterns(["^.*"]), /vds_patterns\[0\]: pattern "\^\.\*" matches the empty string/);
+  });
+
+  it("rejects a pattern outside the shared regex subset the runtime parses", () => {
+    rejects(withPatterns(["^KA[A-Z]{2}"]), /uses syntax outside the shared regex subset/);
+  });
+
+  it("rejects a literal that cannot occur in a VIN", () => {
+    // I, O and Q are excluded from every VIN, so a pattern spelling one is
+    // a transcription slip, not a classifier.
+    for (const pattern of ["^KAI1", "^KAO1", "^KAQ1"]) {
+      rejects(withPatterns([pattern]), /uses syntax outside the shared regex subset/);
+    }
+  });
+
+  it("rejects a pattern that is not a string", () => {
+    rejects(withPatterns([{ pattern: "^KA1HK" }]), /a vds pattern must be a non-empty string/);
+  });
+
+  it("rejects patterns declared with no source_refs on the platform", () => {
+    rejects(
+      fixture(({ read, write }) => {
+        const platforms = read("platforms.json");
+        platforms.platforms[0].vds_patterns = ["^KA1HK"];
+        platforms.platforms[0].source_refs = [];
+        write("platforms.json", platforms);
+      }),
+      /declares vds_patterns with no source_refs; a VIN rule is a sourced claim/,
     );
   });
 });

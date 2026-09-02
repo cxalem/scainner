@@ -439,9 +439,13 @@ describe("v9 accessors (the Phase 2 contract)", () => {
     expect(patterned.length).toBeGreaterThanOrEqual(2);
     for (const b of patterned.slice(0, 3)) {
       const p = b.platforms!.find((p) => p.vds_pattern)!;
-      // Build a VDS that matches: take the literal characters of a "^ABC" pattern
-      // or the first alternative of a "^[XY]" class.
-      const literal = p.vds_pattern!.replace(/^\^/, "").replace(/\[([^\]])[^\]]*\]/g, "$1");
+      // Build a VDS that matches: the literal characters of a "^ABC" pattern,
+      // the first alternative of a "^[XY]" class, and the first branch of a
+      // "^(ABC|DEF)" alternation.
+      const literal = p
+        .vds_pattern!.replace(/^\^/, "")
+        .replace(/\(([^)|]*)[^)]*\)/g, "$1")
+        .replace(/\[([^\]])[^\]]*\]/g, "$1");
       const vin = vinFor(b.id, literal);
       expect(platformForVin(vin)?.key, `${b.id} ${p.vds_pattern}`).toBe(p.key);
       expect(platformForVin(vinFor(b.id, "ZZZZZZZ"))?.key).not.toBe(p.key);

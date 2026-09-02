@@ -222,11 +222,14 @@ export interface IdentityBlock {
 }
 
 /** A platform/generation split that changes service or addressing (v9).
- * `vds_pattern` is a regex over VIN characters 4-10 (seven characters)
- * restricted to the subset both implementations support: literals, `.`,
- * `[...]` classes with ranges and negation, `^`, `$`, `?`, `*`, `+`. Null
- * when no registry confirmed a pattern — the platform is then selectable
- * by evidence only, never by VIN. */
+ * `vds_pattern` is a regex over VIN characters 4-10 (the six vehicle
+ * descriptor characters at positions 4-9, plus the model-year character at
+ * position 10) restricted to the subset both implementations support:
+ * literals, `.`, `[...]` classes with ranges and negation, `(a|b)`
+ * alternation, `^`, `$`, `?`, `*`, `+`. Several VIN families for one
+ * platform are carried as one alternation. Null when no registry confirmed
+ * a pattern — the platform is then selectable by evidence only, never by
+ * VIN. */
 export interface Platform {
   key: string;
   vds_pattern: string | null;

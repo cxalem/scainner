@@ -219,8 +219,22 @@ const projectedPlatforms = (platformsFile.platforms ?? [])
     models: platform.scope.models,
     powertrains: platform.scope.powertrains ?? [],
   }));
-const platformHasVinRule = (platform: Json): boolean =>
-  Boolean(platform.vds_patterns?.length || platform.vin_rules?.length || platform.classifier);
+// §9.1: `vds_patterns[]` is the pack's classifier list — anchored regex
+// strings over the vehicle-descriptor characters. `vin_rules`/`classifier`
+// are pre-standard spellings, kept so older packs still report honestly.
+const vdsPatternsOf = (platform: Json): string[] =>
+  (platform.vds_patterns ?? platform.vin_rules ?? []).filter((pattern: unknown): pattern is string => typeof pattern === "string" && pattern.length > 0);
+const platformHasVinRule = (platform: Json): boolean => Boolean(vdsPatternsOf(platform).length || platform.classifier);
+/** The trusted map's `platforms[].vds_pattern` is a single regex string, so
+ * several VIN families become one alternation: `^(KN3DU|KN36U)`. Every
+ * branch keeps its own `^`-anchored body inside the group, which is the
+ * form `elm/uds_map.rs::vds_matches` expands before matching. */
+const trustedVdsPattern = (platform: Json): string | null => {
+  const patterns = vdsPatternsOf(platform);
+  if (!patterns.length) return null;
+  if (patterns.length === 1) return patterns[0];
+  return `^(${patterns.map((pattern) => pattern.replace(/^\^/, "")).join("|")})`;
+};
 const vinSelectablePlatforms = (platformsFile.platforms ?? []).filter(platformHasVinRule).map((platform: Json) => platform.platform_id);
 const modelCounts = new Map<string, number>();
 for (const platform of projectedPlatforms) {
@@ -251,7 +265,8 @@ const platformProposals = (platformsFile.platforms ?? [])
     models: platform.scope?.models ?? [],
     powertrains: platform.scope?.powertrains ?? [],
     years: platform.scope?.years ?? null,
-    vds_patterns: platform.vds_patterns ?? platform.vin_rules ?? [],
+    vds_patterns: vdsPatternsOf(platform),
+    vds_pattern: trustedVdsPattern(platform),
     vin_selectable: platformHasVinRule(platform),
     architecture: platform.architecture ?? null,
     transport_candidates: platform.transport_candidates ?? [],
@@ -262,7 +277,7 @@ const platformProposals = (platformsFile.platforms ?? [])
       const source = sources.get(ref);
       return { ref, url: source?.url ?? null, revision: source?.revision ?? null, retrieved_at: source?.retrieved_at ?? null, licence: source?.licence ?? null, reliability: source?.reliability ?? null };
     }),
-    accept_by: "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert.",
+    accept_by: "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation.",
   }))
   .sort((a: Json, b: Json) => a.platform_id.localeCompare(b.platform_id));
 
