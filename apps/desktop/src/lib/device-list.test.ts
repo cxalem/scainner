@@ -4,6 +4,7 @@ import {
   DEFAULT_PIN,
   defaultPin,
   deviceRows,
+  deviceScrollColumnClass,
   gateScreen,
   isPinRequired,
   listSections,
@@ -294,5 +295,15 @@ describe("stageMessage", () => {
     const { message, hint } = stageMessage("open", "open /dev/cu.OBDII: Resource busy (os error 16)");
     expect(message).toBe("open");
     expect(hint).toBe("openBusy");
+  });
+});
+
+describe("deviceScrollColumnClass", () => {
+  it("opts the column out of scroll anchoring, so the Nearby group opens in view", () => {
+    expect(deviceScrollColumnClass).toContain("[overflow-anchor:none]");
+  });
+
+  it("stays the card's only scroll container", () => {
+    expect(deviceScrollColumnClass).toContain("overflow-y-auto");
   });
 });
