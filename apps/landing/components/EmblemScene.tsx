@@ -1,14 +1,5 @@
 "use client";
 
-// The hero's brand-recognition moment: a rotating chrome 3D emblem over
-// ambient dust, cycling through a handful of recognised brands. Raw
-// Three.js (no react-three-fiber/drei) on purpose — this is the only 3D
-// surface on this page, so a render-loop reconciler is unwarranted weight
-// for a static marketing page. Material/lighting constants and the studio
-// environment bake match apps/desktop/src/components/VehicleScene.tsx
-// exactly (see lib/rendering.ts). The renderer/scene/lights are built once
-// on mount (see emblem-scene.js's own _init3d/_loadEmblem split) — only the
-// loaded model swaps when the active brand changes, not the whole context.
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -80,15 +71,12 @@ export function EmblemScene({ className }: { className?: string }) {
   const genRef = useRef(0);
   const [activeIdx, setActiveIdx] = useState(0);
 
-  // Cycle which brand is shown.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = setInterval(() => setActiveIdx((i) => (i + 1) % BRANDS.length), CYCLE_MS);
     return () => clearInterval(id);
   }, []);
 
-  // One-time setup: renderer, scene, camera, studio environment, render
-  // loop. Runs once on mount; brand swaps (below) never touch any of this.
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -171,9 +159,6 @@ export function EmblemScene({ className }: { className?: string }) {
     };
   }, []);
 
-  // Brand swap: load the newly-active brand's GLB and replace the current
-  // model in-place, disposing the old one. The renderer/scene above is
-  // untouched.
   useEffect(() => {
     const loader = loaderRef.current;
     const group = groupRef.current;
@@ -184,7 +169,7 @@ export function EmblemScene({ className }: { className?: string }) {
     loader.load(
       `/emblems/${brand.key}.glb`,
       (gltf) => {
-        if (myGen !== genRef.current) return; // a newer brand started loading first
+        if (myGen !== genRef.current) return;
         const material = new THREE.MeshPhysicalMaterial({ ...CHROME_MATERIAL });
         gltf.scene.traverse((o) => {
           const mesh = o as THREE.Mesh;

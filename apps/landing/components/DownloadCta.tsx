@@ -1,19 +1,5 @@
 "use client";
 
-// Ported from the design's own Component logic (Sonda Landing.dc.html's
-// <script data-dc-script>): detect the visitor's platform, show a direct
-// download for macOS (the only platform that ships today) or a waitlist
-// form for everything else. Client component — needs navigator/window,
-// and the waitlist form is local interactive state only (no backend wired
-// yet; wire onJoin to a real endpoint when one exists).
-//
-// Every color here is a --section-* token (app/tokens.css) via its Tailwind
-// name, never a raw hex/rgba — this component only ever renders on the
-// dark ground (hero, footer), so it exclusively uses that token family.
-//
-// All copy comes from the `dict` prop (lib/i18n) — nothing here is
-// hardcoded to English, since the same components render on both / and
-// /es/.
 import { useEffect, useState, type ComponentType } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,14 +38,9 @@ export function useDetectedPlatform(): Platform | null {
   return platform;
 }
 
-// The one recurring CTA look on the dark ground — its own named --section-
-// chip-* tokens (already in the app's tokens.css for exactly this "glass
-// button" role), not a one-off style.
 const DARK_CHIP_BTN =
   "border-section-chip-border bg-section-chip-bg text-section-chip-text hover:bg-section-chip-bg-hover hover:border-section-chip-border-hover";
 
-/** The nav bar's compact CTA — text only, no form, matches the design's
- *  navCta binding ("Download" vs "Get notified"). */
 export function NavCta({ dict }: { dict: Dictionary }) {
   const platform = useDetectedPlatform();
   const isMac = platform === null || platform === "mac";
@@ -78,8 +59,6 @@ export function HeroCta({ dict }: { dict: Dictionary }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
 
-  // Avoid a hydration mismatch: render nothing platform-specific until the
-  // client effect resolves, then show the real branch.
   if (platform === null) return <div className="h-[92px]" aria-hidden="true" />;
 
   if (platform === "mac") {

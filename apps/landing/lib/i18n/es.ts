@@ -1,10 +1,5 @@
 import type { Dictionary } from "./dictionary";
 
-// Terminology matches the desktop app's own es.ts (apps/desktop/src/i18n/
-// es.ts) where the same concept appears — "código de avería" for fault
-// code, "escanear/escaneo" for scan, "testigo" for the check-engine light,
-// "borrar" for clear — so a Spanish-speaking visitor who downloads the app
-// doesn't land in a second, differently-worded vocabulary.
 export const es: Dictionary = {
   nav: {
     download: "Descargar",

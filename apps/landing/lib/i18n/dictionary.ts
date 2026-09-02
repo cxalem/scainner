@@ -1,7 +1,3 @@
-// The shape every locale must implement exactly — same convention as the
-// desktop app's own i18n (apps/desktop/src/i18n/dictionary.ts): a typed
-// dictionary, not a string-key library, so a key missing in either locale
-// fails `tsc --noEmit` rather than falling back silently at runtime.
 export type Dictionary = {
   nav: {
     download: string;
@@ -13,10 +9,6 @@ export type Dictionary = {
     body: string;
     downloadMac: string;
     worksWithAdapter: string;
-    /** Contains a literal `{platform}` placeholder — see lib/i18n/format.ts.
-     *  A function here can't cross the server/client boundary (dict is
-     *  passed into "use client" components like HeroCta), so parametrized
-     *  strings are templates, not closures. */
     comingSoon: string;
     emailPlaceholder: string;
     notifyMe: string;
@@ -108,7 +100,6 @@ export type Dictionary = {
       rows: string[];
     };
     downloadMac: string;
-    /** `{platform}` placeholder — see the comment on hero.comingSoon. */
     notifyMe: string;
   };
   footer: {

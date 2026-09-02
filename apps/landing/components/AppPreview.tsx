@@ -17,7 +17,6 @@ export function AppPreview({ dict }: { dict: Dictionary }) {
       <figcaption className="sr-only">{dict.showcase.screenshotAlt}</figcaption>
 
       <div aria-hidden="true">
-        {/* macOS window-control colours, quoted literally: an OS artefact, not a brand decision. */}
         <div className="flex items-center gap-2 border-b border-divider bg-neutral-900 px-3.5 py-[11px]">
           <span className="size-3 rounded-full bg-[#ff5f57]" />
           <span className="size-3 rounded-full bg-[#febc2e]" />
@@ -26,7 +25,6 @@ export function AppPreview({ dict }: { dict: Dictionary }) {
         </div>
 
         <div className="relative grid grid-cols-1 overflow-hidden bg-bg lg:aspect-[16/10] lg:grid-cols-[196px_minmax(0,1fr)]">
-          {/* Below lg the frame flows instead of holding 16/10, so the 196px rail is dropped rather than squeezed. */}
           <div className="hidden flex-col gap-1 border-r border-divider bg-surface px-3 py-4 lg:flex">
             <div className={`${SECTION_LABEL} px-2.5 pb-2`}>{p.sidebarPrimary}</div>
             <NavItem icon={<GaugeIcon size={14} />} label={p.nav.overview} />

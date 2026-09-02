@@ -1,9 +1,5 @@
 "use client";
 
-// Ambient dust behind the hero's 3D emblem — ported from the desktop app's
-// EmblemStarfield.tsx (apps/desktop/src/components/EmblemStarfield.tsx),
-// "bare" tone only: transparent canvas, dots only, no background fill —
-// the header's own dark gradient shows through underneath.
 import { useEffect, useRef } from "react";
 import { EMBLEM_ROTATE_SPEED, PARTICLE_PALETTE_BARE } from "@/lib/rendering";
 
@@ -13,13 +9,6 @@ const SIZE_WEIGHTS = [0.62, 0.24, 0.09, 0.05];
 const SIZES = [1, 1.6, 2.3, 3];
 const SIZE_ALPHA = [0.3, 0.5, 0.68, 0.8];
 
-// Drift speed is derived from `pace`, not its own independent constant.
-// Factors (not 1:1 with the rotation) tuned by eye at the default pace
-// (EMBLEM_ROTATE_SPEED) — bumped twice from the original 0.02-0.06
-// "ambient dust" range, which read as too slow next to the emblem's own
-// rotation (2026-08-31 feedback, x2). Retune the emblem's rotation and the
-// dust still scales with it, instead of drifting out of sync with a
-// separately-tuned number.
 const DRIFT_MIN_FACTOR = 0.225;
 const DRIFT_RANGE_FACTOR = 0.45;
 
@@ -87,9 +76,6 @@ export function EmblemDust({ className, pace = EMBLEM_ROTATE_SPEED }: { classNam
         const size = SIZES[starSize[i]!]!;
         ctx!.globalAlpha = SIZE_ALPHA[starSize[i]!]!;
         ctx!.fillStyle = palette[starColor[i]!]!;
-        // Round dots, not squares — matches the design's own emblem-scene.js
-        // dust (ctx.arc), not EmblemStarfield.tsx's square fillRect this was
-        // otherwise ported from.
         ctx!.beginPath();
         ctx!.arc(pos[k]!, pos[k + 1]!, size / 2, 0, Math.PI * 2);
         ctx!.fill();

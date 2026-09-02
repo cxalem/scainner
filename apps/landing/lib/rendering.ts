@@ -1,8 +1,3 @@
-// 3D/Canvas rendering constants — copied verbatim from the desktop app's
-// theme/rendering.ts (apps/desktop/src/theme/rendering.ts) so the emblem
-// scene on this marketing page matches the real product exactly, not a
-// close approximation. Keep in sync by hand; there's no shared package
-// between these two apps' build systems.
 
 export const CHROME_MATERIAL = {
   color: "#f4f6f8",
@@ -22,15 +17,8 @@ export const STUDIO_LIGHTING = {
   rimLight: "#dfe8ff",
 } as const;
 
-// "Bare" tone dust — matches emblem-scene.js's TONES.bare (the header's
-// own dark-purple gradient shows through; the canvas paints dots only).
 export const PARTICLE_PALETTE_BARE = {
   dust: ["#d8d0f8", "#efedfa", "#a49add"] as [string, string, string],
 };
 
-// One shared pace for the hero's brand-recognition moment: the emblem's
-// rotation (EmblemScene, rad/s) and the dust drift behind it (EmblemDust,
-// derived from this same number rather than its own independent constant)
-// move at proportionally the same speed, so a future retune of one retunes
-// both together instead of drifting out of sync by hand.
 export const EMBLEM_ROTATE_SPEED = 0.16;
