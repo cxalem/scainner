@@ -324,7 +324,7 @@
         "can29_normal_fixed"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {
@@ -360,7 +360,7 @@
         "can11_500"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [],
       "sources": [
         {
@@ -396,7 +396,7 @@
         "can11_500"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [
         "zoe"
       ],
@@ -443,7 +443,7 @@
         "can29_normal_fixed"
       ],
       "confidence": "high",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "related_existing_keys": [
         "zoe"
       ],

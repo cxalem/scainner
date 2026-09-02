@@ -1,0 +1,794 @@
+{
+  "schema_version": 1,
+  "pack_id": "toyota-deep-research-runtime-v1",
+  "version": 1,
+  "research_date": "2026-09-02",
+  "mode": "candidate_discovery_only",
+  "policy": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "forbidden_services": [
+      "10",
+      "11",
+      "14",
+      "27",
+      "28",
+      "2E",
+      "2F",
+      "31",
+      "34",
+      "35",
+      "36",
+      "37",
+      "3D"
+    ],
+    "candidate_decodes_are_hypotheses": true
+  },
+  "profiles": [
+    {
+      "brand_id": "toyota",
+      "brand_name": "Toyota / Lexus",
+      "status": "research_candidate",
+      "wmis": [],
+      "platforms": [
+        {
+          "platform_id": "toyota_prius_xw30",
+          "models": [
+            "prius_xw30"
+          ],
+          "powertrains": [
+            "hev"
+          ]
+        },
+        {
+          "platform_id": "toyota_tnga_hybrid",
+          "models": [
+            "camry_hybrid"
+          ],
+          "powertrains": [
+            "hev"
+          ]
+        },
+        {
+          "platform_id": "toyota_ths5",
+          "models": [
+            "prius_xw60"
+          ],
+          "powertrains": [
+            "hev",
+            "phev"
+          ]
+        },
+        {
+          "platform_id": "lexus_rx_al10",
+          "models": [
+            "lexus_rx_al10"
+          ],
+          "powertrains": [
+            "ice",
+            "hev"
+          ]
+        },
+        {
+          "platform_id": "lexus_rx_al30",
+          "models": [
+            "lexus_rx_al30"
+          ],
+          "powertrains": [
+            "hev",
+            "phev"
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "route_id": "toyota_prius_xw30_abs_7b0_7b8",
+          "platform": "toyota_prius_xw30",
+          "protocol": "can11_500",
+          "req": "7B0",
+          "resp": "7B8",
+          "address_extension": null,
+          "service": "21",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s01"
+          ],
+          "module_role": "abs_esc",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "03",
+              "semantic": "four wheel speeds",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 1.28,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "front right wheel speed"
+                    },
+                    {
+                      "offset": 1,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 1.28,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "front left wheel speed"
+                    },
+                    {
+                      "offset": 2,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 1.28,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "rear right wheel speed"
+                    },
+                    {
+                      "offset": 3,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 1.28,
+                      "bias": 0,
+                      "unit": "km/h",
+                      "quantity": "speed",
+                      "label": "rear left wheel speed"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "capture stationary baseline",
+                  "drive straight slowly",
+                  "perform gentle left and right turns",
+                  "stop and recapture baseline"
+                ],
+                "expected_behavior": [
+                  "all wheels near zero at rest",
+                  "all increase with vehicle speed",
+                  "inside/outside differences agree with turns",
+                  "all return near zero"
+                ]
+              },
+              "validation_recipe_id": "wheel_speed_drive",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "47",
+              "semantic": "steering angle and inertial signals",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 3,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.1,
+                      "bias": -3276.8,
+                      "unit": "deg",
+                      "quantity": "angle",
+                      "label": "steering wheel angle"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "hold center",
+                  "turn left",
+                  "return center",
+                  "turn right",
+                  "return center"
+                ],
+                "expected_behavior": [
+                  "changes sign",
+                  "returns near baseline",
+                  "moves monotonically"
+                ]
+              },
+              "validation_recipe_id": "steering_center_left_right",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "toyota_prius_xw30_cluster_7c0_7c8",
+          "platform": "toyota_prius_xw30",
+          "protocol": "can11_500",
+          "req": "7C0",
+          "resp": "7C8",
+          "address_extension": null,
+          "service": "21",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s01"
+          ],
+          "module_role": "cluster",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "29",
+              "semantic": "fuel remaining",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.1321003963,
+                      "bias": 0,
+                      "unit": "L",
+                      "quantity": "volume",
+                      "label": "fuel remaining"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "record cluster fuel level",
+                  "read candidate",
+                  "repeat after a measured refuel"
+                ],
+                "expected_behavior": [
+                  "candidate rises by approximately added volume",
+                  "remains plausible for tank capacity"
+                ]
+              },
+              "validation_recipe_id": "fuel_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "toyota_modern_engine_700_708",
+          "platform": "toyota_tnga_hybrid",
+          "protocol": "can11_500",
+          "req": "700",
+          "resp": "708",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s01",
+            "toyota-deep-research.source.s02"
+          ],
+          "module_role": "engine",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "1074",
+              "semantic": "engine oil pressure",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.078125,
+                      "bias": 0,
+                      "unit": "kPa",
+                      "quantity": "pressure",
+                      "label": "engine oil pressure"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "capture engine off",
+                  "capture warm idle",
+                  "capture bounded raised RPM"
+                ],
+                "expected_behavior": [
+                  "near zero engine off",
+                  "positive at idle",
+                  "changes plausibly with RPM"
+                ]
+              },
+              "validation_recipe_id": "oil_pressure_behavior",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "toyota_modern_hybrid_7d2_7da",
+          "platform": "toyota_tnga_hybrid",
+          "protocol": "can11_500",
+          "req": "7D2",
+          "resp": "7DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s01"
+          ],
+          "module_role": "hybrid_control",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "1F5B",
+              "semantic": "HV battery state of charge",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.3921568627,
+                      "bias": 0,
+                      "unit": "%",
+                      "quantity": "percentage",
+                      "label": "HV battery state of charge"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "record displayed SOC",
+                  "capture candidate through charge and discharge phases"
+                ],
+                "expected_behavior": [
+                  "tracks displayed SOC direction",
+                  "stays within 0-100 percent"
+                ]
+              },
+              "validation_recipe_id": "soc_drive_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            },
+            {
+              "did": "1F9A",
+              "semantic": "HV battery voltage and current",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 2,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.015625,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "HV battery voltage"
+                    },
+                    {
+                      "offset": 4,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": true,
+                      "scale": 0.1,
+                      "bias": 0,
+                      "unit": "A",
+                      "quantity": "current",
+                      "label": "HV battery current"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "reference_comparison",
+                "instructions": [
+                  "capture READY stationary",
+                  "capture acceleration",
+                  "capture regenerative braking"
+                ],
+                "expected_behavior": [
+                  "voltage remains physically plausible",
+                  "current changes direction or sign between propulsion and regeneration"
+                ]
+              },
+              "validation_recipe_id": "hv_voltage_current_cross_check",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "toyota_ths5_hybrid_7d2_7da",
+          "platform": "toyota_ths5",
+          "protocol": "can11_500",
+          "req": "7D2",
+          "resp": "7DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s01"
+          ],
+          "module_role": "hybrid_control",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "10A6",
+              "semantic": "rear motor inverter temperatures",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 1,
+                      "bias": -40,
+                      "unit": "C",
+                      "quantity": "temperature",
+                      "label": "rear motor inverter coolant temperature"
+                    },
+                    {
+                      "offset": 2,
+                      "len": 1,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 1,
+                      "bias": -40,
+                      "unit": "C",
+                      "quantity": "temperature",
+                      "label": "motor inverter maximum temperature"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "guided_sequence",
+                "instructions": [
+                  "capture cold soak",
+                  "capture warmup",
+                  "capture stabilized temperature"
+                ],
+                "expected_behavior": [
+                  "starts near ambient",
+                  "changes smoothly",
+                  "remains physically plausible"
+                ]
+              },
+              "validation_recipe_id": "temperature_warmup",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "toyota_modern_battery_747_74f",
+          "platform": "toyota_tnga_hybrid",
+          "protocol": "can11_500",
+          "req": "747",
+          "resp": "74F",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s01"
+          ],
+          "module_role": "hv_battery",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "182E",
+              "semantic": "HV battery cell voltages",
+              "decode_format": "uds_map_v9",
+              "decoder_variants": [
+                {
+                  "variant_id": "S01-a",
+                  "signals": [
+                    {
+                      "offset": 0,
+                      "len": 2,
+                      "encoding": "be",
+                      "signed": false,
+                      "scale": 0.0000762951,
+                      "bias": 0,
+                      "unit": "V",
+                      "quantity": "voltage",
+                      "label": "HV battery cell 1 voltage"
+                    }
+                  ],
+                  "source_refs": [
+                    "S01"
+                  ]
+                }
+              ],
+              "validation": {
+                "kind": "array_consistency",
+                "instructions": [
+                  "capture complete payload repeatedly",
+                  "compare cell spread",
+                  "cross-check sum against pack voltage"
+                ],
+                "expected_behavior": [
+                  "cell values remain plausible",
+                  "cell sum relates consistently to pack voltage",
+                  "repeats are stable"
+                ]
+              },
+              "validation_recipe_id": "cell_voltage_consistency",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "candidate"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "lexus_rx_al10_engine_7e0_7e8",
+          "platform": "lexus_rx_al10",
+          "protocol": "can11_500",
+          "req": "7E0",
+          "resp": "7E8",
+          "address_extension": null,
+          "service": "21",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s03"
+          ],
+          "module_role": "engine",
+          "requires_identity": true,
+          "candidate_dids": [
+            {
+              "did": "05",
+              "semantic": "engine diagnostic data block",
+              "validation": {
+                "kind": "discovery_capture",
+                "instructions": [
+                  "capture repeated raw payloads",
+                  "record vehicle state and independent reference signals"
+                ],
+                "expected_behavior": [
+                  "payload shape is stable",
+                  "no semantic is assigned without discriminating evidence"
+                ]
+              },
+              "validation_recipe_id": "shape_and_reference_capture",
+              "automatic_execution_authorized": true,
+              "support_status": "source_observed",
+              "knowledge_state": "community_reported",
+              "vehicle_fit": "untested",
+              "identity_fit": "provisional",
+              "activation": "disabled",
+              "route_status": "source_observed",
+              "did_status": "source_observed",
+              "decode_status": "unresolved"
+            }
+          ],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        },
+        {
+          "route_id": "lexus_rx_al30_hybrid_7d2_7da",
+          "platform": "lexus_rx_al30",
+          "protocol": "can11_500",
+          "req": "7D2",
+          "resp": "7DA",
+          "address_extension": null,
+          "service": "22",
+          "session": "default_only",
+          "claim_ids": [
+            "toyota-deep-research.source.s03"
+          ],
+          "module_role": "hybrid_control",
+          "requires_identity": true,
+          "candidate_dids": [],
+          "knowledge_state": "community_reported",
+          "vehicle_fit": "untested",
+          "identity_fit": "provisional",
+          "activation": "disabled"
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "toyota-deep-research.source.s01",
+      "exact_claim": "OBDb Toyota Prius signal set supplies research evidence scoped to Toyota Prius model family; source year filters apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Toyota Prius model family; source year filters apply",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Toyota-Prius/blob/0a8c4ec72be860861548a3aeb2be007eecd83941/signalsets/v3/default.json",
+        "revision": "0a8c4ec72be860861548a3aeb2be007eecd83941",
+        "retrieved_at": "2026-09-02",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "toyota-deep-research.source.s02",
+      "exact_claim": "OBDb Toyota Camry signal set supplies research evidence scoped to Toyota Camry model family; source year filters apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "medium_high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Toyota Camry model family; source year filters apply",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Toyota-Camry/blob/3c1fc0cd77f27cdc4291b71e9a7a93fe525889b2/signalsets/v3/default.json",
+        "revision": "3c1fc0cd77f27cdc4291b71e9a7a93fe525889b2",
+        "retrieved_at": "2026-09-02",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "toyota-deep-research.source.s03",
+      "exact_claim": "OBDb Lexus RX signal set and physical command corpus supplies research evidence scoped to Lexus RX model family; source year filters and tests apply.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Lexus RX model family; source year filters and tests apply",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/OBDb/Lexus-RX/blob/9d3e76d70e91152e90acf4cd7c16dfe20fa48a37/signalsets/v3/default.json",
+        "revision": "9d3e76d70e91152e90acf4cd7c16dfe20fa48a37",
+        "retrieved_at": "2026-09-02",
+        "license": "CC-BY-SA-4.0"
+      }
+    },
+    {
+      "claim_id": "toyota-deep-research.source.s04",
+      "exact_claim": "opendbc Toyota ECU firmware fingerprints supplies research evidence scoped to Toyota/Lexus ECU firmware identity examples.",
+      "knowledge_state": "community_reported",
+      "source_fidelity": "high",
+      "vehicle_applicability": "untested_by_project",
+      "scope": "Toyota/Lexus ECU firmware identity examples",
+      "action_if_connected": "Use only after the candidate planner matches this source scope; preserve raw outcomes.",
+      "promotion_test": "Confirm the route and meaning on project hardware across independent connections before promotion.",
+      "source": {
+        "url": "https://github.com/commaai/opendbc/blob/3e92d112129507debe45364891954db70238997a/opendbc/car/toyota/fingerprints.py",
+        "revision": "3e92d112129507debe45364891954db70238997a",
+        "retrieved_at": "2026-09-02",
+        "license": "MIT"
+      }
+    }
+  ]
+}

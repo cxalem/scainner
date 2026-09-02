@@ -350,6 +350,11 @@ export function validateResearchPack(input: string): ValidationResult {
     }
     if (typeof value !== "string" || !allowed.includes(value)) fail(`${where}: ${field} "${String(value)}" is not one of ${allowed.join(" | ")}`);
   };
+  const rejectFleetPromotion = (value: unknown, where: string) => {
+    if (value === "community_verified") {
+      fail(`${where}: research cannot assert community_verified; only fleet evidence from two or more vehicles may set it`);
+    }
+  };
 
   // ---- routes (§8, §10)
   const trusted = trustedRoutePairs();
@@ -379,6 +384,7 @@ export function validateResearchPack(input: string): ValidationResult {
       else if (FORBIDDEN_SERVICES.includes(service)) fail(`${where}: read service ${service} is never automatic (specification §16)`);
     }
     checkEnum(route.knowledge_state, KNOWLEDGE_STATE, where, "knowledge_state", false);
+    rejectFleetPromotion(route.knowledge_state, where);
     checkEnum(route.vehicle_fit, VEHICLE_FIT, where, "vehicle_fit", false);
     checkEnum(route.route_state, ROUTE_STATE, where, "route_state", false);
     checkEnum(route.identity_fit, IDENTITY_FIT, where, "identity_fit", false);
@@ -416,6 +422,7 @@ export function validateResearchPack(input: string): ValidationResult {
     if (identifierOf(candidate) == null) fail(`${where}: has neither did nor local_identifier`);
     checkEnum(candidate.support_status, SUPPORT_STATUS, where, "support_status", true);
     checkEnum(candidate.knowledge_state, KNOWLEDGE_STATE, where, "knowledge_state", false);
+    rejectFleetPromotion(candidate.knowledge_state, where);
     checkEnum(candidate.vehicle_fit, VEHICLE_FIT, where, "vehicle_fit", false);
     checkEnum(candidate.route_state, ROUTE_STATE, where, "route_state", false);
     checkEnum(candidate.identity_fit, IDENTITY_FIT, where, "identity_fit", false);
@@ -467,6 +474,7 @@ export function validateResearchPack(input: string): ValidationResult {
     for (const id of family.observed_route_ids ?? []) resolve(routeIds.has(id), `${where}: unknown route ${id}`);
     for (const id of family.proposed_candidate_ids ?? []) resolve(candidateIds.has(id), `${where}: unknown candidate ${id}`);
     checkEnum(family.knowledge_state, KNOWLEDGE_STATE, where, "knowledge_state", false);
+    rejectFleetPromotion(family.knowledge_state, where);
     checkEnum(family.vehicle_fit, VEHICLE_FIT, where, "vehicle_fit", false);
     checkEnum(family.identity_fit, IDENTITY_FIT, where, "identity_fit", false);
     checkEnum(family.activation, ACTIVATION, where, "activation", false);
@@ -494,6 +502,7 @@ export function validateResearchPack(input: string): ValidationResult {
     checkRefs(platform, where);
     checkScope(platform.scope, where);
     checkEnum(platform.knowledge_state, KNOWLEDGE_STATE, where, "knowledge_state", false);
+    rejectFleetPromotion(platform.knowledge_state, where);
     for (const transport of platform.transport_candidates ?? []) if (!RUNTIME_PROTOCOLS.includes(transport)) fail(`${where}: transport candidate "${String(transport)}" is not a runtime transport`);
     for (const transport of platform.unsupported_transport_candidates ?? []) {
       blockedTransports += 1;
@@ -504,6 +513,8 @@ export function validateResearchPack(input: string): ValidationResult {
     const where = `claim ${claim.claim_id ?? "?"}`;
     checkRefs(claim, where);
     checkScope(claim.scope, where);
+    checkEnum(claim.knowledge_state, KNOWLEDGE_STATE, where, "knowledge_state", false);
+    rejectFleetPromotion(claim.knowledge_state, where);
     for (const field of ["exact_claim", "action_if_connected", "promotion_test", "non_generalization_boundary"]) {
       if (typeof claim[field] !== "string" || !claim[field].trim().length) fail(`${where}: missing ${field}`);
     }

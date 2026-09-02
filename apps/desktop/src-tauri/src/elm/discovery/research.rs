@@ -695,6 +695,11 @@ mod tests {
             assert!(!claim.exact_claim.is_empty());
             assert!(!claim.scope.is_empty());
             assert!(!claim.knowledge_state.is_empty());
+            assert_ne!(
+                claim.knowledge_state, "community_verified",
+                "research cannot manufacture fleet verification: {}",
+                claim.claim_id
+            );
             assert!(!claim.source_fidelity.is_empty());
             assert!(matches!(
                 claim.vehicle_applicability.as_str(),
@@ -849,6 +854,43 @@ mod tests {
             .find(|candidate| candidate.did() == "4B00")
             .unwrap();
         assert!(did.decode_hypotheses(&[]).is_empty());
+    }
+
+    #[test]
+    fn toyota_pack_surfaces_generation_scoped_routes_and_keeps_plain_models_inert() {
+        let vin = vin_for_brand("toyota");
+        assert_eq!(platform_for_vehicle_facts(Some(&vin), Some("Prius")), None);
+        assert_eq!(
+            platform_for_vehicle_facts(Some(&vin), Some("Prius XW30")),
+            Some("toyota_prius_xw30".into())
+        );
+
+        let routes = routes_for_context(Some(&vin), Some("toyota_prius_xw30"));
+        assert_eq!(routes.len(), 2);
+        let abs = routes
+            .iter()
+            .find(|route| route.route_id == "toyota_prius_xw30_abs_7b0_7b8")
+            .unwrap();
+        assert_eq!(abs.service, "21");
+        let steering = abs
+            .candidate_dids
+            .iter()
+            .find(|candidate| candidate.did() == "47")
+            .unwrap()
+            .decode_hypotheses(&abs.claim_ids);
+        assert_eq!(steering.len(), 1);
+        assert_eq!(steering[0].decode.scale, 0.1);
+        assert_eq!(steering[0].decode.bias, -3276.8);
+
+        let ths5 = routes_for_context(Some(&vin), Some("toyota_ths5"));
+        assert_eq!(ths5.len(), 1);
+        assert!(ths5[0]
+            .candidate_dids
+            .iter()
+            .any(|candidate| candidate.did() == "10A6"));
+        assert!(ths5
+            .iter()
+            .all(|route| route.route_id != "lexus_rx_al30_hybrid_7d2_7da"));
     }
 
     #[test]
