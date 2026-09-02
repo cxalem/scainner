@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { loadMap } from "./pack.ts";
 import { renderSnapshot } from "./research-snapshot.ts";
 
-/** The most-profiled brand in the map, so the snapshot has every section filled. */
 const brandId = loadMap()
   .brands.filter((brand) => brand.profiled_level === "decodes_verified")
   .map((brand) => brand.id)

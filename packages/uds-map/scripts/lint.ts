@@ -1,14 +1,3 @@
-// Pack lints (multi-brand plan, Phase 1, P1.6). `pnpm lint:pack` fails on:
-//   - a known DID with no module binding and no `binding: "unknown"`;
-//   - a module, band, known DID, family, platform, identity block or
-//     gateway rule without a complete `source`;
-//   - a known DID whose legacy scalar fields disagree with `decodes[0]`;
-//   - a brand without `profiled_level` (or without `sources[]`), or a
-//     level its sources cannot support;
-//   - malformed decodes (bitfields without bit_len, unknown encodings);
-//   - platform `vds_pattern` outside the shared regex subset;
-//   - brand tokens (ids, name words, WMIs) in src/*.ts outside tests and
-//     comments — brands live in data, never in code.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { brandTokens, fullScalar, loadMap, loadPacks, PKG_DIR, scalarAgrees, sourceOk } from "./pack.ts";
@@ -17,14 +6,9 @@ import type { Brand, Decode } from "../src/types.ts";
 
 const ENCODINGS = new Set(["be", "le", "bcd", "ascii", "bitfield"]);
 const LEVELS = new Set(["standard_only", "routes_sourced", "routes_verified", "decodes_verified"]);
-// The regex subset `elm/uds_map.rs::vds_matches` parses, over a VIN-legal
-// alphabet: I, O and Q never appear in a VIN. `(a|b)` alternation is how
-// one platform carries several VIN families in a single pattern.
 const VDS_SUBSET = /^[\^$.\[\]\-?*+()|A-HJ-NPR-Z0-9]+$/;
 const SHA40 = /^[0-9a-f]{40}$/;
 
-/** GitHub's heading slug: lowercase, drop everything but letters, digits,
- * spaces and hyphens, spaces to hyphens. */
 export function headingSlug(heading: string): string {
   return heading
     .trim()
@@ -43,7 +27,6 @@ export function researchAnchors(): Set<string> {
   return out;
 }
 
-/** Every `Source` in a brand, wherever it sits. */
 function sourcesIn(b: Brand): Source[] {
   const out: Source[] = [];
   for (const m of b.modules ?? []) {
@@ -125,7 +108,6 @@ function lintBrand(b: Brand, problems: string[], overlay: boolean): void {
       if (!Array.isArray(p.years) || p.years.length !== 2) problems.push(at(`platform ${p.key} years must be [from, to]`));
     }
     if (b.gateway_behaviour && !sourceOk(b.gateway_behaviour.source)) problems.push(at("gateway_behaviour has no source"));
-    // Level vs evidence.
     const modules = (b.modules ?? []).length;
     const projectDecode = (b.known_dids ?? []).some((k) => k.source?.type === "project_capture" && (k.decodes ?? []).length > 0);
     const captureRoute = (b.modules ?? []).some((m) => m.source?.type === "project_capture") || (b.sources ?? []).some((s) => s.type === "project_capture");
@@ -150,7 +132,7 @@ function lintCodeForBrandTokens(tokens: string[], problems: string[]): void {
   const srcDir = join(PKG_DIR, "src");
   const patterns = tokens.map((t) => [t, new RegExp(`(?<![0-9a-z_])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![0-9a-z_])`, "i")] as const);
   for (const file of readdirSync(srcDir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))) {
-    const text = readFileSync(join(srcDir, file), "utf-8").replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+    const text = readFileSync(join(srcDir, file), "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
     text.split("\n").forEach((line, i) => {
       const code = line.split("//")[0];
       if (!code.trim()) return;
@@ -173,12 +155,6 @@ type ResearchClaim = {
   source?: { url?: string; revision?: string; retrieved_at?: string; license?: string };
 }
 
-// Mirrors research.rs's CandidateDid: either a bare hex string, or an
-// object carrying an untrusted hypothesis (semantic/decode/validation) plus
-// execution gating (automatic_execution_authorized, support_status). Keep
-// this in sync with apps/desktop/src-tauri/src/elm/discovery/research.rs -
-// this is the second of the "same file, two consumers" pair for research
-// packs, same principle as uds-map.json's TS/Rust pair.
 type ResearchCandidateDid =
   | string
   | {
@@ -200,10 +176,6 @@ type ResearchCandidateDid =
       decode_status?: string;
     };
 
-// docs/uds/brand-research-pack-specification.md §12: "the required pack
-// vocabulary for support_status is closed... The pack validator and
-// projector must reject unknown authoring values rather than silently
-// broadening execution."
 const SUPPORT_STATUS_VALUES = new Set([
   "candidate",
   "source_observed",

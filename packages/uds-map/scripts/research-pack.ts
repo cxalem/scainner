@@ -1,10 +1,3 @@
-// Loading and validation shared by `research:validate` and
-// `research:compile` — the manifest/integrity checks the compiler used to
-// carry inline, plus the rejections specification §6 asks for and the §23
-// report. Both scripts run under `node --experimental-strip-types`, so this
-// file stays erasable TypeScript with no runtime dependencies.
-//
-// Normative contract: docs/uds/brand-research-pack-specification.md.
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -14,37 +7,23 @@ export type Json = Record<string, any>;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-// ---------------------------------------------------------------- vocabulary
 
-/** §8: transports the runtime can actually configure. */
 export const RUNTIME_PROTOCOLS = ["can11_500", "can11_250", "can29_normal_fixed", "can29_target_byte", "can29_custom"];
-/** §8: transports research may document but never coerce into a CAN route. */
 export const DOCUMENTED_PROTOCOLS = ["kwp2000", "iso9141", "tp2_0", "tp1_6", "doip", "can_fd", "unknown"];
-/** §12 */
 export const SUPPORT_STATUS = ["candidate", "source_observed", "supported", "physically_supported_on_test_vehicle", "unsupported", "explicitly_unsupported_on_test_vehicle"];
-/** §14 */
 export const OBSERVATION_STATUS = ["answered", "refused", "unsupported", "timed_out", "transport_failed", "malformed", "skipped_for_safety"];
-/** §4 */
 export const KNOWLEDGE_STATE = ["research_candidate", "community_reported", "inherited", "locally_confirmed", "community_verified", "oem_confirmed", "unknown"];
 export const VEHICLE_FIT = ["untested", "matched", "conflicted", "insufficient"];
 export const ROUTE_STATE = ["reached", "refused", "silent", "transport_failed", "closed"];
 export const IDENTITY_FIT = ["provisional", "stable", "conflicted"];
 export const ACTIVATION = ["disabled", "learning", "enabled"];
-/** §15: what a runtime claim may say about this project's own vehicles. */
 export const VEHICLE_APPLICABILITY = ["untested_by_project", "partially_project_confirmed"];
-/** §16: never automatic, so never a read service. */
 export const FORBIDDEN_SERVICES = ["10", "11", "14", "27", "28", "2E", "2F", "31", "34", "35", "36", "37", "3D"];
-/** §7: the closed set of scope keys. */
 export const SCOPE_KEYS = ["brand_ids", "marques", "platform_ids", "models", "years", "powertrains", "ecu_roles", "ecu_family_ids"];
-/** §12: the decoder language is uds-map v9's, with no parallel dialect. */
 export const SIGNAL_KEYS = ["offset", "len", "signed", "encoding", "bit_offset", "bit_len", "scale", "bias", "unit", "quantity", "label"];
 export const FORBIDDEN_SIGNAL_KEYS = ["div", "divisor", "multiplier", "mult", "add", "addend", "formula", "expr"];
 export const ENCODINGS = ["be", "le", "bcd", "ascii", "bitfield"];
 
-/**
- * §17: request budgets are central product policy. A brand pack may only
- * reduce them; raising one is a reviewed change to the central engine.
- */
 export const CENTRAL_BUDGET = {
   S0_standard_handshake_seconds: 30,
   S1_census_plus_S2_identity_seconds: 180,
@@ -53,7 +32,6 @@ export const CENTRAL_BUDGET = {
   learning_drive_max_link_occupancy_percent: 20,
 };
 
-// ------------------------------------------------------------------- loading
 
 export type LoadedPack = {
   input: string;
@@ -71,7 +49,6 @@ export type LoadedPack = {
   safety: Json;
   supportEvidence: Json;
   conflicts: Json;
-  /** Files the manifest lists that could not be read or parsed. */
   unreadable: string[];
 };
 
@@ -87,7 +64,6 @@ export function sha256Of(input: string, name: string): string {
   return createHash("sha256").update(readFileSync(join(input, name))).digest("hex");
 }
 
-/** Read the manifest and every canonical file. Missing optional files become empty objects. */
 export function loadResearchPack(input: string): LoadedPack {
   const index = JSON.parse(readFileSync(join(input, "index.json"), "utf8")) as Json;
   const manifestFiles: Array<{ path: string; sha256: string }> = index.files ?? [];
@@ -132,14 +108,11 @@ export const evidenceOf = (pack: LoadedPack): Json[] => pack.supportEvidence.evi
 export const claimsOf = (pack: LoadedPack): Json[] => pack.overlay.claims ?? [];
 export const identifierOf = (candidate: Json): unknown => candidate.did ?? candidate.local_identifier;
 
-// ------------------------------------------------------------------ matchers
 
-/** §15: an executable git-derived source pins a 40-character revision inside its own URL. */
 export function immutableSource(source: Json | undefined): boolean {
   return Boolean(source?.execution_eligible === true && typeof source.revision === "string" && /^[0-9a-f]{40}$/.test(source.revision) && source.url?.includes(source.revision));
 }
 
-/** §8: uppercase hexadecimal, no `0x`, width agreeing with the protocol. */
 export function addressOk(value: unknown, protocol: unknown): boolean {
   if (typeof value !== "string") return false;
   if (typeof protocol === "string" && protocol.startsWith("can29")) {
@@ -149,17 +122,8 @@ export function addressOk(value: unknown, protocol: unknown): boolean {
   return /^[0-9A-F]{3}$/.test(value) || /^[0-9A-F]{8}$/.test(value);
 }
 
-/** §9.1: the regex subset both the trusted map and `elm/uds_map.rs` parse —
- * literals, `.`, `[...]` classes with ranges and negation, `(a|b)`
- * alternation, and the `^`, `$`, `?`, `*`, `+` operators. The literal
- * alphabet is VIN-legal: I, O and Q never appear in a VIN. Anything richer
- * (counts, escapes, backreferences) is dead on arrival at the runtime
- * matcher, which silently never matches. */
 export const VDS_SUBSET = /^[\^$.[\]\-?*+()|A-HJ-NPR-Z0-9]+$/;
 
-/** §9.1: split a pattern on the `|` operators that sit outside any group or
- * class — the top-level alternatives, each of which has to be anchored on
- * its own. */
 export function vdsTopLevelBranches(pattern: string): string[] {
   const branches: string[] = [];
   let depth = 0;
@@ -182,10 +146,6 @@ export function vdsTopLevelBranches(pattern: string): string[] {
   return branches;
 }
 
-/** §9.1: why a `vds_patterns[]` string cannot classify a VIN, or `null`.
- * A pattern is a claim about the vehicle-descriptor characters, so it has to
- * be anchored — an unanchored pattern is a substring search across the
- * descriptor — and it has to exclude at least one VIN. */
 export function vdsPatternProblem(pattern: unknown): string | null {
   if (typeof pattern !== "string" || !pattern.length) return "a vds pattern must be a non-empty string";
   if (!VDS_SUBSET.test(pattern)) return `pattern "${pattern}" uses syntax outside the shared regex subset, so the runtime matcher would never match it`;
@@ -207,19 +167,15 @@ export function vdsPatternProblem(pattern: unknown): string | null {
   return null;
 }
 
-/** §12: a DID is four uppercase hex digits; a service-21 local identifier is two. */
 export const didOk = (value: unknown): boolean => typeof value === "string" && /^[0-9A-F]{4}$/.test(value);
 export const localIdentifierOk = (value: unknown): boolean => typeof value === "string" && /^[0-9A-F]{2}$/.test(value);
 
-/** The trusted knowledge map. Research never writes to it; it is read here to
- * tell "already known" apart from "proposed". */
 export function loadTrustedMap(): Json {
   return JSON.parse(readFileSync(join(HERE, "../data/uds-map.json"), "utf8")) as Json;
 }
 
 export const trustedMapBrands = (): Json[] => loadTrustedMap().brands ?? [];
 
-/** Request/response pairs the trusted map already carries for this brand. */
 export function trustedRoutePairs(): Set<string> {
   const map = loadTrustedMap();
   const pairs = new Set<string>();
@@ -228,7 +184,6 @@ export function trustedRoutePairs(): Set<string> {
   return pairs;
 }
 
-// ---------------------------------------------------------------- validation
 
 export type ValidationReport = {
   pack_id: unknown;
@@ -255,18 +210,10 @@ export type ValidationResult = {
   report: ValidationReport;
 };
 
-/**
- * Every §6 rejection plus the §23 quality gates, over one authoring
- * directory. Never throws on pack content: the caller decides whether a
- * failure means "print and exit 1" or "refuse to compile".
- */
 export function validateResearchPack(input: string): ValidationResult {
   const pack = loadResearchPack(input);
   const failures: string[] = [];
   const warnings: string[] = [];
-  // Failure messages are written as "<kind> <id>: <what>", so the record a
-  // failure invalidates falls out of the message itself and feeds the §23
-  // valid-record count without a second bookkeeping path.
   const invalid = new Set<string>();
   const RECORD_KINDS = /^(route|candidate|platform|ecu family|evidence|inventory|claim|source|validation recipe|conflict|gap) /;
   const fail = (message: string) => {
@@ -275,7 +222,6 @@ export function validateResearchPack(input: string): ValidationResult {
     if (RECORD_KINDS.test(head)) invalid.add(head);
   };
 
-  // ---- manifest and integrity (§6)
   const manifestPaths = new Set<string>();
   for (const file of pack.manifestFiles) {
     if (typeof file?.path !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file.path)) {
@@ -316,7 +262,6 @@ export function validateResearchPack(input: string): ValidationResult {
     if (!manifestPaths.has(canonical)) fail(`manifest is missing the canonical file ${canonical}`);
   }
 
-  // ---- declared counts (§6)
   const actualCounts: Record<string, number> = {
     sources: sourcesOf(pack).length,
     platforms: platformsOf(pack).length,
@@ -339,7 +284,6 @@ export function validateResearchPack(input: string): ValidationResult {
     if (local != null && local !== actualCounts[key]) fail(`${file} declares ${local} records, actual ${actualCounts[key]}`);
   }
 
-  // ---- unique ids across files (§6)
   const seen = new Map<string, string>();
   const unique = (kind: string, id: unknown, where: string) => {
     if (typeof id !== "string" || !id.length) {
@@ -362,7 +306,6 @@ export function validateResearchPack(input: string): ValidationResult {
   for (const conflict of pack.conflicts.conflicts ?? []) unique("conflict_id", conflict.conflict_id, "conflicts-and-gaps.json");
   for (const gap of pack.conflicts.gaps ?? []) unique("gap_id", gap.gap_id, "conflicts-and-gaps.json");
 
-  // ---- reference resolution (§6)
   const sourceRefs = new Map<string, Json>(sourcesOf(pack).map((source) => [source.ref, source]));
   const routeIds = new Set(routesOf(pack).map((route) => route.route_id));
   const candidateIds = new Set(candidatesOf(pack).map((candidate) => candidate.candidate_id));
@@ -415,7 +358,6 @@ export function validateResearchPack(input: string): ValidationResult {
     }
   };
 
-  // ---- routes (§8, §10)
   const trusted = trustedRoutePairs();
   const brandIds: string[] = pack.overlay.brand_ids ?? [];
   const executableRoutes = new Set<string>();
@@ -466,7 +408,6 @@ export function validateResearchPack(input: string): ValidationResult {
     executableRoutes.add(route.route_id);
   }
 
-  // ---- DID candidates and decoders (§12)
   let decoderVariants = 0;
   let executableDids = 0;
   let documentationOnlyCandidates = 0;
@@ -502,8 +443,6 @@ export function validateResearchPack(input: string): ValidationResult {
         if (signal.signed != null && typeof signal.signed !== "boolean") fail(`${variantWhere}: signed must be a boolean`);
         if (!Number.isFinite(signal.scale)) fail(`${variantWhere}: scale must be a finite number`);
         if (!Number.isFinite(signal.bias)) fail(`${variantWhere}: bias must be a finite number`);
-        // A bitfield without explicit bits stays preserved evidence: the
-        // projector cannot make it executable, so this is not a rejection.
         if (signal.encoding === "bitfield" && (!Number.isInteger(signal.bit_offset) || !Number.isInteger(signal.bit_len))) {
           warnings.push(`${variantWhere}: bitfield signal ${index} has no bit_offset/bit_len, so the variant stays documentation-only`);
         }
@@ -525,7 +464,6 @@ export function validateResearchPack(input: string): ValidationResult {
     executableDids += 1;
   }
 
-  // ---- families, inventories, evidence, recipes, claims and sources
   for (const family of familiesOf(pack)) {
     const where = `ecu family ${family.ecu_family_id ?? "?"}`;
     checkRefs(family, where);
@@ -556,8 +494,6 @@ export function validateResearchPack(input: string): ValidationResult {
     if (evidence.outcome?.nrc != null && !Number.isInteger(evidence.outcome.nrc)) fail(`${where}: outcome.nrc must be an integer`);
     if (["refused", "unsupported", "timed_out", "transport_failed", "malformed"].includes(evidence.outcome?.status) || ["unsupported", "explicitly_unsupported_on_test_vehicle"].includes(evidence.support_status)) negativeEvidence += 1;
   }
-  // §9.2: platforms a gap record openly declares as not VIN-selectable. The
-  // gap is the difference between a known limit and an omission.
   const notVinSelectable = new Set<string>();
   for (const gap of pack.conflicts.gaps ?? []) {
     if (gap.kind !== "platform_not_vin_selectable") continue;
@@ -575,9 +511,6 @@ export function validateResearchPack(input: string): ValidationResult {
       blockedTransports += 1;
       if (!DOCUMENTED_PROTOCOLS.includes(transport)) fail(`${where}: unsupported transport "${String(transport)}" is not a documented transport`);
     }
-    // §9.1: patterns are claims, carried by the platform's own source_refs
-    // (checked above). An unparseable one is worse than none, because it
-    // looks like a classifier and never fires.
     const patterns: unknown[] = platform.vds_patterns ?? [];
     if (!Array.isArray(patterns)) fail(`${where}: vds_patterns must be an array of anchored regex strings`);
     else {
@@ -587,8 +520,6 @@ export function validateResearchPack(input: string): ValidationResult {
       }
       if (patterns.length && !(platform.source_refs ?? []).length) fail(`${where}: declares vds_patterns with no source_refs; a VIN rule is a sourced claim`);
     }
-    // Neither a pattern nor a declared gap: a warning, not a failure. A pack
-    // whose platforms are honestly unclassifiable is still a valid pack.
     if (!patterns.length && !notVinSelectable.has(platform.platform_id)) {
       platformsWithoutVinClassifier += 1;
       warnings.push(`platform_without_vin_classifier: ${platform.platform_id ?? "?"} has neither a vds_patterns entry nor a platform_not_vin_selectable gap, so a VIN alone can never select it`);
@@ -616,7 +547,6 @@ export function validateResearchPack(input: string): ValidationResult {
     if (typeof recipe.kind !== "string" || !recipe.kind.length) fail(`${where}: missing kind`);
   }
 
-  // ---- safety policy and budgets (§16, §17)
   const automatic: Json = pack.safety.automatic_discovery ?? {};
   if (automatic.read_only !== true || automatic.default_session_only !== true) fail("automatic discovery policy is not read-only/default-session-only");
   if (automatic.max_outstanding_requests !== 1) fail("research policy allows concurrent requests");
@@ -630,7 +560,6 @@ export function validateResearchPack(input: string): ValidationResult {
   if ((pack.safety["29bit_policy"] ?? {}).generic_enumeration_authorized === true) fail("generic 29-bit enumeration is deny-by-default and a pack cannot authorize it");
   for (const id of (pack.safety["29bit_policy"] ?? {}).exact_platform_routes_authorized ?? []) resolve(routeIds.has(id), `29-bit policy: unknown route ${id}`);
 
-  // ---- conflicts and gaps (§22)
   for (const conflict of pack.conflicts.conflicts ?? []) {
     checkRefs(conflict, `conflict ${conflict.conflict_id ?? "?"}`);
     if (typeof conflict.finding !== "string" || !conflict.finding.length) fail(`conflict ${conflict.conflict_id ?? "?"}: missing finding`);
@@ -665,7 +594,6 @@ export function validateResearchPack(input: string): ValidationResult {
   };
 }
 
-/** The §23 report, as text. */
 export function formatValidationReport(result: ValidationResult): string {
   const report = result.report;
   const lines = [`pack ${String(report.pack_id)} v${String(report.pack_version)} (${String(report.research_date)}) — ${report.files} manifest files`, ""];
