@@ -43,9 +43,7 @@ def note(fact: str, path: str, source_id: str) -> None:
     log.append((fact, path, source_id))
 
 
-# Source catalogue. Licences were read from the GitHub API on 2026-08-28;
-# NOASSERTION means the repository ships a LICENSE file GitHub cannot
-# classify, and the acquisition protocol's licence gate then treats the
+# NOASSERTION sources are verification-only because the licence gate cannot classify them.
 def src(url: str, type_: str, licence: str, date: str = RESEARCH_DATE, note_: str | None = None) -> dict:
     d = {"url": url, "date": date, "type": type_, "licence": licence}
     if note_:
