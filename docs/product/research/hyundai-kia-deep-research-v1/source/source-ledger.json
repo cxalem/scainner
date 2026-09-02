@@ -62,7 +62,7 @@
       "revision": "2021 Hyundai VIN decoder",
       "retrieved_at": "2026-09-02",
       "content_sha256": null,
-      "scope": "Hyundai model and trim coding including IONIQ 5",
+      "scope": "Hyundai model, trim and powertrain VIN coding including Kona/Kona EV and IONIQ 5 for the filed North-American scheme",
       "reliability": "high",
       "execution_eligible": false
     },
@@ -299,7 +299,20 @@
       "scope": "Genesis G80 classification coverage; signal set currently empty",
       "reliability": "high",
       "execution_eligible": false
+    },
+    {
+      "ref": "S23",
+      "title": "Hyundai Kona Electric OS emergency response guide",
+      "url": "https://www.hyundai.com/content/dam/hyundai/my/en/data/marketing/emergencyResponseGuide/kona-electric/OS%20Emergency%20Response%20Guide%20-%20Kona%20Electric%20%282018-2023MY%29.pdf",
+      "source_type": "oem_emergency_response_guide",
+      "licence": "Hyundai public technical information",
+      "revision": "Kona Electric OS 2018-2023MY",
+      "retrieved_at": "2026-09-02",
+      "content_sha256": null,
+      "scope": "Kona Electric OS identification: position 8 G or H identifies the electric powertrain",
+      "reliability": "high",
+      "execution_eligible": false
     }
   ],
-  "declared_count": 23
+  "declared_count": 24
 }

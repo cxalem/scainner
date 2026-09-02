@@ -16,7 +16,7 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 | mercedes | 11 | 14 | 10 | 7 | 10 | 0 | 10 | 0 | 22 | iso | 3 | routes_sourced | filtered | medium |
 | renault | 9 | 16 | 7 | 5 | 7 | 0 | 5 | 0 | 21, 22 | iso | 1 | routes_sourced | unknown | high |
 | nissan | 17 | 5 | 11 | 5 | 11 | 0 | 5 | 0 | 21, 22 | iso | 2 (2 vds) | routes_sourced | unknown | high |
-| hyundai_kia | 18 | 16 | 11 | 9 | 9 (2 unknown) | 0 | 113 | 0 | 21, 22 | iso + 2 vendor | 2 | routes_sourced | unknown | high |
+| hyundai_kia | 18 | 16 | 11 | 9 | 9 (2 unknown) | 0 | 113 | 0 | 21, 22 | iso + 2 vendor | 3 (1 vds) | routes_sourced | unknown | high |
 | ford | 22 | 9 | 18 | 16 | 15 (3 unknown) | 0 | 16 | 0 | 22 | iso | 1 | routes_sourced | unknown | medium |
 | gm | 14 | 5 (1) | 5 | 4 | 3 (2 unknown) | 0 | 4 | 0 | 1A, 22 | iso | 2 | routes_sourced | unknown | low |
 | fca | 21 | 7 (1) | 7 | 5 | 3 (4 unknown) | 0 | 5 | 0 | 22 | iso + 1 vendor | 2 | routes_sourced | unknown, writes blocked | low |
@@ -27,7 +27,7 @@ Columns: **WMIs** VIN prefixes routed to the brand · **Modules** documented add
 | subaru | 7 | 0 | 1 | 0 | 0 (1 unknown) | 0 | 0 | 0 | — | iso + 1 vendor | 1 | standard_only | unknown | low |
 | mitsubishi | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 1 | standard_only | unknown | low |
 | tesla | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | — | iso | 2 (2 vds) | standard_only | unknown | high |
-| **total** | 251 | 179 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 18 brands | 21 brands | 38 (11 vds) | 1 decodes_verified / 0 routes_verified / 17 routes_sourced / 3 standard_only | 3 brands | |
+| **total** | 251 | 179 (9) | 203 | 124 | 169 (34 unknown) | 3 | 233 (16 ev.) | 17 | 18 brands | 21 brands | 39 (12 vds) | 1 decodes_verified / 0 routes_verified / 17 routes_sourced / 3 standard_only | 3 brands | |
 
 ## Profiled levels
 
@@ -151,6 +151,7 @@ Research candidates are evidence about *where to look*, never trusted knowledge:
 | https://github.com/projectgus/car_hacking | open_implementation | BSD-3-Clause | mitsubishi |
 | https://github.com/rnd-ash/W203-canbus | open_implementation | MIT | mercedes |
 | https://github.com/v-cu/dpf-load-monitor-wide | open_implementation | CC-BY-NC-SA-4.0 | vag |
+| https://static.nhtsa.gov/odi/inv/2021/INRD-PE21010-15928.pdf | oem_regulatory_filing | public regulatory filing | hyundai_kia |
 | https://vpic.nhtsa.dot.gov/api/ | oem | public domain (US federal) | nissan, tesla, volvo |
 | packages/uds-map/RESEARCH.md#32-the-f4xx-obd-pid-mirror-band | community | MIT | cupra, fca, ford, mercedes, seat, skoda, toyota, vag |
 | packages/uds-map/RESEARCH.md#35-two-oem-address-schemes-that-are-not-simple-11-bit-pairs | community | MIT | bmw, gm, honda |

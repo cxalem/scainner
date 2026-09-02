@@ -28,3 +28,7 @@ This revision adds model-fact-scoped coverage for Kona/Kona Electric, Tucson, Sa
 Repeated addresses are leads, not inheritance. The public corpora repeatedly use TPMS route `7A0/7A8` DID `C00B`, yet expose multiple byte layouts; legacy EV and E-GMP BMS payloads also reuse `7E4/7EC` DID `0101` without decoder identity. Every candidate therefore remains model-scoped, `community_reported`, `untested` and disabled. Cross-model reuse becomes eligible only after the runtime's existing ECU-family join sees an exact compatible hardware/software fingerprint and the payload validates on project vehicles.
 
 The new platforms intentionally have no VDS regex. A generation-qualified model fact can select them today; VIN-only selection waits for sourced market-specific VDS rules.
+
+## VIN classifier scope
+
+The IONIQ 5, EV6 and GV60 patterns are explicitly North-American. They must not be expected to classify European or other-market VIN structures. The Kona OS combustion platform adds a narrow European classifier derived from Hyundai's VIN rules and checked against the local project vehicle using only its model code, powertrain class and model year; the VIN itself was neither printed nor added to this pack. Every remaining platform has its own `platform_not_vin_selectable` gap.

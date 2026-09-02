@@ -25,6 +25,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Third-generation Genesis G80 RG3 classification-only branch.",
       "transport_candidates": [
@@ -43,7 +44,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "genesis_gv60_jw",
@@ -66,6 +67,7 @@
       "vds_patterns": [
         "^KB4SA"
       ],
+      "vds_pattern": "^KB4SA",
       "vin_selectable": true,
       "architecture": "Genesis GV60 E-GMP JW branch.",
       "transport_candidates": [
@@ -92,7 +94,7 @@
           "reliability": "medium"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_elantra_cn7",
@@ -114,6 +116,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Seventh-generation Hyundai Elantra CN7 branch.",
       "transport_candidates": [
@@ -132,7 +135,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_ioniq5_ne",
@@ -155,6 +158,7 @@
       "vds_patterns": [
         "^KNDAF"
       ],
+      "vds_pattern": "^KNDAF",
       "vin_selectable": true,
       "architecture": "Hyundai IONIQ 5 E-GMP NE branch.",
       "transport_candidates": [
@@ -189,7 +193,7 @@
           "reliability": "medium"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_ioniq6_ce",
@@ -210,6 +214,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Hyundai IONIQ 6 E-GMP CE branch.",
       "transport_candidates": [
@@ -228,7 +233,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_kona_electric_os",
@@ -249,6 +254,7 @@
         "to": 2023
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "First-generation Hyundai Kona Electric OS EV branch.",
       "transport_candidates": [
@@ -267,47 +273,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
-    },
-    {
-      "platform_id": "hyundai_kona_os",
-      "brand_ids": [
-        "hyundai_kia"
-      ],
-      "marques": [
-        "hyundai"
-      ],
-      "models": [
-        "kona"
-      ],
-      "powertrains": [
-        "ice",
-        "hev"
-      ],
-      "years": {
-        "from": 2018,
-        "to": 2023
-      },
-      "vds_patterns": [],
-      "vin_selectable": false,
-      "architecture": "Hyundai Kona OS branch.",
-      "transport_candidates": [
-        "can11_500"
-      ],
-      "confidence": "medium",
-      "knowledge_state": "community_reported",
-      "related_existing_keys": [],
-      "sources": [
-        {
-          "ref": "S10",
-          "url": "https://github.com/OBDb/Hyundai-Kona/blob/7cd2c8c80468e7ff547905fdfc79488931ca7caa/signalsets/v3/default.json",
-          "revision": "7cd2c8c80468e7ff547905fdfc79488931ca7caa",
-          "retrieved_at": "2026-09-02",
-          "licence": "CC-BY-SA-4.0",
-          "reliability": "high"
-        }
-      ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_santa_fe_tm",
@@ -330,6 +296,7 @@
         "to": 2023
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Fourth-generation Hyundai Santa Fe TM branch.",
       "transport_candidates": [
@@ -348,7 +315,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_sonata_dn8",
@@ -370,6 +337,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Eighth-generation Hyundai Sonata DN8 branch.",
       "transport_candidates": [
@@ -388,7 +356,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "hyundai_tucson_nx4",
@@ -411,6 +379,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Fourth-generation Hyundai Tucson NX4 branch.",
       "transport_candidates": [
@@ -429,7 +398,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_carnival_ka4",
@@ -451,6 +420,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Fourth-generation Kia Carnival KA4 classification-only branch.",
       "transport_candidates": [
@@ -469,7 +439,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_ev6_cv",
@@ -492,6 +462,7 @@
       "vds_patterns": [
         "^C3DLC"
       ],
+      "vds_pattern": "^C3DLC",
       "vin_selectable": true,
       "architecture": "Kia EV6 E-GMP CV branch.",
       "transport_candidates": [
@@ -526,7 +497,7 @@
           "reliability": "medium"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_ev9_mv",
@@ -547,6 +518,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Kia EV9 E-GMP MV branch.",
       "transport_candidates": [
@@ -565,7 +537,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_niro_ev_de_sg2",
@@ -587,6 +559,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Kia Niro EV public model corpus; DE and SG2 remain unresolved.",
       "transport_candidates": [
@@ -605,7 +578,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_seltos_sp2",
@@ -626,6 +599,7 @@
         "to": 2025
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "First-generation Kia Seltos SP2 branch.",
       "transport_candidates": [
@@ -644,7 +618,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_sorento_mq4",
@@ -667,6 +641,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Fourth-generation Kia Sorento MQ4 classification-only branch.",
       "transport_candidates": [
@@ -685,7 +660,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     },
     {
       "platform_id": "kia_sportage_nq5",
@@ -708,6 +683,7 @@
         "to": null
       },
       "vds_patterns": [],
+      "vds_pattern": null,
       "vin_selectable": false,
       "architecture": "Fifth-generation Kia Sportage NQ5 branch.",
       "transport_candidates": [
@@ -726,7 +702,7 @@
           "reliability": "high"
         }
       ],
-      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert. `vds_pattern` is the single regex platform_for_vin matches, against VIN characters 4-10; several VIN families arrive here as one alternation."
     }
   ]
 }

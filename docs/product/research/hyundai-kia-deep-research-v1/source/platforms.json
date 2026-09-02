@@ -29,7 +29,8 @@
       "security_behavior": [],
       "classification_evidence": [
         "Hyundai VIN decoder identifies IONIQ 5 model and trim positions",
-        "narrow decoded North-American VDS family"
+        "narrow decoded North-American VDS family",
+        "VDS pattern market scope: North America"
       ],
       "vds_patterns": [
         "^KNDAF"
@@ -71,7 +72,8 @@
       "security_behavior": [],
       "classification_evidence": [
         "Kia service literature identifies EV6 as CV",
-        "narrow decoded North-American VDS family"
+        "narrow decoded North-American VDS family",
+        "VDS pattern market scope: North America"
       ],
       "vds_patterns": [
         "^C3DLC"
@@ -113,7 +115,8 @@
       "security_behavior": [],
       "classification_evidence": [
         "Genesis emergency guide identifies GV60/JW",
-        "narrow decoded North-American VDS family"
+        "narrow decoded North-American VDS family",
+        "VDS pattern market scope: North America"
       ],
       "vds_patterns": [
         "^KB4SA"
@@ -154,15 +157,21 @@
       "gateway_architecture": null,
       "security_behavior": [],
       "classification_evidence": [
-        "Immutable OBDb model repository and generation metadata (S10)"
+        "Hyundai's manufacturer-filed VIN decoder identifies K in position 4 as Kona and separates combustion from Kona EV by the position-8 powertrain code",
+        "The exact European project vehicle matches model code K, a non-EV position-8 code, and the OS generation year; verification used only derived fields and did not persist or print its VIN",
+        "VDS pattern market scope: European/Korean-built 2020 Kona OS with the observed 1.0 T-GDI descriptor family"
       ],
-      "vds_patterns": [],
+      "vds_patterns": [
+        "^K...1"
+      ],
       "confidence": "medium",
       "knowledge_state": "community_reported",
       "source_refs": [
-        "S10"
+        "S10",
+        "S04",
+        "S23"
       ],
-      "non_generalization_boundary": "Model/generation fact selection only until an OEM-derived VDS pattern or an exact ECU fingerprint is available."
+      "non_generalization_boundary": "Narrow European/Korean-built Kona OS combustion descriptor family verified against the local project car; Kona EV, other engines, later SX2 vehicles and other markets remain model-fact only."
     },
     {
       "platform_id": "hyundai_kona_electric_os",

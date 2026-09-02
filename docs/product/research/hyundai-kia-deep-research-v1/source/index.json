@@ -15,7 +15,7 @@
   "files": [
     {
       "path": "README.md",
-      "sha256": "c6384edb662aff3576fc8c94b4d8951ae3e84e069a3091511cb4ee71056d8c0a"
+      "sha256": "bb79d7bfb13617b2f19296257221e77b6989818b1969f495b20045ec0008d966"
     },
     {
       "path": "hyundai-kia-profile-overlay.json",
@@ -23,7 +23,7 @@
     },
     {
       "path": "platforms.json",
-      "sha256": "212c8b47e6951967606c25507ab32585b807097a2cd7cf37edc19c20c88fa486"
+      "sha256": "31c0908ba3aa30ab866c4bf695d519572d1d103a83298f893bf4a9559b92eb27"
     },
     {
       "path": "connection-playbook.json",
@@ -59,15 +59,15 @@
     },
     {
       "path": "conflicts-and-gaps.json",
-      "sha256": "a31f7f99e9ab5b18adcfa0d493c10dcfeb2329e4cd4b4a8f15d81542cace555f"
+      "sha256": "5de6c37640ccfc7553a9aba79ea085af7538cfbacb0fa042f5f58f158dfdabe8"
     },
     {
       "path": "source-ledger.json",
-      "sha256": "c3c9a19158f456238f3645bb93a989ea53f44a87cef98fc91a45bbc2b41955f3"
+      "sha256": "33be2f9ad0a60630e8881cabfc2eb0355437954aebd712ec571321b94a32263f"
     }
   ],
   "declared_counts": {
-    "sources": 23,
+    "sources": 24,
     "platforms": 17,
     "routes": 23,
     "did_candidates": 23,
@@ -77,7 +77,7 @@
     "validation_recipes": 5,
     "claims": 3,
     "conflicts": 2,
-    "gaps": 6
+    "gaps": 19
   },
   "validation": {
     "status": "pending",
