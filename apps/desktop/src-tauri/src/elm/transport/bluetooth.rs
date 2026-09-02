@@ -316,7 +316,10 @@ mod tests {
         let found = parse_inquiry(text);
         assert_eq!(found.len(), 3);
 
-        assert_eq!(found[0].addr, "00-04-3e-84-65-14", "addresses are lowercased");
+        assert_eq!(
+            found[0].addr, "00-04-3e-84-65-14",
+            "addresses are lowercased"
+        );
         assert_eq!(found[0].name.as_deref(), Some("Reader 49489"));
         assert!(!found[0].paired);
 

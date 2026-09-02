@@ -17,6 +17,7 @@
 pub mod openapi;
 pub mod ops;
 
+use crate::elm::transport::bluetooth;
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
 use axum::http::{header, HeaderMap, Request, StatusCode};
@@ -25,7 +26,6 @@ use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use crate::elm::transport::bluetooth;
 use ops::AppState;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};

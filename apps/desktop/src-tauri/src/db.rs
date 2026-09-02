@@ -3666,28 +3666,30 @@ impl Db {
         })
         .unwrap()
         .filter_map(Result::ok)
-        .map(|(key, last_ts)| match probes.iter().find(|p| p.reading_key() == key) {
-            Some(p) => ReadingKeyRow {
-                key,
-                label: Some(p.label.clone()),
-                unit: (!p.unit.is_empty()).then(|| p.unit.clone()),
-                module_key: Some(p.module.clone()),
-                module_name: module_names.get(&p.module).cloned(),
-                source: "probe".into(),
-                probe_id: Some(p.id),
-                last_ts,
+        .map(
+            |(key, last_ts)| match probes.iter().find(|p| p.reading_key() == key) {
+                Some(p) => ReadingKeyRow {
+                    key,
+                    label: Some(p.label.clone()),
+                    unit: (!p.unit.is_empty()).then(|| p.unit.clone()),
+                    module_key: Some(p.module.clone()),
+                    module_name: module_names.get(&p.module).cloned(),
+                    source: "probe".into(),
+                    probe_id: Some(p.id),
+                    last_ts,
+                },
+                None => ReadingKeyRow {
+                    key,
+                    label: None,
+                    unit: None,
+                    module_key: None,
+                    module_name: Some("Standard".into()),
+                    source: "standard".into(),
+                    probe_id: None,
+                    last_ts,
+                },
             },
-            None => ReadingKeyRow {
-                key,
-                label: None,
-                unit: None,
-                module_key: None,
-                module_name: Some("Standard".into()),
-                source: "standard".into(),
-                probe_id: None,
-                last_ts,
-            },
-        })
+        )
         .collect()
     }
 
