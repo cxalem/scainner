@@ -12,6 +12,9 @@ Companions:
 
 - [`brand-research-prompt.md`](./brand-research-prompt.md), the paste-ready
   prompt one pass hands to a deep-research tool;
+- [`vin-decoding-prompt.md`](./vin-decoding-prompt.md), a trimmed prompt for
+  the one job a full pass keeps failing: attaching a sourced VIN rule to each
+  platform, so platform-scoped routes can fire at all;
 - [`research-pack-pipeline.md`](./research-pack-pipeline.md), how an authored
   pack becomes runtime candidates;
 - [`RESEARCH-INGESTION.md`](../../packages/uds-map/scripts/RESEARCH-INGESTION.md)
@@ -179,19 +182,40 @@ Required order inside a pass:
 1. Propose platform and generation branches in `platforms.json`. Each branch
    carries a `scope`, an `architecture`, `transport_candidates`, its
    `classification_evidence` and a `non_generalization_boundary`.
-2. Give each branch a selector: a `vds_pattern` hypothesis with its source,
-   or explicit vehicle facts (model, year range, powertrain) that select it.
-   A branch with neither selector is inert at runtime and must say so.
+2. Give each branch a VIN classifier, or say in a gap record that it has
+   none. Exactly one of these two, per platform, with no third option:
+   - `vds_patterns: ["^KA1HK", "^KB1HK"]` on the platform record — anchored
+     regex strings over the VIN's vehicle-descriptor characters, one per VIN
+     family, scoped to a generation and sourced by the platform's own
+     `source_refs`;
+   - or a `conflicts-and-gaps.json` gap with
+     `kind: "platform_not_vin_selectable"` and
+     `scope.platform_ids: ["<the platform>"]`, whose `safe_next_action`
+     names what else could classify it — model year, mode 09 calibration
+     identifiers, gateway identity.
 3. Scope every route and candidate to a `platform_ids` entry or an
    `ecu_family_ids` entry.
 4. Use brand-wide scope only with evidence from more than one independent
    platform family. Spec §21 expects that to be rare.
 
-Two consequences worth stating plainly:
+The pattern shape, the shared regex subset and the anchoring rule are in the
+research prompt §C6.1 and spec §9.1. Three points that catch people out: the
+matcher evaluates the pattern against VIN characters 4–10 (the descriptor
+positions 4–9 plus the model-year character), so a rule about positions 4–9
+anchors at the start and stays open at the end; two VIN families are two
+array entries, which the compiler joins into one alternation for the trusted
+map, never one loosened pattern; and a pattern is a claim about a
+**generation**, never about a nameplate, because nameplates outlive
+architectures.
+
+Three consequences worth stating plainly:
 
 - **A platform-scoped record with no accepted `vds_pattern` is inert.** That
   is correct behaviour, not a bug. Tag the record with its real platform key
   anyway. Fudging it to a broader scope to make it fire is a defect.
+- **A missing pattern with no gap record is not the same thing.** The first
+  is a known limit; the second is an omission the reviewer cannot see. The
+  validator warns `platform_without_vin_classifier` for the second.
 - **Model evidence is not platform evidence.** One model's capture scopes to
   that model until a source establishes the platform boundary.
 
@@ -209,6 +233,8 @@ A reviewer ticks every row before a pack merges. A blank row blocks the pack.
 | 6 | Budgets narrow only | `transport-session-safety-policy.json` | No value exceeds the central ceilings in spec §17 |
 | 7 | Negative evidence preserved | `command-support-evidence.json` | Refusals, timeouts and unsupported results are recorded with scope and NRC, not deleted |
 | 8 | Platform proposals present | `platforms.json` | At least one branch, each with a selector or an explicit statement that it has none |
+| 8a | VIN classifier per platform | `platforms.json`, `conflicts-and-gaps.json` | Every platform carries either a `vds_patterns[]` entry or a `platform_not_vin_selectable` gap scoped to it. The validator's "platforms without a VIN classifier" line reads `0`, or every remaining one is named and justified in the review |
+| 8b | Patterns are sourced and anchored | `platforms.json` | Every `vds_patterns` entry starts with `^` and uses only the shared subset; the platform's `source_refs` resolve and actually cover the descriptor claim. No pattern is scoped to a nameplate rather than a generation |
 | 9 | Conflicts and gaps non-empty | `conflicts-and-gaps.json` | A first pack with an empty file is rejected; a first pass always leaves open questions |
 | 10 | Projection report counts | `projection-report.json` | Input and projected counts reconcile; deferred records are explained |
 | 11 | Runtime test | Rust test suite | One test asserts this brand's candidates surface from `routes_for_context`, and that inapplicable ones stay inert |

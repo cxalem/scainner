@@ -149,6 +149,64 @@ export function addressOk(value: unknown, protocol: unknown): boolean {
   return /^[0-9A-F]{3}$/.test(value) || /^[0-9A-F]{8}$/.test(value);
 }
 
+/** §9.1: the regex subset both the trusted map and `elm/uds_map.rs` parse —
+ * literals, `.`, `[...]` classes with ranges and negation, `(a|b)`
+ * alternation, and the `^`, `$`, `?`, `*`, `+` operators. The literal
+ * alphabet is VIN-legal: I, O and Q never appear in a VIN. Anything richer
+ * (counts, escapes, backreferences) is dead on arrival at the runtime
+ * matcher, which silently never matches. */
+export const VDS_SUBSET = /^[\^$.[\]\-?*+()|A-HJ-NPR-Z0-9]+$/;
+
+/** §9.1: split a pattern on the `|` operators that sit outside any group or
+ * class — the top-level alternatives, each of which has to be anchored on
+ * its own. */
+export function vdsTopLevelBranches(pattern: string): string[] {
+  const branches: string[] = [];
+  let depth = 0;
+  let inClass = false;
+  let current = "";
+  for (const character of pattern) {
+    if (inClass) {
+      if (character === "]") inClass = false;
+    } else if (character === "[") inClass = true;
+    else if (character === "(") depth += 1;
+    else if (character === ")") depth -= 1;
+    else if (character === "|" && depth === 0) {
+      branches.push(current);
+      current = "";
+      continue;
+    }
+    current += character;
+  }
+  branches.push(current);
+  return branches;
+}
+
+/** §9.1: why a `vds_patterns[]` string cannot classify a VIN, or `null`.
+ * A pattern is a claim about the vehicle-descriptor characters, so it has to
+ * be anchored — an unanchored pattern is a substring search across the
+ * descriptor — and it has to exclude at least one VIN. */
+export function vdsPatternProblem(pattern: unknown): string | null {
+  if (typeof pattern !== "string" || !pattern.length) return "a vds pattern must be a non-empty string";
+  if (!VDS_SUBSET.test(pattern)) return `pattern "${pattern}" uses syntax outside the shared regex subset, so the runtime matcher would never match it`;
+  const branches = vdsTopLevelBranches(pattern);
+  for (const branch of branches) {
+    if (!branch.startsWith("^")) {
+      return branches.length > 1
+        ? `pattern "${pattern}" has an unanchored alternative "${branch}"; anchor every top-level alternative with "^", or group them as "^(a|b)"`
+        : `pattern "${pattern}" is not anchored; start it with "^"`;
+    }
+  }
+  let compiled: RegExp;
+  try {
+    compiled = new RegExp(pattern);
+  } catch {
+    return `pattern "${pattern}" is not a valid regex`;
+  }
+  if (compiled.test("")) return `pattern "${pattern}" matches the empty string, so it classifies nothing`;
+  return null;
+}
+
 /** §12: a DID is four uppercase hex digits; a service-21 local identifier is two. */
 export const didOk = (value: unknown): boolean => typeof value === "string" && /^[0-9A-F]{4}$/.test(value);
 export const localIdentifierOk = (value: unknown): boolean => typeof value === "string" && /^[0-9A-F]{2}$/.test(value);
@@ -187,6 +245,7 @@ export type ValidationReport = {
   unresolved_references: number;
   scope_conflicts: number;
   decoder_variants: number;
+  platforms_without_vin_classifier: number;
 };
 
 export type ValidationResult = {
@@ -497,6 +556,14 @@ export function validateResearchPack(input: string): ValidationResult {
     if (evidence.outcome?.nrc != null && !Number.isInteger(evidence.outcome.nrc)) fail(`${where}: outcome.nrc must be an integer`);
     if (["refused", "unsupported", "timed_out", "transport_failed", "malformed"].includes(evidence.outcome?.status) || ["unsupported", "explicitly_unsupported_on_test_vehicle"].includes(evidence.support_status)) negativeEvidence += 1;
   }
+  // §9.2: platforms a gap record openly declares as not VIN-selectable. The
+  // gap is the difference between a known limit and an omission.
+  const notVinSelectable = new Set<string>();
+  for (const gap of pack.conflicts.gaps ?? []) {
+    if (gap.kind !== "platform_not_vin_selectable") continue;
+    for (const id of gap.scope?.platform_ids ?? []) notVinSelectable.add(id);
+  }
+  let platformsWithoutVinClassifier = 0;
   for (const platform of platformsOf(pack)) {
     const where = `platform ${platform.platform_id ?? "?"}`;
     checkRefs(platform, where);
@@ -507,6 +574,24 @@ export function validateResearchPack(input: string): ValidationResult {
     for (const transport of platform.unsupported_transport_candidates ?? []) {
       blockedTransports += 1;
       if (!DOCUMENTED_PROTOCOLS.includes(transport)) fail(`${where}: unsupported transport "${String(transport)}" is not a documented transport`);
+    }
+    // §9.1: patterns are claims, carried by the platform's own source_refs
+    // (checked above). An unparseable one is worse than none, because it
+    // looks like a classifier and never fires.
+    const patterns: unknown[] = platform.vds_patterns ?? [];
+    if (!Array.isArray(patterns)) fail(`${where}: vds_patterns must be an array of anchored regex strings`);
+    else {
+      for (const [index, pattern] of patterns.entries()) {
+        const problem = vdsPatternProblem(pattern);
+        if (problem) fail(`${where}: vds_patterns[${index}]: ${problem}`);
+      }
+      if (patterns.length && !(platform.source_refs ?? []).length) fail(`${where}: declares vds_patterns with no source_refs; a VIN rule is a sourced claim`);
+    }
+    // Neither a pattern nor a declared gap: a warning, not a failure. A pack
+    // whose platforms are honestly unclassifiable is still a valid pack.
+    if (!patterns.length && !notVinSelectable.has(platform.platform_id)) {
+      platformsWithoutVinClassifier += 1;
+      warnings.push(`platform_without_vin_classifier: ${platform.platform_id ?? "?"} has neither a vds_patterns entry nor a platform_not_vin_selectable gap, so a VIN alone can never select it`);
     }
   }
   for (const claim of claimsOf(pack)) {
@@ -575,6 +660,7 @@ export function validateResearchPack(input: string): ValidationResult {
       unresolved_references: unresolved,
       scope_conflicts: (pack.conflicts.conflicts ?? []).length,
       decoder_variants: decoderVariants,
+      platforms_without_vin_classifier: platformsWithoutVinClassifier,
     },
   };
 }
@@ -594,8 +680,10 @@ export function formatValidationReport(result: ValidationResult): string {
     ["unresolved references", report.unresolved_references],
     ["scope conflicts", report.scope_conflicts],
     ["decoder variants", report.decoder_variants],
+    ["platforms without a VIN classifier", report.platforms_without_vin_classifier],
   ];
-  for (const [label, value] of rows) lines.push(`  ${label.padEnd(30)}${value}`);
+  const width = Math.max(...rows.map(([label]) => label.length)) + 2;
+  for (const [label, value] of rows) lines.push(`  ${label.padEnd(width)}${value}`);
   if (result.warnings.length) {
     lines.push("", `warnings (${result.warnings.length}):`);
     for (const warning of result.warnings) lines.push(`  - ${warning}`);

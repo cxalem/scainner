@@ -17,7 +17,10 @@ import type { Brand, Decode } from "../src/types.ts";
 
 const ENCODINGS = new Set(["be", "le", "bcd", "ascii", "bitfield"]);
 const LEVELS = new Set(["standard_only", "routes_sourced", "routes_verified", "decodes_verified"]);
-const VDS_SUBSET = /^[\^$.\[\]\-?*+A-Z0-9]+$/;
+// The regex subset `elm/uds_map.rs::vds_matches` parses, over a VIN-legal
+// alphabet: I, O and Q never appear in a VIN. `(a|b)` alternation is how
+// one platform carries several VIN families in a single pattern.
+const VDS_SUBSET = /^[\^$.\[\]\-?*+()|A-HJ-NPR-Z0-9]+$/;
 const SHA40 = /^[0-9a-f]{40}$/;
 
 /** GitHub's heading slug: lowercase, drop everything but letters, digits,
