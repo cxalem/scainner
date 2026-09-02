@@ -21,9 +21,7 @@ export const en: Dictionary = {
     rideDescription: "Sonda's AI reads this ride's sensors and fault codes and writes what happened, what stood out, and what to check next.",
     codeDescription: "Sonda's AI reads this code with the freeze frame and the sensors around it and writes what happened, what stood out, and what to check next.",
     structure: "Verdict · Sensors · Observations · Next steps",
-    language: "Language",
-    english: "English",
-    spanish: "Español",
+    privacy: "Only readings and module identities leave this device. The VIN never does, and the report is saved to your history.",
     cost: {
       price: (price) => `One report · ${price}`,
       credit: (balance) => `1 credit, you have ${balance}`,

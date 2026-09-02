@@ -21,9 +21,7 @@ export const es: Dictionary = {
     rideDescription: "La IA de Sonda lee los sensores y códigos de este recorrido y escribe qué pasó, qué destacó y qué revisar después.",
     codeDescription: "La IA de Sonda lee este código con el fotograma de congelación y los sensores de alrededor y escribe qué pasó, qué destacó y qué revisar después.",
     structure: "Veredicto · Sensores · Observaciones · Próximos pasos",
-    language: "Idioma",
-    english: "English",
-    spanish: "Español",
+    privacy: "Solo salen de este equipo las lecturas y la identidad de los módulos. El VIN nunca sale, y el informe queda guardado en tu historial.",
     cost: {
       price: (price) => `Un informe · ${price}`,
       credit: (balance) => `1 crédito, tienes ${balance}`,

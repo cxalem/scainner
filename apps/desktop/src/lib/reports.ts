@@ -35,6 +35,41 @@ export function formatPrice(price: PriceItem | null | undefined, locale: "en" | 
   return new Intl.NumberFormat(locale, { style: "currency", currency: price.currency.toUpperCase() }).format(price.unit_amount / 100);
 }
 
+export type ReportFacts =
+  | { kind: "ride"; minutes: number; sensors: number; samples: number; codes: number }
+  | { kind: "code"; code: string; module: string };
+
+const FACTS_COPY = {
+  en: {
+    minutes: "min",
+    sensors: "sensors",
+    samples: "samples",
+    codes: (count: string, value: number) => (value === 0 ? "no fault codes" : value === 1 ? "1 fault code" : `${count} fault codes`),
+  },
+  es: {
+    minutes: "min",
+    sensors: "sensores",
+    samples: "muestras",
+    codes: (count: string, value: number) => (value === 0 ? "sin códigos de avería" : value === 1 ? "1 código de avería" : `${count} códigos de avería`),
+  },
+} as const;
+
+export function reportFactsParts(facts: ReportFacts, locale: "en" | "es"): string[] {
+  if (facts.kind === "code") return [facts.code, facts.module];
+  const copy = FACTS_COPY[locale];
+  const number = (value: number) => new Intl.NumberFormat(locale, { useGrouping: true }).format(value);
+  return [
+    `${number(facts.minutes)} ${copy.minutes}`,
+    `${number(facts.sensors)} ${copy.sensors}`,
+    `${number(facts.samples)} ${copy.samples}`,
+    copy.codes(number(facts.codes), facts.codes),
+  ];
+}
+
+export function reportFacts(facts: ReportFacts, locale: "en" | "es"): string {
+  return reportFactsParts(facts, locale).join(" · ");
+}
+
 export function reportSections(markdown: string): Array<{ title: string; body: string }> {
   return markdown.split(/^# /gm).map((part) => part.trim()).filter(Boolean).map((part) => {
     const [title, ...body] = part.split("\n");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, reportButtonState, reportOfferKeys } from "./reports";
+import { formatPrice, reportButtonState, reportFacts, reportOfferKeys } from "./reports";
 
 describe("report button state", () => {
   it.each([
@@ -19,6 +19,27 @@ describe("report offer copy keys", () => {
     [{ signedIn: true, balance: 3, subscription: { monthly_allowance: 5, allowance_used: 2 } }, { cost: "plan", primary: "covered", planLeft: 3 }],
     [{ signedIn: false, balance: 0, subscription: null }, { cost: "price", primary: "signedOut", planLeft: 0 }],
   ] as const)("maps %o", (input, expected) => expect(reportOfferKeys(input)).toEqual(expected));
+});
+
+describe("report facts line", () => {
+  const ride = { kind: "ride", minutes: 14, sensors: 33, samples: 9839 } as const;
+
+  it("lists what a ride report covers", () => {
+    expect(reportFacts({ ...ride, codes: 0 }, "en")).toBe("14 min · 33 sensors · 9,839 samples · no fault codes");
+    expect(reportFacts({ ...ride, codes: 0 }, "es")).toBe("14 min · 33 sensores · 9.839 muestras · sin códigos de avería");
+  });
+
+  it("counts fault codes", () => {
+    expect(reportFacts({ ...ride, codes: 1 }, "en")).toBe("14 min · 33 sensors · 9,839 samples · 1 fault code");
+    expect(reportFacts({ ...ride, codes: 2 }, "en")).toBe("14 min · 33 sensors · 9,839 samples · 2 fault codes");
+    expect(reportFacts({ ...ride, codes: 1 }, "es")).toBe("14 min · 33 sensores · 9.839 muestras · 1 código de avería");
+    expect(reportFacts({ ...ride, codes: 2 }, "es")).toBe("14 min · 33 sensores · 9.839 muestras · 2 códigos de avería");
+  });
+
+  it("names the code and its module", () => {
+    expect(reportFacts({ kind: "code", code: "P0301", module: "Engine (OBD)" }, "en")).toBe("P0301 · Engine (OBD)");
+    expect(reportFacts({ kind: "code", code: "P0301", module: "Motor (OBD)" }, "es")).toBe("P0301 · Motor (OBD)");
+  });
 });
 
 describe("report price formatting", () => {

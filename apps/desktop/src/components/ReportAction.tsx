@@ -1,19 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { GenerateReportInput, ReportRow } from "@scainner/core";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useSession } from "@/features/account/useSession";
 import { billingRun, usePricing } from "@/features/reports/queries";
-import { useLocale, useT, type Locale } from "@/i18n";
-import { formatPrice, reportButtonState, reportOfferKeys } from "@/lib/reports";
+import { useLocale, useT } from "@/i18n";
+import { formatPrice, reportButtonState, reportFactsParts, reportOfferKeys } from "@/lib/reports";
 import { MOCK_MODE } from "@/lib/tauri";
 import { toast } from "@/components/toast";
 import { ReportView } from "@/views/reports/ReportView";
 
-type ReportSubject = { kind: "ride"; ride_id: string } | { kind: "code"; scan_event_id?: string; dtc_code: string };
+type ReportSubject =
+  | { kind: "ride"; ride_id: string; minutes: number; sensor_count: number; sample_count: number; dtc_codes_appeared: number }
+  | { kind: "code"; scan_event_id?: string; dtc_code: string };
 
 export function ReportAction({ input }: { input: ReportSubject }) {
   const { locale } = useLocale();
@@ -24,12 +25,10 @@ export function ReportAction({ input }: { input: ReportSubject }) {
   const previewSignedOut = MOCK_MODE && new URLSearchParams(window.location.search).get("report-state") === "signed-out";
   const signedIn = !previewSignedOut && typeof session === "string";
   const [open, setOpen] = useState(false);
-  const [language, setLanguage] = useState<Locale>(locale);
   const [waiting, setWaiting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [phase, setPhase] = useState(0);
   const [report, setReport] = useState<ReportRow | null>(null);
-  const targetLocale = useRef<Locale>(locale);
   const startingEntitlement = useRef(0);
   const pricing = usePricing(waiting ? 1000 : false);
   const balance = pricing.data?.account?.balance ?? 0;
@@ -38,10 +37,9 @@ export function ReportAction({ input }: { input: ReportSubject }) {
   const entitlement = balance + offer.planLeft;
   const state = reportButtonState({ signedIn, balance: entitlement, waiting, generating, done: report != null });
   const price = formatPrice(pricing.data?.catalog.single, locale);
-
-  useEffect(() => {
-    if (!open) setLanguage(locale);
-  }, [locale, open]);
+  const facts = input.kind === "ride"
+    ? reportFactsParts({ kind: "ride", minutes: input.minutes, sensors: input.sensor_count, samples: input.sample_count, codes: input.dtc_codes_appeared }, locale)
+    : reportFactsParts({ kind: "code", code: input.dtc_code, module: t.diagnose.confirmClear.module }, locale);
 
   useEffect(() => {
     if (!generating) return;
@@ -54,15 +52,18 @@ export function ReportAction({ input }: { input: ReportSubject }) {
       setWaiting(false);
       setOpen(false);
       toast.success(copy.bought);
-      void generate(targetLocale.current);
+      void generate();
     }
   }, [copy.bought, entitlement, waiting]);
 
-  const generate = async (reportLocale: Locale) => {
+  const generate = async () => {
     setGenerating(true);
     setPhase(0);
     try {
-      const result = await billingRun((billing) => billing.generateReport({ ...input, locale: reportLocale } as GenerateReportInput));
+      const subject: GenerateReportInput = input.kind === "ride"
+        ? { kind: "ride", ride_id: input.ride_id, locale }
+        : { kind: "code", scan_event_id: input.scan_event_id, dtc_code: input.dtc_code, locale };
+      const result = await billingRun((billing) => billing.generateReport(subject));
       const row = await billingRun((billing) => billing.getReport(result.report_id));
       setReport(row);
       toast.success(copy.complete);
@@ -76,7 +77,6 @@ export function ReportAction({ input }: { input: ReportSubject }) {
   };
 
   const confirm = async () => {
-    targetLocale.current = language;
     if (!signedIn) {
       setOpen(false);
       toast.info(copy.signInToast);
@@ -84,7 +84,7 @@ export function ReportAction({ input }: { input: ReportSubject }) {
     }
     if (entitlement > 0) {
       setOpen(false);
-      await generate(language);
+      await generate();
       return;
     }
     try {
@@ -119,21 +119,23 @@ export function ReportAction({ input }: { input: ReportSubject }) {
             <DialogDescription>{input.kind === "ride" ? copy.rideDescription : copy.codeDescription}</DialogDescription>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">{copy.structure}</p>
-          <fieldset className="space-y-2" disabled={waiting}>
-            <legend className="text-sm font-medium">{copy.language}</legend>
-            <RadioGroup value={language} onValueChange={(value) => setLanguage(value as Locale)} className="grid grid-cols-2 gap-3">
-              <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm"><RadioGroupItem value="en" />{copy.english}</label>
-              <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-input px-3 text-sm"><RadioGroupItem value="es" />{copy.spanish}</label>
-            </RadioGroup>
-          </fieldset>
+          <p className="text-xs text-muted-foreground">
+            {facts.map((part, index) => (
+              <Fragment key={part}>
+                {index > 0 && <>&nbsp;· </>}
+                <span className="whitespace-nowrap">{part}</span>
+              </Fragment>
+            ))}
+          </p>
           <p className="text-sm text-muted-foreground" aria-live="polite">{waiting ? copy.waiting : costLine}</p>
+          <p className="text-xs text-muted-foreground">{copy.privacy}</p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" disabled={waiting} onClick={() => setOpen(false)}>{copy.notNow}</Button>
             <Button disabled={waiting || pricing.isPending} aria-busy={waiting || undefined} onClick={() => void confirm()}>{primaryLabel}</Button>
           </div>
         </DialogContent>
       </Dialog>
-      {report && <ReportView report={report} onClose={() => setReport(null)} onRegenerate={() => { setReport(null); setLanguage(report.locale === "en" ? "es" : "en"); setOpen(true); }} />}
+      {report && <ReportView report={report} onClose={() => setReport(null)} />}
     </>
   );
 }

@@ -19,9 +19,7 @@ export type Dictionary = {
     rideDescription: string;
     codeDescription: string;
     structure: string;
-    language: string;
-    english: string;
-    spanish: string;
+    privacy: string;
     cost: {
       price: (price: string) => string;
       credit: (balance: number) => string;

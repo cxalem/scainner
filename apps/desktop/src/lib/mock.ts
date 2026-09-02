@@ -806,7 +806,8 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       if (!mockRide || mockRide.id !== Number(args?.id)) throw new Error("ride is not active");
       if (mockRideTimer != null) window.clearInterval(mockRideTimer);
       mockRideTimer = null;
-      const finished: Ride = { ...mockRide, ended_at: new Date().toISOString(), sensor_count: 12, dtc_events_count: 1, dtc_codes_appeared: previewQuery().get("mock_ride_dtc") === "1" ? 1 : 0, max_speed: 83, max_coolant: 91, min_voltage: 13.7 };
+      const endedAt = new Date();
+      const finished: Ride = { ...mockRide, started_at: new Date(endedAt.getTime() - 14 * 60_000).toISOString(), ended_at: endedAt.toISOString(), sample_count: 9839, sensor_count: 33, dtc_events_count: 1, dtc_codes_appeared: previewQuery().get("mock_ride_dtc") === "1" ? 1 : 0, max_speed: 83, max_coolant: 91, min_voltage: 13.7 };
       mockRideDone = [finished, ...mockRideDone];
       mockRide = null;
       connState = { ...connState, ride: null };
