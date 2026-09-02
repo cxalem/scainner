@@ -24,9 +24,49 @@ export const es: Dictionary = {
     orDownloadMac: "O descarga la versión para macOS →",
   },
   showcase: {
-    heading: "Todo lo que sabe el coche, en una sola pantalla.",
-    body: "Códigos, sensores en directo, módulos e historial. Sin menús que rebuscar.",
-    screenshotAlt: "Pantalla de resumen de Sonda: estado del vehículo, estadísticas de sesión, combustible y autonomía, e historial de escaneos recientes.",
+    heading: "Todo lo que sabe tu coche, en una sola pantalla.",
+    body: "Códigos, sensores en directo, cada módulo y cómo estaba la última vez. Nada escondido en menús.",
+    screenshotAlt:
+      "Pantalla de diagnóstico de Sonda: tres códigos de avería en dos módulos, con el primero abierto para mostrar qué significa y el fotograma de congelación capturado con él.",
+    preview: {
+      windowTitle: "Sonda — tu coche",
+      sidebarPrimary: "Principal",
+      sidebarAdvanced: "Avanzado",
+      nav: {
+        overview: "Resumen",
+        diagnose: "Diagnóstico",
+        live: "En directo",
+        workshop: "Taller",
+        lab: "Laboratorio",
+        vehicle: "Vehículo",
+      },
+      adapter: "OBDLink MX+ · conectado",
+      title: "Diagnóstico",
+      subtitle: "3 averías en 2 módulos · escaneado hace 12 s",
+      rescan: "Volver a escanear",
+      clearCodes: "Borrar códigos",
+      meaningLabel: "Qué significa",
+      askSonda: "Pídele a Sonda el informe completo",
+      freezeFrameLabel: "Fotograma de congelación",
+      freezeFrame: [
+        { label: "RPM", value: "742" },
+        { label: "Refrigerante", value: "91 °C" },
+        { label: "Ajuste de combustible", value: "+1,6 %" },
+        { label: "Voltaje", value: "14,1 V" },
+      ],
+      primaryFault: {
+        code: "P0301",
+        title: "Fallo de encendido detectado en el cilindro 1",
+        module: "Motor",
+        status: "Confirmado",
+        meaning:
+          "El cilindro 1 no quema su combustible en cada ciclo. La centralita contó suficientes fallos como para guardar la avería y encender el testigo.",
+      },
+      otherFaults: [
+        { code: "P0420", title: "Eficiencia del catalizador por debajo del umbral, banco 1", module: "Motor", status: "Pendiente" },
+        { code: "U0121", title: "Comunicación perdida con el módulo ABS", module: "Pasarela", status: "Almacenado" },
+      ],
+    },
     features: [
       { title: "Lee cada código", body: "Almacenados, pendientes y permanentes, de cada módulo del bus — no solo del motor." },
       { title: "Borra códigos", body: "Apaga el testigo de avería una vez arreglado el fallo, y comprueba si vuelve." },
@@ -36,7 +76,7 @@ export const es: Dictionary = {
   },
   howItWorks: {
     kicker: "Cómo funciona",
-    heading: "Tres pasos, sin cita en el taller.",
+    heading: "Tres pasos. Sin cita.",
     steps: [
       { title: "Conecta el adaptador", body: "Cualquier adaptador OBD-II bajo el salpicadero: Bluetooth, Wi-Fi o USB. No vendemos hardware." },
       { title: "Sonda lee el coche", body: "VIN, marca, cada módulo del bus. Códigos de avería almacenados y pendientes, valores de sensores en directo, fotogramas de congelación." },
@@ -53,13 +93,13 @@ export const es: Dictionary = {
   comparison: {
     kicker: "Cómo te habla tu coche",
     heading: "La misma avería. Dos respuestas.",
-    body: "Un lector de códigos repite el código. Sonda lee cada sensor que el coche esté dispuesto a dar, y te dice qué significa ese código para este coche, hoy.",
+    body: "Un lector de códigos te repite el código. Sonda escucha cada sensor que el coche esté dispuesto a dar, y luego te dice qué significa ese código para tu coche, hoy.",
     genericReader: {
       label: "Cualquier lector de códigos",
       code: "P0301",
       title: "Fallo de encendido detectado en el cilindro 1",
       rows: ["Por qué ha pasado", "A qué afecta", "Cómo arreglarlo", "Qué cuesta"],
-      footer: "Te quedas buscando el código en Google, como siempre.",
+      footer: "Y acabas buscando el número en Google.",
     },
     sonda: {
       confirmed: "Confirmado",
@@ -97,7 +137,7 @@ export const es: Dictionary = {
   },
   pricing: {
     kicker: "Precio",
-    heading: "Escanear es gratis. Los informes se pagan uno a uno.",
+    heading: "Escanear es gratis. Compra un informe cuando lo necesites.",
     body: "Sin suscripción para particulares. Solo pagas cuando quieres que la IA te explique un código concreto.",
     individuals: {
       title: "Particulares",

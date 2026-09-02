@@ -34,7 +34,12 @@
   --color-section-accent-strong: var(--section-accent-strong);
   --color-section-divider: var(--section-divider);
   --color-section-divider-strong: var(--section-divider-strong);
+  --color-section-divider-soft: var(--section-divider-soft);
   --color-section-input-bg: var(--section-input-bg);
+  --color-section-body: var(--section-body);
+  --color-section-strong: var(--section-strong);
+  --color-section-dim: var(--section-dim);
+  --color-section-tag-bg: var(--section-tag-bg);
 
   --color-ok: var(--ok);
   --color-ok-bg: var(--ok-bg);
@@ -45,6 +50,8 @@
   --color-stop: var(--stop);
   --color-stop-bg: var(--stop-bg);
   --color-stop-line: var(--stop-line);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
 
   --color-accent: var(--accent);
   --color-accent-100: var(--accent-100);
@@ -179,5 +186,26 @@
   .sn-fade,
   .sn-glow {
     animation: none !important;
+  }
+}
+
+/* Toggled by components/Reveal.tsx; each root layout carries a <noscript> fallback. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s var(--ease-out),
+    transform 0.7s var(--ease-out);
+}
+[data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

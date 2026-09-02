@@ -51,7 +51,13 @@ export default function EnglishRootLayout({ children }: { children: React.ReactN
           hydrates. React's own hydration-mismatch message calls this exact
           case out; this is the documented fix, not a workaround for an
           actual bug in this component. */}
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {/* Without JS the reveal observer never runs and every revealed block would stay hidden. */}
+        <noscript>
+          <style>{`[data-reveal]{opacity:1 !important;transform:none !important}`}</style>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }

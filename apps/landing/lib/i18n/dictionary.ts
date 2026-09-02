@@ -28,6 +28,30 @@ export type Dictionary = {
     heading: string;
     body: string;
     screenshotAlt: string;
+    preview: {
+      windowTitle: string;
+      sidebarPrimary: string;
+      sidebarAdvanced: string;
+      nav: {
+        overview: string;
+        diagnose: string;
+        live: string;
+        workshop: string;
+        lab: string;
+        vehicle: string;
+      };
+      adapter: string;
+      title: string;
+      subtitle: string;
+      rescan: string;
+      clearCodes: string;
+      meaningLabel: string;
+      askSonda: string;
+      freezeFrameLabel: string;
+      freezeFrame: { label: string; value: string }[];
+      primaryFault: { code: string; title: string; module: string; status: string; meaning: string };
+      otherFaults: { code: string; title: string; module: string; status: string }[];
+    };
     features: { title: string; body: string }[];
   };
   howItWorks: {

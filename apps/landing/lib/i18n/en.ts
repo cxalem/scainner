@@ -19,9 +19,49 @@ export const en: Dictionary = {
     orDownloadMac: "Or download the macOS build →",
   },
   showcase: {
-    heading: "Everything the car knows, on one screen.",
-    body: "Codes, live sensors, modules and history. No menus to hunt through.",
-    screenshotAlt: "Sonda's Overview screen: vehicle status, session stats, fuel and range, and recent scan history.",
+    heading: "Everything your car knows, on one screen.",
+    body: "Codes, live sensors, every module, and what it looked like last time. Nothing buried in menus.",
+    screenshotAlt:
+      "Sonda's Diagnose screen: three fault codes across two modules, the first one opened to show what it means and the freeze frame captured with it.",
+    preview: {
+      windowTitle: "Sonda — your car",
+      sidebarPrimary: "Primary",
+      sidebarAdvanced: "Advanced",
+      nav: {
+        overview: "Overview",
+        diagnose: "Diagnose",
+        live: "Live",
+        workshop: "Workshop",
+        lab: "Lab",
+        vehicle: "Vehicle",
+      },
+      adapter: "OBDLink MX+ · connected",
+      title: "Diagnose",
+      subtitle: "3 faults across 2 modules · scanned 12 s ago",
+      rescan: "Rescan",
+      clearCodes: "Clear codes",
+      meaningLabel: "Meaning",
+      askSonda: "Ask Sonda for the full report",
+      freezeFrameLabel: "Freeze frame",
+      freezeFrame: [
+        { label: "RPM", value: "742" },
+        { label: "Coolant", value: "91 °C" },
+        { label: "Fuel trim", value: "+1.6 %" },
+        { label: "Voltage", value: "14.1 V" },
+      ],
+      primaryFault: {
+        code: "P0301",
+        title: "Cylinder 1 misfire detected",
+        module: "Engine",
+        status: "Confirmed",
+        meaning:
+          "Cylinder 1 is not burning its fuel every cycle. The engine control unit counted enough misses to store the fault and light the lamp.",
+      },
+      otherFaults: [
+        { code: "P0420", title: "Catalyst efficiency below threshold, bank 1", module: "Engine", status: "Pending" },
+        { code: "U0121", title: "Lost communication with ABS module", module: "Gateway", status: "Stored" },
+      ],
+    },
     features: [
       { title: "Read every code", body: "Stored, pending and permanent, from every module on the bus — not just the engine." },
       { title: "Clear codes", body: "Reset the check-engine light once the fault is fixed, and see if it comes back." },
@@ -31,7 +71,7 @@ export const en: Dictionary = {
   },
   howItWorks: {
     kicker: "How it works",
-    heading: "Three steps, no shop appointment.",
+    heading: "Three steps. No appointment.",
     steps: [
       { title: "Plug in the connector", body: "Any OBD-II adapter under your dashboard — Bluetooth, Wi-Fi, or USB. We don't sell hardware." },
       { title: "Sonda reads the car", body: "VIN, brand, every module on the bus. Stored and pending fault codes, live sensor values, freeze frames." },
@@ -48,13 +88,13 @@ export const en: Dictionary = {
   comparison: {
     kicker: "How your car talks to you",
     heading: "Same fault. Two answers.",
-    body: "A code reader repeats the code. Sonda reads every sensor the car will give up, then tells you what the code means for this car, today.",
+    body: "A code reader repeats the code back at you. Sonda listens to every sensor the car will give up, then tells you what that code means for your car, today.",
     genericReader: {
       label: "Any code reader",
       code: "P0301",
       title: "Cylinder 1 misfire detected",
       rows: ["Why it happened", "What it affects", "How to fix it", "What it costs"],
-      footer: "You're left Googling the number.",
+      footer: "Then you go and google the number.",
     },
     sonda: {
       confirmed: "Confirmed",
@@ -85,7 +125,7 @@ export const en: Dictionary = {
   },
   pricing: {
     kicker: "Price",
-    heading: "Free to scan. Reports you buy one at a time.",
+    heading: "Scanning is free. Buy a report when you need one.",
     body: "No subscription for individuals. You only pay when you want the AI to explain a specific code.",
     individuals: {
       title: "Individuals",

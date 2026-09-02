@@ -23,6 +23,13 @@ export {
   Smartphone as MobileIcon,
   Monitor as DesktopIcon,
   Plug as PlugIcon,
+  Gauge as GaugeIcon,
+  Stethoscope as StethoscopeIcon,
+  Wrench as WrenchIcon,
+  FlaskConical as FlaskIcon,
+  Car as CarIcon,
+  ChevronDown as CaretDownIcon,
+  ChevronRight as CaretRightIcon,
 } from "lucide-react";
 
 type IconProps = { size?: number; className?: string };

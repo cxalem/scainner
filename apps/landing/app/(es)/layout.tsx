@@ -46,7 +46,13 @@ export default function SpanishRootLayout({ children }: { children: React.ReactN
     <html lang="es" className={inter.variable}>
       {/* suppressHydrationWarning: see app/(en)/layout.tsx's comment —
           same browser-extension case, not an app bug. */}
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {/* Without JS the reveal observer never runs and every revealed block would stay hidden. */}
+        <noscript>
+          <style>{`[data-reveal]{opacity:1 !important;transform:none !important}`}</style>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }
