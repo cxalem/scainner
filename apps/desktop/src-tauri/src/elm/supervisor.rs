@@ -1324,6 +1324,12 @@ mod tests {
                 last_run_at: None,
                 knowledge_key: discovery::knowledge_key(),
             }),
+            learning: Some(discovery::learn::LearningStatus {
+                cohort: 8,
+                module: Some("700/708".into()),
+                samples_this_ride: 12,
+                suspended: false,
+            }),
             ..Default::default()
         };
         let json = serde_json::to_value(&status).unwrap();
@@ -1335,6 +1341,10 @@ mod tests {
             json["discovery"]["knowledge_key"],
             discovery::knowledge_key()
         );
+        assert_eq!(json["learning"]["cohort"], 8);
+        assert_eq!(json["learning"]["module"], "700/708");
+        assert_eq!(json["learning"]["samples_this_ride"], 12);
+        assert_eq!(json["learning"]["suspended"], false);
         let empty = serde_json::to_value(ConnStatus {
             state: "disconnected".into(),
             ..Default::default()
