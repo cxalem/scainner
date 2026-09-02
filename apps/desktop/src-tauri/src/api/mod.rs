@@ -1672,7 +1672,10 @@ mod tests {
             .as_array()
             .unwrap()
             .iter()
-            .any(|question| question.as_str().unwrap().contains("752/652")));
+            .any(|question| {
+                let question = question.as_str().unwrap();
+                question.contains("1 silent routes") && question.contains("11-bit range")
+            }));
 
         let serialized = serde_json::to_string(&body).unwrap();
         assert!(!serialized.contains(&vin), "{serialized}");
