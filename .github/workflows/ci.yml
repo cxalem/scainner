@@ -109,3 +109,33 @@ jobs:
 
       - name: Run tests
         run: cargo test --locked --all-targets --all-features
+
+  rust-windows:
+    name: Rust · Windows check, clippy, test
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/desktop/src-tauri
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Check Rust compilation
+        run: cargo check --locked --all-targets
+
+      - name: Run Clippy
+        run: cargo clippy --locked --all-targets
+
+      - name: Run tests
+        run: cargo test --locked --all-targets
