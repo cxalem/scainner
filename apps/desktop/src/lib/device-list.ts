@@ -6,7 +6,7 @@
 // (elm/transport/enumerate.rs) so every client gets the same rows. What is
 // left here is the fallback for a payload from an older backend that has
 // none of the enriched fields yet.
-import type { AdapterCandidate, DeviceKind, NearbyDevice } from "@scainner/core";
+import { PIN_REQUIRED, type AdapterCandidate, type DeviceKind, type NearbyDevice } from "@scainner/core";
 
 export type DeviceRow = {
   /** The candidate's id: a `/dev` path, or a MAC for a paired-only row. */
@@ -78,14 +78,57 @@ export function nearbyRows(
   return out;
 }
 
-/** What the PIN field opens on. Almost every OBD dongle ships with 1234,
- *  so that is the default — unless the profile already remembers one that
- *  worked, which is the better guess for a second dongle from the same
- *  box. */
+/** What the PIN field opens on, on the rare occasion a radio asks for one.
+ *  Almost every OBD dongle that still wants a code ships with 1234, so that
+ *  is the default — unless the profile already remembers one that worked,
+ *  which is the better guess for a second dongle from the same box. */
 export const DEFAULT_PIN = "1234";
 
 export function defaultPin(saved?: string | null): string {
   return saved?.trim() || DEFAULT_PIN;
+}
+
+/** Where a scan has got to, as the card needs to read it. */
+export type ScanState = {
+  scanning: boolean;
+  /** A scan has finished at least once since the list was last refreshed. */
+  scanned: boolean;
+  error: string | null;
+  /** How many nearby radios the last scan left on screen. */
+  found: number;
+};
+
+/** The one line the scan owns, in the same place throughout: the spinner
+ *  while the inquiry is out, then whatever it came back with. `none` before
+ *  the user has ever asked for a scan. */
+export type ScanRow = "scanning" | "error" | "empty" | "none";
+
+export function scanRow(scan: ScanState): ScanRow {
+  if (scan.scanning) return "scanning";
+  if (scan.error) return "error";
+  if (!scan.scanned) return "none";
+  return scan.found === 0 ? "empty" : "none";
+}
+
+/** The card's groups, top to bottom. Nearby goes above the paired rows for
+ *  as long as the scan is the thing the user just asked for — the results
+ *  have to be where the eye already is, not under a list that may be taller
+ *  than the card. Before any scan, the screen is exactly what it was. */
+export type ListSection = "nearby" | "paired";
+
+export function listSections(scan: ScanState): ListSection[] {
+  const showNearby = scan.scanning || scan.scanned || scan.found > 0;
+  return showNearby ? ["nearby", "paired"] : ["paired"];
+}
+
+/** Did the radio ask for a PIN? The backend answers a pairing attempt that
+ *  carried no PIN with the `pin_required` marker (409 over HTTP, an error
+ *  string over Tauri) when — and only when — the device itself asked for a
+ *  code. That is the one failure the card can act on: reveal the field and
+ *  retry. Everything else is the user's to fix. */
+export function isPinRequired(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return new RegExp(`\\b${PIN_REQUIRED}\\b`).test(message);
 }
 
 /** The row the gate starts on: the one the profile points at, else the

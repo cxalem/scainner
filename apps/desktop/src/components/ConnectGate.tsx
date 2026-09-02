@@ -14,7 +14,7 @@
 // disconnects stay inside the shell instead of kicking you back here.
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Plug, PlugZap, RefreshCw, Radar, ScanLine, Usb } from "lucide-react";
+import { ArrowRight, Plug, PlugZap, RefreshCw, ScanLine, Usb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_MODE } from "@/lib/tauri";
 import { BRAND } from "@/brand";
@@ -295,26 +295,21 @@ export function ConnectGate({
           </span>
         </div>
 
+        {/* Re-enumerating is a footnote to the list, not a step in the
+            flow: the scan the user actually reaches for lives in the card's
+            own header now (Brief K), where its results are visible without
+            scrolling. */}
         {screen === "choose_device" && (
-          <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="sm" icon={RefreshCw} busy={devices.loading} onClick={() => void refreshDevices()}>
-              {t.gate.refreshAdapters}
-            </Button>
-            {/* A scan is the answer only when the dongle is not in the list
-                yet, so it sits beside Refresh rather than above it. The
-                button just goes busy — the "Scanning…" line belongs in the
-                Nearby group, where the results will land. */}
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Radar}
-              busy={devices.discovery.scanning}
-              disabled={devices.loading}
-              onClick={() => void devices.discovery.discover()}
-            >
-              {t.gate.discoverDevices}
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={RefreshCw}
+            className="text-[11.5px]"
+            busy={devices.loading}
+            onClick={() => void refreshDevices()}
+          >
+            {t.gate.refreshAdapters}
+          </Button>
         )}
         {screen === "failed" && (
           <Button

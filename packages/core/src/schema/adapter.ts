@@ -34,6 +34,13 @@ export class NearbyDevice extends Schema.Class<NearbyDevice>("NearbyDevice")({
   paired: Schema.Boolean,
 }) {}
 
+/// The one pairing failure a client can answer by itself: the radio asked
+/// for a PIN and the attempt carried none, so the UI reveals the field and
+/// calls again with what the user typed. Over HTTP it is a 409
+/// `{"error": "pin_required"}`; over Tauri it prefixes the error string.
+/// Every other failure belongs to the person holding the hardware.
+export const PIN_REQUIRED = "pin_required";
+
 export class AdapterProfile extends Schema.Class<AdapterProfile>("AdapterProfile")({
   kind: Schema.Literal("elm_serial", "tcp_elm"),
   path: Schema.NullOr(Schema.String),

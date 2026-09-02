@@ -32,9 +32,11 @@ export class DeviceService extends Context.Tag("DeviceService")<
     /// the wait — and omits anything already paired, since those are
     /// `listAdapters` rows already.
     readonly discoverAdapters: (seconds: number) => Effect.Effect<NearbyDevice[], InvokeError | ParseResult.ParseError>;
-    /// Pair one device the user chose, with the PIN they typed. There is no
-    /// unpair, and nothing pairs on its own.
-    readonly pairAdapter: (addr: string, pin: string) => Effect.Effect<void, InvokeError>;
+    /// Pair one device the user chose. `pin` is null for the ordinary case —
+    /// Secure Simple Pairing, and anything already paired — and carries the
+    /// user's code only on the retry a `PIN_REQUIRED` failure asked for.
+    /// There is no unpair, and nothing pairs on its own.
+    readonly pairAdapter: (addr: string, pin: string | null) => Effect.Effect<void, InvokeError>;
     readonly adapterProfile: () => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     readonly setAdapterProfile: (profile: AdapterProfile) => Effect.Effect<AdapterProfile, InvokeError | ParseResult.ParseError>;
     // vehicle / report (schema v2: keyed by vehicle id, never by VIN string)

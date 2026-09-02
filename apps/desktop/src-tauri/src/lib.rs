@@ -49,9 +49,15 @@ async fn discover_adapters(
     .await
 }
 
+/// Pair the device the user picked. `pin` is null on the first attempt; a
+/// radio that wants a code comes back as an error string starting with
+/// `pin_required:`, which is the frontend's cue to reveal the PIN field and
+/// call again with what the user typed.
 #[tauri::command]
 async fn pair_adapter(addr: String, pin: Option<String>) -> Result<(), String> {
-    ops::pair_adapter(addr.trim().to_ascii_lowercase(), pin).await
+    ops::pair_adapter(addr.trim().to_ascii_lowercase(), pin)
+        .await
+        .map_err(|failure| failure.to_string())
 }
 
 #[tauri::command]

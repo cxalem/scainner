@@ -1059,9 +1059,14 @@ struct PairBody {
     pin: Option<String>,
 }
 
-/// Pair the device the user chose. 400 with whatever the platform said,
-/// because every failure here (wrong PIN, out of range, dongle asleep) is
-/// something the person holding the hardware can act on.
+/// Pair the device the user chose. `pin` is optional and normally absent:
+/// the attempt goes out without one, which is all Secure Simple Pairing
+/// needs and all an already-paired radio needs.
+///
+/// 409 `{"error": "pin_required"}` is the one recoverable answer — the radio
+/// asked for a code, so ask the user and call again with `pin`. 400 with
+/// whatever the platform said covers the rest (wrong PIN, out of range,
+/// dongle asleep): things the person holding the hardware can act on.
 async fn adapters_pair(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiResult {
     let b: PairBody = parse_required(&body)?;
     let addr = b.addr.trim().to_ascii_lowercase();
@@ -1071,9 +1076,16 @@ async fn adapters_pair(State(_api): State<Arc<ApiState>>, body: Bytes) -> ApiRes
             "addr is required: the dashed MAC of the device to pair",
         ));
     }
-    ops::pair_adapter(addr, b.pin)
-        .await
-        .map_err(|e| ApiError::msg(StatusCode::BAD_REQUEST, e))?;
+    ops::pair_adapter(addr, b.pin).await.map_err(|failure| {
+        if failure.is_pin_required() {
+            ApiError::new(
+                StatusCode::CONFLICT,
+                json!({ "error": bluetooth::PIN_REQUIRED, "detail": failure.message() }),
+            )
+        } else {
+            ApiError::msg(StatusCode::BAD_REQUEST, failure.message())
+        }
+    })?;
     ok(json!({ "paired": true }))
 }
 
