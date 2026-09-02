@@ -20,28 +20,29 @@ Verified in the repository at this version.
 |---|---|
 | Authoring format | Specification-shaped directory with an `index.json` manifest, spec v1.0 |
 | Compiler | `packages/uds-map/scripts/compile-research-pack.ts`, run as `pnpm --filter @scainner/uds-map research:compile`. Verifies the manifest, archives sources, emits a runtime pack JSON plus a projection report |
-| Compiled packs | `renault-deep-research-v1`, `manufacturer-group-deep-research-v1` |
-| Legacy path | Per-brand Python scripts append deltas into `data/research/existing-brand-hypotheses-v3.json`. Two brands live there today: `seat` with 100 routes, `vag` with 104 |
-| Runtime loading | `elm/discovery/research.rs` embeds packs through a hand-maintained `EMBEDDED: &[(&str, &str)]` table of `include_str!` entries, plus the `data/research-packs.json` index |
+| Compiled packs | `renault-deep-research-v1`, `manufacturer-group-deep-research-v1`, `seat-deep-research-v2`, `vag-deep-research-v2` |
+| Legacy path | `data/research/existing-brand-hypotheses-v3.json` is frozen: no brand is appended to it. The two brands that used to be Python-generated deltas were re-authored as specification directories and compiled into packs of their own; `migrate-legacy-research-pack.ts` records that conversion |
+| Runtime loading | `elm/discovery/research.rs` includes an `EMBEDDED: &[(&str, &str)]` table that `build.rs` generates from the `data/research-packs.json` index |
 | Planner gate | `plan.rs` adds research routes only after an exact platform match, from `uds_map::platform_for_vin` or `research::platform_for_vehicle_facts`. Make-level routes come late |
 
 Gaps as of this version:
 
-- `pnpm research:validate` (spec §23) does not exist.
-- No research-request export from vehicle evidence.
-- A new pack **file** needs a Rust edit and a rebuild, because the
-  `EMBEDDED` table is hand-maintained.
-- One brand in the legacy delta has no `platforms[]` entry in the trusted
-  map, so its platform-scoped routes are inert until a vehicle-descriptor
-  pattern is confirmed. That is correct behaviour, not a defect.
+- No compiled pack is VIN-selectable on its own platforms: the trusted map
+  carries no vehicle-descriptor pattern for them, so every platform-scoped
+  route stays inert until a pattern is confirmed and a
+  `platform-proposals.json` entry is accepted. That is correct behaviour,
+  not a defect.
+- A group-wide route catalogue scoped to more than one platform compiles to
+  `catalogue_exploration` with `exploration_only`, so it reaches the planner
+  through explicit parked exploration rather than automatic route selection.
 
 ## 2. Decision
 
 **One authoring format, one compiler, one runtime shape.**
 
 1. The specification directory is the only input. The Python delta scripts
-   are retired. `existing-brand-hypotheses-v3.json` is frozen as a legacy
-   pack, and no new brand is appended to it. A new brand is a new
+   are retired and deleted. `existing-brand-hypotheses-v3.json` is frozen as
+   a legacy pack, and no new brand is appended to it. A new brand is a new
    specification pack, compiled to its own runtime file at
    `data/research/<brand>-deep-research-v<n>.json`, plus one line in the
    index.
@@ -71,21 +72,20 @@ authoring directory                 docs/product/research/<pack>/
         │
         ▼
   research:validate                 spec §23 report, non-zero on failure
-        │                           (target, RP-2)
+        │
         ▼
   research:compile                  verifies manifest, archives inputs
         │
         ├──► runtime pack           packages/uds-map/data/research/<pack>.json
         ├──► projection report      docs/product/research/<pack>/projection-report.json
         ├──► platform proposals     docs/product/research/<pack>/platform-proposals.json
-        │                           (target, RP-5)
         └──► source archive         docs/product/research/<pack>/source/
         │
         ▼
   data/research-packs.json          one index line per runtime pack
         │
         ▼
-  build.rs                          generates the EMBEDDED table (target, RP-1)
+  build.rs                          generates the EMBEDDED table
         │
         ▼
   research.rs                       loads and parses every indexed pack
@@ -98,7 +98,7 @@ authoring directory                 docs/product/research/<pack>/
   vehicle evidence                  route outcomes, fingerprints,
         │                           unlabeled answers, conflicts
         ▼
-  research request export           de-identified JSON (target, RP-4)
+  research request export           de-identified JSON
         │
         └──────────────────────────► next pass's prompt
 ```

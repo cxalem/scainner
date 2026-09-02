@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "conflict_id": "vag_one_profile_many_architectures",
+      "finding": "VW/Audi spans PQ, MQB, MEB, MLB, J1, PPE and PPC.",
+      "automatic_merge": "forbidden",
+      "resolution": "Platform classification precedes proprietary scanning.",
+      "source_refs": []
+    },
+    {
+      "conflict_id": "fc00_transport_unresolved",
+      "finding": "Audi/VAG OBDb contains FC00/FE00xx targeted command syntax.",
+      "automatic_merge": "forbidden",
+      "resolution": "Keep non-executable until exact raw transport is normalized and physically captured.",
+      "source_refs": [
+        "S04",
+        "S07",
+        "S08"
+      ]
+    },
+    {
+      "conflict_id": "j1_negative_evidence",
+      "finding": "2022 RS e-tron GT explicitly rejects many VAG make-level MQB/PQ candidates.",
+      "automatic_merge": "forbidden",
+      "resolution": "Store rejection as model/platform-scoped negative evidence; reduce scan budget on J1 without affecting MQB/MEB.",
+      "source_refs": [
+        "S07"
+      ]
+    },
+    {
+      "conflict_id": "ppe_ppc_no_routes",
+      "finding": "OEM sources confirm PPE/PPC/E3 architectures, but this pass did not establish safe public diagnostic route sets.",
+      "automatic_merge": "forbidden",
+      "resolution": "Terminal platform_known_route_knowledge_incomplete; do not inherit MQB/MLB routes.",
+      "source_refs": [
+        "S10",
+        "S11"
+      ]
+    },
+    {
+      "conflict_id": "sfd_readonly",
+      "finding": "SFD protects advanced changes, while read-only identification/measuring values are expected to remain available.",
+      "automatic_merge": "forbidden",
+      "resolution": "No automatic unlock; continue read-only discovery.",
+      "source_refs": [
+        "S12"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "vw_pq_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_pq vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_pq-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "gap_id": "vw_mqb_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_mqb vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_mqb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01",
+        "S02",
+        "S03"
+      ]
+    },
+    {
+      "gap_id": "vw_mqb_a0_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_mqb_a0 vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_mqb_a0-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "gap_id": "vw_mqb_evo_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_mqb_evo vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_mqb_evo-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01",
+        "S12"
+      ]
+    },
+    {
+      "gap_id": "vw_meb_gen1_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_meb_gen1 vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_meb_gen1-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01",
+        "S05"
+      ]
+    },
+    {
+      "gap_id": "vw_meb_gen2_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_meb_gen2 vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_meb_gen2-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "gap_id": "vw_commercial_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed vw_commercial vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every vw_commercial-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "gap_id": "audi_mqb_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_mqb vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_mqb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01",
+        "S04"
+      ]
+    },
+    {
+      "gap_id": "audi_mlb_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_mlb vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_mlb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S01",
+        "S06"
+      ]
+    },
+    {
+      "gap_id": "audi_mlb_evo_ev_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_mlb_evo_ev vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_mlb_evo_ev-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S09",
+        "S04"
+      ]
+    },
+    {
+      "gap_id": "audi_meb_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_meb vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_meb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S09",
+        "S08"
+      ]
+    },
+    {
+      "gap_id": "audi_j1_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_j1 vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_j1-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S09",
+        "S07"
+      ]
+    },
+    {
+      "gap_id": "audi_ppe_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_ppe vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_ppe-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S10"
+      ]
+    },
+    {
+      "gap_id": "audi_ppc_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed audi_ppc vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every audi_ppc-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S11"
+      ]
+    },
+    {
+      "gap_id": "source_decoders_outside_the_canonical_language",
+      "priority": "P2",
+      "required_evidence": "A byte-oriented reading of each source decoder, confirmed against a raw payload from a physical vehicle.",
+      "safe_next_action": "The identifier stays a candidate; its meaning is displayed as unknown until a canonical decoder replaces the preserved source form.",
+      "retry_condition": "A raw payload that shows the field layout.",
+      "source_refs": [],
+      "research_leads": [
+        {
+          "did": "2AB7",
+          "semantic": "average_consumption_categories",
+          "platform_scope": "vw_meb_gen1",
+          "source_decode": {
+            "array": "7 x u16",
+            "div": 10,
+            "unit": "source_kWh_quantity_requires_semantic_validation"
+          }
+        },
+        {
+          "did": "2AF7",
+          "semantic": "12v_battery_extended_metrics",
+          "platform_scope": "vw_meb_gen1",
+          "source_decode": {
+            "contains": [
+              "voltage",
+              "current",
+              "soc",
+              "temperature",
+              "charge/discharge totals",
+              "aging",
+              "adapted capacity"
+            ]
+          }
+        },
+        {
+          "did": "1507",
+          "semantic": "charger_rail_energy",
+          "platform_scope": "vw_meb_gen1",
+          "source_decode": {
+            "array": "3 x u24",
+            "div": 10,
+            "unit": "kWh"
+          }
+        }
+      ]
+    },
+    {
+      "gap_id": "source_sessions_not_reproduced_in_the_default_session",
+      "priority": "P2",
+      "required_evidence": "A default-session read of the 56 identifiers the sources observed in a non-default session.",
+      "safe_next_action": "Ask for them in the default session only, and record a refusal as evidence rather than retrying in another session.",
+      "retry_condition": "A default-session answer or refusal from a physical vehicle.",
+      "source_refs": []
+    }
+  ],
+  "declared_counts": {
+    "conflicts": 5,
+    "gaps": 16
+  }
+}

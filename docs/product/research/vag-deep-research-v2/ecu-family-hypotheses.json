@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "ecu_family_id": "vag_j533_mqb_gateway",
+      "role": "gateway",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "vw_mqb",
+          "vw_mqb_a0",
+          "audi_mqb"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "observed_route_ids": [
+        "vag_gateway_710_77a",
+        "vw_meb_gen1_gateway_710_77a",
+        "audi_j1_gateway_710_77a"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "F187",
+        "F195",
+        "F182"
+      ],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01",
+        "S02"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Gateway route/identity reusable only after part/software/chassis family match."
+    },
+    {
+      "ecu_family_id": "vag_gw2020_mqb_evo",
+      "role": "gateway",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "vw_mqb_evo"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "medium_high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S12"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "SFD-capable branch; read-only measuring values should remain accessible without unlock."
+    },
+    {
+      "ecu_family_id": "vag_meb_gateway_energy",
+      "role": "gateway_energy_management",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "vw_meb_gen1",
+          "audi_meb"
+        ],
+        "ecu_roles": [
+          "gateway_energy_management"
+        ]
+      },
+      "observed_route_ids": [
+        "vag_gateway_710_77a",
+        "vw_meb_gen1_gateway_710_77a",
+        "audi_j1_gateway_710_77a"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05",
+        "S07"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Strong cross-MEB candidate; require ECU fingerprint before sharing decoders."
+    },
+    {
+      "ecu_family_id": "vag_meb_obc",
+      "role": "onboard_charger",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "vw_meb_gen1",
+          "audi_meb",
+          "audi_j1"
+        ],
+        "ecu_roles": [
+          "onboard_charger"
+        ]
+      },
+      "observed_route_ids": [
+        "vag_hv_charger_744_7ae",
+        "vw_meb_gen1_hv_charger_744_7ae",
+        "audi_j1_hv_charger_744_7ae"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "medium_high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05",
+        "S07"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Route recurs across EV datasets; formulas remain platform/ECU scoped."
+    },
+    {
+      "ecu_family_id": "audi_j1_bms",
+      "role": "hv_battery",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "ecu_roles": [
+          "hv_battery"
+        ]
+      },
+      "observed_route_ids": [
+        "vag_hv_battery_energy_control_7e5_7ed",
+        "audi_j1_hv_battery_7e5_7ed"
+      ],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "J1-specific until compared against another J1 car and exact part/software match."
+    },
+    {
+      "ecu_family_id": "audi_mlb_powertrain",
+      "role": "engine_transmission",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_mlb"
+        ],
+        "ecu_roles": [
+          "engine_transmission"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S06"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Good longitudinal Audi starting point; do not import MQB/MEB body routes by default."
+    }
+  ],
+  "declared_count": 6
+}

@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "conflict_id": "seat_eps_route_712",
+      "finding": "General VAG route catalogue maps steering assist 0x712->0x77C, while the Mii electric OVMS implementation uses 0x712->0x71A. Both routes are kept, scoped to the evidence that produced them (seat_mii_steering_assist_712_71a, seat_vag_steering_assist_712_77c).",
+      "automatic_merge": "forbidden",
+      "resolution": "Keep both. 0x712->0x71A is exact Mii-electric platform evidence; 0x712->0x77C is a broader VAG/MQB candidate.",
+      "source_refs": [
+        "S04",
+        "S06"
+      ],
+      "route_ids": [
+        "seat_mii_steering_assist_712_71a",
+        "seat_vag_steering_assist_712_77c"
+      ]
+    },
+    {
+      "conflict_id": "seat_obdb_model_empty_vs_make_data",
+      "finding": "Current model defaults for Ateca, Arona, Tarraco, Alhambra, Altea and Mii Electric are empty while the SEAT make-level fallback and other sources contain useful data.",
+      "automatic_merge": "forbidden",
+      "resolution": "Empty model repository state is not negative vehicle evidence and must never delete local or make-level knowledge.",
+      "source_refs": [
+        "S01",
+        "S27"
+      ]
+    },
+    {
+      "conflict_id": "seat_make_level_mixed_decoders",
+      "finding": "SEAT make-level OBDb fallback mixes PQ/MQB/electrified commands and contains competing interpretations/formulas for some DIDs.",
+      "automatic_merge": "forbidden",
+      "resolution": "Store decoder variants keyed by route+platform+ECU fingerprint; no brand-global decoder promotion.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "conflict_id": "seat_29bit_fc00_unresolved",
+      "finding": "Make-level OBDb contains commands with hdr=FC00, rax=FE0077, pri=17, tst=F1 for ATF-temperature variants.",
+      "automatic_merge": "forbidden",
+      "resolution": "Treat as transport-normalization research only. It does not authorize generic 29-bit enumeration.",
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "conflict_id": "seat_legacy_silence",
+      "finding": "Ibiza 6J can mix K-line KWP2000, TP2.0, TP1.6 and UDS across ECUs.",
+      "automatic_merge": "forbidden",
+      "resolution": "UDS silence can mean wrong transport rather than ECU absence.",
+      "source_refs": [
+        "S09",
+        "S10"
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "physical_seat_validation_fleet",
+      "priority": "P0",
+      "required_evidence": "At least one Leon 5F, Leon KL, Ibiza KJ, Arona, Ateca and Mii electric in Spain; capture route/identity/DID responses with project hardware.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: At least one Leon 5F, Leon KL, Ibiza KJ, Arona, Ateca and Mii electric in Spain; capture route/identity/DID responses with project hardware.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "normalize_obdb_unusual_29_bit_looking_commands",
+      "priority": "P0",
+      "required_evidence": "Reconstruct exact ELM/OBDb header semantics for FC00/FE0077 pri=17 tst=F1 and capture a real transaction before execution.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Reconstruct exact ELM/OBDb header semantics for FC00/FE0077 pri=17 tst=F1 and capture a real transaction before execution.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "ecu_identity_fingerprint_database",
+      "priority": "P0",
+      "required_evidence": "Capture F187/F195/F182 plus F18A/F18C/F191/F197 on responsive modules and bind ASAM/part/software families.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Capture F187/F195/F182 plus F18A/F18C/F191/F197 on responsive modules and bind ASAM/part/software families.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "ibiza_6j_transport_support",
+      "priority": "P1",
+      "required_evidence": "Decide whether product hardware/software will implement K-line, TP2.0 and TP1.6 or explicitly report unsupported alternate transport.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Decide whether product hardware/software will implement K-line, TP2.0 and TP1.6 or explicitly report unsupported alternate transport.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "exeo_3r",
+      "priority": "P1",
+      "required_evidence": "Dedicated Audi-B7-derived diagnostic research; do not reuse MQB.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Dedicated Audi-B7-derived diagnostic research; do not reuse MQB.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "toledo_nh",
+      "priority": "P1",
+      "required_evidence": "Resolve platform/transport and model-specific ECU inventory.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Resolve platform/transport and model-specific ECU inventory.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "mii_ice",
+      "priority": "P1",
+      "required_evidence": "Separate from Mii electric; obtain exact ECU routes and transport behavior.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Separate from Mii electric; obtain exact ECU routes and transport behavior.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "alhambra_7n",
+      "priority": "P1",
+      "required_evidence": "Extract exact Sharan/Alhambra routes and DIDs from current sources.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Extract exact Sharan/Alhambra routes and DIDs from current sources.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "did_decoder_verification",
+      "priority": "P2",
+      "required_evidence": "For each high-value candidate, compare source formula against physical action/reference sensor and at least two compatible vehicles before family promotion.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: For each high-value candidate, compare source formula against physical action/reference sensor and at least two compatible vehicles before family promotion.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "sfd_sfd2_future_behavior",
+      "priority": "P2",
+      "required_evidence": "Continue to verify that read-only identification/measuring values remain accessible on newer SEAT models and document any diagnostic-filter exceptions.",
+      "safe_next_action": "Hold everything this gap touches at documentation-only and collect the evidence first: Continue to verify that read-only identification/measuring values remain accessible on newer SEAT models and document any diagnostic-filter exceptions.",
+      "retry_condition": "New evidence of the kind this gap names.",
+      "source_refs": []
+    },
+    {
+      "gap_id": "seat_legacy_kline_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_legacy_kline vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_legacy_kline-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S08"
+      ]
+    },
+    {
+      "gap_id": "seat_pq35_can_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_pq35_can vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_pq35_can-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S08",
+        "S04"
+      ]
+    },
+    {
+      "gap_id": "seat_pq25_mixed_ibiza_6j_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_pq25_mixed_ibiza_6j vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_pq25_mixed_ibiza_6j-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S09",
+        "S10"
+      ]
+    },
+    {
+      "gap_id": "seat_alhambra_7n_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_alhambra_7n vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_alhambra_7n-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S08",
+        "S05"
+      ]
+    },
+    {
+      "gap_id": "seat_mii_electric_shared_up_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_mii_electric_shared_up vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_mii_electric_shared_up-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S06",
+        "S07"
+      ]
+    },
+    {
+      "gap_id": "seat_mqb_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_mqb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S14",
+        "S15",
+        "S18",
+        "S19",
+        "S25"
+      ]
+    },
+    {
+      "gap_id": "seat_mqb_a0_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb_a0 vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_mqb_a0-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S12",
+        "S13",
+        "S22",
+        "S23"
+      ]
+    },
+    {
+      "gap_id": "seat_mqb_a_lwb_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb_a_lwb vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_mqb_a_lwb-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S16",
+        "S24"
+      ]
+    },
+    {
+      "gap_id": "seat_mqb_evo_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_mqb_evo vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_mqb_evo-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S17",
+        "S20",
+        "S21",
+        "S11"
+      ]
+    },
+    {
+      "gap_id": "seat_special_unresolved_platform_not_vin_selectable",
+      "priority": "P1",
+      "required_evidence": "A VIN descriptor pattern from a confirmed seat_special_unresolved vehicle, or a normalized vehicle-model fact that selects only this platform.",
+      "safe_next_action": "Leave every seat_special_unresolved-scoped candidate inert; the trusted map decides platform selection, never this pack.",
+      "retry_condition": "A confirmed VIN or an unambiguous vehicle-model fact for this platform.",
+      "source_refs": [
+        "S08"
+      ]
+    },
+    {
+      "gap_id": "records_excluded_from_the_specification_shape",
+      "priority": "P1",
+      "required_evidence": "A single canonical identifier and a resolved request/response pair for each excluded record.",
+      "safe_next_action": "Keep these records as leads only; they generate no traffic and no candidate.",
+      "retry_condition": "A capture that resolves the address or splits the range into single identifiers.",
+      "source_refs": [
+        "S01",
+        "S06",
+        "S07"
+      ],
+      "research_leads": [
+        {
+          "did": "0x000A",
+          "semantic": "atf_temperature_variant_v5",
+          "platform_scope": "seat_make_level_unresolved_transport",
+          "reason": "transport_normalization_required",
+          "source_refs": [
+            "S01"
+          ]
+        },
+        {
+          "did": "0x0006",
+          "semantic": "atf_temperature_variant_v2",
+          "platform_scope": "seat_make_level_unresolved_transport",
+          "reason": "transport_normalization_required",
+          "source_refs": [
+            "S01"
+          ]
+        },
+        {
+          "did": "0x0005",
+          "semantic": "atf_temperature_variant_v3",
+          "platform_scope": "seat_make_level_unresolved_transport",
+          "reason": "transport_normalization_required",
+          "source_refs": [
+            "S01"
+          ]
+        },
+        {
+          "did": "0x1E40-0x1EA5",
+          "semantic": "individual_cell_voltages",
+          "platform_scope": "seat_mii_electric_shared_up",
+          "reason": "did_range_not_a_single_identifier",
+          "source_decode": {
+            "encoding": "u16_be",
+            "formula": "raw / 4096",
+            "unit": "V",
+            "source_ref": "S07",
+            "note": "Cell index is reordered by source implementation to match physical pack/module ordering."
+          },
+          "source_refs": [
+            "S06",
+            "S07"
+          ]
+        },
+        {
+          "did": "0x1EAE-0x1EBD",
+          "semantic": "individual_cell_temperatures",
+          "platform_scope": "seat_mii_electric_shared_up",
+          "reason": "did_range_not_a_single_identifier",
+          "source_decode": {
+            "encoding": "u16_be",
+            "formula": "raw / 64",
+            "unit": "degC",
+            "source_ref": "S07"
+          },
+          "source_refs": [
+            "S06",
+            "S07"
+          ]
+        }
+      ]
+    },
+    {
+      "gap_id": "source_decoders_outside_the_canonical_language",
+      "priority": "P2",
+      "required_evidence": "A byte-oriented reading of each source decoder, confirmed against a raw payload from a physical vehicle.",
+      "safe_next_action": "The identifier stays a candidate; its meaning is displayed as unknown until a canonical decoder replaces the preserved source form.",
+      "retry_condition": "A raw payload that shows the field layout.",
+      "source_refs": [],
+      "research_leads": [
+        {
+          "did": "2211",
+          "semantic": "charge_air_pressure_source_quantity",
+          "platform_scope": "seat_leon_model_source",
+          "source_decode": {
+            "encoding": "u8",
+            "scale": "100/255",
+            "unit": "source_percent"
+          }
+        },
+        {
+          "did": "202F",
+          "semantic": "engine_oil_temperature",
+          "platform_scope": "seat_ibiza_model_source",
+          "source_decode": {
+            "encoding": "u8",
+            "bias": "source_variant",
+            "unit": "degC"
+          }
+        }
+      ]
+    },
+    {
+      "gap_id": "source_sessions_not_reproduced_in_the_default_session",
+      "priority": "P2",
+      "required_evidence": "A default-session read of the 32 identifiers the sources observed in a non-default session.",
+      "safe_next_action": "Ask for them in the default session only, and record a refusal as evidence rather than retrying in another session.",
+      "retry_condition": "A default-session answer or refusal from a physical vehicle.",
+      "source_refs": []
+    }
+  ],
+  "declared_counts": {
+    "conflicts": 5,
+    "gaps": 23
+  }
+}

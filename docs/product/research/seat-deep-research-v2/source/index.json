@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "pack_id": "seat-deep-research",
+  "pack_version": 2,
+  "research_date": "2026-09-02",
+  "brand_ids": [
+    "seat"
+  ],
+  "marques": [
+    "seat"
+  ],
+  "self_hash_policy": "index.json is self-excluded to avoid recursive hashing.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "739faf789ec3b83877fd23a95744da1f1bf6f17b855dfef1e7e4adb388d3f0ec"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "0b52b548c1596671835775133cb6d4351f0daa6f362f74739cbca44285442254"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "4805766da6512c461a41b64d830238fcfcff76eff2af0e554a02a66758f1676b"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "b826d7ba9471fbd4f2e3b88ce55d053b0168ad472f94f19c87cc5aea3fe308d8"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "1cf4511c91bdd0f1328df9dd21484cb0755b5babb246bcdd399b5ece4e589a46"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "249e273c019eec16dbb6cb3ab4eec057643e64bcf7739583127a2d2202eeac32"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "9cb41bc5881b0dab8ccb406ad243f06accb6b44efa38830dea099992e61e5582"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "94fbff6140ffe233c71126ceb9a842ca2db8d61cebef19d43f32d155869dd484"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "cf8b3653d2a048e116b8f20d6f6387eaab9adb446854b5085e3864ea78ba36d2"
+    },
+    {
+      "path": "seat-profile-overlay.json",
+      "sha256": "7f8bd323857ac39e75537d665f6881c9c35fc990d7e8aa142458c9c6dd7f3a3f"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "8e415ea5a81bea622e0b682c0c8058af69403a68518d5e8c6f674e6237c8726d"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "846839f4cfedf12fb55650792a3428e4a2fd38a55b16caa49f48478326ac8d88"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "a2debbd8beee5c1589861480c74299e0dea50c431b7abdb6b8d638d99358e468"
+    }
+  ],
+  "declared_counts": {
+    "sources": 28,
+    "platforms": 10,
+    "routes": 102,
+    "did_candidates": 246,
+    "command_evidence": 0,
+    "ecu_families": 7,
+    "module_inventories": 6,
+    "validation_recipes": 8,
+    "claims": 7,
+    "conflicts": 5,
+    "gaps": 23
+  },
+  "validation": {
+    "status": "valid",
+    "errors": [],
+    "warnings": []
+  }
+}

@@ -1,0 +1,575 @@
+{
+  "schema_version": 1,
+  "pack_id": "vag-deep-research",
+  "pack_version": 2,
+  "research_date": "2026-09-02",
+  "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+  "proposals": [
+    {
+      "platform_id": "audi_j1",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "e_tron_gt",
+        "rs_e_tron_gt"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "J1 performance EV platform",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S09",
+          "url": "https://www.audi-mediacenter.com/system/production/uploaded_files/15615/file/0a6787a9d7a79661577444d90ce2a6692bf4cf84/EN_TD_Insight_e-mobility_Press_Kit_restricted.pdf",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S07",
+          "url": "https://github.com/OBDb/Audi-RS-e-tron/blob/5b24d1995a78a25e300afe7e4288e4399f965023/tests/test_cases/2022/command_support.yaml",
+          "revision": "5b24d1995a78a25e300afe7e4288e4399f965023",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "audi_meb",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "q4_e_tron"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MEB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [
+        "meb"
+      ],
+      "sources": [
+        {
+          "ref": "S09",
+          "url": "https://www.audi-mediacenter.com/system/production/uploaded_files/15615/file/0a6787a9d7a79661577444d90ce2a6692bf4cf84/EN_TD_Insight_e-mobility_Press_Kit_restricted.pdf",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S08",
+          "url": "https://github.com/OBDb/Audi-Q4-e-tron/blob/ad37e0e5bed5520dd705b2eec65834419137edd1/signalsets/v3/default.json",
+          "revision": "ad37e0e5bed5520dd705b2eec65834419137edd1",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "audi_mlb",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "q5_8r",
+        "longitudinal_audi_generations"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MLB longitudinal; route/DID grammar differs materially from MQB/MEB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        },
+        {
+          "ref": "S06",
+          "url": "https://github.com/OBDb/Audi-Q5/blob/466b95e6df279b3ff95507d3f039806464fcb75c/tests/test_cases/2015/command_support.yaml",
+          "revision": "466b95e6df279b3ff95507d3f039806464fcb75c",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "audi_mlb_evo_ev",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "audi_e_tron_suv_q8_e_tron_first_architecture"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Adapted MLB evo battery-electric architecture",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S09",
+          "url": "https://www.audi-mediacenter.com/system/production/uploaded_files/15615/file/0a6787a9d7a79661577444d90ce2a6692bf4cf84/EN_TD_Insight_e-mobility_Press_Kit_restricted.pdf",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S04",
+          "url": "https://github.com/OBDb/Audi/blob/aea720fa676dcf395bafc794ffda4551b284e647/signalsets/v3/default.json",
+          "revision": "aea720fa676dcf395bafc794ffda4551b284e647",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "medium_high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "audi_mqb",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "a3_8v",
+        "q2",
+        "q3_f3"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Transverse MQB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        },
+        {
+          "ref": "S04",
+          "url": "https://github.com/OBDb/Audi/blob/aea720fa676dcf395bafc794ffda4551b284e647/signalsets/v3/default.json",
+          "revision": "aea720fa676dcf395bafc794ffda4551b284e647",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "medium_high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "audi_ppc",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "new_a5",
+        "new_q5_family"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "PPC + E3 electronics",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S11",
+          "url": "https://uploads.audi-mediacenter.com/system/production/uploaded_files/32928/file/fd0c62b07b4f549c21785229054292838e6076fd/20240930_A5_Basisinfo_short_EN.pdf",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "audi_ppe",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "audi"
+      ],
+      "models": [
+        "q6_e_tron",
+        "a6_e_tron"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "PPE + E3 1.2 electronics",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S10",
+          "url": "https://www.audi-mediacenter.com/en/press-releases/premium-platform-electric-ppe-a-technological-leap-for-the-next-generation-of-fully-electric-premium-mobility-from-audi-16021/download",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_commercial",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "crafter",
+        "transporter_caravelle_california"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Commercial-vehicle branches; MQB/PQ-like families vary by model",
+      "transport_candidates": [],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_meb_gen1",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "id_3",
+        "id_4_2021_23",
+        "id_5"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MEB generation 1",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [
+        "meb"
+      ],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        },
+        {
+          "ref": "S05",
+          "url": "https://github.com/OBDb/Volkswagen-ID.4/blob/42cf4b6db4bff7a40850ba89a3d2e2a692cccd35/signalsets/v3/default.json",
+          "revision": "42cf4b6db4bff7a40850ba89a3d2e2a692cccd35",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_meb_gen2",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "id_4_2024_25_and_newer_meb_gen2_examples"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MEB generation 2; openDBC uses distinct generated DBC flag",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [
+        "meb"
+      ],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_mqb",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "golf_mk7",
+        "passat_b8",
+        "tiguan_mk2",
+        "t_roc",
+        "arteon"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB; UDS/ODX/ASAM via J533 gateway",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        },
+        {
+          "ref": "S02",
+          "url": "https://github.com/ConnorHowell/vag-uds-ids/blob/27b5431ed22a10a41095517b88dc95b3ae212441/readme.md",
+          "revision": "27b5431ed22a10a41095517b88dc95b3ae212441",
+          "retrieved_at": "2026-09-02",
+          "licence": "NOASSERTION",
+          "reliability": "medium"
+        },
+        {
+          "ref": "S03",
+          "url": "https://github.com/OBDb/Volkswagen/blob/8ef01ebc34901b6dcefc609c660f8ef9d83773ec/signalsets/v3/default.json",
+          "revision": "8ef01ebc34901b6dcefc609c660f8ef9d83773ec",
+          "retrieved_at": "2026-09-02",
+          "licence": "CC-BY-SA-4.0",
+          "reliability": "medium_high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_mqb_a0",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "polo_mk6",
+        "t_cross"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB A0; UDS over CAN; some later cars combine gateway+BCM",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_mqb_evo",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "golf_mk8",
+        "newer_mqb_evo_derivatives"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB Evo / GW2020 / SFD-capable",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        },
+        {
+          "ref": "S12",
+          "url": "https://wiki.ross-tech.com/wiki/index.php/SFD",
+          "revision": null,
+          "retrieved_at": "2026-08-31",
+          "licence": "reference_only",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "vw_pq",
+      "brand_ids": [
+        "vag"
+      ],
+      "marques": [
+        "volkswagen"
+      ],
+      "models": [
+        "golf_mk5_mk6",
+        "jetta_mk6",
+        "caddy_mk3",
+        "sharan_mk2"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "PQ-family; CAN diagnostics with older VAG protocol/UDS mix depending ECU",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S01",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    }
+  ]
+}

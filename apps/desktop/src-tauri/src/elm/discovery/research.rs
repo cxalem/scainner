@@ -1035,104 +1035,152 @@ mod tests {
         assert!(claim.action_if_connected.contains("never overwrite C4"));
     }
 
+    /// The two brand packages that used to be Python-generated deltas are
+    /// specification packs now (`docs/product/research/<brand>-deep-research-v2/`),
+    /// compiled by `research:compile`. Their group-wide route catalogues
+    /// carry every CAN platform in the pack, so the compiler marks them
+    /// `exploration_only`: they stay out of automatic route selection and
+    /// reach the planner through `routes_for_exploration`, which is the call
+    /// `plan.rs` makes.
+    fn compiled_pack(pack_id: &str) -> &'static ResearchPack {
+        packs()
+            .iter()
+            .find(|pack| pack.pack_id == pack_id)
+            .unwrap_or_else(|| panic!("{pack_id} is not indexed in data/research-packs.json"))
+    }
+
     #[test]
-    fn seat_deep_research_delta_serves_make_wide_candidates_with_dids() {
-        // No platform match yet: SEAT has zero `platforms[]` entries in the
-        // trusted map (no confirmed `vds_pattern`), so only the `platform:
-        // "unknown"` (make-wide) candidates from the delta can apply today —
-        // the Mii Electric-specific routes stay inert until a real VIN
-        // confirms that platform. See docs/product/research/
-        // seat-deep-research-v1/ and packages/uds-map/scripts/
-        // ingest-seat-research.py for where this data came from.
-        let routes = routes_for_context(Some(&vin_for_brand("seat")), None);
-        assert!(!routes.is_empty(), "expected make-wide SEAT candidates");
+    fn seat_research_pack_serves_make_wide_candidates_with_dids() {
+        let profile = &compiled_pack("seat-deep-research-runtime-v2").profiles[0];
         assert!(
-            routes.iter().all(|r| r.platform == "unknown"),
-            "no platform resolved for this VIN, so only unknown-platform routes should surface"
+            profile.routes.len() >= 100,
+            "the legacy delta served 100 routes; the pack must not lose any, got {}",
+            profile.routes.len()
         );
+
+        // No platform match yet: the trusted map carries no SEAT
+        // `platforms[]` entry, so nothing platform-scoped can fire and the
+        // catalogue is exploration-only.
+        let vin = vin_for_brand("seat");
+        assert!(routes_for_context(Some(&vin), None).is_empty());
+        let routes = routes_for_exploration(Some(&vin), None);
+        assert!(!routes.is_empty(), "expected make-wide SEAT candidates");
+        assert!(routes.iter().all(|route| route.exploration_only));
         assert!(
-            routes.iter().any(|r| !r.candidate_dids.is_empty()),
+            routes.iter().any(|route| !route.candidate_dids.is_empty()),
             "expected at least one candidate route to carry candidate DIDs"
         );
-        // The Mii Electric-scoped routes require an exact platform match and
+        // The platform-scoped routes require an exact platform match and
         // must not leak in without one.
-        assert!(routes.iter().all(|r| !r.route_id.starts_with("seat_mii_")));
-
-        // With an exact (hypothetical) platform match, the Mii-scoped routes
-        // become reachable too.
-        let mii_routes = routes_for_context(
-            Some(&vin_for_brand("seat")),
-            Some("seat_mii_electric_shared_up"),
-        );
-        assert!(mii_routes
+        assert!(routes
             .iter()
-            .any(|r| r.route_id.starts_with("seat_mii_")));
-        let mii_battery = mii_routes
+            .all(|route| route.platform != "seat_mii_electric_shared_up"));
+
+        // With an exact platform match the platform-scoped routes become
+        // reachable, and their source decoder survives the migration into
+        // the canonical scale/bias language.
+        let platform_routes = routes_for_context(Some(&vin), Some("seat_mii_electric_shared_up"));
+        assert!(!platform_routes.is_empty());
+        assert!(platform_routes
+            .iter()
+            .all(|route| route.platform == "seat_mii_electric_shared_up"));
+        let battery = platform_routes
             .iter()
             .find(|route| route.route_id == "seat_mii_hv_battery_management_7e5_7ed")
             .unwrap();
-        let voltage = mii_battery
+        let voltage = battery
             .candidate_dids
             .iter()
             .find(|candidate| candidate.did() == "1E3B")
             .unwrap()
-            .decode_hypotheses(&mii_battery.claim_ids)
+            .decode_hypotheses(&battery.claim_ids)
             .remove(0);
         assert_eq!(voltage.decode.scale, 0.25);
         assert_eq!(voltage.decode.unit, "V");
+        assert_eq!(voltage.variant_id, "S06-a");
         assert_eq!(
-            voltage.claim_ids,
+            battery.claim_ids,
             [
-                "seat.s06.mii_electric_ovms_header",
-                "seat.s07.mii_electric_ovms_decoder"
+                "seat-deep-research.source.s06",
+                "seat-deep-research.source.s07"
             ]
         );
-
-        let make_wide_battery = routes
-            .iter()
-            .find(|route| route.route_id == "seat_vag_hv_battery_energy_control_7e5_7ed")
-            .unwrap();
-        assert!(make_wide_battery
-            .candidate_dids
-            .iter()
-            .all(|candidate| candidate
-                .decode_hypotheses(&make_wide_battery.claim_ids)
-                .is_empty()));
     }
 
     #[test]
-    fn vag_deep_research_delta_marks_physically_disproven_dids_non_executable() {
-        // Same "no confirmed platform yet" situation as SEAT: vag has
-        // platforms[] in the trusted map (unlike SEAT's zero), but none of
-        // them carry a vds_pattern, so platform_for_vin can't resolve one
-        // and only make-wide (platform: "unknown") candidates apply today.
-        let routes = routes_for_context(Some(&vin_for_brand("vag")), None);
-        assert!(!routes.is_empty(), "expected make-wide VAG candidates");
-        assert!(routes.iter().all(|r| r.platform == "unknown"));
-        assert!(routes.iter().all(
-            |r| !r.route_id.starts_with("audi_j1_") && !r.route_id.starts_with("vw_meb_gen1_")
-        ));
-
-        // The genuinely new thing this brand's package contributes: real
-        // negative evidence from a physically tested 2022 Audi RS e-tron GT
-        // (docs/product/research/vag-deep-research-v1/command-support-
-        // evidence.json). Those DIDs must round-trip as present (so a
-        // reviewer can see they were tried) but never executable.
-        let j1_routes = routes_for_context(Some(&vin_for_brand("vag")), Some("audi_j1"));
+    fn vag_research_pack_keeps_physically_disproven_dids_out_of_every_plan() {
+        let profile = &compiled_pack("vag-deep-research-runtime-v2").profiles[0];
         assert!(
-            !j1_routes.is_empty(),
+            profile.routes.len() >= 104,
+            "the legacy delta served 104 routes; the pack must not lose any, got {}",
+            profile.routes.len()
+        );
+
+        let vin = vin_for_brand("vag");
+        assert!(routes_for_context(Some(&vin), None).is_empty());
+        let make_wide = routes_for_exploration(Some(&vin), None);
+        assert!(!make_wide.is_empty(), "expected make-wide VAG candidates");
+        assert!(make_wide.iter().all(|route| route.exploration_only));
+        assert!(make_wide
+            .iter()
+            .all(|route| route.platform != "audi_j1" && route.platform != "vw_meb_gen1"));
+
+        // The genuinely new thing this package contributes: real negative
+        // evidence from a physically tested vehicle. The pack keeps all 22
+        // records in `command-support-evidence.json`; the projection carries
+        // the 18 that resolve to a route, and none of those identifiers may
+        // become a request on the route that refused it.
+        const DISPROVEN: [(&str, &str); 18] = [
+            ("audi_j1_awd_control_70f_779", "08A7"),
+            ("audi_j1_awd_control_70f_779", "0C0A"),
+            ("audi_j1_awd_control_70f_779", "2B1B"),
+            ("audi_j1_awd_control_70f_779", "2B1C"),
+            ("audi_j1_awd_control_70f_779", "2B1D"),
+            ("audi_j1_awd_control_70f_779", "2B1E"),
+            ("audi_j1_brakes_abs_esc_713_77d", "1800"),
+            ("audi_j1_brakes_abs_esc_713_77d", "1801"),
+            ("audi_j1_brakes_abs_esc_713_77d", "1802"),
+            ("audi_j1_brakes_abs_esc_713_77d", "1803"),
+            ("audi_j1_brakes_abs_esc_713_77d", "1816"),
+            ("audi_j1_brakes_abs_esc_713_77d", "1821"),
+            ("audi_j1_central_electronics_70e_778", "1945"),
+            ("audi_j1_instrument_cluster_714_77e", "202F"),
+            ("audi_j1_instrument_cluster_714_77e", "2203"),
+            ("audi_j1_instrument_cluster_714_77e", "2294"),
+            ("audi_j1_instrument_cluster_714_77e", "229A"),
+            ("audi_j1_steering_assist_712_77c", "1812"),
+        ];
+        let platform_routes = routes_for_exploration(Some(&vin), Some("audi_j1"));
+        assert!(
+            platform_routes
+                .iter()
+                .any(|route| route.platform == "audi_j1"),
             "expected audi_j1-scoped candidates with an exact platform match"
         );
-        let disproven = j1_routes
-            .iter()
-            .flat_map(|r| &r.candidate_dids)
-            .find(|d| d.did() == "1812")
-            .expect(
-                "expected the physically-disproven steering DID 0x1812 to be present as evidence",
+        for (route_id, did) in DISPROVEN {
+            let route = profile
+                .routes
+                .iter()
+                .find(|route| route.route_id == route_id)
+                .unwrap_or_else(|| panic!("{route_id} disappeared from the pack"));
+            assert!(
+                !route
+                    .candidate_dids
+                    .iter()
+                    .any(|candidate| candidate.did() == did && candidate.executable()),
+                "{did} was disproven on a real test vehicle and must never be requested on {route_id}"
             );
-        assert!(
-            !disproven.executable(),
-            "a DID explicitly disproven on a real test vehicle must never generate a request"
-        );
+        }
+        // A DID number refused on one module is not refused on another: the
+        // evidence is scoped to the route it was observed on.
+        let battery = profile
+            .routes
+            .iter()
+            .find(|route| route.route_id == "audi_j1_hv_battery_7e5_7ed")
+            .unwrap();
+        assert!(battery
+            .candidate_dids
+            .iter()
+            .any(|candidate| candidate.did() == "1801" && candidate.executable()));
     }
 }

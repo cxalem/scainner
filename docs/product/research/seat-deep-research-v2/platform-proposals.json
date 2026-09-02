@@ -1,0 +1,498 @@
+{
+  "schema_version": 1,
+  "pack_id": "seat-deep-research",
+  "pack_version": 2,
+  "research_date": "2026-09-02",
+  "note": "Platforms this pack declares that data/uds-map.json does not carry for these brands. Review and move accepted entries into brands[].platforms[]; the compiler never writes to the trusted map.",
+  "proposals": [
+    {
+      "platform_id": "seat_alhambra_7n",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "alhambra_7n"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2010,
+        "to": 2020
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "VW Sharan-related 7N CAN architecture; separate from MQB",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "medium_high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S08",
+          "url": "https://www.ross-tech.com/vcds/canbus.php",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        },
+        {
+          "ref": "S05",
+          "url": "https://github.com/commaai/opendbc/blob/9a7851b662dd94df155057ad80c4a00f67b630d8/opendbc/car/volkswagen/values.py",
+          "revision": "9a7851b662dd94df155057ad80c4a00f67b630d8",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_legacy_kline",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "ibiza_cordoba_6l",
+        "alhambra_7v",
+        "other_pre_can_holdovers"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": null,
+        "to": 2007
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "K-line ISO9141/KWP1281/KWP2000, sometimes partial CAN for emissions/selected ECUs",
+      "transport_candidates": [],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S08",
+          "url": "https://www.ross-tech.com/vcds/canbus.php",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_mii_electric_shared_up",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "mii_electric"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "11-bit ISO-TP/UDS; shared VW e-Up / Skoda Citigo-e implementation",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S06",
+          "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/1a79c553654b4b981c162b6cbb740c9784408d96/vehicle/OVMS.V3/components/vehicle_vweup/src/vweup_obd.h",
+          "revision": "1a79c553654b4b981c162b6cbb740c9784408d96",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        },
+        {
+          "ref": "S07",
+          "url": "https://github.com/openvehicles/Open-Vehicle-Monitoring-System-3/blob/e0f36c1f02067ce022c7d65fdd9689b009f32f28/vehicle/OVMS.V3/components/vehicle_vweup/src/vweup_obd.cpp",
+          "revision": "e0f36c1f02067ce022c7d65fdd9689b009f32f28",
+          "retrieved_at": "2026-09-02",
+          "licence": "MIT",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_mqb",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "leon_5f",
+        "ateca"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2012,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB; UDS/ODX/ASAM over CAN with J533 gateway",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S14",
+          "url": "https://www.seat.com/company/news/cars/seat-leon-one-million-solds",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S15",
+          "url": "https://www.seat-cupra-mediacenter.es/SEAT-Brand/presskits/MotorSEATAteca/carpeta-de-prensa",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S18",
+          "url": "https://forums.ross-tech.com/index.php?threads/12734/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        },
+        {
+          "ref": "S19",
+          "url": "https://forums.ross-tech.com/index.php?threads/38198/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        },
+        {
+          "ref": "S25",
+          "url": "https://forums.ross-tech.com/index.php?threads/10927/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_mqb_a_lwb",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "tarraco_kn"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2018,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB A+ / MQB-A LWB; UDS/ODX/ASAM over CAN",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S16",
+          "url": "https://www.seat.es/sobre-seat/noticias/coches/seat-tarraco-presentacion-suv",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S24",
+          "url": "https://forums.ross-tech.com/index.php?threads/45480/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_mqb_a0",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "ibiza_kj_mk5",
+        "arona_kj"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2017,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB A0; UDS/ODX/ASAM over CAN",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S12",
+          "url": "https://www.seat-cupra-mediacenter.es/SEAT-Brand/presskits/ibiza/platform-and-measures",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S13",
+          "url": "https://www.seat-cupra-mediacenter.es/SEAT-Brand/presskits/nuevo_arona/Introduccion",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S22",
+          "url": "https://forums.ross-tech.com/index.php?threads/35631/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        },
+        {
+          "ref": "S23",
+          "url": "https://forums.ross-tech.com/index.php?threads/32772/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_mqb_evo",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "leon_kl_mk4",
+        "leon_e_hybrid"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2020,
+        "to": null
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "MQB Evo; GW2020; SFD on protected functions; UDS/ASAM basic reads remain available",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S17",
+          "url": "https://www.seat-mediacenter.com/content/dam/seat-media-center/allnews/press-kits/new-seat-leon-e-hybrid/New-SEAT-Leon-e-HYBRID-the-brands-first-plug-in-hybrid-model-reaches-the-market.pdf",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "oem_confirmed"
+        },
+        {
+          "ref": "S20",
+          "url": "https://forums.ross-tech.com/index.php?threads/45900/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        },
+        {
+          "ref": "S21",
+          "url": "https://forums.ross-tech.com/index.php?threads/46582/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "physical_single_vehicle"
+        },
+        {
+          "ref": "S11",
+          "url": "https://wiki.ross-tech.com/wiki/index.php/SFD",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_pq25_mixed_ibiza_6j",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "ibiza_6j_6p"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2008,
+        "to": 2017
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Mixed K-line KWP2000, CAN TP2.0, CAN TP1.6 and UDS in same vehicle",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S09",
+          "url": "https://www.ross-tech.com/vcds/revisions.php",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        },
+        {
+          "ref": "S10",
+          "url": "https://forums.ross-tech.com/index.php?threads/2835/",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_pq35_can",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "leon_1p",
+        "altea_5p",
+        "toledo_5p"
+      ],
+      "powertrains": [],
+      "years": {
+        "from": 2004,
+        "to": 2013
+      },
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "CAN diagnostics with older VAG transport/protocol mixture; UDS appears on some ECUs",
+      "transport_candidates": [
+        "can11_500"
+      ],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S08",
+          "url": "https://www.ross-tech.com/vcds/canbus.php",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        },
+        {
+          "ref": "S04",
+          "url": "https://github.com/ConnorHowell/vag-uds-ids/blob/27b5431ed22a10a41095517b88dc95b3ae212441/readme.md",
+          "revision": "27b5431ed22a10a41095517b88dc95b3ae212441",
+          "retrieved_at": "2026-09-02",
+          "licence": "NOASSERTION",
+          "reliability": "medium"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    },
+    {
+      "platform_id": "seat_special_unresolved",
+      "brand_ids": [
+        "seat"
+      ],
+      "marques": [
+        "seat"
+      ],
+      "models": [
+        "exeo_3r",
+        "toledo_nh",
+        "mii_ice"
+      ],
+      "powertrains": [],
+      "years": null,
+      "vds_patterns": [],
+      "vin_selectable": false,
+      "architecture": "Known to be VAG-derived but not normalized in this pass",
+      "transport_candidates": [],
+      "confidence": "low",
+      "knowledge_state": "research_candidate",
+      "related_existing_keys": [],
+      "sources": [
+        {
+          "ref": "S08",
+          "url": "https://www.ross-tech.com/vcds/canbus.php",
+          "revision": null,
+          "retrieved_at": "2026-08-30",
+          "licence": "reference_only",
+          "reliability": "high"
+        }
+      ],
+      "accept_by": "Add as brands[].platforms[] in data/uds-map.json once a VIN or vehicle-fact rule confirms it; until then platform-scoped candidates stay inert."
+    }
+  ]
+}

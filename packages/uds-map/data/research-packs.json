@@ -6,6 +6,8 @@
     "research/renault-deep-research-v1.json",
     "research/manufacturer-group-deep-research-v1.json",
     "research/toyota-deep-research-v1.json",
-    "research/hyundai-kia-deep-research-v1.json"
+    "research/hyundai-kia-deep-research-v1.json",
+    "research/seat-deep-research-v2.json",
+    "research/vag-deep-research-v2.json"
   ]
 }

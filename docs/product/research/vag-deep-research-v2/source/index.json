@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "pack_id": "vag-deep-research",
+  "pack_version": 2,
+  "research_date": "2026-09-02",
+  "brand_ids": [
+    "vag"
+  ],
+  "marques": [
+    "volkswagen",
+    "audi"
+  ],
+  "self_hash_policy": "index.json is self-excluded to avoid recursive hashing.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "b315ae5937405a35c55eac74c691fbf30c8c21e314fac223d742b9cc3d9781ad"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "afdcb48ffba6de22efc3cfb32c4cef4e8590d449f1f2a8924f46403165c56994"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "3428efa492379b82d31ff9b3f33887e2a8513ef3a3c5abb41017cb9aba6842a9"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "2060fccb2e6d4afb889c682463bc9c968db4b4f7008cc3477b7c44fe0a717137"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "d3b849daab21b53ed5100a3e061579a497f7f4bbd50c5ae8fbde6ffc2de45b13"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "6892f91f0a79eb5d4d02ffcca0af34397e047a1c417dbfea9c9780e29d24f417"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "34fb69d6c760f18e776bb7672dadd62115d0dfa36376e951b5d229c2fd5c9f9c"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "ed868a0ee7cc48b35d25951adb1a63c340f2fc35fcdccf6b3be090a7d4637df3"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "8f5c84e1b29cae0eaffc57fa00bca35ce7c5c532f1ae69a93c5f066b597abe18"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "a6c81ce026a96fa7cec8ac3c6271852cd108ca91ced993757d0cbe9a472e7f6c"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "c7ba1640fbc04eaffd19a870b3a67d4b94d4d29d9576ba7452e598bd1315e419"
+    },
+    {
+      "path": "vag-profile-overlay.json",
+      "sha256": "6172149d5fa00b38c05b65664b1e16fd0a2d6c3eac38dd56b90ac11033271bad"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "53d31c0343cefca346ddbf64e932d489b94f58d5c681fdacfd8173bbcbddf9dd"
+    }
+  ],
+  "declared_counts": {
+    "sources": 13,
+    "platforms": 14,
+    "routes": 104,
+    "did_candidates": 217,
+    "command_evidence": 25,
+    "ecu_families": 6,
+    "module_inventories": 0,
+    "validation_recipes": 9,
+    "claims": 8,
+    "conflicts": 5,
+    "gaps": 16
+  },
+  "validation": {
+    "status": "valid",
+    "errors": [],
+    "warnings": []
+  }
+}

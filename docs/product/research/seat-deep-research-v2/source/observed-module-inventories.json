@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "inventories": [
+    {
+      "inventory_id": "seat_mqb_leon_5f_2013",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb"
+        ],
+        "models": [
+          "leon_5f_2013"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [],
+      "address_bytes_seen": [
+        "01",
+        "02",
+        "03",
+        "08",
+        "09",
+        "10",
+        "13",
+        "15",
+        "16",
+        "17",
+        "19",
+        "42",
+        "44",
+        "52",
+        "55",
+        "5F",
+        "A5"
+      ],
+      "vehicle_description": "Leon 5F 2013",
+      "chassis": "5F-SE37 (5Q0)",
+      "source_refs": [
+        "S18"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "seat_mqb_leon_5f_2020",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb"
+        ],
+        "models": [
+          "leon_5f_2020"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [],
+      "address_bytes_seen": [
+        "01",
+        "03",
+        "08",
+        "09",
+        "10",
+        "13",
+        "15",
+        "17",
+        "19",
+        "42",
+        "44",
+        "4B",
+        "52",
+        "5F",
+        "BB",
+        "BC",
+        "D6",
+        "D7"
+      ],
+      "vehicle_description": "Leon 5F 2020",
+      "chassis": "5F-SE37 (3Q0)",
+      "source_refs": [
+        "S19"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "seat_mqb_evo_leon_kl_etsi",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_evo"
+        ],
+        "models": [
+          "leon_kl_etsi"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [],
+      "address_bytes_seen": [
+        "01",
+        "02",
+        "03",
+        "05",
+        "08",
+        "09",
+        "10",
+        "13",
+        "15",
+        "17",
+        "19",
+        "23",
+        "2B",
+        "3C",
+        "42",
+        "44",
+        "52",
+        "5F",
+        "61",
+        "6C",
+        "6D",
+        "75",
+        "A5",
+        "BB",
+        "BC",
+        "C4",
+        "CC",
+        "D6",
+        "D7",
+        "811E",
+        "811F",
+        "8120",
+        "8121",
+        "C002",
+        "C003"
+      ],
+      "vehicle_description": "Leon KL eTSI",
+      "chassis": "KL-SE38 (5WA)",
+      "source_refs": [
+        "S20"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "seat_mqb_a0_ibiza_kj_2019",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_a0"
+        ],
+        "models": [
+          "ibiza_kj_2019"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [],
+      "address_bytes_seen": [
+        "01",
+        "03",
+        "05",
+        "08",
+        "09",
+        "10",
+        "15",
+        "17",
+        "19",
+        "2B",
+        "44",
+        "55",
+        "5F",
+        "CA",
+        "D6",
+        "D7"
+      ],
+      "vehicle_description": "Ibiza KJ 2019",
+      "chassis": "KJ-SE27 (2Q0)",
+      "source_refs": [
+        "S22"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "seat_mqb_a0_arona_kj",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_a0"
+        ],
+        "models": [
+          "arona_kj"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [],
+      "address_bytes_seen": [
+        "01",
+        "02",
+        "03",
+        "05",
+        "08",
+        "09",
+        "13",
+        "15",
+        "16",
+        "17",
+        "19",
+        "2B",
+        "44",
+        "5F",
+        "6C"
+      ],
+      "vehicle_description": "Arona KJ",
+      "chassis": "KJ-SE27 (3Q0)",
+      "source_refs": [
+        "S23"
+      ],
+      "physical_project_observation": false
+    },
+    {
+      "inventory_id": "seat_mqb_a_lwb_tarraco_kn_2019",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_a_lwb"
+        ],
+        "models": [
+          "tarraco_kn_2019"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [],
+      "address_bytes_seen": [
+        "01",
+        "02",
+        "03",
+        "05",
+        "08",
+        "09",
+        "10",
+        "13",
+        "14",
+        "15",
+        "17",
+        "18",
+        "19",
+        "22",
+        "2B",
+        "36",
+        "3C",
+        "42",
+        "44",
+        "4B",
+        "52",
+        "5F",
+        "6C",
+        "6D",
+        "75",
+        "A5",
+        "D6",
+        "D7"
+      ],
+      "vehicle_description": "Tarraco KN 2019",
+      "chassis": "KN-SE37 (3Q0)",
+      "source_refs": [
+        "S24"
+      ],
+      "physical_project_observation": false
+    }
+  ],
+  "declared_count": 6
+}
