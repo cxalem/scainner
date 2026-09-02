@@ -138,19 +138,57 @@ export function preselectedDevice(rows: readonly DeviceRow[]): string | null {
   return (remembered ?? rows.find((row) => row.selectable))?.id ?? null;
 }
 
-export type GateScreen = "choose_device" | "connecting" | "failed" | "connected";
+export type GateScreen = "choose_device" | "connecting" | "connected";
 
 /** Which screen the gate shows. `starting` covers the gap between the
- *  Connect click and the backend's first "connecting" status; `choosing`
- *  is the user stepping back from a failure to the device list. */
-export function gateScreen(input: {
-  state: string;
-  failed: boolean;
-  starting: boolean;
-  choosing: boolean;
-}): GateScreen {
+ *  Connect click and the backend's first "connecting" status.
+ *
+ *  There is no `failed` screen (Brief M, 2026-09-02): a failed attempt puts
+ *  the user straight back on the device list with the device they tried
+ *  still selected, and says what went wrong in a toast over the top, so the
+ *  layout does not move under the pointer at the moment they reach for the
+ *  next button. */
+export function gateScreen(input: { state: string; starting: boolean }): GateScreen {
   if (input.state === "connected") return "connected";
   if (input.state === "connecting" || input.starting) return "connecting";
-  if (input.failed && !input.choosing) return "failed";
   return "choose_device";
+}
+
+/** What a failed attempt says to the person holding the dongle. The
+ *  backend's `reason` is a transport error ("open /dev/cu.X: Resource busy
+ *  (os error 16)") — true, in the log, and useless on screen — so the stage
+ *  picks the sentence and the reason only decides whether there is a second
+ *  line worth acting on.
+ *
+ *  Keys, not copy: the strings live in i18n. */
+export type FailureMessage = "link" | "open" | "handshake" | "bus" | "unknown";
+export type FailureHint = "link" | "openBusy" | "openTimeout" | "handshake" | "bus";
+
+export function stageMessage(
+  stage: string,
+  reason: string,
+): { message: FailureMessage; hint: FailureHint | null } {
+  const said = reason.toLowerCase();
+  switch (stage) {
+    case "link":
+      return { message: "link", hint: "link" };
+    case "open":
+      // The two open failures a user can do something about: the port is
+      // held by something else, or the radio never woke up. Anything else
+      // gets the headline alone rather than a guess.
+      return {
+        message: "open",
+        hint: /busy|os error 16/.test(said)
+          ? "openBusy"
+          : /timed out|timeout/.test(said)
+            ? "openTimeout"
+            : null,
+      };
+    case "handshake":
+      return { message: "handshake", hint: "handshake" };
+    case "bus":
+      return { message: "bus", hint: "bus" };
+    default:
+      return { message: "unknown", hint: null };
+  }
 }

@@ -10,6 +10,7 @@ import {
   nearbyRows,
   preselectedDevice,
   scanRow,
+  stageMessage,
   type ScanState,
 } from "./device-list";
 
@@ -231,7 +232,7 @@ describe("isPinRequired", () => {
 });
 
 describe("gateScreen", () => {
-  const base = { state: "disconnected", failed: false, starting: false, choosing: false };
+  const base = { state: "disconnected", starting: false };
 
   it("starts on the device list", () => {
     expect(gateScreen(base)).toBe("choose_device");
@@ -242,16 +243,48 @@ describe("gateScreen", () => {
     expect(gateScreen({ ...base, starting: true })).toBe("connecting");
   });
 
-  it("shows the failure until the user asks for the list again", () => {
-    expect(gateScreen({ ...base, failed: true })).toBe("failed");
-    expect(gateScreen({ ...base, failed: true, choosing: true })).toBe("choose_device");
-  });
-
-  it("a running attempt outranks a previous failure", () => {
-    expect(gateScreen({ ...base, failed: true, starting: true })).toBe("connecting");
+  it("drops a finished attempt back on the device list — a failure has no screen", () => {
+    expect(gateScreen({ state: "disconnected", starting: false })).toBe("choose_device");
   });
 
   it("connected wins over everything", () => {
-    expect(gateScreen({ ...base, state: "connected", failed: true, starting: true })).toBe("connected");
+    expect(gateScreen({ state: "connected", starting: true })).toBe("connected");
+  });
+});
+
+describe("stageMessage", () => {
+  it("names the stage in words the driver can act on", () => {
+    expect(stageMessage("link", "no route to host")).toEqual({ message: "link", hint: "link" });
+    expect(stageMessage("handshake", "no ELM banner")).toEqual({
+      message: "handshake",
+      hint: "handshake",
+    });
+    expect(stageMessage("bus", "NO DATA")).toEqual({ message: "bus", hint: "bus" });
+  });
+
+  it("reads the two open failures that have an answer out of the reason", () => {
+    expect(stageMessage("open", "open /dev/cu.X: Resource busy (os error 16)")).toEqual({
+      message: "open",
+      hint: "openBusy",
+    });
+    expect(stageMessage("open", "Operation timed out (os error 60)")).toEqual({
+      message: "open",
+      hint: "openTimeout",
+    });
+  });
+
+  it("gives the headline alone when the open reason says nothing useful", () => {
+    expect(stageMessage("open", "permission denied")).toEqual({ message: "open", hint: null });
+  });
+
+  it("falls back to one plain sentence for a stage it does not know", () => {
+    expect(stageMessage("teleport", "Resource busy")).toEqual({ message: "unknown", hint: null });
+    expect(stageMessage("", "")).toEqual({ message: "unknown", hint: null });
+  });
+
+  it("never leaks the transport error into the copy it picks", () => {
+    const { message, hint } = stageMessage("open", "open /dev/cu.OBDII: Resource busy (os error 16)");
+    expect(message).toBe("open");
+    expect(hint).toBe("openBusy");
   });
 });
