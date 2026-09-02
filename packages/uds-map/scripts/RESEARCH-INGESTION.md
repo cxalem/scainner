@@ -1,24 +1,54 @@
-# Turning a brand deep-research package into a live research-candidate delta
+# Getting a brand research pack into the runtime
+
+## The single path
+
+A specification-shaped authoring directory goes through **the compiler**, and
+nothing else:
+
+```text
+docs/product/research/<pack>/  →  research:compile  →  data/research/<pack>.json
+                                                    +  projection-report.json
+                                                    +  source/ archive
+                               →  one line in data/research-packs.json
+```
 
 The normative authoring, safety and runtime-projection contract is
 [`docs/uds/brand-research-pack-specification.md`](../../../docs/uds/brand-research-pack-specification.md).
-This file is the practical procedure for the current v1 projection format.
+[`docs/uds/research-pack-pipeline.md`](../../../docs/uds/research-pack-pipeline.md)
+describes the pipeline end to end, and
+[`docs/uds/brand-research-protocol.md`](../../../docs/uds/brand-research-protocol.md)
+describes how a research pass is run and reviewed. This file is the practical
+procedure for the current v1 projection format, and the list of runtime rules
+a compiled pack must satisfy.
 
-The discovery engine already has a safety-gated pipeline for exactly this
-(`apps/desktop/src-tauri/src/elm/discovery/research.rs`), used today by
-Porsche, BYD, Subaru, PSA, Mazda, Škoda and others. Getting a new brand's
-research package into it is normally a **pure data change** — a new
-`profile` (routes) plus a handful of `claims` (evidence) appended to
-`packages/uds-map/data/research/existing-brand-hypotheses-v3.json` (an
-existing brand already in `uds-map.json`, getting a delta — this is the
-common case) or `research-candidates-v2.json` (a brand with no `uds-map.json`
-entry at all yet). **No Rust code change is needed** unless you're adding a
-brand-new pack *file* — see `ingest-seat-research.py` for a worked example
-(SEAT → `existing-brand-hypotheses-v3.json`, version bumped in place).
+**Validation.** `pnpm --filter @scainner/uds-map research:validate
+<pack-directory>` is the standalone spec §23 validation stage. Run it first;
+`research:compile` runs exactly the same checks and refuses to project a pack
+that fails them.
 
-Rules the pipeline enforces at startup (`research.rs::packs()`, hard
-`assert!`s — get any of these wrong and the binary won't build, or worse, a
-route silently vanishes with no error):
+## Legacy, frozen
+
+`packages/uds-map/data/research/existing-brand-hypotheses-v3.json` is
+**frozen**. It still loads at runtime and its remaining routes still plan,
+but no new brand is appended to it and no delta script is written.
+`research-candidates-v2.json` is frozen on the same terms.
+
+The per-brand Python delta scripts are gone. The two brands they served were
+re-authored into specification directories and compiled into packs of their
+own, and the one-off conversion that did it,
+`migrate-legacy-research-pack.ts`, is kept beside this file as the record of
+how the pre-specification content became specification content.
+
+Adding a pack file needs no Rust change: `build.rs` generates the `EMBEDDED`
+table from `data/research-packs.json`, so a new pack is one compiled file
+plus one index line.
+
+## Runtime rules
+
+Unchanged, and still true whichever path a pack came from. Rules the pipeline
+enforces at startup (`research.rs::packs()`, hard `assert!`s — get any of
+these wrong and the binary won't build, or worse, a route silently vanishes
+with no error):
 
 1. **`protocol` must be exactly one of**: `can11_500`, `can11_250`,
    `can29_normal_fixed`, `can29_target_byte`, `can29_custom`
@@ -76,10 +106,10 @@ route silently vanishes with no error):
     rejects non-hexadecimal addresses and DIDs so malformed records cannot
     silently vanish from the plan.
 
-## After ingesting
+## Compiling
 
-For a rich specification-shaped package, use the compiler and always retain
-its manifest-verified authoring inputs:
+Every pack goes through the compiler, and always retains its
+manifest-verified authoring inputs:
 
 ```sh
 pnpm --filter @scainner/uds-map research:compile \
@@ -95,11 +125,19 @@ hash mismatches before copying. It archives only `index.json` plus the files
 declared by that index, then records every archived hash in the projection
 report. Generated runtime data and the report itself stay outside `source/`.
 
+Then add one line for the new runtime pack to
+`packages/uds-map/data/research-packs.json`.
+
+## After compiling
+
 - `cargo test --lib discovery::research` (fast, self-contained) then
   `cargo test --lib` (full crate) from `apps/desktop/src-tauri`.
 - Add one test asserting the new brand's candidates actually surface from
   `routes_for_context` — a silent zero-route result is the most likely
   failure mode (rule 1) and nothing else will catch it.
-- No `packages/uds-map` (TypeScript/vitest) changes are needed — research
-  packs are Rust-only, not part of the `@scainner/uds-map` npm package or its
-  lint/coverage scripts.
+- `pnpm --filter @scainner/uds-map research:validate <dir>` must pass before
+  compiling (the compiler runs it first); `pnpm --filter @scainner/uds-map test`
+  covers the validator, and `COVERAGE.md` carries a Research section, so run
+  `pnpm coverage` after adding a pack. The compiler also writes
+  `platform-proposals.json` beside the projection report for platforms the
+  trusted map lacks.

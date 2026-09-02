@@ -1,9 +1,3 @@
-// TanStack Query hooks for the UDS/Lab surface (ModuleManager, ProbeManager
-// - DidReader/RangeScanner/ModuleFaults call DeviceService directly, they
-// are one-shot manual actions, not cacheable reads, same as before this
-// phase). Every queryFn/mutationFn runs through DeviceService
-// (effect-architecture plan.md phase 2); this file only moved from the old
-// single lib/queries.ts in phase 4 - no behavior change.
 import { Effect } from "effect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { runPromise } from "@/core/runtime";
@@ -20,13 +14,6 @@ export function useUdsModules() {
   });
 }
 
-// Not in plan.md's named key list (research flagged Lab's child cards as
-// "not audited individually... flagged for the planner to size" — see
-// decisions-build.md). Follows the same "command name verbatim" rule.
-//
-// Scoped by vehicle (2026-08-24): a probe found on one car must never be
-// attempted on another. null = no identified vehicle connected — returns
-// only legacy (pre-scoping) global probes.
 export function useListProbes(vehicleId: number | null) {
   return useQuery({
     queryKey: ["list_probes", vehicleId],
@@ -75,13 +62,22 @@ export function useDeleteProbe() {
   });
 }
 
-/// What previous discovery passes found for this vehicle. Local DB read —
-/// works with no car connected, which is the point: findings persist.
 export function useDiscoveredModules(vehicleId: number | null) {
   return useQuery({
     queryKey: ["discovered_modules", vehicleId],
     queryFn: () => run((device) => device.discoveredModules(vehicleId!)),
     enabled: vehicleId != null,
+  });
+}
+
+export function useRunDiscovery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { vehicleId: number }) => run((device) => device.runDiscovery(vars.vehicleId)),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["discovered_modules"] });
+      void qc.invalidateQueries({ queryKey: ["vehicle_evidence_map"] });
+    },
   });
 }
 

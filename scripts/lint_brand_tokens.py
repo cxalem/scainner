@@ -7,7 +7,6 @@ compares the per-file counts with `scripts/brand_token_baseline.json`.
 
     python3 scripts/lint_brand_tokens.py            # check against the baseline
     python3 scripts/lint_brand_tokens.py --update   # rewrite the baseline (only
-                                                    # after a phase that removed tokens)
 
 It fails when any file's count is above its baseline, or when a file that is
 not in the baseline contains tokens. It prints the diff either way.
@@ -44,33 +43,24 @@ BASELINE = os.path.join(ROOT, "scripts", "brand_token_baseline.json")
 SCAN_DIRS = ["apps/desktop/src-tauri/src", "apps/desktop/src"]
 EXTENSIONS = (".rs", ".ts", ".tsx")
 
-# Every token is matched as a whole identifier: not preceded or followed by an
-# alphanumeric character. Hex/decimal ids additionally accept a `0x` prefix.
 TOKENS = [
-    # brands / groups
     "citroen",
     "citroën",
     "peugeot",
     "psa",
     "stellantis",
-    # platform
     "c41",
-    # adapters
     "vgate",
     "v-link",
-    # the vehicle's CAN ids
     "6A8",
     "6AD",
     "6B5",
     "74A",
     "752",
     "75F",
-    # vendor identity DIDs
     "F080",
     "F0FE",
-    # plan prefix
     "citroen-c41",
-    # part references seen on the vehicle
     "9846124980",
     "9844551780",
     "9817137180",
@@ -106,28 +96,80 @@ def is_excluded(rel: str) -> bool:
 
 def strip_block_comments(text: str) -> str:
     """Blank out /* … */ comments spanning lines, preserving line count."""
-    out = []
+    out: list[str] = []
     i = 0
-    while True:
-        j = text.find("/*", i)
-        if j < 0:
-            out.append(text[i:])
-            break
-        k = text.find("*/", j + 2)
-        if k < 0:
-            k = len(text) - 2
-        out.append(text[i:j])
-        out.append("\n" * text[j:k + 2].count("\n"))
-        i = k + 2
+    quote: str | None = None
+    while i < len(text):
+        if quote:
+            out.append(text[i])
+            if text[i] == "\\" and i + 1 < len(text):
+                i += 1
+                out.append(text[i])
+            elif text[i] == quote:
+                quote = None
+            i += 1
+            continue
+        if text[i] in "'\"`":
+            quote = text[i]
+            out.append(text[i])
+            i += 1
+            continue
+        if text.startswith("//", i):
+            end = text.find("\n", i)
+            if end < 0:
+                out.append(text[i:])
+                break
+            out.append(text[i:end + 1])
+            i = end + 1
+            continue
+        if text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            end = len(text) if end < 0 else end + 2
+            out.append("\n" * text[i:end].count("\n"))
+            i = end
+            continue
+        out.append(text[i])
+        i += 1
+    return "".join(out)
+
+
+def strip_line_comments(text: str) -> str:
+    out: list[str] = []
+    quote: str | None = None
+    i = 0
+    while i < len(text):
+        if quote:
+            out.append(text[i])
+            if text[i] == "\\" and i + 1 < len(text):
+                i += 1
+                out.append(text[i])
+            elif text[i] == quote:
+                quote = None
+            i += 1
+            continue
+        if text[i] in "'\"`":
+            quote = text[i]
+            out.append(text[i])
+            i += 1
+            continue
+        if text.startswith("//", i):
+            end = text.find("\n", i)
+            if end < 0:
+                break
+            out.append("\n")
+            i = end + 1
+            continue
+        out.append(text[i])
+        i += 1
     return "".join(out)
 
 
 def code_lines(path: str) -> list[str]:
     """Lines that count: no comment-only lines, no `#[cfg(test)] mod` blocks."""
-    text = strip_block_comments(open(path, encoding="utf-8").read())
+    text = strip_line_comments(strip_block_comments(open(path, encoding="utf-8").read()))
     lines = text.split("\n")
     kept: list[str] = []
-    depth = 0  # >0 while inside a #[cfg(test)] mod block
+    depth = 0
     pending_test_mod = False
     for line in lines:
         if depth > 0:
@@ -151,9 +193,8 @@ def code_lines(path: str) -> list[str]:
 def count_file(path: str) -> int:
     total = 0
     for line in code_lines(path):
-        code = line.split("//", 1)[0]  # trailing comment on a code line
         for _, pat in PATTERNS:
-            total += len(pat.findall(code))
+            total += len(pat.findall(line))
     return total
 
 
@@ -193,7 +234,24 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--update", action="store_true", help="rewrite the baseline from the current tree")
     ap.add_argument("--verbose", action="store_true", help="print every file's count")
+    ap.add_argument("--self-test", action="store_true", help="run comment-stripper checks")
     args = ap.parse_args()
+
+    if args.self_test:
+        cases = {
+            "line-comment-with-slash-star": ("// /*\nCitroen\n", "// /*\nCitroen\n"),
+            "string-with-slash-star": ('const marker = "/* //";\nCitroen\n', 'const marker = "/* //";\nCitroen\n'),
+            "real-block": ("before /* Citroen\nstill blocked\n", "before \n\n"),
+        }
+        for name, (source, expected) in cases.items():
+            actual = strip_block_comments(source)
+            if name == "string-with-slash-star":
+                actual = strip_line_comments(actual)
+            if actual != expected or actual.count("\n") != source.count("\n"):
+                print(f"FAIL: {name}")
+                return 1
+            print(f"PASS: {name}")
+        return 0
 
     current = scan()
     baseline = load_baseline()

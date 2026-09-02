@@ -271,6 +271,7 @@ Address rules:
   "confidence": "high",
   "knowledge_state": "research_candidate",
   "source_refs": ["S01", "S05"],
+  "vds_patterns": ["^E1EA", "^E1EB"],
   "non_generalization_boundary": "Do not apply to MEB Gen2 without a matching fingerprint."
 }
 ```
@@ -284,6 +285,83 @@ platform_id · confidence · supporting evidence · alternatives
 
 Ambiguity is valid. The planner uses only the intersection of safe candidates
 until stronger evidence arrives.
+
+### 9.1 `vds_patterns`
+
+**Required** for new packs. Optional in the JSON schema — a platform may
+legitimately have no VIN rule — but a platform that omits it must be named by
+a `platform_not_vin_selectable` gap instead. Exactly one of the two, never
+neither.
+
+```json
+"vds_patterns": ["^KA1HK", "^KB1HK"],
+"source_refs": ["S03"]
+```
+
+An array of anchored regex **strings** over the vehicle-descriptor
+characters, one per VIN family. Sources are the platform's own
+`source_refs`; a platform that declares patterns with no `source_refs` is
+rejected.
+
+| Rule | Detail |
+|---|---|
+| Subset | Literals `A-Z0-9`, `.`, `[...]` classes with ranges and negation, `(a\|b)` alternation, and `^`, `$`, `?`, `*`, `+`. No `{n,m}`, no escapes, no capture semantics. `I`, `O` and `Q` never appear in a VIN and never appear as literals. |
+| Anchoring | Every entry starts with `^`, and every top-level `\|` alternative inside one entry is anchored — group them as `^(A\|B)`, not `^A\|B`. An unanchored pattern is a substring search over the descriptor. |
+| Non-empty | A pattern that matches the empty string classifies nothing and is rejected. |
+| Granularity | One entry per VIN family. Two families are two entries, never one loosened pattern. |
+
+**What the pattern is matched against.** Per ISO 3779:2009 §4.3 the vehicle
+descriptor section is VIN positions **4–9**, six characters whose coding and
+sequence are the manufacturer's own; position 10 is the model-year character
+and position 11 the plant. The runtime matcher
+(`apps/desktop/src-tauri/src/elm/uds_map.rs::platform_for_vin`) takes
+`vin[3..10]` — **VIN characters 4–10 inclusive**, so the six descriptor
+characters *plus* the model-year character. A rule that constrains only
+positions 4–9 is therefore anchored at the start and left open at the end
+(`^KA1`); a closing `$` constrains all seven characters including the model
+year.
+
+**Required.** A pattern is scoped to a **generation**, never to a nameplate:
+nameplates outlive diagnostic architectures and get reused across them. If
+two generations cannot be separated by descriptor characters, that is a
+`platform_not_vin_selectable` gap, not a widened pattern.
+
+**Current.** The compiler maps this field into the trusted map's
+`brands[].platforms[].vds_pattern` through `platform-proposals.json`. The
+trusted map holds one regex string per platform, so a proposal carries both
+the full `vds_patterns` list and a single `vds_pattern`: the one entry when
+the platform declares one, otherwise the entries joined into one alternation,
+`^(KA1HK|KB1HK)`. `elm/uds_map.rs::vds_matches` expands groups and top-level
+alternation before matching, so that form resolves. The compiler never writes
+to `data/uds-map.json`; a human moves accepted proposals across.
+
+`projection-report.json` reports `vin_selectable_platforms`: the platform IDs
+that carry a VIN rule. An empty list means no platform-scoped route in the
+pack can ever fire from a VIN alone.
+
+### 9.2 The gap alternative
+
+A platform with no sourced descriptor rule is declared, not left silent:
+
+```json
+{
+  "gap_id": "examplebrand_gen2_not_vin_selectable",
+  "kind": "platform_not_vin_selectable",
+  "scope": { "platform_ids": ["examplebrand_gen2"] },
+  "priority": "P1",
+  "required_evidence": "A registry or type-approval table mapping this generation's descriptor characters, or a second confirmed VIN from the generation.",
+  "safe_next_action": "Classify by model year plus mode 09 calibration identifiers, or by gateway identity, until a descriptor rule is sourced; leave platform-scoped candidates inert.",
+  "retry_condition": "A registry table or a second confirmed VIN appears.",
+  "source_refs": ["S03"]
+}
+```
+
+**Current.** `research:validate` counts platforms carrying neither and
+reports them on the line `platforms without a VIN classifier`, one warning
+`platform_without_vin_classifier: <platform_id>` each. It is a warning, not a
+failure: a pack whose platforms are honestly unclassifiable is still a valid
+pack. Reviewer checklist rows 8a and 8b in the protocol turn that number into
+a merge decision.
 
 ## 10. Routes: where to ask
 

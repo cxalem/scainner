@@ -1,7 +1,3 @@
-// Verification plan. Runs the parked plan the backend generates for the
-// connected vehicle and reports answered / refused / timed out per target.
-// The copy states the plan's own counts, so a car with two documented
-// modules and one with twenty read the same surface truthfully.
 import { useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronRight, CircleAlert } from "lucide-react";
 import { Button, ExpanderButton, Kicker, Note, Pill, SweepBar, Table, Td, Th, Tr } from "@/components/ui";
@@ -153,10 +149,6 @@ export function ParkedVerification({ connected, vehicleId }: { connected: boolea
               return (
                 <div key={target.key} className="flex flex-col gap-1.5 border-t border-neutral-900 pt-2.5">
                   <div className="flex items-center gap-[11px] text-[12.5px]">
-                    {/* min-w, not w: extended module routing (e.g. "6A8/688")
-                        is longer than the design's 2-char addresses — a
-                        fixed w clips nothing and paints over the next
-                        column instead. */}
                     <span className="num min-w-[26px] shrink-0 text-neutral-500">{target.route.split("/")[0]}</span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="truncate text-[13px]">{target.label}</span>

@@ -1,0 +1,290 @@
+{
+  "schema_version": 1,
+  "families": [
+    {
+      "ecu_family_id": "vag_gateway_mqb_conti_nf",
+      "role": "gateway",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb",
+          "seat_mqb_a0",
+          "seat_mqb_a_lwb"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "EV_GatewConti",
+        "EV_GatewNF",
+        "GW MQB High"
+      ],
+      "part_prefix_examples": [
+        "5Q0",
+        "3Q0"
+      ],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S18",
+        "S19",
+        "S26"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Reuse route/identity behavior first. Promote DIDs only after matching ECU part/software or ASAM family."
+    },
+    {
+      "ecu_family_id": "vag_gateway_mqb2020",
+      "role": "gateway",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_evo"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "GW2020 High",
+        "EV_GatewMQB2020"
+      ],
+      "part_prefix_examples": [
+        "5WA"
+      ],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S20",
+        "S21"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Strong MQB Evo classifier; SFD may be present, but basic reads remain permitted."
+    },
+    {
+      "ecu_family_id": "continental_mk100_ipb",
+      "role": "brakes_abs_esc",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb",
+          "seat_mqb_a0",
+          "seat_mqb_a_lwb"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "EV_Brake1UDSContiMK100IPB"
+      ],
+      "part_prefix_examples": [
+        "5Q0 614 517"
+      ],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S25",
+        "S26"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Excellent candidate for cross-SEAT/VAG family reuse; decodes require software-family compatibility."
+    },
+    {
+      "ecu_family_id": "continental_mk100_esp",
+      "role": "brakes_abs_esc",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "EV_Brake1UDSContiMK100ESP"
+      ],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "medium_high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Keep separate from MK100IPB until route/DID compatibility is physically compared."
+    },
+    {
+      "ecu_family_id": "mqb_eps",
+      "role": "steering_assist",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb",
+          "seat_mqb_a0",
+          "seat_mqb_a_lwb"
+        ],
+        "ecu_roles": [
+          "steering_assist"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "EV_SteerAssisMQB",
+        "EPS_MQB_ZFLS"
+      ],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "medium_high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S18",
+        "S22",
+        "S23"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Route 712->77C is broad VAG candidate; Mii electric is a known exception at 712->71A."
+    },
+    {
+      "ecu_family_id": "mqb_kessy_hella",
+      "role": "access_start_authorization",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb",
+          "seat_mqb_a0"
+        ],
+        "ecu_roles": [
+          "access_start_authorization"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "VWKESSYMQB",
+        "EV_KessyHellaMQBAB"
+      ],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S23"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "Use ASAM identity to bind before importing any DIDs."
+    },
+    {
+      "ecu_family_id": "mqb_evo_brake_booster_bosch",
+      "role": "brake_booster",
+      "scope": {
+        "brand_ids": [
+          "seat"
+        ],
+        "marques": [
+          "seat"
+        ],
+        "platform_ids": [
+          "seat_mqb_evo"
+        ],
+        "ecu_roles": [
+          "brake_booster"
+        ]
+      },
+      "observed_route_ids": [],
+      "diagnostic_services": [
+        "22"
+      ],
+      "identity_reference_examples": [
+        "EV_BrakeBoostG2BoschVW37W"
+      ],
+      "part_prefix_examples": [],
+      "proposed_candidate_ids": [],
+      "confidence": "high",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S21"
+      ],
+      "promotion_test": "Match compatible part and software fingerprints and reproduce the same route, identifier and decoder on at least two vehicles before treating the family as confirmed.",
+      "non_generalization_boundary": "MQB Evo specific candidate; source scan shows SFD flag."
+    }
+  ],
+  "declared_count": 7
+}

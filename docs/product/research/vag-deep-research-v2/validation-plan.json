@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "goal": "Promote source hypotheses into vehicle- and family-confirmed knowledge without overwriting stronger evidence.",
+  "validation_recipes": [
+    {
+      "validation_recipe_id": "wheel_speed",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "wheel speed low-speed turn"
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "steering_angle",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "steering center-left-right"
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "brake_pressure",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "brake pressure light/medium press"
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "12v_voltage_current",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "12V voltage cross-check"
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "hv_soc",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "EV SOC/range progression"
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "charger_state_during_ac_charging",
+      "kind": "guided_sequence",
+      "safe_vehicle_state": "controlled_low_speed_private_area",
+      "instructions": [
+        "charger state during AC charging"
+      ],
+      "expected_behavior": [
+        "the value tracks the action the operator performed",
+        "the value returns to its resting state when the action stops"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "tpms",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "Compare the candidate value against an independent reference for tpms."
+      ],
+      "expected_behavior": [
+        "the value stays within the plausibility window recorded on the decoder variant",
+        "the value moves with the reference and not against it"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "ambient_cabin_temperature",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "Compare the candidate value against an independent reference for ambient cabin temperature."
+      ],
+      "expected_behavior": [
+        "the value stays within the plausibility window recorded on the decoder variant",
+        "the value moves with the reference and not against it"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    },
+    {
+      "validation_recipe_id": "voltage_cross_check",
+      "kind": "cross_reference",
+      "safe_vehicle_state": "stationary",
+      "instructions": [
+        "Compare the candidate value against an independent reference for voltage cross check."
+      ],
+      "expected_behavior": [
+        "the value stays within the plausibility window recorded on the decoder variant",
+        "the value moves with the reference and not against it"
+      ],
+      "reference_signals": [],
+      "promotion_result": "vehicle_fit_matched"
+    }
+  ],
+  "declared_count": 9,
+  "test_fleet_priority": [
+    {
+      "vehicle": "VW Golf Mk7",
+      "platform": "vw_mqb",
+      "reason": "Large parc; core transverse VAG reuse"
+    },
+    {
+      "vehicle": "VW Golf Mk8",
+      "platform": "vw_mqb_evo",
+      "reason": "Modern/SFD branch"
+    },
+    {
+      "vehicle": "VW Polo Mk6",
+      "platform": "vw_mqb_a0",
+      "reason": "High-volume Spain small-car platform"
+    },
+    {
+      "vehicle": "VW ID.4 or ID.3",
+      "platform": "vw_meb_gen1",
+      "reason": "MEB EV route/DID validation"
+    },
+    {
+      "vehicle": "Audi A3 8V/Q3 F3",
+      "platform": "audi_mqb",
+      "reason": "Audi transverse MQB reuse"
+    },
+    {
+      "vehicle": "Audi A4/Q5 longitudinal",
+      "platform": "audi_mlb",
+      "reason": "Longitudinal split and negative-evidence validation"
+    },
+    {
+      "vehicle": "Audi e-tron/Q8 e-tron",
+      "platform": "audi_mlb_evo_ev",
+      "reason": "First Audi EV architecture"
+    },
+    {
+      "vehicle": "Audi e-tron GT",
+      "platform": "audi_j1",
+      "reason": "J1 exact support matrix"
+    },
+    {
+      "vehicle": "Audi Q4 e-tron",
+      "platform": "audi_meb",
+      "reason": "Audi MEB cross-brand reuse"
+    },
+    {
+      "vehicle": "Audi Q6/A6 e-tron",
+      "platform": "audi_ppe",
+      "reason": "New architecture; route discovery from scratch"
+    }
+  ],
+  "per_vehicle_sequence": [],
+  "promotion_rules": {
+    "vehicle_confirmed": "One physical vehicle reproduces route+DID+decode.",
+    "multi_vehicle_confirmed": "Two compatible vehicles reproduce it.",
+    "family_confirmed": "Same ECU identity/family and decode reproduced across vehicles/brands.",
+    "group_wide": "Requires multiple independent platform families; expected to be rare."
+  }
+}

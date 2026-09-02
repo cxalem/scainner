@@ -4,8 +4,6 @@ import { detectVoltageCluster, groupBySystem } from "@/lib/dtc-grouping";
 describe("groupBySystem", () => {
   it("groups a mixed-system code set by decodeDtc's system, alphabetically", () => {
     const groups = groupBySystem(["P0300", "C0035", "B0001", "U0100"]);
-    // Neutral ordering (severity ranking removed 2026-08-21, owner call —
-    // the app makes no seriousness claims): systems alphabetical.
     expect(groups.map((g) => g.system)).toEqual([
       "Body (airbags, lighting, comfort)",
       "Chassis (brakes, steering, suspension)",

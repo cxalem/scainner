@@ -53,8 +53,6 @@ describe("brandFromVin", () => {
   });
 
   it("carries the routing brand id for map-routed WMIs and null for badge-only marques", () => {
-    // VF3 is routed by the map (a group brand) and refined by the marque
-    // overlay; WP0 only exists in the overlay.
     expect(typeof brandFromVin("VF3AAAAA000000000")?.brand).toBe("string");
     expect(brandFromVin("WP0AAAAA000000000")).toEqual(
       expect.objectContaining({ key: "porsche", brand: null }),
@@ -156,14 +154,6 @@ describe("parseWmiTable", () => {
     const rawKeys = Object.keys(raw).map((k) => k.toUpperCase());
     const parsedKeys = Object.keys(parsed);
     expect(parsedKeys.sort()).toEqual([...new Set(rawKeys)].sort());
-    // Every key must be a real, reachable WMI prefix: exactly 3 uppercase
-    // alphanumerics. parseWmiTable is deliberately tolerant of value-shape
-    // problems, but a malformed KEY (trailing space, wrong length,
-    // lowercase) would pass validation and then never match any VIN,
-    // silently killing that brand's badge - this assertion catches that
-    // typo class in the real data at test time. (Added in review
-    // 2026-08-21: a probe showed "VR7 ", "AB", "ABCD", and "" all pass
-    // parseWmiTable and become unreachable entries.)
     for (const k of Object.keys(raw)) {
       expect(k).toMatch(/^[A-Z0-9]{3}$/);
     }
@@ -200,14 +190,9 @@ describe("wmi.json is generated from the knowledge map", () => {
 });
 
 describe("emblem keys are reachable", () => {
-  // emblems.tsx is read as text on purpose: importing it drags three.js
-  // and GLTF loaders into a unit test for what is a data-consistency check.
   it("every EMBLEMS key is a wmi.json key or an explicit preview-only emblem", async () => {
     const src = readFileSync(join(HERE, "../components/emblems.tsx"), "utf-8");
     const record = src.slice(src.indexOf("export const EMBLEMS"));
-    // "?...?": a key with a hyphen (e.g. "land-rover", not a valid bare JS
-    // identifier) is written quoted in the object literal — accept both
-    // forms so a real, functioning quoted key isn't invisible to this scrape.
     const keys = [...record.matchAll(/^  "?([a-z][a-z0-9_-]*)"?: (?:glb|stl)Emblem\(/gm)].map((m) => m[1]);
     expect(keys.length).toBeGreaterThan(10);
     const previewMatch = src.match(/export const PREVIEW_ONLY_EMBLEMS = \[([^\]]*)\]/);
@@ -228,7 +213,6 @@ describe("emblem keys are reachable", () => {
     );
     const modeledKeys = new Set(MODELED_BRANDS.map((b) => b.key));
     expect(modeledKeys).toEqual(registryKeys);
-    // Every entry usable straight from a WMI-derived name/key, no gaps.
     for (const b of MODELED_BRANDS) {
       expect(typeof b.name).toBe("string");
       expect(b.name.length).toBeGreaterThan(0);

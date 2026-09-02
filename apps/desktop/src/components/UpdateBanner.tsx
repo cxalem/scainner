@@ -1,16 +1,3 @@
-// product-plan.md's 2026-08-21 decision: Tauri's built-in updater over
-// GitHub Releases, checked silently, never blocking, never surfaced as an
-// error if it fails. This banner is the one visible piece of that: it
-// mounts once (in Shell.tsx, above every view) and stays invisible unless
-// a real update is actually found.
-//
-// The check itself happens outside a browser preview (MOCK_MODE) — there
-// is no Tauri runtime to ask, and no reason to fake one — and is wrapped
-// in a bare try/catch with no fallback UI: offline, GitHub unreachable, a
-// malformed manifest, anything at all, all collapse to "no update found",
-// same as genuinely being up to date. The one place an error DOES surface
-// is install itself (downloadAndInstall/relaunch), because by then the
-// user asked for it and silently doing nothing would look broken.
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import type { Update } from "@tauri-apps/plugin-updater";
@@ -35,7 +22,6 @@ export function UpdateBanner() {
         if (!cancelled && found?.available) setUpdate(found);
       })
       .catch(() => {
-        // Deliberately silent — see file header.
       });
     return () => {
       cancelled = true;

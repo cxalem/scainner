@@ -163,7 +163,7 @@
           "module_role": "evc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -183,7 +183,7 @@
           "module_role": "dcm",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -203,7 +203,7 @@
           "module_role": "lbc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -223,7 +223,7 @@
           "module_role": "peb",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -243,7 +243,7 @@
           "module_role": "airbag",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -263,7 +263,7 @@
           "module_role": "usm",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -283,7 +283,7 @@
           "module_role": "cluster",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -303,7 +303,7 @@
           "module_role": "eps",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -323,7 +323,7 @@
           "module_role": "abs_esc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -343,7 +343,7 @@
           "module_role": "brake_pedal",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -363,7 +363,7 @@
           "module_role": "uch",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -383,7 +383,7 @@
           "module_role": "hvac",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -403,7 +403,7 @@
           "module_role": "park_assist",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -423,7 +423,7 @@
           "module_role": "bcb_obc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -443,7 +443,7 @@
           "module_role": "lbc2",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -463,7 +463,7 @@
           "module_role": "airbag",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -483,7 +483,7 @@
           "module_role": "audio_amplifier",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -503,7 +503,7 @@
           "module_role": "parking_brake",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -523,7 +523,7 @@
           "module_role": "uch",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -543,7 +543,7 @@
           "module_role": "hvac",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -563,7 +563,7 @@
           "module_role": "dcm",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -583,7 +583,7 @@
           "module_role": "eps",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -603,7 +603,7 @@
           "module_role": "front_camera",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -623,7 +623,7 @@
           "module_role": "hands_free",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -643,7 +643,7 @@
           "module_role": "integrated_dynamics",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -663,7 +663,7 @@
           "module_role": "front_radar",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -683,7 +683,7 @@
           "module_role": "cluster",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -703,7 +703,7 @@
           "module_role": "multimedia",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -723,7 +723,7 @@
           "module_role": "navigation",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -743,7 +743,7 @@
           "module_role": "park_assist",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -763,7 +763,7 @@
           "module_role": "plc_gateway",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -783,7 +783,7 @@
           "module_role": "usm",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -803,7 +803,7 @@
           "module_role": "pedestrian_sound",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -823,7 +823,7 @@
           "module_role": "wireless_charger",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -843,7 +843,7 @@
           "module_role": "abs_esc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -863,7 +863,7 @@
           "module_role": "bcb_obc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -883,7 +883,7 @@
           "module_role": "e_act_eba",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -903,7 +903,7 @@
           "module_role": "inverter",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1201,7 +1201,7 @@
               "decode_status": "unknown"
             }
           ],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1221,7 +1221,7 @@
           "module_role": "lbc2",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1241,7 +1241,7 @@
           "module_role": "security_gateway",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1261,7 +1261,7 @@
           "module_role": "vehicle_control",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1281,7 +1281,7 @@
           "module_role": "navigation",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1301,7 +1301,7 @@
           "module_role": "can_gateway",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1321,7 +1321,7 @@
           "module_role": "uch",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1341,7 +1341,7 @@
           "module_role": "multimedia",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1361,7 +1361,7 @@
           "module_role": "lbc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1381,7 +1381,7 @@
           "module_role": "hvac",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1401,7 +1401,7 @@
           "module_role": "cluster",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1421,7 +1421,7 @@
           "module_role": "automatic_transmission",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1441,7 +1441,7 @@
           "module_role": "usm",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1461,7 +1461,7 @@
           "module_role": "engine",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1481,7 +1481,7 @@
           "module_role": "evc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1501,7 +1501,7 @@
           "module_role": "bcb_obc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1521,7 +1521,7 @@
           "module_role": "front_camera",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1541,7 +1541,7 @@
           "module_role": "audio",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1561,7 +1561,7 @@
           "module_role": "airbag",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1581,7 +1581,7 @@
           "module_role": "cshv",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1601,7 +1601,7 @@
           "module_role": "vehicle_charger_controller",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1621,7 +1621,7 @@
           "module_role": "dcm",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1641,7 +1641,7 @@
           "module_role": "abs_esc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1661,7 +1661,7 @@
           "module_role": "pedestrian_sound",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1681,7 +1681,7 @@
           "module_role": "wireless_charger",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1701,7 +1701,7 @@
           "module_role": "eps",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1721,7 +1721,7 @@
           "module_role": "acc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1741,7 +1741,7 @@
           "module_role": "top_control",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1761,7 +1761,7 @@
           "module_role": "peb",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1781,7 +1781,7 @@
           "module_role": "plc_gateway",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1801,7 +1801,7 @@
           "module_role": "shift_by_wire",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1821,7 +1821,7 @@
           "module_role": "audio_amplifier",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1841,7 +1841,7 @@
           "module_role": "security_gateway",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1861,7 +1861,7 @@
           "module_role": "cluster",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1881,7 +1881,7 @@
           "module_role": "lbc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -1901,7 +1901,7 @@
           "module_role": "bcb_obc",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -2281,7 +2281,7 @@
               "decode_status": "candidate"
             }
           ],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -2301,7 +2301,7 @@
           "module_role": "engine",
           "requires_identity": true,
           "candidate_dids": [],
-          "knowledge_state": "community_verified",
+          "knowledge_state": "community_reported",
           "vehicle_fit": "untested",
           "identity_fit": "provisional",
           "activation": "disabled"
@@ -2313,7 +2313,7 @@
     {
       "claim_id": "renault-deep-research.source.s01",
       "exact_claim": "CanZE ZOE Phase 1 ECU catalog supplies research evidence scoped to Renault Zoe Phase 1 ECU routes.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Renault Zoe Phase 1 ECU routes",
@@ -2329,7 +2329,7 @@
     {
       "claim_id": "renault-deep-research.source.s02",
       "exact_claim": "CanZE ZOE Phase 1 EVC fields supplies research evidence scoped to Renault Zoe Phase 1 EVC diagnostic fields.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Renault Zoe Phase 1 EVC diagnostic fields",
@@ -2345,7 +2345,7 @@
     {
       "claim_id": "renault-deep-research.source.s03",
       "exact_claim": "CanZE ZOE Phase 2 ECU catalog supplies research evidence scoped to Renault Zoe Phase 2 11-bit and exact 29-bit ECU routes.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Renault Zoe Phase 2 11-bit and exact 29-bit ECU routes",
@@ -2361,7 +2361,7 @@
     {
       "claim_id": "renault-deep-research.source.s04",
       "exact_claim": "CanZE ZOE Phase 2 LBC fields supplies research evidence scoped to Renault Zoe Phase 2 HV battery controller.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Renault Zoe Phase 2 HV battery controller",
@@ -2377,7 +2377,7 @@
     {
       "claim_id": "renault-deep-research.source.s05",
       "exact_claim": "CanZE Twingo III Phase 2 ECU catalog supplies research evidence scoped to Renault Twingo III Phase 2 ECU routes.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Renault Twingo III Phase 2 ECU routes",
@@ -2393,7 +2393,7 @@
     {
       "claim_id": "renault-deep-research.source.s06",
       "exact_claim": "CanZE Twizy ECU catalog supplies research evidence scoped to Renault Twizy ECU routes.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Renault Twizy ECU routes",
@@ -2425,7 +2425,7 @@
     {
       "claim_id": "renault-deep-research.source.s09",
       "exact_claim": "OBDb Dacia Duster 2017 command-support matrix supplies research evidence scoped to Dacia Duster 2017 standard OBD support.",
-      "knowledge_state": "community_verified",
+      "knowledge_state": "community_reported",
       "source_fidelity": "high",
       "vehicle_applicability": "untested_by_project",
       "scope": "Dacia Duster 2017 standard OBD support",

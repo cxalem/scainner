@@ -1,0 +1,2018 @@
+{
+  "schema_version": 1,
+  "declared_count": 23,
+  "candidates": [
+    {
+      "candidate_id": "hyundai.ioniq5.abs.f010",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq5_ne"
+        ],
+        "models": [
+          "ioniq_5"
+        ],
+        "ecu_roles": [
+          "abs_esc"
+        ]
+      },
+      "route_id": "hyundai_ioniq5_ne_abs_730_738",
+      "service": "22",
+      "did": "F010",
+      "semantic": "wheel speeds and steering angle",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S01-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 2,
+              "encoding": "le",
+              "signed": false,
+              "scale": 0.03125,
+              "bias": 0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "front right wheel speed"
+            },
+            {
+              "offset": 2,
+              "len": 2,
+              "encoding": "le",
+              "signed": false,
+              "scale": 0.03125,
+              "bias": 0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "front left wheel speed"
+            },
+            {
+              "offset": 4,
+              "len": 2,
+              "encoding": "le",
+              "signed": false,
+              "scale": 0.03125,
+              "bias": 0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "rear right wheel speed"
+            },
+            {
+              "offset": 6,
+              "len": 2,
+              "encoding": "le",
+              "signed": false,
+              "scale": 0.03125,
+              "bias": 0,
+              "unit": "km/h",
+              "quantity": "speed",
+              "label": "rear left wheel speed"
+            },
+            {
+              "offset": 8,
+              "len": 2,
+              "encoding": "le",
+              "signed": true,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "deg",
+              "quantity": "angle",
+              "label": "steering wheel angle"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": -3276.8,
+            "max": 3276.7
+          },
+          "source_refs": [
+            "S01"
+          ]
+        }
+      ],
+      "validation_recipe_id": "chassis_motion_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.ioniq5.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq5_ne"
+        ],
+        "models": [
+          "ioniq_5"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_ioniq5_ne_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S01-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S01"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.ioniq5.bms.0101",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq5_ne"
+        ],
+        "models": [
+          "ioniq_5"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "bms"
+        ]
+      },
+      "route_id": "hyundai_ioniq5_ne_bms_7e4_7ec",
+      "service": "22",
+      "did": "0101",
+      "semantic": "traction battery state",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S01-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "displayed state of charge"
+            },
+            {
+              "offset": 6,
+              "len": 2,
+              "encoding": "be",
+              "signed": true,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "A",
+              "quantity": "current",
+              "label": "battery current"
+            },
+            {
+              "offset": 8,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "battery DC voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": -1000,
+            "max": 1000
+          },
+          "source_refs": [
+            "S01"
+          ]
+        }
+      ],
+      "validation_recipe_id": "battery_power_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S01"
+      ]
+    },
+    {
+      "candidate_id": "kia.ev6.vcms.e003",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev6_cv"
+        ],
+        "models": [
+          "ev6"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "charging_control"
+        ]
+      },
+      "route_id": "kia_ev6_cv_vcms_744_74c",
+      "service": "22",
+      "did": "E003",
+      "semantic": "charging state and target",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S02-a",
+          "signals": [
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "HV battery state of charge"
+            },
+            {
+              "offset": 13,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "target voltage"
+            },
+            {
+              "offset": 15,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "A",
+              "quantity": "current",
+              "label": "target current"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 1000
+          },
+          "source_refs": [
+            "S02"
+          ]
+        }
+      ],
+      "validation_recipe_id": "charging_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S02"
+      ]
+    },
+    {
+      "candidate_id": "kia.ev6.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev6_cv"
+        ],
+        "models": [
+          "ev6"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "kia_ev6_cv_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S02-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 4,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 8,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            },
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S02"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S02"
+      ]
+    },
+    {
+      "candidate_id": "kia.ev6.bms.0101",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev6_cv"
+        ],
+        "models": [
+          "ev6"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "bms"
+        ]
+      },
+      "route_id": "kia_ev6_cv_bms_7e4_7ec",
+      "service": "22",
+      "did": "0101",
+      "semantic": "displayed traction battery state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S02-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "displayed state of charge"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 100
+          },
+          "source_refs": [
+            "S02"
+          ]
+        }
+      ],
+      "validation_recipe_id": "battery_soc_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S02"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.kona.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_kona_os"
+        ],
+        "models": [
+          "kona"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_kona_os_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S10-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S10"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S10"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.kona_electric.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_kona_electric_os"
+        ],
+        "models": [
+          "kona_electric"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_kona_electric_os_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S09-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 4,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 8,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S09"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S09"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.kona_electric.bms.0101",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_kona_electric_os"
+        ],
+        "models": [
+          "kona_electric"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "bms"
+        ]
+      },
+      "route_id": "hyundai_kona_electric_os_bms_7e4_7ec",
+      "service": "22",
+      "did": "0101",
+      "semantic": "traction battery state",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S09-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "displayed state of charge"
+            },
+            {
+              "offset": 6,
+              "len": 2,
+              "encoding": "be",
+              "signed": true,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "A",
+              "quantity": "current",
+              "label": "battery current"
+            },
+            {
+              "offset": 8,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "battery DC voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": -1000,
+            "max": 1000
+          },
+          "source_refs": [
+            "S09"
+          ]
+        }
+      ],
+      "validation_recipe_id": "battery_power_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S09"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.tucson.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_tucson_nx4"
+        ],
+        "models": [
+          "tucson"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_tucson_nx4_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S11-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S11"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S11"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.santa_fe.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_santa_fe_tm"
+        ],
+        "models": [
+          "santa_fe"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_santa_fe_tm_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S12-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 4,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 8,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S12"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S12"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.elantra.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_elantra_cn7"
+        ],
+        "models": [
+          "elantra"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_elantra_cn7_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S13-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S13"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S13"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.sonata.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_sonata_dn8"
+        ],
+        "models": [
+          "sonata"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_sonata_dn8_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S14-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S14"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S14"
+      ]
+    },
+    {
+      "candidate_id": "kia.sportage.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_sportage_nq5"
+        ],
+        "models": [
+          "sportage"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "kia_sportage_nq5_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S15-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S15"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S15"
+      ]
+    },
+    {
+      "candidate_id": "kia.niro_ev.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_niro_ev_de_sg2"
+        ],
+        "models": [
+          "niro_ev"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "kia_niro_ev_de_sg2_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S16-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 4,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 8,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S16"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S16"
+      ]
+    },
+    {
+      "candidate_id": "kia.niro_ev.bms.0101",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_niro_ev_de_sg2"
+        ],
+        "models": [
+          "niro_ev"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "bms"
+        ]
+      },
+      "route_id": "kia_niro_ev_de_sg2_bms_7e4_7ec",
+      "service": "22",
+      "did": "0101",
+      "semantic": "traction battery state",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S16-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "displayed state of charge"
+            },
+            {
+              "offset": 6,
+              "len": 2,
+              "encoding": "be",
+              "signed": true,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "A",
+              "quantity": "current",
+              "label": "battery current"
+            },
+            {
+              "offset": 8,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "battery DC voltage"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": -1000,
+            "max": 1000
+          },
+          "source_refs": [
+            "S16"
+          ]
+        }
+      ],
+      "validation_recipe_id": "battery_power_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S16"
+      ]
+    },
+    {
+      "candidate_id": "kia.seltos.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_seltos_sp2"
+        ],
+        "models": [
+          "seltos"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "kia_seltos_sp2_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S17-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S17"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S17"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.ioniq6.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq6_ce"
+        ],
+        "models": [
+          "ioniq_6"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "hyundai_ioniq6_ce_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S18-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S18"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S18"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.ioniq6.bms.0101",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq6_ce"
+        ],
+        "models": [
+          "ioniq_6"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "bms"
+        ]
+      },
+      "route_id": "hyundai_ioniq6_ce_bms_7e4_7ec",
+      "service": "22",
+      "did": "0101",
+      "semantic": "displayed traction battery state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S18-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "displayed state of charge"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": -1000,
+            "max": 1000
+          },
+          "source_refs": [
+            "S18"
+          ]
+        }
+      ],
+      "validation_recipe_id": "battery_soc_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S18"
+      ]
+    },
+    {
+      "candidate_id": "hyundai.ioniq6.vcms.e003",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "hyundai_ioniq6_ce"
+        ],
+        "models": [
+          "ioniq_6"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "charging_control"
+        ]
+      },
+      "route_id": "hyundai_ioniq6_ce_vcms_744_74c",
+      "service": "22",
+      "did": "E003",
+      "semantic": "charging state and target",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S18-a",
+          "signals": [
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "HV battery state of charge"
+            },
+            {
+              "offset": 13,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "target voltage"
+            },
+            {
+              "offset": 15,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "A",
+              "quantity": "current",
+              "label": "target current"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 1000
+          },
+          "source_refs": [
+            "S18"
+          ]
+        }
+      ],
+      "validation_recipe_id": "charging_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S18"
+      ]
+    },
+    {
+      "candidate_id": "kia.ev9.tpms.c00b",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev9_mv"
+        ],
+        "models": [
+          "ev9"
+        ],
+        "ecu_roles": [
+          "bcm_tpms"
+        ]
+      },
+      "route_id": "kia_ev9_mv_tpms_7a0_7a8",
+      "service": "22",
+      "did": "C00B",
+      "semantic": "four tire pressures",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S19-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front left tire pressure"
+            },
+            {
+              "offset": 5,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "front right tire pressure"
+            },
+            {
+              "offset": 10,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear left tire pressure"
+            },
+            {
+              "offset": 15,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.2,
+              "bias": 0,
+              "unit": "psi",
+              "quantity": "pressure",
+              "label": "rear right tire pressure"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 51
+          },
+          "source_refs": [
+            "S19"
+          ]
+        }
+      ],
+      "validation_recipe_id": "tpms_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S19"
+      ]
+    },
+    {
+      "candidate_id": "kia.ev9.bms.0101",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev9_mv"
+        ],
+        "models": [
+          "ev9"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "bms"
+        ]
+      },
+      "route_id": "kia_ev9_mv_bms_7e4_7ec",
+      "service": "22",
+      "did": "0101",
+      "semantic": "displayed traction battery state of charge",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S19-a",
+          "signals": [
+            {
+              "offset": 0,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "displayed state of charge"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": -1000,
+            "max": 1000
+          },
+          "source_refs": [
+            "S19"
+          ]
+        }
+      ],
+      "validation_recipe_id": "battery_soc_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S19"
+      ]
+    },
+    {
+      "candidate_id": "kia.ev9.vcms.e003",
+      "scope": {
+        "brand_ids": [
+          "hyundai_kia"
+        ],
+        "platform_ids": [
+          "kia_ev9_mv"
+        ],
+        "models": [
+          "ev9"
+        ],
+        "powertrains": [
+          "bev"
+        ],
+        "ecu_roles": [
+          "charging_control"
+        ]
+      },
+      "route_id": "kia_ev9_mv_vcms_744_74c",
+      "service": "22",
+      "did": "E003",
+      "semantic": "charging state and target",
+      "route_status": "source_observed",
+      "did_status": "source_observed",
+      "decode_status": "candidate",
+      "decoder_variants": [
+        {
+          "variant_id": "S19-a",
+          "signals": [
+            {
+              "offset": 12,
+              "len": 1,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.5,
+              "bias": 0,
+              "unit": "%",
+              "quantity": "percentage",
+              "label": "HV battery state of charge"
+            },
+            {
+              "offset": 13,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "V",
+              "quantity": "voltage",
+              "label": "target voltage"
+            },
+            {
+              "offset": 15,
+              "len": 2,
+              "encoding": "be",
+              "signed": false,
+              "scale": 0.1,
+              "bias": 0,
+              "unit": "A",
+              "quantity": "current",
+              "label": "target current"
+            }
+          ],
+          "sentinel_values": [],
+          "valid_range": {
+            "min": 0,
+            "max": 1000
+          },
+          "source_refs": [
+            "S19"
+          ]
+        }
+      ],
+      "validation_recipe_id": "charging_reference_cross_check",
+      "support_status": "source_observed",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "automatic_execution_authorized": true,
+      "source_refs": [
+        "S19"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,3 @@
-//! ELM327 Wi-Fi adapters: the same AT protocol over a TCP socket
-//! (typically `192.168.0.10:35000`).
-
 use super::{read_until_prompt, Transport, TransportInfo};
 use crate::elm::driver::ElmError;
 use std::io::{Read, Write};
@@ -22,8 +19,6 @@ impl TcpElm {
             .ok_or_else(|| ElmError::Open(format!("{target}: no address")))?;
         let stream = TcpStream::connect_timeout(&addr, connect_timeout)
             .map_err(|e| ElmError::Open(format!("{target}: {e}")))?;
-        // Same 100 ms granularity as the serial VTIME so the shared read
-        // loop behaves identically.
         stream
             .set_read_timeout(Some(Duration::from_millis(100)))
             .map_err(|e| ElmError::Open(e.to_string()))?;
@@ -50,8 +45,6 @@ impl Transport for TcpElm {
             .stream
             .as_mut()
             .ok_or_else(|| ElmError::Io("socket closed".into()))?;
-        // Drain stale bytes from a previous command that answered late
-        // (the serial transport's tcflush equivalent).
         let mut junk = [0u8; 256];
         loop {
             match stream.read(&mut junk) {

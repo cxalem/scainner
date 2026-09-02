@@ -1,8 +1,3 @@
-//! Pure parsers for ELM327 / OBD-II responses.
-//! Every function here is testable without a car — test vectors are real
-//! bytes captured from the Citroën C4 III on 2026-08-14.
-
-/// Strip echo, prompt chars, and blank lines from a raw ELM response.
 pub fn clean_response(raw: &str) -> Vec<String> {
     raw.replace('\r', "\n")
         .split('\n')
@@ -11,13 +6,10 @@ pub fn clean_response(raw: &str) -> Vec<String> {
         .collect()
 }
 
-/// Collect the hex payload bytes of a mode response, joining multi-line
-/// (ISO-TP) replies like the VIN. Lines may be prefixed with "0:", "1:", ...
 pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
     let mut out = Vec::new();
     let mut started = false;
     for line in lines {
-        // multi-frame lines look like "0: 49 02 01 56 52 37"
         let body = match line.split_once(':') {
             Some((idx, rest))
                 if idx.trim().chars().all(|c| c.is_ascii_hexdigit()) && idx.trim().len() <= 3 =>
@@ -34,7 +26,6 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
             continue;
         }
         if !started {
-            // first-frame length line of an ISO-TP reply is just "014" — skip pure length lines
             if bytes.len() == 1 && !line.contains(':') {
                 continue;
             }
@@ -42,22 +33,6 @@ pub fn payload_bytes(lines: &[String], expect_prefix: &str) -> Vec<u8> {
         }
         out.extend(bytes);
     }
-    // Drop everything before (and including) the expected positive-response prefix.
-    // If the prefix isn't found — a stale/mismatched response bleeding in from a
-    // previous command (driver.rs's cmd() has no input-buffer flush between
-    // commands, so a late reply can linger and get read as part of the next
-    // one), an error string, a different mode's leftover data, anything —
-    // this used to fall through and return `out` unfiltered, letting whatever
-    // garbage bytes happened to be present get decoded as if they were a real
-    // reading. Caught live on a real Peugeot (2026-08-21): throttle, fuel
-    // level, and MAP all reported suspiciously identical values for an entire
-    // session, traced to exactly this — the same stray byte pattern getting
-    // decoded under three different PID keys. Returning empty here instead
-    // means a mismatched response produces no reading at all for that tick
-    // (skipped, same as any other decode failure) rather than a wrong one
-    // silently recorded as real — "honest absence beats silent absence"
-    // (ScanConsole.tsx's empty-state rule), just at the data-integrity layer
-    // instead of the UI layer.
     let prefix: Vec<u8> = expect_prefix
         .split_whitespace()
         .filter_map(|t| u8::from_str_radix(t, 16).ok())
@@ -83,11 +58,6 @@ pub enum DiagnosticResponse {
     Malformed,
 }
 
-/// Classify a service acknowledgement without using `payload_bytes`: clear
-/// services commonly answer with a single byte (`44` or `54`), while the
-/// general payload parser deliberately treats some one-token lines as ISO-TP
-/// length prefixes. A response-pending frame may precede the final positive
-/// response in the same ELM buffer.
 pub fn diagnostic_response(raw: &str, service: u8, positive: u8) -> DiagnosticResponse {
     let lines = clean_response(raw);
     if lines
@@ -109,8 +79,6 @@ pub fn diagnostic_response(raw: &str, service: u8, positive: u8) -> DiagnosticRe
             _ => line.as_str(),
         };
         let tokens: Vec<&str> = body.split_whitespace().collect();
-        // ISO-TP length-only lines use three or more hex digits (`014`). A
-        // real one-byte clear acknowledgement is exactly two (`54`).
         if tokens.len() == 1 && tokens[0].len() > 2 {
             continue;
         }
@@ -167,11 +135,8 @@ pub fn negative_response_name(code: u8) -> &'static str {
     }
 }
 
-/// Decode DTC bytes (pairs) from a mode 03/07/0A response payload.
-/// Payload starts after `43`/`47`/`4A`; first byte may be a count (CAN format).
 pub fn decode_dtcs(payload: &[u8]) -> Vec<String> {
     let mut codes = Vec::new();
-    // On CAN, first byte after 43 is the number of codes.
     let data = if !payload.is_empty() {
         &payload[1..]
     } else {
@@ -198,7 +163,6 @@ pub fn decode_dtcs(payload: &[u8]) -> Vec<String> {
     codes
 }
 
-/// Mode 0101: MIL status + stored-DTC count.
 pub struct MilStatus {
     pub mil_on: bool,
     pub dtc_count: u8,
@@ -212,7 +176,6 @@ pub fn decode_mil(payload: &[u8]) -> Option<MilStatus> {
     })
 }
 
-/// Decode VIN from a mode 0902 payload (after 49 02 01).
 pub fn decode_vin(payload: &[u8]) -> String {
     payload
         .iter()
@@ -221,13 +184,11 @@ pub fn decode_vin(payload: &[u8]) -> String {
         .collect()
 }
 
-/// Battery voltage from ATRV ("13.1V").
 pub fn decode_voltage(line: &str) -> Option<f64> {
     line.trim().trim_end_matches(['V', 'v']).parse().ok()
 }
 
-/// A live PID we poll. `decode` maps the payload bytes (after 41 XX) to a value.
-#[allow(dead_code)] // label/unit are for future UI use
+#[allow(dead_code)]
 pub struct PidDef {
     pub pid: &'static str,
     pub key: &'static str,
@@ -321,9 +282,6 @@ pub const PIDS: &[PidDef] = &[
         unit: "%",
         decode: |d| Some(*d.first()? as f64 * 100.0 / 255.0),
     },
-    // In the poll set since polling became bitmap-adaptive (2026-08-21):
-    // cars whose ECU declares MAF support (the old Peugeot does) get
-    // continuous airflow; cars that don't skip it for free.
     PidDef {
         pid: "0110",
         key: "maf",
@@ -333,8 +291,6 @@ pub const PIDS: &[PidDef] = &[
     },
 ];
 
-/// Decode a supported-PID bitmap response (0100/0120/0140/0160 → 4 data bytes).
-/// `base` is the PID of the query itself (0x00, 0x20, ...). Returns supported PID numbers.
 pub fn decode_supported_bitmap(base: u8, payload: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     for (byte_idx, &b) in payload.iter().take(4).enumerate() {
@@ -347,8 +303,6 @@ pub fn decode_supported_bitmap(base: u8, payload: &[u8]) -> Vec<u8> {
     out
 }
 
-/// The full standard mode-01 catalog (sensors only — bitmap/status PIDs excluded).
-/// Formulas per SAE J1979.
 pub const FULL_PIDS: &[PidDef] = &[
     PidDef {
         pid: "0104",
@@ -654,8 +608,6 @@ mod tests {
         clean_response(raw)
     }
 
-    // ---- Real captures from the C4 III, 2026-08-14 ----
-
     #[test]
     fn no_stored_dtcs() {
         let p = payload_bytes(&lines("43 00"), "43");
@@ -678,8 +630,6 @@ mod tests {
 
     #[test]
     fn vin_multiframe() {
-        // Placeholder VIN (not a real vehicle) — the multi-frame chunking
-        // shape (3/7/7 bytes across ISO-TP frames) mirrors a real capture.
         let raw = "014\n0: 49 02 01 52 45 44\n1: 41 43 54 45 44 56 49\n2: 4E 4E 55 4D 42 45 52";
         let p = payload_bytes(&lines(raw), "49 02 01");
         assert_eq!(decode_vin(&p), "REDACTEDVINNUMBER");
@@ -704,21 +654,16 @@ mod tests {
         assert_eq!(decode_voltage("13.1V"), Some(13.1));
     }
 
-    // ---- Synthetic: cars with actual codes ----
-
     #[test]
     fn decodes_p0301_and_p1032() {
-        // 43 02 = two codes: 03 01 -> P0301, 10 32 -> P1032
         let p = payload_bytes(&lines("43 02 03 01 10 32"), "43");
         assert_eq!(decode_dtcs(&p), vec!["P0301", "P1032"]);
     }
 
     #[test]
     fn supported_bitmap_real_capture() {
-        // Real 0100 answer from the C4 III: 41 00 BE 3E A8 13
         let p = payload_bytes(&lines("41 00 BE 3E A8 13"), "41 00");
         let pids = decode_supported_bitmap(0x00, &p);
-        // BE = PIDs 01,03,04,05,06,07 · 3E = 0B,0C,0D,0E,0F · A8 = 11,13,15 · 13 = 1C,1F,20
         assert_eq!(
             pids,
             vec![
@@ -730,7 +675,6 @@ mod tests {
 
     #[test]
     fn decodes_chassis_code() {
-        // C1560 EPB code: 0x55 0x60 -> C1560
         let p = payload_bytes(&lines("43 01 55 60"), "43");
         assert_eq!(decode_dtcs(&p), vec!["C1560"]);
     }

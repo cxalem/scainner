@@ -7,10 +7,6 @@ interface State {
   error: Error | null;
 }
 
-/// Without this, any uncaught render exception anywhere in the tree leaves a
-/// blank/frozen window — indistinguishable from the whole app having crashed,
-/// even though the Rust backend (and the car connection) is still fine. Catch
-/// it, show what broke, and offer a way back instead of a dead white screen.
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
@@ -19,7 +15,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Surfaces in the terminal running `pnpm tauri dev` / webview devtools console.
     console.error("[scainner] UI crashed:", error, info.componentStack);
   }
 

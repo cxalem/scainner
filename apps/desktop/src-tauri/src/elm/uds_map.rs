@@ -1,57 +1,3 @@
-//! The manufacturer UDS knowledge map, loaded from
-//! `packages/uds-map/data/uds-map.json` — the single source of truth,
-//! shared with the published `@scainner/uds-map` npm package (same file,
-//! two consumers, zero drift by construction).
-//!
-//! Every per-brand value the discovery engine uses — module addresses,
-//! routes, read services, identity layouts, DID neighborhoods, decodes,
-//! platforms, gateway semantics, even the scan timings and the ISO
-//! identification block — lives in that file, never in these functions.
-//! Adding a brand, correcting an address, or narrowing a band is a data
-//! edit reviewable by someone who doesn't read Rust; nothing here needs to
-//! change. (Owner rule, 2026-08-23: no hardcoded values anywhere. Multi-brand
-//! plan rule, 2026-08-28: no brand is named in code — brand names are pack
-//! data with a `source`.)
-//!
-//! Embedded with `include_str!` so the shipped binary is self-contained and
-//! a malformed map fails the build, not the car.
-//!
-//! # Frozen contract for Phase 2 (pack schema v9, 2026-08-28)
-//!
-//! The runtime track builds on exactly these types and accessors; changing
-//! their shape is a schema change that must land in `types.ts`, this file
-//! and `docs/uds/pack-schema-v9.md` together.
-//!
-//! Types: [`Source`], [`Route`] / [`RouteProtocol`], [`ReadService`],
-//! [`Decode`] / [`DecodeEncoding`], [`IdentityBlock`] / [`IdentityDid`]
-//! ([`IdentityField`], [`IdentityLayout`]), [`Platform`],
-//! [`GatewayBehaviour`] / [`SilenceMeans`], [`ProfiledLevel`].
-//!
-//! Accessors (all VIN-keyed; `req`/`resp` are full-width CAN ids):
-//! - [`route_for_module`]`(vin, req, resp) -> Route` — the pack's route for a
-//!   documented module (main map, then overlays), else derived from the ids
-//!   (11-bit → `can11_500`; `18DA<t>F1`/`18DAF1<t>` → `can29_normal_fixed`
-//!   with `target_byte`; other 29-bit → `can29_custom`). Never fails.
-//! - [`identity_block_for_vin`]`(vin) -> IdentityBlock` — the brand's block
-//!   (ISO DIDs first, vendor layouts after) or the standard ISO block.
-//! - [`read_service_for_module`]`(vin, req, resp) -> ReadService` — module
-//!   override, then brand default, then the standard default (`22`).
-//! - [`decodes_for_did`]`(vin, req, resp, did) -> Vec<Decode>` — every value
-//!   of a DID on exactly this module; empty when unbound or address-only.
-//! - [`profiled_level_for_vin`]`(vin) -> Option<ProfiledLevel>` — `None` for an
-//!   unknown WMI.
-//! - [`gateway_behaviour_for_vin`]`(vin) -> GatewayBehaviour` — `unknown` /
-//!   `writes_blocked: false` when the pack has no sourced rule.
-//! - [`platform_for_vin`]`(vin) -> Option<Platform>` — first platform whose
-//!   `vds_pattern` matches VIN characters 4–10; platforms without a pattern
-//!   are never selected by VIN.
-//! - [`known_did`]`(vin, req, resp, did)` — module-bound entries only (v9:
-//!   no unscoped fallback); [`known_did_unscoped`] exists for browsing.
-//! - [`decode_value`]`(&Decode, &[u8]) -> Option<f64>` — the shared decode
-//!   semantics (be/le/bcd/bitfield, signed, scale, bias).
-// The v9 contract lands one phase ahead of its runtime callers (Phase 2 —
-// plan generator, identity builder, route setup). Until they land, rustc
-// would flag the accessors and the fields only they read as dead code.
 #![allow(dead_code)]
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
@@ -61,21 +7,14 @@ pub struct UdsMap {
     pub version: u32,
     pub standard: Standard,
     pub brands: Vec<Brand>,
-    /// Cross-brand ECU families keyed by part reference — the reuse unit of
-    /// the Universal Discovery Protocol (§2, L3). Empty on maps older than
-    /// v8; `known_dids` remain the backwards-compatible per-brand path.
     #[serde(default)]
     pub ecu_families: Vec<EcuFamily>,
 }
 
-/// Provenance of one pack entry (v9). Every module, band, known DID,
-/// family, identity block, platform and gateway rule carries one.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq, Default)]
 pub struct Source {
     pub url: String,
     pub date: String,
-    /// `oem` | `open_implementation` | `tool_screen` | `parts_catalog` |
-    /// `community` | `project_capture`.
     #[serde(rename = "type")]
     pub kind: String,
     pub licence: String,
@@ -83,23 +22,16 @@ pub struct Source {
     pub note: Option<String>,
 }
 
-/// An ECU identified by its supplier part reference, with every decode ever
-/// verified on it. Brand and address are how the module is *found*; the part
-/// reference is how it is *known*, so a decode verified on one car lights up
-/// on any other car carrying the same part.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct EcuFamily {
     pub id: String,
     #[serde(default)]
     pub supplier: Option<String>,
     pub family: String,
-    /// Ten-digit part references (vendor identity layouts) or ISO F187.
     #[serde(default)]
     pub hardware_refs: Vec<String>,
-    /// Software/calibration references (vendor layouts or ISO F189/F195).
     #[serde(default)]
     pub software_refs: Vec<String>,
-    /// Read service the decodes were verified with ("22", "21", "1A").
     #[serde(default)]
     pub diagnostic_service: Option<String>,
     #[serde(default)]
@@ -119,9 +51,6 @@ pub struct FamilyModuleRef {
     pub resp: String,
 }
 
-/// One decode of a family: the formula plus the state and evidence that
-/// justify it. `knowledge_state` is the protocol's vocabulary as a string so
-/// the data file never depends on a Rust enum; `discovery::state` parses it.
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct FamilyDecode {
     pub did: String,
@@ -138,7 +67,6 @@ pub struct FamilyDecode {
     pub signed: bool,
     #[serde(default)]
     pub unit: String,
-    /// Machine-readable physical quantity (v9).
     #[serde(default)]
     pub quantity: Option<String>,
     pub knowledge_state: String,
@@ -170,16 +98,12 @@ struct KnowledgeOverlay {
 #[derive(Deserialize)]
 pub struct Standard {
     pub ident_dids: Vec<IdentDid>,
-    /// DIDs whose payload is worth using as a module's display name, best first.
     pub name_dids: Vec<String>,
-    /// The DID asked when merely testing whether anything lives at an address.
     pub presence_probe_did: String,
     pub address_scan: AddressScan,
     pub timings_ms: Timings,
-    /// Read service assumed when neither brand nor module says otherwise.
     #[serde(default)]
     pub read_service: Option<ReadService>,
-    /// The ISO 14229-1 identification block every brand inherits (v9).
     #[serde(default)]
     pub identity_block: Option<IdentityBlock>,
 }
@@ -205,8 +129,6 @@ pub struct Timings {
     pub sweep_read: u64,
 }
 
-/// UDS/KWP read service a module answers: ReadDataByIdentifier (`22`),
-/// ReadDataByLocalIdentifier (`21`) or ReadEcuIdentification (`1A`).
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ReadService {
     #[default]
@@ -219,7 +141,6 @@ pub enum ReadService {
 }
 
 impl ReadService {
-    /// The service id as it appears on the wire and in the data (`"22"`).
     pub fn as_str(self) -> &'static str {
         match self {
             ReadService::DataByIdentifier => "22",
@@ -255,11 +176,6 @@ pub enum RouteProtocol {
     Iso9141,
 }
 
-/// How to reach one module: the compatibility tuple of the discovery
-/// protocol. `target_byte` is the ECU address carried inside the payload
-/// (iterated by target-byte schemes); `address_extension` is the ISO-TP
-/// extended-address byte the adapter must send (`ATCEA`); `gateway` names
-/// a gateway module id the route passes through.
 #[derive(Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
 pub struct Route {
     #[serde(default)]
@@ -287,11 +203,6 @@ pub enum DecodeEncoding {
     Bitfield,
 }
 
-/// One value inside a DID payload (v9). `offset` counts bytes after the
-/// echoed identifier. `bitfield` takes the `len` bytes at `offset` as a
-/// big-endian integer, shifts right by `bit_offset` (0 = least significant
-/// bit) and masks `bit_len` bits. `signed` means two's complement;
-/// offset-binary values are unsigned with a negative `bias`.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct Decode {
     #[serde(default)]
@@ -331,11 +242,6 @@ pub enum IdentityField {
     Other,
 }
 
-/// Payload layouts an identity DID may use. Layout ids name encodings,
-/// never brands: `iso_ascii` printable string; `bcd_part_refs` packed BCD
-/// digits, `len` bytes at `offset`, optionally wrapped in a literal
-/// `prefix`/`suffix`; `ascii_part_refs` ASCII references at a fixed
-/// offset/length; `raw` the bytes as hex.
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum IdentityLayout {
@@ -368,17 +274,11 @@ pub struct IdentityBlock {
     pub source: Option<Source>,
 }
 
-/// A platform/generation split that changes service or addressing (v9).
-/// `vds_pattern` is a regex over VIN characters 4–10 restricted to the
-/// subset both implementations support (literals, `.`, `[...]` classes
-/// with ranges and negation, `^`, `$`, `?`, `*`, `+`); `None` means the
-/// platform is selectable by evidence only, never by VIN.
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 pub struct Platform {
     pub key: String,
     #[serde(default)]
     pub vds_pattern: Option<String>,
-    /// `[from, to]` model years; `None` = unknown/open.
     #[serde(default)]
     pub years: (Option<i32>, Option<i32>),
     #[serde(default)]
@@ -396,8 +296,6 @@ pub struct Platform {
 pub enum SilenceMeans {
     Absent,
     Filtered,
-    /// The module sits on connector pins this adapter path is not wired
-    /// to — silence says nothing about the module.
     UnreachablePins,
     #[default]
     Unknown,
@@ -415,10 +313,6 @@ pub struct GatewayBehaviour {
     pub source: Option<Source>,
 }
 
-/// How far a brand is profiled (discovery protocol §5): `standard_only`
-/// (no manufacturer routes), `routes_sourced`, `routes_verified` (a route
-/// confirmed by a recorded exchange), `decodes_verified` (decodes confirmed
-/// on a vehicle by this project).
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum ProfiledLevel {
@@ -439,18 +333,10 @@ pub struct Brand {
     pub did_bands: Vec<Band>,
     #[serde(default)]
     pub known_dids: Vec<KnownDid>,
-    /// How this brand derives a response address from a request address,
-    /// per address block. A single global "+8" is wrong for most brands and
-    /// some need two rules keyed on block — which is exactly why this is a
-    /// per-block list and not one number.
     #[serde(default)]
     pub resp_offsets: Vec<RespOffset>,
-    /// Optional override for generic enumeration. `auto` derives the safe
-    /// strategies from documented module pairs; exceptions are explicit
-    /// data, never hardcoded brand checks in the scanner.
     #[serde(default)]
     pub scan_policy: ScanPolicy,
-    /// Default read service for this brand's modules (v9).
     #[serde(default)]
     pub read_service: Option<ReadService>,
     #[serde(default)]
@@ -477,9 +363,6 @@ pub enum ScanPolicy {
     NormalFixed29bit,
     #[serde(rename = "conventional_11bit_and_normal_fixed_29bit")]
     Conventional11bitAndNormalFixed29bit,
-    /// Iterate target bytes on a fixed 11-bit request id as well as the
-    /// conventional range. Conventional-only until the target-byte path
-    /// lands (Phase 2).
     #[serde(rename = "conventional_11bit_and_target_byte_11bit")]
     Conventional11bitAndTargetByte11bit,
 }
@@ -496,16 +379,10 @@ pub struct ModuleDef {
     pub req: String,
     pub resp: String,
     pub name: Option<String>,
-    /// Automatic discovery session policy for this exact ECU address pair.
-    /// Missing means default-session only; session changes must be an
-    /// explicit, reviewed map decision rather than inferred from brand or
-    /// address confidence.
     #[serde(default)]
     pub discovery_session: DiscoverySession,
-    /// Overrides the brand's read service for this module (v9).
     #[serde(default)]
     pub read_service: Option<ReadService>,
-    /// Explicit route; derived from `req`/`resp` when absent (v9).
     #[serde(default)]
     pub route: Option<Route>,
     #[serde(default)]
@@ -532,10 +409,6 @@ pub struct Band {
     pub source: Option<Source>,
 }
 
-/// Sweep order: confirmed bands first, guesses last. A cancelled or
-/// link-degraded pass then still got the productive neighbourhoods — the
-/// research found widely-cited bands that return nothing on a real car,
-/// and they must not consume the scan before the productive ones do.
 fn confidence_rank(c: Option<&str>) -> u8 {
     match c {
         Some("confirmed") => 0,
@@ -550,23 +423,14 @@ fn confidence_rank(c: Option<&str>) -> u8 {
 pub struct KnownDid {
     pub did: String,
     pub label: String,
-    /// Exact ECU address pairs this meaning/formula belongs to. A DID is
-    /// not globally meaningful across a vehicle: the same DID number means
-    /// different things on different ECUs. Required in v9: empty only
-    /// together with `binding: "unknown"`.
     #[serde(default)]
     pub modules: Vec<ModuleRef>,
-    /// `"unknown"` when the research does not say which module carries
-    /// this DID; such entries never label a module's answer.
     #[serde(default)]
     pub binding: Option<String>,
-    /// Read service for this record when it differs from the module's (a
-    /// KWP identification record read with `1A` on a `22` module).
     #[serde(default)]
     pub read_service: Option<ReadService>,
     #[serde(default)]
     pub unit: Option<String>,
-    /// Mirror of `decodes[0]` (v8 shape, kept for existing callers).
     #[serde(default)]
     pub offset: Option<u32>,
     #[serde(default)]
@@ -575,8 +439,6 @@ pub struct KnownDid {
     pub scale: Option<f64>,
     #[serde(default)]
     pub bias: Option<f64>,
-    /// Every value in this DID's payload (v9); empty when only the address
-    /// is known.
     #[serde(default)]
     pub decodes: Vec<Decode>,
     #[serde(default)]
@@ -588,8 +450,6 @@ pub struct KnownDid {
 }
 
 impl KnownDid {
-    /// The scalar decode: `decodes[0]` when present, else the legacy
-    /// offset/len/scale/bias fields; `None` when only the address is known.
     pub fn primary_decode(&self) -> Option<Decode> {
         if let Some(first) = self.decodes.first() {
             return Some(first.clone());
@@ -638,17 +498,10 @@ fn obdb_citroen() -> &'static KnowledgeOverlay {
     })
 }
 
-/// Parse a 16-bit hex value — used for DIDs, which span the full 0000-FFFF
-/// range. NOT for CAN addresses: use `can11` for those, which additionally
-/// enforces the 11-bit range.
 pub fn hex16(s: &str) -> Option<u16> {
     u16::from_str_radix(s.trim(), 16).ok()
 }
 
-/// Parse an 11-bit CAN address. Returns None for 29-bit extended addresses
-/// — real, correctly recorded in the map; a 29-bit module needs the
-/// route's protocol (ATSP7 plus 29-bit ATSH/ATCRA) rather than an 11-bit
-/// header, so returning None keeps it from being mis-addressed.
 pub fn can11(s: &str) -> Option<u16> {
     match u32::from_str_radix(s.trim(), 16) {
         Ok(v) if v <= 0x7FF => Some(v as u16),
@@ -656,7 +509,6 @@ pub fn can11(s: &str) -> Option<u16> {
     }
 }
 
-/// Parse a valid CAN identifier of either supported width.
 pub fn can_address(s: &str) -> Option<u32> {
     match u32::from_str_radix(s.trim(), 16) {
         Ok(v) if v <= 0x1FFF_FFFF => Some(v),
@@ -664,14 +516,10 @@ pub fn can_address(s: &str) -> Option<u32> {
     }
 }
 
-/// Kept for callers that need general map validation.
 pub fn hex_any(s: &str) -> Option<u32> {
     can_address(s)
 }
 
-/// Modules this brand has that the engine cannot address yet (29-bit).
-/// Counted so discovery can say so out loud instead of pretending the
-/// brand simply has fewer modules.
 pub fn extended_modules_for_vin(vin: Option<&str>) -> usize {
     brand_for_vin(vin)
         .map(|b| {
@@ -683,9 +531,6 @@ pub fn extended_modules_for_vin(vin: Option<&str>) -> usize {
         .unwrap_or(0)
 }
 
-/// The brand entry whose WMI list contains this VIN's first three chars.
-/// None for an unknown or absent VIN — callers then use every brand's
-/// bands (slower, still bounded) rather than guessing at one.
 pub fn brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
     brand_for_vin_in(map(), vin)
 }
@@ -695,7 +540,6 @@ fn wmi_prefix(vin: Option<&str>) -> Option<String> {
     (prefix.chars().count() == 3).then(|| prefix.to_ascii_uppercase())
 }
 
-/// Same lookup against an explicit map (fixtures, the discovery layer).
 pub fn brand_for_vin_in<'a>(map: &'a UdsMap, vin: Option<&str>) -> Option<&'a Brand> {
     let wmi = wmi_prefix(vin)?;
     map.brands
@@ -712,7 +556,6 @@ fn overlay_brand_for_vin(vin: Option<&str>) -> Option<&'static Brand> {
     })
 }
 
-/// The brand profile followed by every overlay entry for the same WMI.
 fn profiles_for_vin(vin: Option<&str>) -> impl Iterator<Item = &'static Brand> {
     brand_for_vin(vin)
         .into_iter()
@@ -727,17 +570,12 @@ fn module_def(vin: Option<&str>, req: u32, resp: u32) -> Option<&'static ModuleD
         })
 }
 
-/// Session policy for one exact, VIN-selected module. Unknown VINs and
-/// address pairs not explicitly present in that brand profile are always
-/// default-only.
 pub fn discovery_session_for_module(vin: Option<&str>, req: u32, resp: u32) -> DiscoverySession {
     module_def(vin, req, resp)
         .map(|module| module.discovery_session)
         .unwrap_or_default()
 }
 
-/// DID neighborhoods to sweep, as (from, to) pairs. Brand-specific when the
-/// VIN identifies one; otherwise the union across brands, deduplicated.
 pub fn bands_for_vin(vin: Option<&str>) -> Vec<(u16, u16)> {
     let collect = |b: &Brand| -> Vec<(u8, u16, u16)> {
         b.did_bands
@@ -760,8 +598,6 @@ pub fn bands_for_vin(vin: Option<&str>) -> Vec<(u16, u16)> {
     ranked.into_iter().map(|(_, f, t)| (f, t)).collect()
 }
 
-/// The response address for a request address on this brand: the brand's
-/// own block rule when the map has one, else the standard fallback.
 pub fn response_addr(brand: Option<&Brand>, req: u16) -> u16 {
     if let Some(b) = brand {
         for r in &b.resp_offsets {
@@ -776,8 +612,6 @@ pub fn response_addr(brand: Option<&Brand>, req: u16) -> u16 {
     req + map().standard.address_scan.resp_offset
 }
 
-/// Module address pairs this brand is known to use, tried before the blind
-/// address sweep so a recognized car finds its modules in seconds.
 pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>)> {
     profiles_for_vin(vin)
         .flat_map(|brand| &brand.modules)
@@ -791,9 +625,6 @@ pub fn known_modules_for_vin(vin: Option<&str>) -> Vec<(u32, u32, Option<String>
         .collect()
 }
 
-/// Every request/response pair to try when enumerating the bus, known
-/// brand modules first (so progress shows real finds early), then the full
-/// conventional range from the map's address_scan block.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CandidateSource {
@@ -809,8 +640,6 @@ pub struct AddressCandidate {
     pub req: u32,
     pub resp: u32,
     pub name: Option<String>,
-    /// True when the selected brand profile explicitly documents this pair;
-    /// false when it came from the generic conventional-address sweep.
     pub profile_candidate: bool,
     pub source: CandidateSource,
 }
@@ -825,7 +654,6 @@ fn normal_fixed_29bit_target(req: u32, resp: u32) -> Option<u8> {
 
 fn scan_strategies(vin: Option<&str>, known: &[(u32, u32, Option<String>)]) -> (bool, bool) {
     let Some(brand) = brand_for_vin(vin) else {
-        // Missing/unknown VIN must degrade to broader read-only discovery.
         return (true, true);
     };
     match brand.scan_policy {
@@ -882,8 +710,6 @@ pub fn addresses_to_probe(vin: Option<&str>) -> Vec<AddressCandidate> {
     }
     if scan_29bit {
         for target in 0u32..=0xFF {
-            // F1 is this tester; FE/FF are functional/broadcast targets, not
-            // physical ECUs. Enumeration must remain physically addressed.
             if matches!(target, 0xF1 | 0xFE | 0xFF) {
                 continue;
             }
@@ -932,13 +758,6 @@ fn known_did_candidates(vin: Option<&str>, did: u16) -> impl Iterator<Item = &'s
         .filter(move |k| hex16(&k.did) == Some(did))
 }
 
-/// A documented label (and decodes) for a DID on exactly this module of
-/// this brand — turns a raw discovery hit into a named sensor with no user
-/// work. `req`/`resp` are u32 so a 29-bit module can be scoped like any
-/// other; an 11-bit caller just widens its address. A DID is not globally
-/// meaningful across a vehicle, so an entry bound to another module, or
-/// to no module (`binding: "unknown"`), is never returned — v9 removed the
-/// unscoped fallback; see [`known_did_unscoped`] for browsing.
 pub fn known_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> Option<&'static KnownDid> {
     known_did_candidates(vin, did).find(|k| {
         k.modules
@@ -947,15 +766,10 @@ pub fn known_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> Option<&'s
     })
 }
 
-/// The first documented entry for a DID on this brand regardless of module
-/// binding — for browsing and research tooling only, never for labelling
-/// what a specific module answered.
 pub fn known_did_unscoped(vin: Option<&str>, did: u16) -> Option<&'static KnownDid> {
     known_did_candidates(vin, did).next()
 }
 
-/// Exact documented DIDs for one module. These are added to that module's
-/// brand-band sweep without widening the sweep for every other ECU.
 pub fn known_dids_for_module(vin: Option<&str>, req: u32, resp: u32) -> Vec<u16> {
     let mut dids: Vec<u16> = profiles_for_vin(vin)
         .flat_map(|brand| &brand.known_dids)
@@ -971,12 +785,6 @@ pub fn known_dids_for_module(vin: Option<&str>, req: u32, resp: u32) -> Vec<u16>
     dids
 }
 
-/// Every family whose hardware references contain this exact part reference,
-/// in map order — the byte-level lookup behind the protocol's S3 join. More
-/// than one family can share a part (a software change that moved DIDs is
-/// itself a family); the caller disambiguates by software reference. Takes
-/// the map explicitly so the discovery layer and its tests can pass a
-/// fixture; production callers pass `map()`.
 pub fn families_for_hardware_ref<'a>(map: &'a UdsMap, hardware_ref: &str) -> Vec<&'a EcuFamily> {
     let wanted = hardware_ref.trim();
     if wanted.is_empty() {
@@ -988,18 +796,10 @@ pub fn families_for_hardware_ref<'a>(map: &'a UdsMap, hardware_ref: &str) -> Vec
         .collect()
 }
 
-/// A family by id (the `family_id` stored on modules and hypotheses).
 pub fn family_by_id<'a>(map: &'a UdsMap, id: &str) -> Option<&'a EcuFamily> {
     map.ecu_families.iter().find(|f| f.id == id)
 }
 
-// ---------------------------------------------------------------------------
-// v9 accessors — the frozen contract for Phase 2 (see the module doc).
-// ---------------------------------------------------------------------------
-
-/// Derive a route from a request/response pair alone: 11-bit ids are
-/// conventional 500 kbit/s; a normal-fixed 29-bit pair names its target
-/// byte; any other 29-bit pair is custom.
 pub fn derive_route(req: u32, resp: u32) -> Route {
     if req > 0x7FF || resp > 0x7FF {
         if let Some(target) = normal_fixed_29bit_target(req, resp) {
@@ -1026,16 +826,12 @@ pub fn derive_route(req: u32, resp: u32) -> Route {
     }
 }
 
-/// The route tuple for a module: the pack's explicit route when the module
-/// is documented with one (main map, then overlays), else derived.
 pub fn route_for_module(vin: Option<&str>, req: u32, resp: u32) -> Route {
     module_def(vin, req, resp)
         .and_then(|m| m.route.clone())
         .unwrap_or_else(|| derive_route(req, resp))
 }
 
-/// The identity block to read on this VIN's modules: the brand's block
-/// (ISO DIDs plus vendor layouts) or the standard ISO block.
 pub fn identity_block_for_vin(vin: Option<&str>) -> IdentityBlock {
     brand_for_vin(vin)
         .and_then(|b| b.identity_block.clone())
@@ -1043,9 +839,6 @@ pub fn identity_block_for_vin(vin: Option<&str>) -> IdentityBlock {
         .unwrap_or_default()
 }
 
-/// Read-service precedence shared by both accessors: DID > module >
-/// platform > brand > standard (`22`). A free function so the precedence
-/// itself is testable without a pack entry for every combination.
 pub fn resolve_read_service(
     did: Option<ReadService>,
     module: Option<ReadService>,
@@ -1060,9 +853,6 @@ pub fn resolve_read_service(
         .unwrap_or_default()
 }
 
-/// The read service for one module: module override, then the platform
-/// selected by VIN (VDS pattern), then brand default, then the standard
-/// default. Per-DID overrides are honoured by [`read_service_for_did`].
 pub fn read_service_for_module(vin: Option<&str>, req: u32, resp: u32) -> ReadService {
     resolve_read_service(
         None,
@@ -1073,10 +863,6 @@ pub fn read_service_for_module(vin: Option<&str>, req: u32, resp: u32) -> ReadSe
     )
 }
 
-/// The read service for one DID on one module: the DID's own override (a
-/// KWP identification record read with `1A` on a `22` module) first, then
-/// the [`read_service_for_module`] precedence. Only module-bound entries
-/// count.
 pub fn read_service_for_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> ReadService {
     resolve_read_service(
         known_did(vin, req, resp, did).and_then(|k| k.read_service),
@@ -1087,8 +873,6 @@ pub fn read_service_for_did(vin: Option<&str>, req: u32, resp: u32, did: u16) ->
     )
 }
 
-/// Every decode of a DID on exactly this module (empty when the pack has
-/// no module-bound entry or only the address).
 pub fn decodes_for_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> Vec<Decode> {
     match known_did(vin, req, resp, did) {
         Some(k) if !k.decodes.is_empty() => k.decodes.clone(),
@@ -1097,22 +881,16 @@ pub fn decodes_for_did(vin: Option<&str>, req: u32, resp: u32, did: u16) -> Vec<
     }
 }
 
-/// How far this VIN's brand is profiled; `None` for an unknown WMI.
 pub fn profiled_level_for_vin(vin: Option<&str>) -> Option<ProfiledLevel> {
     brand_for_vin(vin).and_then(|b| b.profiled_level)
 }
 
-/// What silence from a module means on this brand, and whether writes are
-/// gateway-blocked. Brands without a sourced rule get the honest default.
 pub fn gateway_behaviour_for_vin(vin: Option<&str>) -> GatewayBehaviour {
     brand_for_vin(vin)
         .and_then(|b| b.gateway_behaviour.clone())
         .unwrap_or_default()
 }
 
-/// The platform whose `vds_pattern` matches VIN characters 4–10 (first
-/// match in pack order). Platforms without a pattern are never selected
-/// by VIN.
 pub fn platform_for_vin(vin: Option<&str>) -> Option<Platform> {
     let brand = brand_for_vin(vin)?;
     let vin = vin?;
@@ -1131,9 +909,6 @@ pub fn platform_for_vin(vin: Option<&str>) -> Option<Platform> {
         .cloned()
 }
 
-/// Apply one decode to raw payload bytes (after the echoed identifier).
-/// `None` when the payload is too short, for `ascii` decodes, or for
-/// non-decimal BCD nibbles.
 pub fn decode_value(decode: &Decode, bytes: &[u8]) -> Option<f64> {
     let offset = decode.offset as usize;
     let len = decode.len as usize;
@@ -1190,13 +965,6 @@ fn signed_or_not(v: u64, bits: u32, signed: bool) -> f64 {
         v as f64
     }
 }
-
-// ---------------------------------------------------------------------------
-// The VDS pattern subset: literals, `.`, `[...]` classes with ranges and
-// negation, `^`, `$`, and the `?`/`*`/`+` quantifiers. Small enough to
-// implement without a regex dependency and identical to what the
-// TypeScript side accepts (the pack lint rejects anything richer).
-// ---------------------------------------------------------------------------
 
 enum VdsAtom {
     Any,
@@ -1337,24 +1105,146 @@ fn vds_match_here(p: &VdsPattern, ti: usize, text: &[char], pos: usize) -> bool 
     }
 }
 
-/// Match a VDS pattern (the subset above) against text. Malformed patterns
-/// never match.
+// The cap bounds VDS pattern expansion.
+const VDS_MAX_ALTERNATIVES: usize = 64;
+
+fn expand_vds_alternations(pattern: &str) -> Option<Vec<String>> {
+    // Unbalanced groups return None so malformed patterns never match.
+    fn split_top_level(pattern: &str) -> Option<Vec<String>> {
+        let mut parts = Vec::new();
+        let mut depth = 0usize;
+        let mut in_class = false;
+        let mut current = String::new();
+        for c in pattern.chars() {
+            if in_class {
+                if c == ']' {
+                    in_class = false;
+                }
+            } else if c == '[' {
+                in_class = true;
+            } else if c == '(' {
+                depth += 1;
+            } else if c == ')' {
+                depth = depth.checked_sub(1)?;
+            } else if c == '|' && depth == 0 {
+                parts.push(std::mem::take(&mut current));
+                continue;
+            }
+            current.push(c);
+        }
+        if depth != 0 || in_class {
+            return None;
+        }
+        parts.push(current);
+        Some(parts)
+    }
+
+    fn expand(pattern: &str, out: &mut Vec<String>) -> Option<()> {
+        for branch in split_top_level(pattern)? {
+            let chars: Vec<char> = branch.chars().collect();
+            let mut in_class = false;
+            let mut open = None;
+            for (i, c) in chars.iter().enumerate() {
+                if in_class {
+                    if *c == ']' {
+                        in_class = false;
+                    }
+                } else if *c == '[' {
+                    in_class = true;
+                } else if *c == '(' {
+                    open = Some(i);
+                    break;
+                }
+            }
+            let Some(open) = open else {
+                if out.len() >= VDS_MAX_ALTERNATIVES {
+                    return None;
+                }
+                out.push(branch);
+                continue;
+            };
+            let mut depth = 0usize;
+            let mut in_class = false;
+            let mut close = None;
+            for (i, c) in chars.iter().enumerate().skip(open) {
+                if in_class {
+                    if *c == ']' {
+                        in_class = false;
+                    }
+                } else if *c == '[' {
+                    in_class = true;
+                } else if *c == '(' {
+                    depth += 1;
+                } else if *c == ')' {
+                    depth -= 1;
+                    if depth == 0 {
+                        close = Some(i);
+                        break;
+                    }
+                }
+            }
+            let close = close?;
+            let prefix: String = chars[..open].iter().collect();
+            let inner: String = chars[open + 1..close].iter().collect();
+            let suffix: String = chars[close + 1..].iter().collect();
+            for alternative in split_top_level(&inner)? {
+                expand(&format!("{prefix}{alternative}{suffix}"), out)?;
+            }
+        }
+        Some(())
+    }
+
+    let mut out = Vec::new();
+    expand(pattern, &mut out)?;
+    if out.is_empty() || out.len() > VDS_MAX_ALTERNATIVES {
+        return None;
+    }
+    Some(out)
+}
+
 pub fn vds_matches(pattern: &str, text: &str) -> bool {
-    let Some(p) = parse_vds_pattern(pattern) else {
+    let Some(alternatives) = expand_vds_alternations(pattern) else {
         return false;
     };
     let chars: Vec<char> = text.chars().collect();
-    if p.anchored_start {
-        return vds_match_here(&p, 0, &chars, 0);
-    }
-    (0..=chars.len()).any(|start| vds_match_here(&p, 0, &chars, start))
+    alternatives.iter().any(|alternative| {
+        let Some(p) = parse_vds_pattern(alternative) else {
+            return false;
+        };
+        if p.anchored_start {
+            return vds_match_here(&p, 0, &chars, 0);
+        }
+        (0..=chars.len()).any(|start| vds_match_here(&p, 0, &chars, start))
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// A synthetic VIN for a brand id: its first WMI plus filler.
+    fn vds_literal(pattern: &str) -> String {
+        let expanded = expand_vds_alternations(pattern).expect("pattern expands");
+        let mut literal = String::new();
+        let mut chars = expanded[0].trim_start_matches('^').chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '[' => {
+                    let first = chars.next().unwrap();
+                    literal.push(first);
+                    for x in chars.by_ref() {
+                        if x == ']' {
+                            break;
+                        }
+                    }
+                }
+                '$' | '?' | '*' | '+' => {}
+                '.' => literal.push('A'),
+                c => literal.push(c),
+            }
+        }
+        literal
+    }
+
     fn vin_for(brand_id: &str, vds: &str) -> String {
         let brand = map()
             .brands
@@ -1423,8 +1313,6 @@ mod tests {
     #[test]
     fn map_parses_and_has_content() {
         let m = map();
-        // >= 9: version bumps happen on pure data updates that must NOT
-        // require touching this file; v9 is the schema this contract needs.
         assert!(m.version >= 9);
         assert!(!m.brands.is_empty());
         assert!(!m.standard.ident_dids.is_empty());
@@ -1434,8 +1322,6 @@ mod tests {
 
     #[test]
     fn every_hex_field_in_the_shipped_map_parses() {
-        // A typo'd address in the data file must fail here, not silently
-        // make a brand's modules unreachable on a real car.
         for b in &map().brands {
             for m in &b.modules {
                 assert!(hex_any(&m.req).is_some(), "{}: bad req {}", b.id, m.req);
@@ -1568,7 +1454,6 @@ mod tests {
             .iter()
             .any(|candidate| candidate.source == CandidateSource::NormalFixed29bit));
 
-        // The target-byte policy stays conventional-only until Phase 2.
         let tb = brand_with(|b| b.scan_policy == ScanPolicy::Conventional11bitAndTargetByte11bit);
         let probes = addresses_to_probe(Some(&vin_for(&tb.id, "EXAMPLE")));
         assert!(probes
@@ -1695,8 +1580,6 @@ mod tests {
 
     #[test]
     fn known_did_has_no_unscoped_fallback_but_browsing_still_works() {
-        // An entry whose module the research does not name must never label
-        // what some module happened to answer — on any brand.
         let (brand, entry) = map()
             .brands
             .iter()
@@ -1735,8 +1618,6 @@ mod tests {
 
     #[test]
     fn route_for_module_uses_data_then_derives_on_two_brands() {
-        // A brand documenting an 11-bit target-byte route (ISO-TP extended
-        // addressing) and one documenting normal-fixed 29-bit routes.
         let tb = brand_with(|b| {
             b.modules.iter().any(|m| {
                 m.route.as_ref().is_some_and(|r| {
@@ -1788,7 +1669,6 @@ mod tests {
             Some(format!("{:02X}", (req >> 8) & 0xFF).as_str())
         );
 
-        // Undocumented pairs derive.
         let derived = route_for_module(None, 0x7E0, 0x7E8);
         assert_eq!(derived.protocol, RouteProtocol::Can11_500);
         assert_eq!(
@@ -1837,9 +1717,6 @@ mod tests {
                 );
             }
         }
-        // The packed-BCD layout: part reference at offset 0 (5 bytes), a
-        // second hardware reference at 7, and the software reference in a
-        // second DID at bytes 21–23 wrapped as `96…80`.
         let bcd = brand_with(|b| {
             b.identity_block.as_ref().is_some_and(|ib| {
                 ib.dids
@@ -1870,8 +1747,6 @@ mod tests {
             (sw.prefix.as_deref(), sw.suffix.as_deref()),
             (Some("96"), Some("80"))
         );
-        // A second brand with a vendor field on top of ISO, and the ISO
-        // fallback for an unknown WMI.
         let other = brand_with(|b| {
             b.id != bcd.id
                 && b.identity_block
@@ -1987,7 +1862,6 @@ mod tests {
             DataByIdentifier
         );
 
-        // No module carries a 1A override: 1A is a per-record service.
         for b in &map().brands {
             for m in &b.modules {
                 assert_ne!(
@@ -1999,7 +1873,6 @@ mod tests {
                 );
             }
         }
-        // A DID-level 1A record exists in data; unbound entries never change a module's service.
         let (brand, entry) = map()
             .brands
             .iter()
@@ -2021,7 +1894,6 @@ mod tests {
             };
             assert_eq!(read_service_for_did(Some(&vin), req, resp, did), expected);
         }
-        // A module-level override flows through the DID accessor (second brand).
         let with21 = brand_with(|b| {
             b.modules
                 .iter()
@@ -2041,7 +1913,6 @@ mod tests {
             ),
             DataByLocalIdentifier
         );
-        // Platform read services are consulted through a VIN-selectable platform.
         let patterned = brand_with(|b| {
             b.platforms
                 .iter()
@@ -2104,7 +1975,6 @@ mod tests {
                 );
             }
         }
-        // A signed decode exists somewhere off the primary brand.
         assert!(map().brands.iter().any(|b| b.id != "psa"
             && b.known_dids
                 .iter()
@@ -2185,7 +2055,6 @@ mod tests {
         scaled.scale = 0.1;
         scaled.bias = -3276.8;
         assert!((decode_value(&scaled, &[0x80, 0x00]).unwrap()).abs() < 1e-9);
-        // Round-trip through serde keeps the shape.
         let json = serde_json::to_string(&flag).unwrap();
         let back: Decode = serde_json::from_str(&json).unwrap();
         assert_eq!(back, flag);
@@ -2256,26 +2125,7 @@ mod tests {
                 .find(|p| p.vds_pattern.is_some())
                 .unwrap();
             let pattern = p.vds_pattern.as_deref().unwrap();
-            // Build a matching VDS from the pattern: literal characters, or
-            // the first member of a class.
-            let mut literal = String::new();
-            let mut chars = pattern.trim_start_matches('^').chars().peekable();
-            while let Some(c) = chars.next() {
-                match c {
-                    '[' => {
-                        let first = chars.next().unwrap();
-                        literal.push(first);
-                        for x in chars.by_ref() {
-                            if x == ']' {
-                                break;
-                            }
-                        }
-                    }
-                    '$' | '?' | '*' | '+' => {}
-                    '.' => literal.push('A'),
-                    c => literal.push(c),
-                }
-            }
+            let literal = vds_literal(pattern);
             let hit = platform_for_vin(Some(&vin_for(&b.id, &literal)));
             assert_eq!(
                 hit.as_ref().map(|p| p.key.as_str()),
@@ -2289,11 +2139,92 @@ mod tests {
         assert!(platform_for_vin(Some("ZZZ00000000000000")).is_none());
         assert!(platform_for_vin(Some("VR7")).is_none());
         assert!(platform_for_vin(None).is_none());
-        // Platforms without a pattern are data for the evidence path only.
         let unpatterned = brand_with(|b| {
             !b.platforms.is_empty() && b.platforms.iter().all(|p| p.vds_pattern.is_none())
         });
         assert!(platform_for_vin(Some(&vin_for(&unpatterned.id, "EXAMPLE"))).is_none());
+    }
+
+    #[test]
+    fn vin_alone_selects_the_profiled_generation_and_the_alternation_platforms() {
+        assert_eq!(
+            platform_for_vin(Some(&vin_for("psa", "BAHNSAN")))
+                .map(|p| p.key)
+                .as_deref(),
+            Some("c41")
+        );
+        assert_ne!(
+            platform_for_vin(Some(&vin_for("psa", "BCZKXAN")))
+                .map(|p| p.key)
+                .as_deref(),
+            Some("c41")
+        );
+
+        for vds in ["KN3DUAB", "KN36UAB"] {
+            assert_eq!(
+                platform_for_vin(Some(&vin_for("toyota", vds)))
+                    .map(|p| p.key)
+                    .as_deref(),
+                Some("toyota_prius_xw30"),
+                "{vds}"
+            );
+        }
+        assert_ne!(
+            platform_for_vin(Some(&vin_for("toyota", "KN37UAB")))
+                .map(|p| p.key)
+                .as_deref(),
+            Some("toyota_prius_xw30")
+        );
+        for vds in ["ZB1BAAB", "ZB11AAB", "BC1BAAB", "BC11AAB"] {
+            assert_eq!(
+                platform_for_vin(Some(&vin_for("toyota", vds)))
+                    .map(|p| p.key)
+                    .as_deref(),
+                Some("lexus_rx_al10"),
+                "{vds}"
+            );
+        }
+        assert!(platform_for_vin(Some(&vin_for("toyota", "ZB1CAAB")))
+            .map(|p| p.key)
+            .is_none_or(|key| key != "lexus_rx_al10"));
+
+        for brand in &map().brands {
+            for platform in &brand.platforms {
+                if let Some(pattern) = &platform.vds_pattern {
+                    assert!(
+                        expand_vds_alternations(pattern).is_some(),
+                        "{} {} {pattern}",
+                        brand.id,
+                        platform.key
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn alternation_expands_to_its_branches_and_malformed_groups_never_match() {
+        assert_eq!(
+            expand_vds_alternations("^(KN3DU|KN36U)").unwrap(),
+            vec!["^KN3DU".to_string(), "^KN36U".to_string()]
+        );
+        assert_eq!(
+            expand_vds_alternations("^A(B|C)(D|E)").unwrap(),
+            vec![
+                "^ABD".to_string(),
+                "^ABE".to_string(),
+                "^ACD".to_string(),
+                "^ACE".to_string()
+            ]
+        );
+        assert!(vds_matches("^(KN3DU|KN36U)", "KN36UAB"));
+        assert!(!vds_matches("^(KN3DU|KN36U)", "KN37UAB"));
+        assert!(vds_matches("^(ZB1BA|BC11A)", "BC11AAB"));
+        assert!(!vds_matches("^[AB]C", "ZC00000"));
+        assert!(vds_matches("^[AB]C", "BC00000"));
+        assert!(!vds_matches("^(AB", "AB00000"));
+        assert!(!vds_matches("^AB)", "AB00000"));
+        assert!(expand_vds_alternations("^(AB").is_none());
     }
 
     #[test]

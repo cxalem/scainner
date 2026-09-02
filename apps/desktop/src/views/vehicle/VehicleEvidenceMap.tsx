@@ -1,6 +1,3 @@
-// The module-level evidence map: every module this car has answered from,
-// its identity fields, the values observed, and the last standard fault
-// scan. Only persisted observations — unknown stays unknown.
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Network } from "lucide-react";
 import { Card, CardHead, ExpanderButton, Kicker, Mono, Note, Pill, Skeleton } from "@/components/ui";
@@ -47,10 +44,6 @@ export function VehicleEvidenceMap({ vehicleId }: { vehicleId: number | null }) 
                 <div key={module.id} className="flex flex-col border-b border-neutral-900 last:border-b-0">
                   <ExpanderButton open={isOpen} onClick={() => setOpen(isOpen ? null : module.id)} className="w-full gap-3 py-2.5 text-left text-text">
                     {isOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-600" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-neutral-600" />}
-                    {/* min-w, not w, and shrink-0: extended module routing
-                        (e.g. "6A8/688") is longer than a 2-char address —
-                        a fixed w with no shrink guard lets it paint over
-                        the name column instead of reserving its own space. */}
                     <Mono className="min-w-7 shrink-0 text-[12px] text-neutral-500">{module.address}</Mono>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="truncate text-[13px]">{module.display_name ?? t.vehicle.map.unknownModule}</span>

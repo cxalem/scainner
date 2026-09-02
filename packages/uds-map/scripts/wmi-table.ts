@@ -1,19 +1,3 @@
-// Generates the desktop app's WMI → brand badge table from the pack
-// (multi-brand plan, Phase 4, P4.3): every `brands[].wmi[]` entry becomes a
-// row, refined by an optional marque overlay for marques that live inside a
-// group brand (a group brand routes diagnostics; the badge still wants the
-// marque's own name and emblem key).
-//
-//   pnpm wmi-table            # rewrite apps/desktop/src/data/wmi.json
-//   pnpm wmi-table --check    # exit 1 when the committed table is stale (CI)
-//
-// Inputs:
-//   data/uds-map.json                          brands[].{id,name,wmi,confidence}
-//   apps/desktop/src/data/wmi-marques.json     { "<WMI>": { key, name, confidence?, source? } }
-//
-// Overlay rows whose WMI the pack does not route are still emitted with
-// `brand: null` — badge only, no diagnostic profile. No brand is named
-// here: every row comes from data.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadMap, PKG_DIR } from "./pack.ts";
@@ -21,7 +5,6 @@ import { loadMap, PKG_DIR } from "./pack.ts";
 export type WmiRow = {
   key: string;
   name: string;
-  /** Pack brand id that routes this WMI, or null for a badge-only marque. */
   brand: string | null;
   confidence: string;
   source: string;
@@ -41,14 +24,10 @@ function loadOverlay(): Overlay {
   }
 }
 
-/** The badge name for a group brand: the first segment of the pack name
- * before a " /" or " (" qualifier, upper-cased like the overlay names. */
 function badgeName(name: string): string {
   return name.split(/\s+[/(]/)[0].trim().toUpperCase();
 }
 
-/** Pack confidence uses `confirmed`; the badge table's scale tops out at
- * `high` (brand.ts `Confidence`). */
 function badgeConfidence(c: string | undefined): string {
   if (!c) return "medium";
   return c === "confirmed" ? "high" : c;
@@ -61,11 +40,6 @@ export function buildWmiTable(): Record<string, WmiRow> {
   for (const b of map.brands) {
     for (const wmi of b.wmi) {
       const code = wmi.toUpperCase();
-      // First brand in pack order routes a shared WMI. This is a deliberate,
-      // evidence-based tie-break, not an arbitrary default: e.g. VSS is
-      // claimed by both `seat` (well-established, listed first) and `cupra`
-      // (an unverified analogy pending a real VIN — see that brand's own
-      // `sources[]` note in uds-map.json, and RESEARCH.md §4/§8).
       if (rows.has(code)) continue;
       const o = overlay[code];
       rows.set(code, {

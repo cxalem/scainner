@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "routes": [
+    {
+      "route_id": "examplebrand_gen1_gateway_710_77a",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "platform_ids": [
+          "examplebrand_gen1"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "module_role": "gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "710",
+        "resp": "77A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Presence candidate; not proof the module is fitted."
+    },
+    {
+      "route_id": "examplebrand_gen1_legacy_kline",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "platform_ids": [
+          "examplebrand_gen1"
+        ]
+      },
+      "module_role": "engine",
+      "route": {
+        "protocol": "kwp2000",
+        "req": "7E0",
+        "resp": "7E8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": false,
+      "non_generalization_boundary": "Unsupported transport; documentation only, never coerced into a CAN route."
+    }
+  ],
+  "declared_count": 2
+}

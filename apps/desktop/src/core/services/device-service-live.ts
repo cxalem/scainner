@@ -1,15 +1,12 @@
-// The desktop (Tauri) implementation of `DeviceService` (packages/core).
-// Split out from the shared contract on the monorepo move: the Tag lives in
-// @scainner/core, the concrete Live layer — which talks to Tauri's `invoke`
-// specifically — lives here, next to the app that owns that transport. A
-// future mobile transport gets its own Live layer next to apps/mobile
-// instead of a branch in this file.
 import { Effect, Layer, Schema, type ParseResult } from "effect";
 import { invoke } from "@/lib/tauri";
 import {
   DeviceService,
   InvokeError,
   ConnStatus,
+  AdapterCandidate,
+  AdapterProfile,
+  NearbyDevice,
   CarReport,
   VehicleInfo,
   VehicleListRow,
@@ -22,6 +19,7 @@ import {
   DiscoveredDid,
   DiscoveredModule,
   DiscoveryReport,
+  DiscoveryRun,
   FingerprintExperimentReport,
   VehicleEvidenceMap,
   UdsHit,
@@ -29,11 +27,9 @@ import {
   UdsProbe,
   SensorReading,
   HistoryPoint,
+  ReadingKey,
 } from "@scainner/core";
 
-// Collapses the try/promise/catch boilerplate every hand-written call site
-// used to repeat (research.md section 2). `decoded` adds a Schema parse on
-// top for commands with a structured response.
 function call<T>(command: string, args?: Record<string, unknown>): Effect.Effect<T, InvokeError> {
   return Effect.tryPromise({
     try: () => invoke<T>(command, args),
@@ -53,6 +49,11 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   connStatus: () => decoded(ConnStatus, "conn_status"),
   connect: () => call<void>("connect"),
   disconnect: () => call<void>("disconnect"),
+  listAdapters: () => decoded(Schema.mutable(Schema.Array(AdapterCandidate)), "list_adapters"),
+  discoverAdapters: (seconds) => decoded(Schema.mutable(Schema.Array(NearbyDevice)), "discover_adapters", { seconds }),
+  pairAdapter: (addr, pin) => call<void>("pair_adapter", { addr, pin }),
+  adapterProfile: () => decoded(AdapterProfile, "get_adapter_profile"),
+  setAdapterProfile: (profile) => decoded(AdapterProfile, "set_adapter_profile", { profile }),
 
   listVehicles: () => decoded(Schema.mutable(Schema.Array(VehicleListRow)), "list_vehicles"),
   vehicleReport: (vehicleId) => decoded(CarReport, "vehicle_report", { vehicleId }),
@@ -70,6 +71,7 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
 
   allSensors: () => decoded(Schema.mutable(Schema.Array(SensorReading)), "all_sensors"),
   readingKeys: (vehicleId) => call<string[]>("reading_keys", { vehicleId }),
+  readingKeyDetails: (vehicleId) => decoded(Schema.mutable(Schema.Array(ReadingKey)), "reading_key_details", { vehicleId }),
   historyPoints: (vehicleId, key, hours) => decoded(Schema.mutable(Schema.Array(HistoryPoint)), "history", { vehicleId, key, sinceHours: hours }),
 
   udsModules: () => decoded(Schema.mutable(Schema.Array(UdsModule)), "uds_modules"),
@@ -79,6 +81,7 @@ export const DeviceServiceLive = Layer.succeed(DeviceService, {
   udsScan: (module, from, to) => decoded(Schema.mutable(Schema.Array(UdsHit)), "uds_scan", { module, from, to }),
   udsCancelScan: () => call<void>("uds_cancel_scan"),
   discoverSensors: (full) => decoded(DiscoveryReport, "discover_sensors", { full }),
+  runDiscovery: (vehicleId) => decoded(DiscoveryRun, "run_discovery", { vehicleId }),
   discoveredModules: (vehicleId) => decoded(Schema.mutable(Schema.Array(DiscoveredModule)), "discovered_modules", { vehicleId }),
   discoveredDids: (moduleId) => decoded(Schema.mutable(Schema.Array(DiscoveredDid)), "discovered_dids", { moduleId }),
   fingerprintExperiment: () => decoded(FingerprintExperimentReport, "fingerprint_experiment"),

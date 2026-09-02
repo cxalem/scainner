@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "conflicts": [
+    {
+      "conflict_id": "toyota_shared_addresses_not_family_evidence",
+      "finding": "Prius, Camry and Lexus RX sources reuse some diagnostic addresses and identifiers, but no stable ECU fingerprint in this pass proves cross-model decoder compatibility.",
+      "automatic_merge": "forbidden",
+      "resolution": "Keep model/platform scopes separate until exact part and compatible software reproduce the decoder.",
+      "source_refs": ["S01", "S02", "S03", "S04"]
+    }
+  ],
+  "gaps": [
+    {"gap_id": "toyota_no_project_vehicle", "priority": "P0", "required_evidence": "A de-identified Toyota/Lexus research-request export from Scainner.", "safe_next_action": "Retain all candidates as untested and disabled.", "retry_condition": "Toyota/Lexus vehicle connected and export available.", "source_refs": []},
+    {"gap_id": "toyota_no_stable_fingerprints", "priority": "P0", "required_evidence": "Repeated F187/F191/F195/F197 or sourced service-21 identity payloads on project hardware.", "safe_next_action": "Do not create ECU-family hypotheses.", "retry_condition": "Stable identity captured across two connections.", "source_refs": ["S04"]},
+    {"gap_id": "toyota_extended_addressing_projection", "priority": "P0", "required_evidence": "Canonical runtime representation and physical validation for OBDb eax/tst extended-address routes such as 750/758 target 2A.", "safe_next_action": "Exclude those routes and TPMS candidates from executable files.", "retry_condition": "Transport parser and adapter behavior verified.", "source_refs": ["S01", "S02"]},
+    {"gap_id": "toyota_vds_market_coverage", "priority": "P1", "required_evidence": "Additional OEM VIN rules for Toyota/Lexus production markets and conventional Lexus RX variants not covered by the cited hybrid guides.", "safe_next_action": "Use only the exact published VDS families; fall back to generation-qualified model facts elsewhere.", "retry_condition": "Applicable OEM VIN guide for an uncovered market or powertrain.", "source_refs": ["S05", "S06", "S07", "S08", "S09"]},
+    {"gap_id": "toyota_legacy_kwp_boundary", "priority": "P1", "required_evidence": "Physical transport classification and identity on pre-2010 Toyota/Lexus vehicles.", "safe_next_action": "Do not coerce legacy KWP/ISO9141 evidence into modern CAN service-22 routes.", "retry_condition": "Supported transport capture available.", "source_refs": ["S01", "S03"]},
+    {"gap_id": "toyota_lexus_cross_model_reuse", "priority": "P1", "required_evidence": "Two vehicles with compatible exact ECU fingerprints and matching payload behavior.", "safe_next_action": "Keep Lexus and Toyota decoder candidates model-scoped.", "retry_condition": "Independent reproduction with stable fingerprints.", "source_refs": ["S01", "S03", "S04"]}
+  ],
+  "terminal_state_guidance": [
+    {"state": "platform_known_route_knowledge_incomplete", "reason": "Model/year is known but no exact route applies.", "safe_next_action": "Use standard OBD and trusted-map behavior only.", "retry_condition": "New immutable route evidence or physical capture."},
+    {"state": "ecu_responsive_identity_unreadable", "reason": "Toyota service-21 route answers but preferred identity is unavailable.", "safe_next_action": "Preserve response and avoid family reuse.", "retry_condition": "Sourced vendor identity record or physical identity capture."},
+    {"state": "signals_observed", "reason": "Candidate payload answered.", "safe_next_action": "Run its guided validation recipe; do not assign meaning from shape alone.", "retry_condition": "Validation completed."}
+  ]
+}

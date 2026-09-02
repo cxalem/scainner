@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "inventories": [
+    {
+      "inventory_id": "examplebrand_gen1_source_catalog",
+      "scope": {
+        "brand_ids": [
+          "examplebrand"
+        ],
+        "platform_ids": [
+          "examplebrand_gen1"
+        ]
+      },
+      "kind": "source_module_inventory",
+      "route_ids": [
+        "examplebrand_gen1_gateway_710_77a"
+      ],
+      "source_refs": [
+        "S01"
+      ],
+      "physical_project_observation": false
+    }
+  ],
+  "declared_count": 1
+}

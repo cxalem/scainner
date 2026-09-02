@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "platforms": [
+    {
+      "platform_id": "toyota_prius_xw30",
+      "scope": {"brand_ids": ["toyota"], "marques": ["toyota"], "models": ["prius_xw30"], "years": {"from": 2010, "to": 2015}, "powertrains": ["hev"]},
+      "architecture": "Prius XW30-era hybrid diagnostic branch with service-21 local identifiers.",
+      "transport_candidates": ["can11_500"],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": ["explicit Prius model and 2010-2015 year facts"],
+      "vds_patterns": ["^KN3DU", "^KN36U"],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": ["S01", "S05"],
+      "non_generalization_boundary": "Toyota-published Prius VIN families; other markets remain model-fact only."
+    },
+    {
+      "platform_id": "toyota_tnga_hybrid",
+      "scope": {"brand_ids": ["toyota"], "marques": ["toyota"], "models": ["camry_hybrid"], "years": {"from": 2018, "to": null}, "powertrains": ["hev"]},
+      "architecture": "Modern Toyota hybrid service-22 diagnostic branch represented by Prius and Camry sources.",
+      "transport_candidates": ["can11_500"],
+      "gateway_architecture": "exact physical routes; some body submodules use unresolved extended addressing",
+      "security_behavior": [],
+      "classification_evidence": ["explicit model, year and hybrid powertrain facts"],
+      "vds_patterns": ["^B[2375TAD]1HK"],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": ["S01", "S02", "S07"],
+      "non_generalization_boundary": "Camry Hybrid VDS only; not a complete TNGA platform claim and not authority to reuse Prius routes."
+    },
+    {
+      "platform_id": "toyota_ths5",
+      "scope": {"brand_ids": ["toyota"], "marques": ["toyota"], "models": ["prius_xw60"], "years": {"from": 2023, "to": null}, "powertrains": ["hev", "phev"]},
+      "architecture": "Fifth-generation Toyota Hybrid System branch.",
+      "transport_candidates": ["can11_500"],
+      "gateway_architecture": "physical 11-bit routes plus excluded extended-address body routes",
+      "security_behavior": [],
+      "classification_evidence": ["explicit Prius model/year and rear-motor candidate records"],
+      "vds_patterns": ["^A[CDE]AAU"],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": ["S01", "S06"],
+      "non_generalization_boundary": "Do not apply rear-motor candidates to two-wheel-drive vehicles."
+    },
+    {
+      "platform_id": "lexus_rx_al10",
+      "scope": {"brand_ids": ["toyota"], "marques": ["lexus"], "models": ["lexus_rx_al10"], "years": {"from": 2010, "to": 2015}, "powertrains": ["ice", "hev"]},
+      "architecture": "Lexus RX AL10-era service-21 diagnostic branch.",
+      "transport_candidates": ["can11_500"],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": ["explicit Lexus RX model and source-test years"],
+      "vds_patterns": ["^ZB1BA", "^ZB11A", "^BC1BA", "^BC11A"],
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "source_refs": ["S03", "S08"],
+      "non_generalization_boundary": "RX 450h AL10 hybrid VDS only; conventional RX variants remain model-fact only."
+    },
+    {
+      "platform_id": "lexus_rx_al30",
+      "scope": {"brand_ids": ["toyota"], "marques": ["lexus"], "models": ["lexus_rx_al30"], "years": {"from": 2023, "to": null}, "powertrains": ["hev", "phev"]},
+      "architecture": "Current Lexus RX hybrid service-22 branch.",
+      "transport_candidates": ["can11_500"],
+      "gateway_architecture": null,
+      "security_behavior": [],
+      "classification_evidence": ["explicit Lexus RX model and 2025 source-test evidence"],
+      "vds_patterns": ["^C[BCJNFMDLE]BAZ"],
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "source_refs": ["S03", "S09"],
+      "non_generalization_boundary": "Toyota-published AALH1#/TALH17 RX hybrid/PHEV family; exact ECU identity remains required before decoder reuse."
+    }
+  ]
+}

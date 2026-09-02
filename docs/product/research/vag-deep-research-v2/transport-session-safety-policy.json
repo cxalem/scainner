@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "brand_ids": [
+    "vag"
+  ],
+  "central_policy_relationship": "Brand pack may only reduce central limits.",
+  "source_facts_vs_policy": "Numeric budgets are conservative project policy, not VW/Audi OEM specifications.",
+  "automatic_discovery": {
+    "read_only": true,
+    "default_session_only": true,
+    "max_outstanding_requests": 1,
+    "passive_capture": "attempt only if the adapter reliably monitors the active pins; otherwise passive_capture_unavailable"
+  },
+  "never_automatic_services": [
+    "10_non_default",
+    "11",
+    "14",
+    "27",
+    "28",
+    "2E",
+    "2F",
+    "31",
+    "34",
+    "35",
+    "36",
+    "37",
+    "3D"
+  ],
+  "brand_budget_reductions": {
+    "whole_automatic_connection_seconds": 180
+  },
+  "brand_request_budgets": {
+    "known_route_phase": {
+      "max_requests": 80,
+      "rate_requests_per_second": 4,
+      "burst_max": 4,
+      "max_outstanding": 1,
+      "retry_on_timeout": 0
+    },
+    "identity_per_ecu": {
+      "max_requests": 7,
+      "rate_requests_per_second": 2,
+      "retry_on_timeout": 1,
+      "retry_backoff_ms": 250
+    },
+    "remaining_vag_catalog": {
+      "max_requests": 100,
+      "rate_requests_per_second": 4,
+      "max_outstanding": 1
+    },
+    "generic_can11": {
+      "authorized_only_after_transport_detection": true,
+      "from": "0x700",
+      "to": "0x7F6",
+      "exclude": [
+        "0x7DF"
+      ],
+      "max_requests": 247,
+      "rate_requests_per_second": 4
+    },
+    "global": {
+      "max_requests": 650,
+      "max_wallclock_ms": 180000,
+      "phase_cooldown_ms": 500
+    }
+  },
+  "29bit_policy": {
+    "generic_enumeration_authorized": false,
+    "exact_platform_routes_authorized": [],
+    "conditions": [
+      "exact platform classification supports the route",
+      "route comes from an immutable licensed source",
+      "full request/response pair is canonical"
+    ],
+    "not_authorized_by": [
+      "11-bit silence",
+      "an unresolved source header notation",
+      "another marque or platform using 29-bit"
+    ]
+  },
+  "session_policy": {
+    "product": "default_only",
+    "extended_session": "Lab only with an exact route, identifier, fingerprint, immutable source, stationary vehicle and a return to the default session.",
+    "security_access_after_extended_session": false
+  },
+  "nrc_policy": {
+    "0x21": "retry twice with 500ms backoff",
+    "0x22": "conditions_not_correct terminal",
+    "0x25": "gateway/subnet unreachable",
+    "0x31": "DID out of range on this ECU",
+    "0x33/35/36/37": "protected; no SecurityAccess",
+    "0x78": "wait up to 3000ms without resend",
+    "0x7E/7F": "record session mismatch; no generic session change"
+  },
+  "timeouts": {
+    "presence_first_response_ms": 250,
+    "identity_first_response_ms": 500,
+    "isotp_multiframe_completion_ms": 3000,
+    "response_pending_max_ms": 3000
+  },
+  "abort_conditions": [
+    "CAN bus-off",
+    "user cancel",
+    "adapter unsafe state"
+  ],
+  "legacy_transport_detection": null
+}

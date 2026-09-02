@@ -1,26 +1,3 @@
-//! The automatic run on connect (multi-brand plan P2.7; protocol §4):
-//! after S0 the supervisor calls [`run`], which does
-//!
-//! - **S1 census** over `uds_map::addresses_to_probe(vin)` with the
-//!   presence probe in the default session, recording every outcome
-//!   (`reached` / `refused` / `silent` / `transport_failed`) per route in
-//!   `route_outcomes` and the reached ones in `discovered_modules` with
-//!   their route tuple;
-//! - **S2 identity** on every reached route: the brand's identity block,
-//!   read with the module's read service, **twice**, the second pass after
-//!   every other module has been read (other traffic in between); the
-//!   fingerprint is written back and `identity_fit` becomes `provisional`
-//!   (or `conflicted` when the two reads disagree);
-//! - **S3 join** and the **coverage report**.
-//!
-//! Budgets: S1+S2 within [`AutoConfig::census_and_identity_secs`] (3 min),
-//! the whole run within [`AutoConfig::global_secs`] (10 min); work that
-//! does not fit is left for the next connection and the report says so.
-//! Services sent: the presence probe and the read services `22`/`21`/`1A`.
-//! The run never opens `10 03` (no `enter_extended_session` call exists
-//! in this file) and it is skipped when `app_settings.auto_discovery` is
-//! `off`.
-
 use super::coverage::{self, CoverageReport};
 use super::identity::{self, IdentityObservation};
 use super::join::{self, JoinSummary};
@@ -38,14 +15,9 @@ use std::time::{Duration, Instant};
 
 #[derive(Clone, Debug)]
 pub struct AutoConfig {
-    /// S1 + S2 together (protocol §7: 3 min).
     pub census_and_identity_secs: u64,
-    /// Whole automatic run (protocol §7: 10 min).
     pub global_secs: u64,
-    /// Probe only the profile's documented routes (tests, quick runs);
-    /// the default census also walks the conventional range.
     pub profile_only: bool,
-    /// Per-request timeouts from the pack's `timings_ms` unless overridden.
     pub presence_probe_ms: Option<u64>,
     pub ident_read_ms: Option<u64>,
 }
@@ -70,7 +42,6 @@ pub struct CensusSummary {
     pub refused: usize,
     pub silent: usize,
     pub transport_failed: usize,
-    /// Candidates left for the next connection when the budget ran out.
     pub deferred: usize,
 }
 
@@ -80,7 +51,6 @@ pub struct IdentitySummary {
     pub fingerprinted: usize,
     pub provisional: usize,
     pub conflicted: usize,
-    /// Modules whose second read did not fit in the budget.
     pub read_once: usize,
 }
 
@@ -94,12 +64,9 @@ pub struct AutoSummary {
     pub coverage_status: Option<String>,
     pub elapsed_ms: u128,
     pub cancelled: bool,
-    /// Why the run stopped before finishing, when it did.
     pub stopped: Option<String>,
 }
 
-/// De-identified notification raised before an unprofiled vehicle enters
-/// conservative discovery. The full VIN is deliberately never exposed.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct UnknownBrandNotice {
     pub classification: &'static str,
@@ -110,9 +77,6 @@ pub struct UnknownBrandNotice {
     pub discovery_continues: bool,
 }
 
-/// Invoke `callback` exactly once when no first-class brand profile can be
-/// selected. This is a notification, not a gate: the caller continues with
-/// the manufacturer-agnostic fallback after the callback returns.
 pub fn notify_unknown_brand(vin: Option<&str>, callback: impl FnOnce(&UnknownBrandNotice)) -> bool {
     let brand = uds_map::brand_for_vin(vin);
     let standard_only = brand
@@ -151,8 +115,6 @@ pub fn notify_unknown_brand(vin: Option<&str>, callback: impl FnOnce(&UnknownBra
     true
 }
 
-/// Whether the automatic run is switched on (`app_settings.auto_discovery`
-/// is anything but `off`).
 pub fn enabled(db: &Db) -> bool {
     db.setting_get(AUTO_DISCOVERY_SETTING)
         .map(|v| v.trim() != "off")
@@ -179,11 +141,8 @@ struct Reached {
     route: Route,
 }
 
-/// Progress callback: `(phase, current, total, detail)`.
 pub type Progress<'a> = &'a dyn Fn(&str, u32, u32, &str);
 
-/// The automatic run. `vin` selects the profile; `connection_id` stamps the
-/// identity reads and the route outcomes.
 #[allow(clippy::too_many_arguments)]
 pub fn run(
     drv: &mut ElmDriver,
@@ -216,7 +175,6 @@ pub fn run(
     let mut operation = ScannerOperation::new(drv);
     let mut addressing = AddressingState::default();
 
-    // ---- S1 census ----
     let candidates: Vec<AddressCandidate> = uds_map::addresses_to_probe(vin)
         .into_iter()
         .filter(|c| !config.profile_only || c.profile_candidate)
@@ -229,7 +187,6 @@ pub fn run(
             summary.stopped = Some("cancelled during the census".into());
             break;
         }
-        // Keep a third of the S1+S2 budget for identity reads.
         if started.elapsed() > s1s2 * 2 / 3 {
             summary.stopped = Some(format!(
                 "census budget reached after {} of {} candidates; the rest resumes next connection",
@@ -260,6 +217,7 @@ pub fn run(
             state,
             route_json.as_deref(),
             outcome.detail.as_deref(),
+            outcome.nrc,
         );
         match state {
             "reached" | "refused" => {
@@ -287,7 +245,6 @@ pub fn run(
     }
     summary.census.deferred = candidates.len() - summary.census.attempted;
 
-    // ---- S2 identity: two passes, every other module between them ----
     let block = uds_map::identity_block_for_vin(vin);
     let dids = pack_ext::identity_dids(&block);
     summary.identity.modules = reached.len();
@@ -367,8 +324,6 @@ pub fn run(
                         fit =
                             identity::record_identity(db, module.module_id, &again, connection_id);
                     }
-                    // A block that answered once and not the second time
-                    // is not byte-identical: record a conflict honestly.
                     None => {
                         let mut conflicting = fingerprint.clone();
                         conflicting.match_key =
@@ -392,7 +347,6 @@ pub fn run(
     }
     drop(operation);
 
-    // ---- S3 join + coverage (local, instant) ----
     progress("auto-join", 0, 1, "");
     let joined = join::join_vehicle(db, uds_map::map(), vehicle_id);
     summary.join = Some(joined);
@@ -416,9 +370,6 @@ mod tests {
     use crate::elm::uds_map::{map, ReadService};
     use serde_json::json;
 
-    /// Build the replay fixture the run will consume for `vin` when the
-    /// listed routes answer. `answers` maps `(req, resp)` to the presence
-    /// outcome and the identity payloads (per DID, hex) it answers.
     struct Answering {
         req: u32,
         resp: u32,
@@ -502,9 +453,6 @@ mod tests {
             .unwrap_or_else(|p| p.into_inner());
         operation::set_link_state(None);
         let vin = verified_vin();
-        // The ABS/ESP answers its vendor block (this project's captured
-        // payloads), the steering rack refuses the presence probe but
-        // answers its identity, the rest is silent.
         let answering = [
             Answering {
                 req: 0x6AD,
@@ -627,8 +575,6 @@ mod tests {
                     (0xF195, "30 32 31 30"),
                 ],
             },
-            // The 21 module answers the presence probe; its identity block
-            // cannot be asked on a one-byte service, so no read is sent.
             Answering {
                 req: uds_map::can_address(&local_id.req).unwrap(),
                 resp: uds_map::can_address(&local_id.resp).unwrap(),

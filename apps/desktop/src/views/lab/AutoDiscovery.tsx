@@ -1,9 +1,3 @@
-// Auto sweep. Takes no inputs on purpose: which modules exist and which
-// DID neighborhoods hold data come from the car's VIN and the shipped
-// knowledge map, never from the user. A hit the map has a full decode
-// formula for is promoted straight into the live poll loop server-side
-// (uds::discover's sensors_added) — run it once, that sensor behaves like
-// a normal gauge from then on.
 import { useEffect, useState } from "react";
 import { Effect } from "effect";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -42,8 +36,6 @@ export function AutoDiscovery({
 }: {
   connected: boolean;
   vehicleId: number | null;
-  /** A scan is running right now (from the global conn-status broadcast),
-   *  whether or not this card started it. */
   scanning: boolean;
 }) {
   const t = useT();

@@ -2,12 +2,8 @@ use serde::Serialize;
 
 use super::driver::ElmError;
 
-/// Machine-readable result of one diagnostic interaction. Human copy belongs
-/// in the UI; `detail` preserves transport/ECU evidence for logs and reports.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
-// The complete wire vocabulary is defined up front so later scanner paths do
-// not invent incompatible states while this contract is adopted incrementally.
 #[allow(dead_code)]
 pub enum DiagnosticStatus {
     Answered,

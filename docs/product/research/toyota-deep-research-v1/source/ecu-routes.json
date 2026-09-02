@@ -1,0 +1,312 @@
+{
+  "schema_version": 1,
+  "declared_count": 8,
+  "routes": [
+    {
+      "route_id": "toyota_prius_xw30_abs_7b0_7b8",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "toyota_prius_xw30"
+        ],
+        "models": [
+          "prius"
+        ]
+      },
+      "module_role": "abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7B0",
+        "resp": "7B8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Prius 2010-2015 only."
+    },
+    {
+      "route_id": "toyota_prius_xw30_cluster_7c0_7c8",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "toyota_prius_xw30"
+        ],
+        "models": [
+          "prius"
+        ]
+      },
+      "module_role": "cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7C0",
+        "resp": "7C8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Prius 2010-2015 only."
+    },
+    {
+      "route_id": "toyota_modern_engine_700_708",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "toyota_tnga_hybrid"
+        ],
+        "models": [
+          "prius",
+          "camry"
+        ]
+      },
+      "module_role": "engine",
+      "route": {
+        "protocol": "can11_500",
+        "req": "700",
+        "resp": "708",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01",
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Only model/year-scoped source commands."
+    },
+    {
+      "route_id": "toyota_modern_hybrid_7d2_7da",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "toyota_tnga_hybrid"
+        ],
+        "models": [
+          "prius"
+        ]
+      },
+      "module_role": "hybrid_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7D2",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Prius pre-THS5 source scope."
+    },
+    {
+      "route_id": "toyota_ths5_hybrid_7d2_7da",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "toyota_ths5"
+        ],
+        "models": [
+          "prius"
+        ]
+      },
+      "module_role": "hybrid_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7D2",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Prius 2023+ THS5 only."
+    },
+    {
+      "route_id": "toyota_modern_battery_747_74f",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "toyota_tnga_hybrid"
+        ],
+        "models": [
+          "prius"
+        ]
+      },
+      "module_role": "hv_battery",
+      "route": {
+        "protocol": "can11_500",
+        "req": "747",
+        "resp": "74F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S01"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Prius battery architecture only until fingerprinted."
+    },
+    {
+      "route_id": "lexus_rx_al10_engine_7e0_7e8",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "lexus_rx_al10"
+        ],
+        "models": [
+          "rx"
+        ]
+      },
+      "module_role": "engine",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E0",
+        "resp": "7E8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "21"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Lexus RX 2010-2015 only."
+    },
+    {
+      "route_id": "lexus_rx_al30_hybrid_7d2_7da",
+      "scope": {
+        "brand_ids": [
+          "toyota"
+        ],
+        "platform_ids": [
+          "lexus_rx_al30"
+        ],
+        "models": [
+          "rx"
+        ]
+      },
+      "module_role": "hybrid_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7D2",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Lexus RX 2023+ only; no Prius inheritance without fingerprint evidence."
+    }
+  ]
+}

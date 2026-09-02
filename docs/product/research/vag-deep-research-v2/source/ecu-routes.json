@@ -1,0 +1,5360 @@
+{
+  "schema_version": 1,
+  "routes": [
+    {
+      "route_id": "vag_park_assist_70a_774",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "park_assist"
+        ]
+      },
+      "module_role": "park_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70A",
+        "resp": "774",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_high_beam_assist_730_79a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "high_beam_assist"
+        ]
+      },
+      "module_role": "high_beam_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "730",
+        "resp": "79A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_high_beam_assist_748_7b2",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "high_beam_assist"
+        ]
+      },
+      "module_role": "high_beam_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "748",
+        "resp": "7B2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_special_functions_2_72b_795",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "special_functions_2"
+        ]
+      },
+      "module_role": "special_functions_2",
+      "route": {
+        "protocol": "can11_500",
+        "req": "72B",
+        "resp": "795",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_engine_1_7e0_7e8",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "engine_1"
+        ]
+      },
+      "module_role": "engine_1",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E0",
+        "resp": "7E8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_engine_2_7e2_7ea",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "engine_2"
+        ]
+      },
+      "module_role": "engine_2",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E2",
+        "resp": "7EA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_transmission_7e1_7e9",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "transmission"
+        ]
+      },
+      "module_role": "transmission",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E1",
+        "resp": "7E9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_awd_control_70f_779",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "module_role": "awd_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70F",
+        "resp": "779",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_awd_control_71d_787",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "module_role": "awd_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "71D",
+        "resp": "787",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_differential_lock_electronics_71e_788",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "differential_lock_electronics"
+        ]
+      },
+      "module_role": "differential_lock_electronics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "71E",
+        "resp": "788",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_brakes_abs_esc_713_77d",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "713",
+        "resp": "77D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_adaptive_cruise_1_757_7c1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "adaptive_cruise_1"
+        ]
+      },
+      "module_role": "adaptive_cruise_1",
+      "route": {
+        "protocol": "can11_500",
+        "req": "757",
+        "resp": "7C1",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_steering_angle_sensor_751_7bb",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "steering_angle_sensor"
+        ]
+      },
+      "module_role": "steering_angle_sensor",
+      "route": {
+        "protocol": "can11_500",
+        "req": "751",
+        "resp": "7BB",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_adaptive_dampers_772_7dc",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "adaptive_dampers"
+        ]
+      },
+      "module_role": "adaptive_dampers",
+      "route": {
+        "protocol": "can11_500",
+        "req": "772",
+        "resp": "7DC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_ride_control_755_7bf",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "ride_control"
+        ]
+      },
+      "module_role": "ride_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "755",
+        "resp": "7BF",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_kessy_access_start_732_79c",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "kessy_access_start"
+        ]
+      },
+      "module_role": "kessy_access_start",
+      "route": {
+        "protocol": "can11_500",
+        "req": "732",
+        "resp": "79C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_airbag_715_77f",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "airbag"
+        ]
+      },
+      "module_role": "airbag",
+      "route": {
+        "protocol": "can11_500",
+        "req": "715",
+        "resp": "77F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_immobilizer_711_77b",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "immobilizer"
+        ]
+      },
+      "module_role": "immobilizer",
+      "route": {
+        "protocol": "can11_500",
+        "req": "711",
+        "resp": "77B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_passenger_seat_adjust_74d_7b7",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "passenger_seat_adjust"
+        ]
+      },
+      "module_role": "passenger_seat_adjust",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74D",
+        "resp": "7B7",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_steering_column_electronics_70c_776",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "steering_column_electronics"
+        ]
+      },
+      "module_role": "steering_column_electronics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70C",
+        "resp": "776",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_roof_control_72d_797",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "roof_control"
+        ]
+      },
+      "module_role": "roof_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "72D",
+        "resp": "797",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_instrument_cluster_714_77e",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "instrument_cluster"
+        ]
+      },
+      "module_role": "instrument_cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "714",
+        "resp": "77E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_hvac_746_7b0",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "hvac"
+        ]
+      },
+      "module_role": "hvac",
+      "route": {
+        "protocol": "can11_500",
+        "req": "746",
+        "resp": "7B0",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_auxiliary_heater_76a_7d4",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "auxiliary_heater"
+        ]
+      },
+      "module_role": "auxiliary_heater",
+      "route": {
+        "protocol": "can11_500",
+        "req": "76A",
+        "resp": "7D4",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_rear_climate_71a_784",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "rear_climate"
+        ]
+      },
+      "module_role": "rear_climate",
+      "route": {
+        "protocol": "can11_500",
+        "req": "71A",
+        "resp": "784",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_central_electronics_70e_778",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "central_electronics"
+        ]
+      },
+      "module_role": "central_electronics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70E",
+        "resp": "778",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_gateway_710_77a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "module_role": "gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "710",
+        "resp": "77A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_active_steering_or_display_alt_716_780",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "active_steering_or_display_alt"
+        ]
+      },
+      "module_role": "active_steering_or_display_alt",
+      "route": {
+        "protocol": "can11_500",
+        "req": "716",
+        "resp": "780",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_steering_column_lock_731_79b",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "steering_column_lock"
+        ]
+      },
+      "module_role": "steering_column_lock",
+      "route": {
+        "protocol": "can11_500",
+        "req": "731",
+        "resp": "79B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_vehicle_position_detection_750_7ba",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "vehicle_position_detection"
+        ]
+      },
+      "module_role": "vehicle_position_detection",
+      "route": {
+        "protocol": "can11_500",
+        "req": "750",
+        "resp": "7BA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_sliding_door_left_733_79d",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "sliding_door_left"
+        ]
+      },
+      "module_role": "sliding_door_left",
+      "route": {
+        "protocol": "can11_500",
+        "req": "733",
+        "resp": "79D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_media_player_1_770_7da",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "media_player_1"
+        ]
+      },
+      "module_role": "media_player_1",
+      "route": {
+        "protocol": "can11_500",
+        "req": "770",
+        "resp": "7DA",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_media_player_3_76e_7d8",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "media_player_3"
+        ]
+      },
+      "module_role": "media_player_3",
+      "route": {
+        "protocol": "can11_500",
+        "req": "76E",
+        "resp": "7D8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_air_conditioning_compressor_719_783",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "air_conditioning_compressor"
+        ]
+      },
+      "module_role": "air_conditioning_compressor",
+      "route": {
+        "protocol": "can11_500",
+        "req": "719",
+        "resp": "783",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_tachograph_771_7db",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "tachograph"
+        ]
+      },
+      "module_role": "tachograph",
+      "route": {
+        "protocol": "can11_500",
+        "req": "771",
+        "resp": "7DB",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_drive_motor_7e6_7ee",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "drive_motor"
+        ]
+      },
+      "module_role": "drive_motor",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E6",
+        "resp": "7EE",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_battery_regulation_728_792",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "battery_regulation"
+        ]
+      },
+      "module_role": "battery_regulation",
+      "route": {
+        "protocol": "can11_500",
+        "req": "728",
+        "resp": "792",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_driver_door_74a_7b4",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "driver_door"
+        ]
+      },
+      "module_role": "driver_door",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74A",
+        "resp": "7B4",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_passenger_door_74b_7b5",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "passenger_door"
+        ]
+      },
+      "module_role": "passenger_door",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74B",
+        "resp": "7B5",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_parking_brake_752_7bc",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "parking_brake"
+        ]
+      },
+      "module_role": "parking_brake",
+      "route": {
+        "protocol": "can11_500",
+        "req": "752",
+        "resp": "7BC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_steering_assist_712_77c",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "steering_assist"
+        ]
+      },
+      "module_role": "steering_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "712",
+        "resp": "77C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_headlight_range_754_7be",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "headlight_range"
+        ]
+      },
+      "module_role": "headlight_range",
+      "route": {
+        "protocol": "can11_500",
+        "req": "754",
+        "resp": "7BE",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_tpms_70b_775",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "tpms"
+        ]
+      },
+      "module_role": "tpms",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70B",
+        "resp": "775",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_driver_seat_adjust_74c_7b6",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "driver_seat_adjust"
+        ]
+      },
+      "module_role": "driver_seat_adjust",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74C",
+        "resp": "7B6",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_comfort_module_70d_777",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "comfort_module"
+        ]
+      },
+      "module_role": "comfort_module",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70D",
+        "resp": "777",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_radio_718_782",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "radio"
+        ]
+      },
+      "module_role": "radio",
+      "route": {
+        "protocol": "can11_500",
+        "req": "718",
+        "resp": "782",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_navigation_76c_7d6",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "navigation"
+        ]
+      },
+      "module_role": "navigation",
+      "route": {
+        "protocol": "can11_500",
+        "req": "76C",
+        "resp": "7D6",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_sound_system_76f_7d9",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "sound_system"
+        ]
+      },
+      "module_role": "sound_system",
+      "route": {
+        "protocol": "can11_500",
+        "req": "76F",
+        "resp": "7D9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_tv_tuner_76d_7d7",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "tv_tuner"
+        ]
+      },
+      "module_role": "tv_tuner",
+      "route": {
+        "protocol": "can11_500",
+        "req": "76D",
+        "resp": "7D7",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_trailer_747_7b1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "trailer"
+        ]
+      },
+      "module_role": "trailer",
+      "route": {
+        "protocol": "can11_500",
+        "req": "747",
+        "resp": "7B1",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_sensor_electronics_721_78b",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "sensor_electronics"
+        ]
+      },
+      "module_role": "sensor_electronics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "721",
+        "resp": "78B",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_lane_change_assist_74e_7b8",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "lane_change_assist"
+        ]
+      },
+      "module_role": "lane_change_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74E",
+        "resp": "7B8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_special_functions_72c_796",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "special_functions"
+        ]
+      },
+      "module_role": "special_functions",
+      "route": {
+        "protocol": "can11_500",
+        "req": "72C",
+        "resp": "796",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_information_electronics_1_773_7dd",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "information_electronics_1"
+        ]
+      },
+      "module_role": "information_electronics_1",
+      "route": {
+        "protocol": "can11_500",
+        "req": "773",
+        "resp": "7DD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_pretensioner_front_right_75f_7c9",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "pretensioner_front_right"
+        ]
+      },
+      "module_role": "pretensioner_front_right",
+      "route": {
+        "protocol": "can11_500",
+        "req": "75F",
+        "resp": "7C9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_battery_charger_charge_management_765_7cf",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "battery_charger_charge_management"
+        ]
+      },
+      "module_role": "battery_charger_charge_management",
+      "route": {
+        "protocol": "can11_500",
+        "req": "765",
+        "resp": "7CF",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_gearshift_controller_753_7bd",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "gearshift_controller"
+        ]
+      },
+      "module_role": "gearshift_controller",
+      "route": {
+        "protocol": "can11_500",
+        "req": "753",
+        "resp": "7BD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_head_up_display_71b_785",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "head_up_display"
+        ]
+      },
+      "module_role": "head_up_display",
+      "route": {
+        "protocol": "can11_500",
+        "req": "71B",
+        "resp": "785",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_night_vision_727_791",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "night_vision"
+        ]
+      },
+      "module_role": "night_vision",
+      "route": {
+        "protocol": "can11_500",
+        "req": "727",
+        "resp": "791",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_armrest_739_7a3",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "armrest"
+        ]
+      },
+      "module_role": "armrest",
+      "route": {
+        "protocol": "can11_500",
+        "req": "739",
+        "resp": "7A3",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_telematics_767_7d1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "telematics"
+        ]
+      },
+      "module_role": "telematics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "767",
+        "resp": "7D1",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_onboard_camera_726_790",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "onboard_camera"
+        ]
+      },
+      "module_role": "onboard_camera",
+      "route": {
+        "protocol": "can11_500",
+        "req": "726",
+        "resp": "790",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_telephone_external_communications_76b_7d5",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "telephone_external_communications"
+        ]
+      },
+      "module_role": "telephone_external_communications",
+      "route": {
+        "protocol": "can11_500",
+        "req": "76B",
+        "resp": "7D5",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_sliding_door_right_734_79e",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "sliding_door_right"
+        ]
+      },
+      "module_role": "sliding_door_right",
+      "route": {
+        "protocol": "can11_500",
+        "req": "734",
+        "resp": "79E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_multicontour_driver_seat_735_79f",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "multicontour_driver_seat"
+        ]
+      },
+      "module_role": "multicontour_driver_seat",
+      "route": {
+        "protocol": "can11_500",
+        "req": "735",
+        "resp": "79F",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_multicontour_passenger_seat_736_7a0",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "multicontour_passenger_seat"
+        ]
+      },
+      "module_role": "multicontour_passenger_seat",
+      "route": {
+        "protocol": "can11_500",
+        "req": "736",
+        "resp": "7A0",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_multicontour_rear_driver_737_7a1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "multicontour_rear_driver"
+        ]
+      },
+      "module_role": "multicontour_rear_driver",
+      "route": {
+        "protocol": "can11_500",
+        "req": "737",
+        "resp": "7A1",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_adaptive_cruise_2_756_7c0",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "adaptive_cruise_2"
+        ]
+      },
+      "module_role": "adaptive_cruise_2",
+      "route": {
+        "protocol": "can11_500",
+        "req": "756",
+        "resp": "7C0",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_rear_view_camera_769_7d3",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "rear_view_camera"
+        ]
+      },
+      "module_role": "rear_view_camera",
+      "route": {
+        "protocol": "can11_500",
+        "req": "769",
+        "resp": "7D3",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_hv_battery_energy_control_7e5_7ed",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "hv_battery_energy_control"
+        ]
+      },
+      "module_role": "hv_battery_energy_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E5",
+        "resp": "7ED",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_deck_lid_723_78d",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "deck_lid"
+        ]
+      },
+      "module_role": "deck_lid",
+      "route": {
+        "protocol": "can11_500",
+        "req": "723",
+        "resp": "78D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_multicontour_rear_passenger_738_7a2",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "multicontour_rear_passenger"
+        ]
+      },
+      "module_role": "multicontour_rear_passenger",
+      "route": {
+        "protocol": "can11_500",
+        "req": "738",
+        "resp": "7A2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_image_processing_758_7c2",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "image_processing"
+        ]
+      },
+      "module_role": "image_processing",
+      "route": {
+        "protocol": "can11_500",
+        "req": "758",
+        "resp": "7C2",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_comfort_module_2_745_7af",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "comfort_module_2"
+        ]
+      },
+      "module_role": "comfort_module_2",
+      "route": {
+        "protocol": "can11_500",
+        "req": "745",
+        "resp": "7AF",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_pretensioner_front_left_75e_7c8",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "pretensioner_front_left"
+        ]
+      },
+      "module_role": "pretensioner_front_left",
+      "route": {
+        "protocol": "can11_500",
+        "req": "75E",
+        "resp": "7C8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_front_driver_assist_sensor_74f_7b9",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "front_driver_assist_sensor"
+        ]
+      },
+      "module_role": "front_driver_assist_sensor",
+      "route": {
+        "protocol": "can11_500",
+        "req": "74F",
+        "resp": "7B9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_micro_control_unit_763_7cd",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "micro_control_unit"
+        ]
+      },
+      "module_role": "micro_control_unit",
+      "route": {
+        "protocol": "can11_500",
+        "req": "763",
+        "resp": "7CD",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_infotainment_interface_749_7b3",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "infotainment_interface"
+        ]
+      },
+      "module_role": "infotainment_interface",
+      "route": {
+        "protocol": "can11_500",
+        "req": "749",
+        "resp": "7B3",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_roof_control_2_73d_7a7",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "roof_control_2"
+        ]
+      },
+      "module_role": "roof_control_2",
+      "route": {
+        "protocol": "can11_500",
+        "req": "73D",
+        "resp": "7A7",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_structure_borne_sound_actuator_71c_786",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "structure_borne_sound_actuator"
+        ]
+      },
+      "module_role": "structure_borne_sound_actuator",
+      "route": {
+        "protocol": "can11_500",
+        "req": "71C",
+        "resp": "786",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_auxiliary_display_73c_7a6",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "auxiliary_display"
+        ]
+      },
+      "module_role": "auxiliary_display",
+      "route": {
+        "protocol": "can11_500",
+        "req": "73C",
+        "resp": "7A6",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_rear_right_wheel_brake_720_78a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "rear_right_wheel_brake"
+        ]
+      },
+      "module_role": "rear_right_wheel_brake",
+      "route": {
+        "protocol": "can11_500",
+        "req": "720",
+        "resp": "78A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_assembly_mount_72e_798",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "assembly_mount"
+        ]
+      },
+      "module_role": "assembly_mount",
+      "route": {
+        "protocol": "can11_500",
+        "req": "72E",
+        "resp": "798",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_rear_left_wheel_brake_71f_789",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "rear_left_wheel_brake"
+        ]
+      },
+      "module_role": "rear_left_wheel_brake",
+      "route": {
+        "protocol": "can11_500",
+        "req": "71F",
+        "resp": "789",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_rear_driver_door_73e_7a8",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "rear_driver_door"
+        ]
+      },
+      "module_role": "rear_driver_door",
+      "route": {
+        "protocol": "can11_500",
+        "req": "73E",
+        "resp": "7A8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_reducer_control_72a_794",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "reducer_control"
+        ]
+      },
+      "module_role": "reducer_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "72A",
+        "resp": "794",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_rear_passenger_door_73f_7a9",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "rear_passenger_door"
+        ]
+      },
+      "module_role": "rear_passenger_door",
+      "route": {
+        "protocol": "can11_500",
+        "req": "73F",
+        "resp": "7A9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_brake_system_sensor_762_7cc",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "brake_system_sensor"
+        ]
+      },
+      "module_role": "brake_system_sensor",
+      "route": {
+        "protocol": "can11_500",
+        "req": "762",
+        "resp": "7CC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S02"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "A VAG route is a candidate presence probe, not proof that every SEAT has that ECU."
+    },
+    {
+      "route_id": "vag_thermal_management_unknown_742_7ac",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "thermal_management_unknown"
+        ]
+      },
+      "module_role": "thermal_management_unknown",
+      "route": {
+        "protocol": "can11_500",
+        "req": "742",
+        "resp": "7AC",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "vag_hv_charger_744_7ae",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen",
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1",
+          "audi_meb",
+          "audi_mlb",
+          "audi_mlb_evo_ev",
+          "audi_mqb",
+          "vw_meb_gen1",
+          "vw_meb_gen2",
+          "vw_mqb",
+          "vw_mqb_a0",
+          "vw_mqb_evo",
+          "vw_pq"
+        ],
+        "ecu_roles": [
+          "hv_charger"
+        ]
+      },
+      "module_role": "hv_charger",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "7AE",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "medium",
+      "knowledge_state": "research_candidate",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S03",
+        "S04"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "vw_meb_gen1_gateway_710_77a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "platform_ids": [
+          "vw_meb_gen1"
+        ],
+        "models": [
+          "id_3",
+          "id_4_2021_23",
+          "id_5"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "module_role": "gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "710",
+        "resp": "77A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "vw_meb_gen1_hv_charger_744_7ae",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "volkswagen"
+        ],
+        "platform_ids": [
+          "vw_meb_gen1"
+        ],
+        "models": [
+          "id_3",
+          "id_4_2021_23",
+          "id_5"
+        ],
+        "ecu_roles": [
+          "hv_charger"
+        ]
+      },
+      "module_role": "hv_charger",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "7AE",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S05"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_mlb_engine_7e0_7e8",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_mlb"
+        ],
+        "models": [
+          "q5_8r",
+          "longitudinal_audi_generations"
+        ],
+        "ecu_roles": [
+          "engine"
+        ]
+      },
+      "module_role": "engine",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E0",
+        "resp": "7E8",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S06"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_mlb_transmission_7e1_7e9",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_mlb"
+        ],
+        "models": [
+          "q5_8r",
+          "longitudinal_audi_generations"
+        ],
+        "ecu_roles": [
+          "transmission"
+        ]
+      },
+      "module_role": "transmission",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E1",
+        "resp": "7E9",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S06"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_gateway_710_77a",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "gateway"
+        ]
+      },
+      "module_role": "gateway",
+      "route": {
+        "protocol": "can11_500",
+        "req": "710",
+        "resp": "77A",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_brakes_abs_esc_713_77d",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "brakes_abs_esc"
+        ]
+      },
+      "module_role": "brakes_abs_esc",
+      "route": {
+        "protocol": "can11_500",
+        "req": "713",
+        "resp": "77D",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_hv_charger_744_7ae",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "hv_charger"
+        ]
+      },
+      "module_role": "hv_charger",
+      "route": {
+        "protocol": "can11_500",
+        "req": "744",
+        "resp": "7AE",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_hvac_746_7b0",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "hvac"
+        ]
+      },
+      "module_role": "hvac",
+      "route": {
+        "protocol": "can11_500",
+        "req": "746",
+        "resp": "7B0",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_telematics_767_7d1",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "telematics"
+        ]
+      },
+      "module_role": "telematics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "767",
+        "resp": "7D1",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_hv_battery_7e5_7ed",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "hv_battery"
+        ]
+      },
+      "module_role": "hv_battery",
+      "route": {
+        "protocol": "can11_500",
+        "req": "7E5",
+        "resp": "7ED",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Route derived from the DID records that cite it; presence is a hypothesis, not proof the ECU is fitted.",
+      "derivation": "did-candidates.json"
+    },
+    {
+      "route_id": "audi_j1_central_electronics_70e_778",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "central_electronics"
+        ]
+      },
+      "module_role": "central_electronics",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70E",
+        "resp": "778",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle.",
+      "derivation": "command-support-evidence.json"
+    },
+    {
+      "route_id": "audi_j1_awd_control_70f_779",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "awd_control"
+        ]
+      },
+      "module_role": "awd_control",
+      "route": {
+        "protocol": "can11_500",
+        "req": "70F",
+        "resp": "779",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle.",
+      "derivation": "command-support-evidence.json"
+    },
+    {
+      "route_id": "audi_j1_steering_assist_712_77c",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "steering_assist"
+        ]
+      },
+      "module_role": "steering_assist",
+      "route": {
+        "protocol": "can11_500",
+        "req": "712",
+        "resp": "77C",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle.",
+      "derivation": "command-support-evidence.json"
+    },
+    {
+      "route_id": "audi_j1_instrument_cluster_714_77e",
+      "scope": {
+        "brand_ids": [
+          "vag"
+        ],
+        "marques": [
+          "audi"
+        ],
+        "platform_ids": [
+          "audi_j1"
+        ],
+        "models": [
+          "e_tron_gt",
+          "rs_e_tron_gt"
+        ],
+        "ecu_roles": [
+          "instrument_cluster"
+        ]
+      },
+      "module_role": "instrument_cluster",
+      "route": {
+        "protocol": "can11_500",
+        "req": "714",
+        "resp": "77E",
+        "target_byte": null,
+        "address_extension": null,
+        "gateway": null
+      },
+      "read_services": [
+        "22"
+      ],
+      "session": "default_only",
+      "requires_identity": true,
+      "confidence": "high",
+      "knowledge_state": "community_reported",
+      "vehicle_fit": "untested",
+      "identity_fit": "provisional",
+      "activation": "disabled",
+      "source_refs": [
+        "S07"
+      ],
+      "automatic_execution_authorized": true,
+      "non_generalization_boundary": "Do not generalize this rejection beyond the tested 2022 RS e-tron GT/J1 vehicle.",
+      "derivation": "command-support-evidence.json"
+    }
+  ],
+  "declared_count": 104
+}

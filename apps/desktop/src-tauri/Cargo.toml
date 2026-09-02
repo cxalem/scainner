@@ -18,6 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# build.rs turns packages/uds-map/data/research-packs.json into the research
+# pack embedding table, so a new pack is a data change, not a Rust edit.
+serde_json = "1"
 
 [dependencies]
 tauri = { version = "2", features = [] }

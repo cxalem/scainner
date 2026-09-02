@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "compiler": "compile-research-pack.ts",
+  "input_pack": "toyota-deep-research",
+  "input_version": 1,
+  "output_pack": "toyota-deep-research-runtime-v1",
+  "counts": {
+    "input_routes": 8,
+    "projected_routes": 8,
+    "input_candidates": 9,
+    "projected_candidates": 9,
+    "projected_decoder_signals": 13,
+    "deferred": 0,
+    "confirmed_route_matches": 0
+  },
+  "vin_selectable_platforms": [
+    "toyota_prius_xw30",
+    "toyota_tnga_hybrid",
+    "toyota_ths5",
+    "lexus_rx_al10",
+    "lexus_rx_al30"
+  ],
+  "vehicle_fact_selectable_platforms": [
+    "toyota_prius_xw30",
+    "toyota_tnga_hybrid",
+    "toyota_ths5",
+    "lexus_rx_al10",
+    "lexus_rx_al30"
+  ],
+  "warnings": [],
+  "platform_proposals": 5,
+  "confirmed_routes": [],
+  "archived_files": [
+    {
+      "path": "index.json",
+      "sha256": "f3bc43aa1aad99bf1155da05f45203ecf629377b755975d54a9f64831b8171a2"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c656712c9513279d1718757166898cf65328bcabbc1dd7708fc4be18b7ca6ffb"
+    },
+    {
+      "path": "toyota-profile-overlay.json",
+      "sha256": "9eb408bc71e674ddd397d3151b7eaca062fa07a8738315c38cbf2f81b0082f47"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "14679beb0312eaad80ce971a8717342a81f6f017414745fb0741f94d0de39b7e"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "78ded19af989721fb095d798ed6a8433998251574778c452fe6b0a5845680605"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "1753c3fbb4fc4434ae00a0ef854709e56796a5e7a3fae5dacc01f4fe4515af2c"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "270539cf90ce6ec78171e6a91bd6a5377d60520991e12ae85fc3035cbf281fec"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "9d2b1445c2b10b39ac4c40f48b1ff2213f89f97a1d5f2e69602f5741f128d548"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "165e1312bf80cef16802f21c886b1f9e56aaf5c925b74db23c871079f530863b"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "ca3588c029b2cb98939be84d4f22bf42187d4175c9c6c0ee93b1cfa693cf3c14"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "23b14ddd9c11de4654580f594d0dff60d85fef16ebb42563b63bef5453acb491"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "1c5cc8073ac72725979b9cfcef3b3cc03174b40129a7fd9923ef5b3814c8a91e"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "48edaaebcb1b90cecbdd1d7d6eb036ecde4619c6838b6327219ad744200ebab4"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "0188e14b4e75c54c30c9503c125260cb35b5ad86fffa41f7bbc1f69d5b57492f"
+    }
+  ],
+  "deferred": []
+}

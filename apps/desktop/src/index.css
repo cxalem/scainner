@@ -1,12 +1,11 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "./theme/tokens.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Tailwind v4 theme mapping. The values live in theme/tokens.css — this
-   block only names them for the utility layer (`bg-surface`, `text-accent-300`,
-   `border-divider`, `shadow-md`, `rounded-lg`, `font-heading`). `inline` so
-   utilities reference the token variable directly, which keeps a runtime
-   token change (a future theme switch) live without a rebuild. */
+@custom-variant dark (&:is(.dark *));
+
 @theme inline {
   --color-*: initial;
 
@@ -57,19 +56,37 @@
   --color-white: var(--surface);
   --color-transparent: transparent;
 
-  /* Legacy aliases — the names the pre-redesign views used. Mapped onto the
-     new tokens so nothing breaks mid-migration; new code should use the
-     names above. */
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
-  --color-card: var(--surface);
-  --color-card-foreground: var(--text);
-  --color-muted: var(--neutral-900);
-  --color-muted-foreground: var(--neutral-500);
-  --color-border: var(--divider);
-  --color-primary: var(--accent);
-  --color-primary-foreground: var(--surface);
-  --color-destructive: var(--stop);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
@@ -79,6 +96,10 @@
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-full: var(--radius-full);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 
   --font-sans: var(--font-body);
   --font-heading: var(--font-heading);
@@ -90,7 +111,6 @@
 }
 
 :root {
-  /* Single-theme app (light). Native controls follow the app, not the OS. */
   color-scheme: light;
 }
 
@@ -123,19 +143,16 @@ a:hover { color: var(--accent-300); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-/* Numbers are the app's strongest visual signature: monospace, tabular. */
 @utility num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
-/* A rule that fades out to the right — used under section labels. */
 @utility rule-fade {
   height: 1px;
   background: linear-gradient(90deg, var(--divider), transparent);
 }
 
-/* — ambient motion (CSS-driven; discrete appear/leave motion is framer) — */
 @keyframes sc-glow {
   0%, 100% { opacity: 0.45; transform: scale(1); }
   50% { opacity: 0.75; transform: scale(1.06); }
@@ -157,3 +174,4 @@ a:hover { color: var(--accent-300); }
     animation: none;
   }
 }
+

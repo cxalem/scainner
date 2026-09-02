@@ -1,24 +1,12 @@
-//! Hand-written route table + the OpenAPI 3 document generated from it.
-//!
-//! `ROUTES` is the single list every route is documented in; the router in
-//! `api/mod.rs` is checked against it by a test (every documented route must
-//! be served, and every required route must be documented), so the document
-//! stays honest. Keep it in sync when adding a handler.
-
 use serde_json::{json, Map, Value};
 
 pub struct RouteDoc {
     pub method: &'static str,
     pub path: &'static str,
     pub summary: &'static str,
-    /// Query parameters as (name, description). Path parameters are read
-    /// from the `{braces}` in `path`.
     pub query: &'static [(&'static str, &'static str)],
-    /// Example JSON request body, when the route takes one.
     pub body: Option<&'static str>,
-    /// Needs a live connection to the car (otherwise 503).
     pub needs_car: bool,
-    /// Changes the car; gated behind `{"confirmed": true}` (409 otherwise).
     pub write: bool,
 }
 
@@ -48,20 +36,18 @@ const VEHICLE_Q: &[(&str, &str)] = &[(
 )];
 
 pub const ROUTES: &[RouteDoc] = &[
-    // meta
     r("GET", "/", "Plain-text index of every route", &[], None, false, false),
     r("GET", "/health", "Liveness probe — the only route without auth", &[], None, false, false),
     r("GET", "/openapi.json", "This document", &[], None, false, false),
     r("GET", "/events", "Server-Sent Events relay of conn-status, live-update, uds-scan-progress, discovery-progress, unknown-brand", &[], None, false, false),
-    // connection
-    r("POST", "/connect", "Start the connection supervisor (same loop as the UI's Connect: finds the adapter, cures Bluetooth sulk mode, keeps the link alive). Idempotent.", &[], None, false, false),
+    r("POST", "/connect", "Run the connect pipeline once (same as the UI's Connect: link, open, handshake, bus). No automatic retry — call it again to try again. Idempotent while a connection is running.", &[], None, false, false),
     r("POST", "/disconnect", "Stop the supervisor (cancels any running scan first)", &[], None, false, false),
-    r("GET", "/status", "ConnStatus: state, ELM version, VIN/vehicle identity, scanning flag", &[], None, false, false),
+    r("GET", "/status", "ConnStatus: state, stage (link|open|handshake|bus while connecting), error {stage, reason} after a failed attempt, ELM version, VIN/vehicle identity, scanning flag, and discovery {state: idle|running|skipped|done, reason, stage, started_at, last_run_at, knowledge_key}", &[], None, false, false),
     r("POST", "/vehicle/name", "Name the current VIN-less vehicle (creates the vehicles row and re-emits conn-status)", &[], Some(r#"{"name": "Workshop courtesy car"}"#), true, false),
-    // standard OBD
     r("GET", "/live", "Latest live PID readings (the last live-update broadcast) with their age", &[], None, false, false),
     r("GET", "/readings", "Stored readings for one key, oldest first", &[("vehicle_id", "vehicle id (omit for unidentified rows)"), ("key", "reading key, e.g. rpm, coolant, voltage"), ("since", "window in hours (default 24)"), ("limit", "keep only the newest N points")], None, false, false),
     r("GET", "/readings/keys", "Reading keys recorded for a vehicle", VEHICLE_Q, None, false, false),
+    r("GET", "/readings/keys/details", "The same keys, each with label, unit, module key/name, source (standard|probe), probe id and the newest timestamp", VEHICLE_Q, None, false, false),
     r("POST", "/dtc/scan", "Modes 03/07/0A/01: stored, pending, permanent codes, MIL, freeze frame", &[], None, true, false),
     r("POST", "/dtc/clear", "Mode 04 clear, verified with a before/after scan and logged to writes_log", &[], Some(r#"{"confirmed": true}"#), true, true),
     r("GET", "/dtc/history", "Past DTC scans, newest first", &[("vehicle_id", "vehicle id"), ("limit", "max rows (default 20)")], None, false, false),
@@ -69,7 +55,6 @@ pub const ROUTES: &[RouteDoc] = &[
     r("GET", "/readiness", "Mode 01 PID 01 readiness monitors", &[], None, true, false),
     r("GET", "/sensors", "Read every supported standard PID once", &[], None, true, false),
     r("GET", "/writes-log", "Audit trail of everything the app changed on the car", &[("vehicle_id", "vehicle id"), ("limit", "max rows (default 50)")], None, false, false),
-    // UDS
     r("GET", "/uds/modules", "Modules for the connected vehicle: the knowledge map's profile for its VIN (source \"profile\") plus custom ones (source \"custom\"); key, label, req/resp CAN ids, route tuple, read service", &[], None, false, false),
     r("POST", "/uds/modules", "Add a custom module", &[], Some(r#"{"key": "body", "label": "Body computer", "req": "7A0", "resp": "7A8"}"#), false, false),
     r("DELETE", "/uds/modules/{key}", "Delete a custom module", &[], None, false, false),
@@ -80,14 +65,12 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/uds/discover", "One-button auto-discovery; full=true forces the blind sweep", &[], Some(r#"{"full": false}"#), true, false),
     r("GET", "/uds/modules/{key}/dtcs", "Fault codes stored on one module (UDS 19 02)", &[], None, true, false),
     r("POST", "/uds/clear", "Clear one module's fault memory (UDS 14), verified before/after", &[], Some(r#"{"module": "7e0_7e8", "confirmed": true}"#), true, true),
-    // evidence protocol
     r("POST", "/verification/parked", "Run the parked verification plan generated from the vehicle's profile (read-only, each module's read service; minutes). Saves a verification run whose plan_version is <brand>-<platform>-v<n>.", &[], None, true, false),
     r("GET", "/vehicles/{id}/parked-plan", "The parked verification plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, plan_version). No car traffic.", &[], None, false, false),
     r("GET", "/vehicles/{id}/guided-steps", "Guided-correlation step tree generated from the vehicle's open hypotheses (protocol section 9 nodes: baseline/input, applicable_if from vehicle facts, plan_version <brand>-<platform>-corr-v<n>). No car traffic.", &[], None, false, false),
     r("POST", "/verification/capture", "One guided-correlation capture under a labelled physical condition. Saves a verification run.", &[], Some(r#"{"req": "7E0", "resp": "7E8", "dids": [61831, 61845], "step": "brake", "condition": "brake pedal pressed", "plan_version": "<brand>-<platform>-v1", "repeats": 3}"#), true, false),
     r("GET", "/verification/runs", "Index of saved runs (no JSON bodies), newest first", &[("vehicle_id", "vehicle id"), ("plan_version", "exact plan version"), ("limit", "max rows (default 50)")], None, false, false),
     r("GET", "/verification/runs/{id}", "One run with its full result JSON", &[], None, false, false),
-    // knowledge
     r("GET", "/vehicles", "Every vehicle known locally", &[], None, false, false),
     r("GET", "/vehicles/{id}", "One vehicle row", &[], None, false, false),
     r("DELETE", "/vehicles/{id}", "Permanently delete owner-specific vehicle history while retaining de-identified reusable knowledge", &[], Some(r#"{"confirmed": true}"#), false, true),
@@ -97,34 +80,35 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/vehicles/{id}/name", "Rename a stored vehicle", &[], Some(r#"{"name": "Workshop courtesy car"}"#), false, false),
     r("POST", "/vehicles/{id}/fuel-price", "Set the fuel price used for cost estimates", &[], Some(r#"{"price": 1.62}"#), false, false),
     r("GET", "/modules/{id}/dids", "Discovered DIDs of one module (by discovered_modules.id)", &[], None, false, false),
-    // discovery knowledge layer (Universal Discovery Protocol S3 + coverage)
     r("GET", "/vehicles/{id}/coverage", "Coverage report from data: vehicle, standard, routes, identified modules, decode states, hypotheses, learning; every line carries evidence ids", &[], None, false, false),
-    r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation", &[], None, false, false),
+    r("GET", "/vehicles/{id}/hypotheses", "Tracked hypotheses (DID x module) with knowledge_state / vehicle_fit / activation, plus the evidence.run_ids a confirmation rests on", &[], None, false, false),
+    r("GET", "/vehicles/{id}/research-request", "De-identified evidence for the next research round: wmi (never the VIN), platform_key, knowledge_key, module fingerprints (part/hardware/software refs, never a serial), route outcomes with nrc and attempts, unlabeled DIDs with byte length and shape class, identity conflicts, open hypothesis counts and generated questions. Local, no car traffic.", &[], None, false, false),
     r("POST", "/vehicles/{id}/join", "S3 join: match fingerprinted modules to ecu_families, register inherited + unknown hypotheses. Local, idempotent, no car needed", &[], None, false, false),
+    r("POST", "/vehicles/{id}/discovery/run", "Scan again: forget the stored knowledge key for this vehicle (so its next connection runs the automatic S1-S3 pass) and, when it is the connected car, run that pass now without reconnecting. Answers {triggered, cleared, knowledge_key, detail, summary}. Minutes on a live car; watch /events for conn-status discovery.stage", &[], None, false, false),
     r("GET", "/knowledge/candidates", "De-identified reusable signal knowledge, independent of private vehicle records", &[], None, false, false),
-    r("PATCH", "/hypotheses/{id}", "State transition; 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on)", &[], Some(r#"{"vehicle_fit": "matched", "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
+    r("PATCH", "/hypotheses/{id}", "State transition; evidence_run_ids names the verification runs a knowledge_state promotion rests on and comes back as evidence. 409 with the violated rule when refused (enabled needs vehicle_fit=matched, learning needs learning-state on, locally_confirmed needs matched fit + a run of this vehicle, community_verified/oem_confirmed are never set locally)", &[], Some(r#"{"vehicle_fit": "matched", "knowledge_state": "locally_confirmed", "evidence_run_ids": [12], "activation": "enabled", "label": "Wheel speed RL"}"#), false, false),
     r("GET", "/learning-state", "Whether learning activation is allowed ({\"on\": bool})", &[], None, false, false),
-    r("PUT", "/learning-state", "Switch the learning state", &[], Some(r#"{"on": true}"#), false, false),
+    r("PUT", "/learning-state", "Switch the learning state. While it is on and no probe_interval_ticks setting row exists, the supervisor polls probes every 8 ticks (~2 s) instead of the usual 120, so a drive produces enough samples to correlate; an explicit probe_interval_ticks always wins", &[], Some(r#"{"on": true}"#), false, false),
     r("GET", "/fingerprint-experiment", "Local VIN-free ECU fingerprint cohort measurement", &[], None, false, false),
     r("GET", "/probes", "Decode definitions polled live for a vehicle", VEHICLE_Q, None, false, false),
-    r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it)", &[], Some(r#"{"vehicle_id": 1, "module": "7e0_7e8", "did": 61831, "label": "Example value", "unit": "", "offset": 0, "len": 2, "scale": 1, "bias": 0}"#), false, false),
-    r("PATCH", "/probes/{id}", "Enable/disable ({\"enabled\": bool}) or replace the decode (full UdsProbe fields)", &[], Some(r#"{"enabled": false}"#), false, false),
+    r("POST", "/probes", "Add a probe (UdsProbe fields; vehicle_id scopes it). signed reads the window as two's complement (default false); offset-binary sensors stay unsigned with a negative bias", &[], Some(r#"{"vehicle_id": 1, "module": "7e0_7e8", "did": 61831, "label": "Example value", "unit": "", "offset": 0, "len": 2, "scale": 1, "bias": 0, "signed": false}"#), false, false),
+    r("PATCH", "/probes/{id}", "Enable/disable ({\"enabled\": bool}) or replace the decode (full UdsProbe fields, signed included)", &[], Some(r#"{"enabled": false}"#), false, false),
     r("DELETE", "/probes/{id}", "Delete a probe", &[], None, false, false),
     r("GET", "/cases", "Diagnostic cases", VEHICLE_Q, None, false, false),
     r("POST", "/cases", "Open a diagnostic case", &[], Some(r#"{"vehicle_id": 1, "complaint": "ABS light on", "odometer_km": 180000, "assigned_to": null}"#), false, false),
     r("GET", "/settings/{key}", "Read an app_settings value", &[], None, false, false),
     r("PUT", "/settings/{key}", "Write an app_settings value (api_token is refused)", &[], Some(r#"{"value": "..."}"#), false, false),
-    r("GET", "/adapters", "Candidate adapters on this machine: serial ports (/dev/cu.* on macOS, ttyUSB*/rfcomm*/ttyACM* on Linux) and paired Bluetooth devices (macOS), each with a likely_obd name heuristic", &[], None, false, false),
+    r("GET", "/adapters", "Candidate adapters on this machine, one row per physical device: serial ports (/dev/cu.* on macOS, ttyUSB*/rfcomm*/ttyACM* on Linux) named after the paired Bluetooth device behind them when one matches, plus the paired devices with no serial node yet. Each row carries display_name, device_kind (bluetooth_serial | usb_serial | paired_only), path, bt_addr, last_used (matches the saved adapter profile) and the likely_obd name heuristic", &[], None, false, false),
+    r("POST", "/adapters/discover", "Scan for Bluetooth devices in range that are not paired yet (macOS: blueutil inquiry). seconds is clamped to 3..15 and defaults to 8; the scan blocks for that long. Already-paired addresses are omitted — they are GET /adapters rows already. Answers {devices: [{addr, name, paired}]}, or 503 when the machine has no scriptable Bluetooth stack", &[], Some(r#"{"seconds": 8}"#), false, false),
+    r("POST", "/adapters/pair", "Pair one device the user chose. pin is optional and normally omitted: Secure Simple Pairing needs none, and neither does a device that is already paired. 200 {\"paired\": true}; 409 {\"error\": \"pin_required\", \"detail\": ...} when the radio asked for a code — call again with pin (most older OBD dongles use 1234 or 0000); 400 with the platform's message for anything else. There is no unpair, and nothing re-pairs on its own", &[], Some(r#"{"addr": "aa-bb-cc-dd-ee-ff"}"#), false, false),
     r("GET", "/adapter", "The active adapter profile (adapter.* settings, SCAINNER_OBD_* environment as fallback): kind elm_serial|tcp_elm, path, bt_addr, pin, host, port, baud, timing fast|default|slow", &[], None, false, false),
     r("PUT", "/adapter", "Update the adapter profile (partial: omitted fields keep their value; validated). Applies at the next connect", &[], Some(r#"{"kind": "elm_serial", "path": "/dev/cu.OBDII-SPPDev", "bt_addr": "aa-bb-cc-dd-ee-ff", "pin": "1234", "timing": "default"}"#), false, false),
     r("GET", "/sync/batch", "One cloud-sync batch of rows", &[("after_reading_id", "watermark"), ("limit", "max readings (1..20000)")], None, false, false),
     r("GET", "/db-path", "Path of the SQLite file", &[], None, false, false),
-    // export
     r("GET", "/export/markdown", "Markdown briefing of the car, ready to paste into a chat", &[("vehicle_id", "vehicle id"), ("since_hours", "stats window (default 168)")], None, false, false),
     r("GET", "/export/json", "Everything in a window as one JSON blob", &[("vehicle_id", "vehicle id"), ("since_hours", "window (default 168)")], None, false, false),
 ];
 
-/// Plain-text index served at `/`.
 pub fn index_text(port: u16) -> String {
     let mut out = format!(
         "Scainner agent API on http://127.0.0.1:{port}\nAuthorization: Bearer <token> on every route except GET /health.\nWrite routes need a body {{\"confirmed\": true}}.\n\n"
@@ -149,8 +133,6 @@ fn path_params(path: &str) -> Vec<&str> {
         .collect()
 }
 
-/// Minimal but complete OpenAPI 3.0 document: every route, its parameters,
-/// an example body where it takes one, and the shared error responses.
 pub fn document(port: u16) -> Value {
     let mut paths: Map<String, Value> = Map::new();
     for route in ROUTES {
@@ -269,9 +251,6 @@ mod tests {
 
     #[test]
     fn capture_example_uses_the_plan_version_shape_of_the_generator() {
-        // Plan versions are generated per vehicle (`{brand}-{platform}-v{n}`),
-        // so the example is a placeholder in exactly that shape; the
-        // generator's output for a known and an unknown VIN must match it.
         let capture = ROUTES
             .iter()
             .find(|r| r.path == "/verification/capture")

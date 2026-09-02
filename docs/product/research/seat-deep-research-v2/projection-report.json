@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "compiler": "compile-research-pack.ts",
+  "input_pack": "seat-deep-research",
+  "input_version": 2,
+  "output_pack": "seat-deep-research-runtime-v2",
+  "counts": {
+    "input_routes": 102,
+    "projected_routes": 102,
+    "input_candidates": 246,
+    "projected_candidates": 246,
+    "projected_decoder_signals": 13,
+    "deferred": 2,
+    "confirmed_route_matches": 0
+  },
+  "vin_selectable_platforms": [],
+  "vehicle_fact_selectable_platforms": [
+    "seat_legacy_kline",
+    "seat_pq35_can",
+    "seat_pq25_mixed_ibiza_6j",
+    "seat_alhambra_7n",
+    "seat_mii_electric_shared_up",
+    "seat_mqb",
+    "seat_mqb_a0",
+    "seat_mqb_a_lwb",
+    "seat_mqb_evo",
+    "seat_special_unresolved"
+  ],
+  "warnings": [
+    "VIN alone cannot classify a platform; exact normalized vehicle-model facts may select only an unambiguous platform"
+  ],
+  "platform_proposals": 10,
+  "confirmed_routes": [],
+  "archived_files": [
+    {
+      "path": "index.json",
+      "sha256": "38ff09f217be959f94a986b59d62f7e9748d82ef243e6d0a119fe69d615178e8"
+    },
+    {
+      "path": "README.md",
+      "sha256": "739faf789ec3b83877fd23a95744da1f1bf6f17b855dfef1e7e4adb388d3f0ec"
+    },
+    {
+      "path": "command-support-evidence.json",
+      "sha256": "0b52b548c1596671835775133cb6d4351f0daa6f362f74739cbca44285442254"
+    },
+    {
+      "path": "conflicts-and-gaps.json",
+      "sha256": "8c80f3dfa68f0c43a82f1d781632102725ddbdca02045145be461c70e352fafb"
+    },
+    {
+      "path": "connection-playbook.json",
+      "sha256": "b826d7ba9471fbd4f2e3b88ce55d053b0168ad472f94f19c87cc5aea3fe308d8"
+    },
+    {
+      "path": "did-candidates.json",
+      "sha256": "79f80338c2e7224aef6ace28e5675426e22add8b1bede41ac035c00f2659ab79"
+    },
+    {
+      "path": "ecu-family-hypotheses.json",
+      "sha256": "249e273c019eec16dbb6cb3ab4eec057643e64bcf7739583127a2d2202eeac32"
+    },
+    {
+      "path": "ecu-routes.json",
+      "sha256": "f2e825d7005d5416fbc50ec009e0602e85535d81425f4f30fb8cf1986eca2308"
+    },
+    {
+      "path": "observed-module-inventories.json",
+      "sha256": "94fbff6140ffe233c71126ceb9a842ca2db8d61cebef19d43f32d155869dd484"
+    },
+    {
+      "path": "platforms.json",
+      "sha256": "cf8b3653d2a048e116b8f20d6f6387eaab9adb446854b5085e3864ea78ba36d2"
+    },
+    {
+      "path": "seat-profile-overlay.json",
+      "sha256": "45126b58d743bb530b6accdeff8725192bc40bae4ed2b0ebfe21075fb5082e94"
+    },
+    {
+      "path": "source-ledger.json",
+      "sha256": "8e415ea5a81bea622e0b682c0c8058af69403a68518d5e8c6f674e6237c8726d"
+    },
+    {
+      "path": "transport-session-safety-policy.json",
+      "sha256": "846839f4cfedf12fb55650792a3428e4a2fd38a55b16caa49f48478326ac8d88"
+    },
+    {
+      "path": "validation-plan.json",
+      "sha256": "a2debbd8beee5c1589861480c74299e0dea50c431b7abdb6b8d638d99358e468"
+    }
+  ],
+  "deferred": [
+    {
+      "id": "seat.catalogue.instrument_cluster.2206:S02-a",
+      "reason": "decoder_missing_validation_range"
+    },
+    {
+      "id": "seat.catalogue.instrument_cluster.2299:S02-a",
+      "reason": "decoder_missing_validation_range"
+    }
+  ]
+}

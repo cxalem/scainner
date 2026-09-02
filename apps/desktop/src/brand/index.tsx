@@ -1,31 +1,12 @@
-// Brand identity — the one place the product's name and mark live.
-//
-// Every surface that shows the name or the logo (login, connect gate,
-// sidebar, window title, exports) reads from here, so a rename or a new
-// mark is an edit to this file and to public/brand/*.svg — nothing else in
-// src/ may spell the product name or draw the logo on its own.
-//
-// The mark: a three-quarter arc closing on a dot (a probe sweeping to a
-// reading). Source files: public/brand/sonda-*.svg. Two tones:
-//   - "mono"  → strokes in currentColor. The default; sits on any light
-//               surface and takes the surrounding text/accent color.
-//   - "color" → the two-tone version tuned for the dark ground (login's
-//               left panel, the favicon).
-// Colors are otherwise design tokens (theme/tokens.css), never here.
 import type { SVGProps } from "react";
 import { cn } from "@/lib/utils";
 
 export const BRAND = {
-  /** Product name as written in sentences: "Everything {name} learns…". */
   name: "Sonda",
-  /** The wordmark as set in the UI: lowercase, medium weight, tight. */
   wordmark: "sonda",
-  /** One line under the mark on the login screen. */
   tagline: "Know the car before you touch it.",
 } as const;
 
-// The mark's own palette (from the source SVGs). Brand-owned, not UI
-// tokens: it does not follow the accent if the accent changes.
 const MARK = {
   arc: "#9184d9",
   arcShadow: "#423a6a",
@@ -65,7 +46,6 @@ export function BrandMark({
   );
 }
 
-/** Mark + wordmark, the lockup used in the sidebar and on the gates. */
 export function Wordmark({
   size = "md",
   tone = "mono",

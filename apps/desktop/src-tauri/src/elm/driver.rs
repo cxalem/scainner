@@ -1,11 +1,3 @@
-//! The ELM327 protocol driver: a thin wrapper over one `Transport` (see
-//! `transport/`) that adds the handshake, the adapter banner, the timing
-//! profile and the extended-session bookkeeping the operation guard reads.
-//!
-//! Which adapter, port, Bluetooth address, PIN or host to use is the
-//! adapter profile's business (`transport::AdapterProfile`, stored in
-//! `app_settings`), never this file's.
-
 use super::transport::{self, AdapterProfile, TimingProfile, Transport, TransportInfo};
 use std::time::Duration;
 
@@ -24,11 +16,8 @@ pub enum ElmError {
 pub struct ElmDriver {
     transport: Box<dyn Transport>,
     timing: TimingProfile,
-    /// The `ATI` banner (and `STI` for STN chips) read by `init`.
     banner: Option<String>,
     device_kind: Option<String>,
-    /// Set only after an ECU positively acknowledges diagnostic session 03.
-    /// The operation guard reads this shared state during mandatory cleanup.
     extended_session_open: bool,
 }
 
@@ -49,13 +38,10 @@ impl ElmDriver {
         }
     }
 
-    /// Open the transport the profile describes.
     pub fn open(profile: &AdapterProfile) -> Result<Self, ElmError> {
         Ok(Self::new(transport::open(profile)?, profile.timing))
     }
 
-    /// Send a command, read until the ELM `>` prompt or timeout. The
-    /// timeout is scaled by the adapter's timing profile.
     pub fn cmd(&mut self, c: &str, timeout: Duration) -> Result<String, ElmError> {
         self.transport.cmd(c, self.timing.scale(timeout))
     }
@@ -66,8 +52,6 @@ impl ElmDriver {
         info
     }
 
-    /// `connections.device_kind`: from the banner once `init` ran, else a
-    /// generic placeholder.
     pub fn device_kind(&self) -> String {
         self.device_kind
             .clone()
@@ -93,10 +77,6 @@ impl ElmDriver {
         self.extended_session_open = open;
     }
 
-    /// The liveness rule for a reset (`ATZ`) answer: the adapter is alive
-    /// when it came back with a prompt and no error — whatever it printed
-    /// as a banner. STN chips, generic clones and adapters that print no
-    /// banner at all pass; a silent link or an error does not.
     pub fn reset_alive(probe: &Result<String, ElmError>) -> bool {
         match probe {
             Ok(r) => r.contains('>') && !r.to_ascii_uppercase().contains("ERROR"),
@@ -104,8 +84,6 @@ impl ElmDriver {
         }
     }
 
-    /// First non-empty, non-`?`/`OK` line of an adapter answer, prompt
-    /// stripped.
     fn first_line(raw: &str) -> Option<String> {
         raw.split(['\r', '\n'])
             .map(|l| l.trim().trim_end_matches('>').trim())
@@ -113,10 +91,6 @@ impl ElmDriver {
             .map(str::to_string)
     }
 
-    /// ATZ (retried until it returns a prompt) → ATE0 → ATI (and STI, for
-    /// STN chips) → ATSP0. Returns the adapter's identification string:
-    /// the `ATI` banner, else the `STI` one, else the `ELM` line of the
-    /// reset banner, else a generic label.
     pub fn init(&mut self) -> Result<String, ElmError> {
         let mut reset = None;
         for _ in 0..5 {
@@ -130,10 +104,6 @@ impl ElmDriver {
         let reset = reset
             .ok_or_else(|| ElmError::Handshake("no prompt after ATZ (adapter silent)".into()))?;
         self.cmd("ATE0", Duration::from_secs(3))?;
-        // Identification: `ATI` on every ELM-compatible; `STI` answers on
-        // STN (OBDLink) chips — which also answer `ATI` with an emulated
-        // ELM banner, so it is asked regardless — and `?` elsewhere.
-        // Best-effort: a clone that chokes on either still connects.
         let ati = self.cmd("ATI", Duration::from_secs(3)).unwrap_or_default();
         let sti = self.cmd("STI", Duration::from_secs(3)).ok();
         let kind = transport::profile::device_kind_from_banner(&ati, sti.as_deref());
@@ -298,7 +268,6 @@ mod tests {
             ]
         }"#;
         let replay = transport::replay::Replay::from_json(raw).unwrap();
-        // Fast timing keeps the five retry sleeps short.
         let mut driver = ElmDriver::new(Box::new(replay), TimingProfile::Fast);
         let err = driver.init().unwrap_err();
         assert!(matches!(err, ElmError::Handshake(_)), "{err}");
@@ -315,7 +284,6 @@ mod tests {
         }"#;
         let replay = transport::replay::Replay::from_json(raw).unwrap();
         let mut driver = ElmDriver::new(Box::new(replay), TimingProfile::Slow);
-        // 1 s requested, 2 s delivered to the transport.
         assert!(driver.cmd("0100", Duration::from_secs(1)).is_ok());
     }
 }

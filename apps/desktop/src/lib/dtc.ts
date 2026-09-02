@@ -1,45 +1,19 @@
-// Offline DTC knowledge — two layers, so EVERY code gets a useful page:
-//
-// 1. Structural decode (`decodeDtc`): the five characters of an OBD2 code
-//    are themselves a taxonomy (system / generic-vs-manufacturer /
-//    subsystem). Works for any syntactically valid code, no lookup needed.
-// 2. Curated library (`DTC_LIBRARY`): rich entries (plain-language meaning,
-//    ranked common causes, symptoms) for the codes that actually
-//    show up in the field. Curated for quality over coverage — unknown
-//    codes still get layer 1 plus the AI deep-dive.
-//
-// No network, ships in-app. Severity is about drivability/consequences,
-// not repair cost.
-//
-// i18n note: `decodeDtc`'s return values stay English internally on
-// purpose — they're used as stable grouping keys by lib/dtc-grouping.ts,
-// and that file's tests assert against these exact strings. Translating
-// them for DISPLAY happens one layer up, via `localizedSystem`/
-// `localizedOrigin`/`localizedSubsystem` below, which map the existing
-// English strings to Spanish rather than changing what `decodeDtc` itself
-// returns or how grouping works. `dtcInfo`, by contrast, really does pick
-// a different data source per locale (DTC_LIBRARY vs DTC_LIBRARY_ES) since
-// its content isn't used as a grouping key anywhere.
 import { DTC_LIBRARY_ES } from "./dtc-codes.es";
 import type { Locale } from "@/i18n";
 
 export type DtcStructure = {
-  system: string; // Powertrain / Chassis / Body / Network
-  origin: string; // SAE-standard (generic) vs manufacturer-specific
-  subsystem: string | null; // e.g. "Ignition system or misfire" (P-codes)
+  system: string;
+  origin: string;
+  subsystem: string | null;
 };
 
 export type DtcInfo = {
   title: string;
   meaning: string;
-  causes: string[]; // ranked, most likely first
+  causes: string[];
   symptoms: string[];
 };
 
-// Every code DTC_LIBRARY curates — a union, not `string`, so dtc-codes.es.ts
-// typing its own library against `Record<DtcCode, DtcInfo>` fails `tsc` the
-// moment the two libraries' key sets drift, same key-safety pattern as
-// i18n/en.ts vs es.ts.
 export type DtcCode =
   | "P0100" | "P0101" | "P0113" | "P0117" | "P0118" | "P0128" | "P0130" | "P0135"
   | "P0171" | "P0172" | "P0204" | "P0300" | "P0301" | "P0302" | "P0303" | "P0325" | "P0335"
@@ -119,12 +93,6 @@ export function dtcInfo(code: string, locale: Locale = "en"): DtcInfo | null {
   return LIBRARY_BY_LOCALE[locale][upper] ?? null;
 }
 
-// Translates decodeDtc()'s English display strings for Spanish — see the
-// i18n note at the top of this file for why decodeDtc() itself doesn't
-// take a locale. Falls back to the English string on a missing mapping
-// (never crashes, never shows a blank) — a real safety net, not just
-// defensive-looking code, since new system/subsystem strings only ever
-// come from decodeDtc's own small fixed vocabulary above, not user input.
 const SYSTEM_ES: Record<string, string> = {
   "Powertrain (engine, transmission, emissions)": "Motor y transmisión (motor, transmisión, emisiones)",
   "Chassis (brakes, steering, suspension)": "Chasis (frenos, dirección, suspensión)",

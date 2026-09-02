@@ -1,8 +1,3 @@
-//! Pure, deterministic hypothesis analysis for the Universal Discovery
-//! Protocol. The public data contract is frozen in [`contract`].
-//!
-//! The integration call site belongs to Track A and is intentionally absent
-//! on this branch, so the module is temporarily allowed to be unreferenced.
 #![allow(dead_code)]
 
 mod arrays;
@@ -20,7 +15,6 @@ use fit::{decode_payload, reference_fits};
 use sanity::{candidate_interpretations, inherited_fit};
 use shape::describe_shape;
 
-/// Analyze one DID without I/O, global state, randomness, or clock access.
 pub fn analyze(input: &HypothesisInput) -> HypothesisReport {
     let (normalized, dropped_widths) = shape::normalize_width(input);
     let input = &normalized;
