@@ -192,6 +192,35 @@ pub enum Request {
     Stop,
 }
 
+fn reject_adapter_owning_request_during_ride(req: Request, active: bool) -> Option<Request> {
+    if !active {
+        return Some(req);
+    }
+    match req {
+        Request::UdsScan { tx, .. } => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::Discover { tx, .. } => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::ParkedVerification(tx) => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::RunAutoDiscovery(tx) => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::CorrelationCapture { tx, .. } => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        request => Some(request),
+    }
+}
+
 pub struct Supervisor {
     pub tx: Sender<Request>,
     pub status: Arc<Mutex<ConnStatus>>,
@@ -407,6 +436,9 @@ fn run_loop(
         macro_rules! service_requests {
             () => {
                 while let Ok(req) = rx.try_recv() {
+                    let Some(req) = reject_adapter_owning_request_during_ride(req, ride.is_some()) else {
+                        continue;
+                    };
                     match req {
                         Request::Stop => {
                             if dtc_schedule.due_at_session_end(tick) {
@@ -1308,6 +1340,27 @@ mod tests {
 
     fn test_db() -> Db {
         Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    #[test]
+    fn a_ride_rejects_adapter_owning_requests_but_allows_single_reads() {
+        let (scan_tx, scan_rx) = mpsc::channel();
+        let blocked = Request::UdsScan {
+            module: "engine".into(),
+            from: 0,
+            to: 1,
+            tx: scan_tx,
+        };
+        assert!(reject_adapter_owning_request_during_ride(blocked, true).is_none());
+        assert!(matches!(scan_rx.recv().unwrap(), Err(error) if error == "ride_in_progress"));
+
+        let (read_tx, _read_rx) = mpsc::channel();
+        let allowed = Request::UdsRead {
+            module: "engine".into(),
+            did: 0,
+            tx: read_tx,
+        };
+        assert!(reject_adapter_owning_request_during_ride(allowed, true).is_some());
     }
 
     #[test]

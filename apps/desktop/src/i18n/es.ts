@@ -5,6 +5,7 @@ export const es: Dictionary = {
     record: "Grabar recorrido",
     recording: "Grabando tu recorrido",
     stop: "Detener",
+    ride_in_progress: "Detén el recorrido primero",
     samples: (count) => `${count} muestras`,
     saved: {
       none: (minutes, sensors) => `Recorrido guardado. ${minutes} min, ${sensors} sensores, sin códigos de avería.`,

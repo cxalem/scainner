@@ -184,7 +184,9 @@ impl IntoResponse for ApiError {
 }
 
 fn op_err(error: String) -> ApiError {
-    let status = if error.contains("not connected") || error.contains("supervisor gone") {
+    let status = if error == "ride_in_progress" {
+        StatusCode::CONFLICT
+    } else if error.contains("not connected") || error.contains("supervisor gone") {
         StatusCode::SERVICE_UNAVAILABLE
     } else if error.starts_with("Write not confirmed") {
         StatusCode::CONFLICT
@@ -194,6 +196,12 @@ fn op_err(error: String) -> ApiError {
         StatusCode::INTERNAL_SERVER_ERROR
     };
     ApiError::msg(status, error)
+}
+
+#[cfg(test)]
+#[test]
+fn ride_in_progress_maps_to_http_conflict() {
+    assert_eq!(op_err("ride_in_progress".into()).0, StatusCode::CONFLICT);
 }
 
 type ApiResult = Result<Response, ApiError>;

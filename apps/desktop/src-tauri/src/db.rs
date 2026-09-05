@@ -1078,6 +1078,7 @@ impl Db {
             [],
         );
         conn.execute_batch("UPDATE rides SET ended_at = datetime('now') WHERE ended_at IS NULL;")?;
+        Self::repair_incomplete_rides_on(&conn)?;
         conn.execute_batch(&format!("PRAGMA user_version = {SCHEMA_VERSION};"))?;
         Ok(Self(Mutex::new(conn)))
     }
@@ -1507,26 +1508,39 @@ impl Db {
 
     pub fn stop_ride(&self, id: i64) -> Result<Ride, String> {
         let conn = self.0.lock().unwrap();
-        let changed = conn.execute(
-            "UPDATE rides SET
-                ended_at=datetime('now'),
-                end_reading_id=(SELECT COALESCE(MAX(id),start_reading_id) FROM readings),
-                sample_count=(SELECT COUNT(*) FROM readings r WHERE r.connection_id=rides.connection_id AND r.id > rides.start_reading_id),
-                sensor_count=(SELECT COUNT(DISTINCT key) FROM readings r WHERE r.connection_id=rides.connection_id AND r.id > rides.start_reading_id),
-                dtc_events_count=(SELECT COUNT(*) FROM dtc_scan_events e WHERE e.connection_id=rides.connection_id AND e.ts BETWEEN rides.started_at AND datetime('now')),
-                dtc_codes_appeared=(SELECT COUNT(DISTINCT c.code) FROM dtc_codes c JOIN dtc_scan_events e ON e.id=c.scan_event_id WHERE e.connection_id=rides.connection_id AND e.ts BETWEEN rides.started_at AND datetime('now')),
-                max_speed=(SELECT MAX(value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='speed' AND r.id > rides.start_reading_id),
-                max_coolant=(SELECT MAX(value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='coolant' AND r.id > rides.start_reading_id),
-                min_voltage=(SELECT MIN(value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='voltage' AND r.id > rides.start_reading_id)
-             WHERE id=?1 AND ended_at IS NULL",
-            [id],
-        ).map_err(|e| e.to_string())?;
+        let changed = conn
+            .execute(
+                "UPDATE rides SET ended_at=datetime('now') WHERE id=?1 AND ended_at IS NULL",
+                [id],
+            )
+            .map_err(|e| e.to_string())?;
         if changed == 0 {
             return Err("ride is not active".into());
         }
+        Self::repair_incomplete_rides_on(&conn).map_err(|e| e.to_string())?;
         drop(conn);
         self.ride(id)
             .ok_or_else(|| "ride could not be loaded".into())
+    }
+
+    fn repair_incomplete_rides_on(conn: &rusqlite::Connection) -> rusqlite::Result<usize> {
+        conn.execute(
+            "UPDATE rides SET
+                end_reading_id=(SELECT COALESCE(MAX(r.id),rides.start_reading_id) FROM readings r WHERE r.connection_id=rides.connection_id),
+                sample_count=(SELECT COUNT(*) FROM readings r WHERE r.connection_id=rides.connection_id AND r.id > rides.start_reading_id AND r.id <= (SELECT COALESCE(MAX(r2.id),rides.start_reading_id) FROM readings r2 WHERE r2.connection_id=rides.connection_id)),
+                sensor_count=(SELECT COUNT(DISTINCT r.key) FROM readings r WHERE r.connection_id=rides.connection_id AND r.id > rides.start_reading_id AND r.id <= (SELECT COALESCE(MAX(r2.id),rides.start_reading_id) FROM readings r2 WHERE r2.connection_id=rides.connection_id)),
+                dtc_events_count=(SELECT COUNT(*) FROM dtc_scan_events e WHERE e.connection_id=rides.connection_id AND e.ts BETWEEN rides.started_at AND rides.ended_at),
+                dtc_codes_appeared=(SELECT COUNT(DISTINCT c.code) FROM dtc_codes c JOIN dtc_scan_events e ON e.id=c.scan_event_id WHERE e.connection_id=rides.connection_id AND e.ts BETWEEN rides.started_at AND rides.ended_at),
+                max_speed=(SELECT MAX(r.value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='speed' AND r.id > rides.start_reading_id),
+                max_coolant=(SELECT MAX(r.value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='coolant' AND r.id > rides.start_reading_id),
+                min_voltage=(SELECT MIN(r.value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='voltage' AND r.id > rides.start_reading_id)
+             WHERE ended_at IS NOT NULL AND end_reading_id IS NULL",
+            [],
+        )
+    }
+
+    pub fn repair_incomplete_rides(&self) -> usize {
+        Self::repair_incomplete_rides_on(&self.0.lock().unwrap()).unwrap_or(0)
     }
 
     fn map_ride(r: &rusqlite::Row<'_>) -> rusqlite::Result<Ride> {
@@ -3870,6 +3884,50 @@ mod tests {
         let batch = db.sync_batch(0, 100);
         assert_eq!(batch.rides.len(), 1);
         assert_eq!(batch.readings.len(), 3);
+    }
+
+    #[test]
+    fn startup_repair_finalizes_an_ended_ride_without_a_summary() {
+        let db = test_db();
+        let vehicle_id = db.create_vehicle_named("repair fixture");
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        let ride = db.start_ride(vehicle_id, connection_id).unwrap();
+        db.insert_reading(connection_id, Some(vehicle_id), "speed", 64.0);
+        db.insert_reading(connection_id, Some(vehicle_id), "voltage", 13.4);
+        db.0.lock()
+            .unwrap()
+            .execute(
+                "UPDATE rides SET ended_at=datetime('now') WHERE id=?1",
+                [ride.id],
+            )
+            .unwrap();
+
+        assert_eq!(db.repair_incomplete_rides(), 1);
+        let repaired = db.ride(ride.id).unwrap();
+        assert_eq!(repaired.sample_count, 2);
+        assert_eq!(repaired.sensor_count, 2);
+        assert_eq!(repaired.max_speed, Some(64.0));
+        assert_eq!(repaired.min_voltage, Some(13.4));
+    }
+
+    #[test]
+    fn a_ride_closed_after_a_connection_drop_has_its_summary() {
+        let db = test_db();
+        let vehicle_id = db.create_vehicle_named("drop fixture");
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        let ride = db.start_ride(vehicle_id, connection_id).unwrap();
+        db.insert_reading(connection_id, Some(vehicle_id), "speed", 71.0);
+        db.insert_reading(connection_id, Some(vehicle_id), "coolant", 89.0);
+
+        let closed = db.stop_ride(ride.id).unwrap();
+        db.end_connection(connection_id);
+
+        assert_eq!(closed.sample_count, 2);
+        assert_eq!(closed.sensor_count, 2);
+        assert_eq!(closed.max_speed, Some(71.0));
+        assert_eq!(closed.max_coolant, Some(89.0));
     }
 
     #[test]

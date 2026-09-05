@@ -9,6 +9,7 @@ import { List, Item, Swap } from "@/motion/components";
 import { useDiscoveredModules, useFingerprintExperiment } from "@/features/lab/queries";
 import { RunRow, RunSection, TargetRow } from "@/views/lab/RunRow";
 import { useT } from "@/i18n";
+import { useToast } from "@/components/toast";
 
 type Progress = {
   phase: "modules" | "ident" | "sweep" | "done";
@@ -39,6 +40,7 @@ export function AutoDiscovery({
   scanning: boolean;
 }) {
   const t = useT();
+  const toast = useToast();
   const d = t.lab.discovery;
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -84,7 +86,9 @@ export function AutoDiscovery({
       void found.refetch();
       void experiment.refetch();
     } catch (e) {
-      setError(String(e instanceof Error ? e.message : e));
+      const message = String(e instanceof Error ? e.message : e);
+      if (message.includes("ride_in_progress")) toast.show("warning", t.ride.ride_in_progress);
+      setError(message);
     } finally {
       setRunning(false);
       setProgress(null);

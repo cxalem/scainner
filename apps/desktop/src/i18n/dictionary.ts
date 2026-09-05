@@ -3,6 +3,7 @@ export type Dictionary = {
     record: string;
     recording: string;
     stop: string;
+    ride_in_progress: string;
     samples: (count: number) => string;
     saved: {
       none: (minutes: number, sensors: number) => string;
