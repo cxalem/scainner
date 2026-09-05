@@ -63,7 +63,7 @@ pub const ROUTES: &[RouteDoc] = &[
     r("POST", "/uds/scan", "Scan an identifier range on one module (minutes; watch /events uds-scan-progress)", &[], Some(r#"{"module": "7e0_7e8", "from": 61824, "to": 62079}"#), true, false),
     r("POST", "/uds/scan/cancel", "Abort the running range scan / discovery within one DID timeout", &[], None, false, false),
     r("POST", "/uds/discover", "One-button auto-discovery; full=true forces the blind sweep", &[], Some(r#"{"full": false}"#), true, false),
-    r("GET", "/uds/modules/{key}/dtcs", "Fault codes stored on one module (UDS 19 02)", &[], None, true, false),
+    r("GET", "/uds/modules/{key}/dtcs", "UDS 19 02 result: {status: ok|refused|unsupported|silent|malformed, nrc, dtcs}", &[], None, true, false),
     r("POST", "/uds/clear", "Clear one module's fault memory (UDS 14), verified before/after", &[], Some(r#"{"module": "7e0_7e8", "confirmed": true}"#), true, true),
     r("POST", "/verification/parked", "Run the parked verification plan generated from the vehicle's profile (read-only, each module's read service; minutes). Saves a verification run whose plan_version is <brand>-<platform>-v<n>.", &[], None, true, false),
     r("GET", "/vehicles/{id}/parked-plan", "The parked verification plan the generator would run for a vehicle (targets, identity DIDs, sweep bands, plan_version). No car traffic.", &[], None, false, false),

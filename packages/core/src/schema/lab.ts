@@ -13,6 +13,12 @@ export class UdsHit extends Schema.Class<UdsHit>("UdsHit")({
   hex: Schema.String,
   ascii: Schema.String,
 }) {}
+
+export class ModuleDtcResult extends Schema.Class<ModuleDtcResult>("ModuleDtcResult")({
+  status: Schema.Literal("ok", "refused", "unsupported", "silent", "malformed"),
+  nrc: Schema.NullOr(Schema.Number),
+  dtcs: Schema.mutable(Schema.Array(Schema.String)),
+}) {}
 export class UdsProbe extends Schema.Class<UdsProbe>("UdsProbe")({
   id: Schema.Number,
   vehicle_id: Schema.optional(Schema.NullOr(Schema.Number)),

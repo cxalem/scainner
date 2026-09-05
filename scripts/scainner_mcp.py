@@ -173,7 +173,7 @@ def uds_discover(full: bool = False) -> dict:
 
 @mcp.tool()
 @guarded
-def uds_module_dtcs(module: str) -> list | dict:
+def uds_module_dtcs(module: str) -> dict:
     """UDS 19 02 fault codes on one module."""
     return api().uds_module_dtcs(module)
 

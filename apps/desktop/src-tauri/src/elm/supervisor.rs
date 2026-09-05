@@ -178,7 +178,7 @@ pub enum Request {
     },
     UdsModuleDtcs {
         module: String,
-        tx: Sender<Result<Vec<String>, String>>,
+        tx: Sender<Result<uds::ModuleDtcResult, String>>,
     },
     NameVehicle {
         name: String,

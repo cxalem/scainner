@@ -905,6 +905,89 @@ pub fn read_dtcs(drv: &mut ElmDriver) -> Result<Vec<String>, ElmError> {
     Ok(out)
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ModuleDtcResult {
+    pub status: String,
+    pub nrc: Option<u8>,
+    pub dtcs: Vec<String>,
+}
+
+fn module_dtc_result(drv: &mut ElmDriver) -> ModuleDtcResult {
+    let raw = match drv.cmd("1902AF", Duration::from_secs(6)) {
+        Ok(raw) => raw,
+        Err(ElmError::NoResponse) => {
+            return ModuleDtcResult {
+                status: "silent".into(),
+                nrc: None,
+                dtcs: Vec::new(),
+            };
+        }
+        Err(_) => {
+            return ModuleDtcResult {
+                status: "malformed".into(),
+                nrc: None,
+                dtcs: Vec::new(),
+            };
+        }
+    };
+    let lines = parser::clean_response(&raw);
+    let bytes = parser::payload_bytes(&lines, "");
+    if raw.to_ascii_uppercase().contains("NO DATA") || raw.trim().is_empty() {
+        return ModuleDtcResult {
+            status: "silent".into(),
+            nrc: None,
+            dtcs: Vec::new(),
+        };
+    }
+    if let Some(response) = bytes
+        .windows(3)
+        .find(|window| window[0] == 0x7F && window[1] == 0x19)
+    {
+        return ModuleDtcResult {
+            status: if matches!(response[2], 0x11 | 0x12) {
+                "unsupported"
+            } else {
+                "refused"
+            }
+            .into(),
+            nrc: Some(response[2]),
+            dtcs: Vec::new(),
+        };
+    }
+    let Some(start) = bytes.windows(2).position(|window| window == [0x59, 0x02]) else {
+        return ModuleDtcResult {
+            status: "malformed".into(),
+            nrc: None,
+            dtcs: Vec::new(),
+        };
+    };
+    let mut dtcs = Vec::new();
+    for record in bytes[start + 3..]
+        .chunks(4)
+        .filter(|record| record.len() == 4)
+    {
+        let system = match record[0] >> 6 {
+            0 => 'P',
+            1 => 'C',
+            2 => 'B',
+            _ => 'U',
+        };
+        dtcs.push(format!(
+            "{}{:01X}{:01X}{:02X}-{:02X}",
+            system,
+            (record[0] >> 4) & 0x3,
+            record[0] & 0xF,
+            record[1],
+            record[2]
+        ));
+    }
+    ModuleDtcResult {
+        status: "ok".into(),
+        nrc: None,
+        dtcs,
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum ClearDecision {
     Accepted,
@@ -1132,13 +1215,13 @@ pub fn module_dtcs(
     db: &Db,
     vin: Option<&str>,
     module: &str,
-) -> Result<Vec<String>, String> {
+) -> Result<ModuleDtcResult, String> {
     let custom = custom_modules(db, vin);
     let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
     apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
-    read_dtcs(operation.driver()).map_err(|e| e.to_string())
+    Ok(module_dtc_result(operation.driver()))
 }
 
 pub fn read_many(
@@ -2494,6 +2577,55 @@ mod tests {
 
     fn module(req: &str, resp: &str) -> UdsModule {
         UdsModule::custom(None, "t", "t", req, resp)
+    }
+
+    fn dtc_fixture(response: &str) -> ElmDriver {
+        ElmDriver::from_replay_json(
+            &serde_json::json!({
+                "schema_version": 1,
+                "name": "module dtc status",
+                "contains_vehicle_identifiers": false,
+                "steps": [{"command": "1902AF", "response": response}]
+            })
+            .to_string(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn module_dtcs_reports_ok_for_an_empty_positive_response() {
+        let mut driver = dtc_fixture("59 02 FF\r>");
+        assert_eq!(module_dtc_result(&mut driver).status, "ok");
+    }
+
+    #[test]
+    fn module_dtcs_reports_unsupported_for_service_nrcs() {
+        for nrc in [0x11, 0x12] {
+            let mut driver = dtc_fixture(&format!("7F 19 {nrc:02X}\r>"));
+            let result = module_dtc_result(&mut driver);
+            assert_eq!(result.status, "unsupported");
+            assert_eq!(result.nrc, Some(nrc));
+        }
+    }
+
+    #[test]
+    fn module_dtcs_reports_refused_for_other_nrcs() {
+        let mut driver = dtc_fixture("7F 19 22\r>");
+        let result = module_dtc_result(&mut driver);
+        assert_eq!(result.status, "refused");
+        assert_eq!(result.nrc, Some(0x22));
+    }
+
+    #[test]
+    fn module_dtcs_reports_silent_for_no_data() {
+        let mut driver = dtc_fixture("NO DATA\r>");
+        assert_eq!(module_dtc_result(&mut driver).status, "silent");
+    }
+
+    #[test]
+    fn module_dtcs_reports_malformed_for_an_unrecognized_reply() {
+        let mut driver = dtc_fixture("OK\r>");
+        assert_eq!(module_dtc_result(&mut driver).status, "malformed");
     }
 
     fn route(protocol: RouteProtocol, req: &str, resp: &str) -> Route {

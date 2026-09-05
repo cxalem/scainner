@@ -1212,7 +1212,7 @@ export async function mockInvoke<T>(cmd: string, args?: Record<string, unknown>)
       return null as T;
     case "uds_module_dtcs":
       await delay(500);
-      return [...(demoModuleFaults[String(args?.module ?? "")] ?? [])] as T;
+      return { status: "ok", nrc: null, dtcs: [...(demoModuleFaults[String(args?.module ?? "")] ?? [])] } as T;
     case "uds_clear": {
       requireConfirmed(args);
       await delay(800);

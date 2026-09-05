@@ -4,7 +4,7 @@ import type { ConnStatus } from "../schema/connection";
 import type { AdapterCandidate, AdapterProfile, NearbyDevice } from "../schema/adapter";
 import type { CarReport, EcuInfo, VehicleInfo, VehicleListRow } from "../schema/vehicle";
 import type { DtcResult, DtcScanRow, ObdClearOutcome, WriteLogRow } from "../schema/diagnose";
-import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, DiscoveryRun, FingerprintExperimentReport, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
+import type { ClearOutcome, DiscoveredDid, DiscoveredModule, DiscoveryReport, DiscoveryRun, FingerprintExperimentReport, ModuleDtcResult, UdsHit, UdsModule, UdsProbe, VehicleEvidenceMap } from "../schema/lab";
 import type { SensorReading } from "../schema/live";
 import type { HistoryPoint, ReadingKey } from "../schema/history";
 import type { Ride } from "../schema/ride";
@@ -64,7 +64,7 @@ export class DeviceService extends Context.Tag("DeviceService")<
     readonly fingerprintExperiment: () => Effect.Effect<FingerprintExperimentReport, InvokeError | ParseResult.ParseError>;
     readonly vehicleEvidenceMap: (vehicleId: number) => Effect.Effect<VehicleEvidenceMap, InvokeError | ParseResult.ParseError>;
     readonly udsClear: (module: string) => Effect.Effect<ClearOutcome, InvokeError | ParseResult.ParseError>;
-    readonly udsModuleDtcs: (module: string) => Effect.Effect<string[], InvokeError>;
+    readonly udsModuleDtcs: (module: string) => Effect.Effect<ModuleDtcResult, InvokeError | ParseResult.ParseError>;
     readonly listProbes: (vehicleId: number | null) => Effect.Effect<UdsProbe[], InvokeError | ParseResult.ParseError>;
     readonly addProbe: (probe: UdsProbe, vehicleId: number | null) => Effect.Effect<void, InvokeError>;
     readonly toggleProbe: (id: number, enabled: boolean) => Effect.Effect<void, InvokeError>;
