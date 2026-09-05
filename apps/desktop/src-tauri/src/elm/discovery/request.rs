@@ -20,6 +20,7 @@ pub struct ResearchRequest {
     pub conflicts: Vec<RequestConflict>,
     pub open_hypotheses: BTreeMap<String, usize>,
     pub questions: Vec<String>,
+    pub constant_since_start: Vec<crate::db::ConstantStandardPid>,
 }
 
 #[derive(Debug, Serialize)]
@@ -369,6 +370,7 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
         conflicts,
         open_hypotheses,
         questions,
+        constant_since_start: db.constant_standard_pids(vehicle_id),
     })
 }
 
@@ -422,6 +424,17 @@ mod tests {
             0.7,
             None,
         );
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        for index in 0..200 {
+            db.insert_reading(connection_id, Some(vehicle_id), "ltft", 0.0);
+            db.insert_reading(
+                connection_id,
+                Some(vehicle_id),
+                "rpm",
+                if index < 100 { 650.0 } else { 1800.0 },
+            );
+        }
         let request = research_request(&db, vehicle_id).unwrap();
 
         assert_eq!(request.schema_version, 1);
@@ -458,6 +471,8 @@ mod tests {
         assert_eq!(request.unlabeled_dids[0].correlations[0].reference, "speed");
 
         assert_eq!(request.open_hypotheses.get("unknown"), Some(&1));
+        assert_eq!(request.constant_since_start[0].key, "ltft");
+        assert_eq!(request.constant_since_start[0].samples, 200);
         assert_eq!(request.modules[0].dialect, "kwp21");
         assert_eq!(request.modules[0].nrc_ladder[0]["request"], "2100");
         assert!(request.questions.iter().any(|question| question

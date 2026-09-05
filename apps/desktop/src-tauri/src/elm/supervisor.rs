@@ -281,6 +281,13 @@ fn now_ms() -> i64 {
         .as_millis() as i64
 }
 
+fn should_poll_standard_pid(supported: &[u8], pid: &str) -> bool {
+    supported.is_empty()
+        || u8::from_str_radix(pid.trim_start_matches("01"), 16)
+            .map(|number| supported.contains(&number))
+            .unwrap_or(false)
+}
+
 fn run_loop(
     app: tauri::AppHandle,
     db: Arc<Db>,
@@ -565,11 +572,8 @@ fn run_loop(
             let mut values: HashMap<String, f64> = HashMap::new();
             let mut reference_values: HashMap<String, (f64, i64)> = HashMap::new();
             for pid in parser::PIDS {
-                if !supported_pids.is_empty() {
-                    let n = u8::from_str_radix(&pid.pid[2..], 16).unwrap_or(0);
-                    if !supported_pids.contains(&n) {
-                        continue;
-                    }
+                if !should_poll_standard_pid(&supported_pids, pid.pid) {
+                    continue;
                 }
                 service_requests!();
                 match drv.cmd(pid.pid, Duration::from_secs(3)) {
@@ -1361,6 +1365,14 @@ mod tests {
             tx: read_tx,
         };
         assert!(reject_adapter_owning_request_during_ride(allowed, true).is_some());
+    }
+
+    #[test]
+    fn fuel_trim_pids_follow_the_reported_support_bitmap() {
+        let supported = [0x04, 0x05, 0x0C];
+        assert!(!should_poll_standard_pid(&supported, "0106"));
+        assert!(!should_poll_standard_pid(&supported, "0107"));
+        assert!(should_poll_standard_pid(&supported, "010C"));
     }
 
     #[test]

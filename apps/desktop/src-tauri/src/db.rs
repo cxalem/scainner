@@ -24,6 +24,14 @@ pub struct Ride {
     pub max_coolant: Option<f64>,
     pub min_voltage: Option<f64>,
     pub notes: Option<String>,
+    pub constant_since_start: Vec<String>,
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct ConstantStandardPid {
+    pub connection_id: i64,
+    pub key: String,
+    pub samples: i64,
 }
 
 #[derive(Serialize, Clone)]
@@ -741,6 +749,7 @@ impl Db {
                 notes TEXT
                 ,start_reading_id INTEGER NOT NULL DEFAULT 0
                 ,end_reading_id INTEGER
+                ,constant_since_start_json TEXT NOT NULL DEFAULT '[]'
             );
             CREATE INDEX IF NOT EXISTS idx_rides_vehicle_started ON rides(vehicle_id, started_at DESC);
             CREATE TABLE IF NOT EXISTS writes_log (
@@ -1075,6 +1084,10 @@ impl Db {
         let _ = conn.execute("ALTER TABLE route_outcomes ADD COLUMN nrc INTEGER", []);
         let _ = conn.execute(
             "ALTER TABLE route_outcomes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE rides ADD COLUMN constant_since_start_json TEXT NOT NULL DEFAULT '[]'",
             [],
         );
         conn.execute_batch("UPDATE rides SET ended_at = datetime('now') WHERE ended_at IS NULL;")?;
@@ -1534,11 +1547,19 @@ impl Db {
                 max_speed=(SELECT MAX(r.value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='speed' AND r.id > rides.start_reading_id),
                 max_coolant=(SELECT MAX(r.value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='coolant' AND r.id > rides.start_reading_id),
                 min_voltage=(SELECT MIN(r.value) FROM readings r WHERE r.connection_id=rides.connection_id AND r.key='voltage' AND r.id > rides.start_reading_id)
+                ,constant_since_start_json=(SELECT COALESCE(json_group_array(key),'[]') FROM (
+                    SELECT r.key FROM readings r WHERE r.connection_id=rides.connection_id
+                      AND r.id > rides.start_reading_id
+                      AND r.key IN ('rpm','speed','coolant','intake_temp','load','throttle','stft','ltft','map','timing_adv','fuel_rate','fuel_level','maf','fuel_pressure','o2_b1s1','o2_b1s2')
+                    GROUP BY r.key HAVING COUNT(*) >= 200 AND MIN(r.value)=MAX(r.value)
+                      AND (SELECT MAX(rr.value)-MIN(rr.value) FROM readings rr WHERE rr.connection_id=rides.connection_id AND rr.key='rpm' AND rr.id > rides.start_reading_id) > 1000
+                ))
              WHERE ended_at IS NOT NULL AND end_reading_id IS NULL",
             [],
         )
     }
 
+    #[cfg(test)]
     pub fn repair_incomplete_rides(&self) -> usize {
         Self::repair_incomplete_rides_on(&self.0.lock().unwrap()).unwrap_or(0)
     }
@@ -1559,20 +1580,25 @@ impl Db {
             max_coolant: r.get(11)?,
             min_voltage: r.get(12)?,
             notes: r.get(13)?,
+            constant_since_start: r
+                .get::<_, String>(14)
+                .ok()
+                .and_then(|raw| serde_json::from_str(&raw).ok())
+                .unwrap_or_default(),
         })
     }
 
     pub fn ride(&self, id: i64) -> Option<Ride> {
-        self.0.lock().unwrap().query_row("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes FROM rides WHERE id=?1", [id], Self::map_ride).ok()
+        self.0.lock().unwrap().query_row("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes,constant_since_start_json FROM rides WHERE id=?1", [id], Self::map_ride).ok()
     }
 
     pub fn active_ride(&self) -> Option<Ride> {
-        self.0.lock().unwrap().query_row("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes FROM rides WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1", [], Self::map_ride).ok()
+        self.0.lock().unwrap().query_row("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes,constant_since_start_json FROM rides WHERE ended_at IS NULL ORDER BY id DESC LIMIT 1", [], Self::map_ride).ok()
     }
 
     pub fn rides(&self, vehicle_id: i64) -> Vec<Ride> {
         let conn = self.0.lock().unwrap();
-        let mut q = conn.prepare("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes FROM rides WHERE vehicle_id=?1 ORDER BY started_at DESC").unwrap();
+        let mut q = conn.prepare("SELECT id,cloud_id,vehicle_id,connection_id,started_at,ended_at,sample_count,sensor_count,dtc_events_count,dtc_codes_appeared,max_speed,max_coolant,min_voltage,notes,constant_since_start_json FROM rides WHERE vehicle_id=?1 ORDER BY started_at DESC").unwrap();
         q.query_map([vehicle_id], Self::map_ride)
             .unwrap()
             .flatten()
@@ -1584,6 +1610,28 @@ impl Db {
             "SELECT COUNT(*) FROM readings r JOIN rides x ON x.connection_id=r.connection_id WHERE x.id=?1 AND r.id > x.start_reading_id AND (x.end_reading_id IS NULL OR r.id <= x.end_reading_id)",
             [id], |r| r.get(0),
         ).unwrap_or(0)
+    }
+
+    pub fn constant_standard_pids(&self, vehicle_id: i64) -> Vec<ConstantStandardPid> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT r.connection_id,r.key,COUNT(*) FROM readings r
+             WHERE r.vehicle_id=?1 AND r.key IN ('rpm','speed','coolant','intake_temp','load','throttle','stft','ltft','map','timing_adv','fuel_rate','fuel_level','maf','fuel_pressure','o2_b1s1','o2_b1s2')
+             GROUP BY r.connection_id,r.key
+             HAVING COUNT(*) >= 200 AND MIN(r.value)=MAX(r.value)
+               AND (SELECT MAX(rr.value)-MIN(rr.value) FROM readings rr WHERE rr.connection_id=r.connection_id AND rr.key='rpm') > 1000
+             ORDER BY r.connection_id,r.key",
+        ).unwrap();
+        stmt.query_map([vehicle_id], |row| {
+            Ok(ConstantStandardPid {
+                connection_id: row.get(0)?,
+                key: row.get(1)?,
+                samples: row.get(2)?,
+            })
+        })
+        .unwrap()
+        .flatten()
+        .collect()
     }
 
     pub fn set_connection_protocol(&self, id: i64, protocol: &str) {
@@ -3928,6 +3976,30 @@ mod tests {
         assert_eq!(closed.sensor_count, 2);
         assert_eq!(closed.max_speed, Some(71.0));
         assert_eq!(closed.max_coolant, Some(89.0));
+    }
+
+    #[test]
+    fn constant_standard_pid_is_flagged_after_two_hundred_samples_and_rpm_range() {
+        let db = test_db();
+        let vehicle_id = db.create_vehicle_named("constant fixture");
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        let ride = db.start_ride(vehicle_id, connection_id).unwrap();
+        for index in 0..200 {
+            db.insert_reading(connection_id, Some(vehicle_id), "stft", 0.0);
+            db.insert_reading(
+                connection_id,
+                Some(vehicle_id),
+                "rpm",
+                if index < 100 { 700.0 } else { 1900.0 },
+            );
+        }
+
+        let closed = db.stop_ride(ride.id).unwrap();
+
+        assert_eq!(closed.constant_since_start, ["stft"]);
+        assert_eq!(db.constant_standard_pids(vehicle_id)[0].key, "stft");
+        assert_eq!(db.constant_standard_pids(vehicle_id)[0].samples, 200);
     }
 
     #[test]
