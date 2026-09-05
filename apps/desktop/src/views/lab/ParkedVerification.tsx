@@ -5,6 +5,7 @@ import { Reveal, Swap } from "@/motion/components";
 import { invoke } from "@/lib/tauri";
 import { hex4 } from "@/shared/domain/gauges";
 import { useT } from "@/i18n";
+import { useToast } from "@/components/toast";
 import { identityReads, sweepSize, useParkedPlan } from "@/views/lab/plan";
 import { RunRow, RunSection, TargetRow } from "@/views/lab/RunRow";
 
@@ -53,6 +54,7 @@ const bandText = (sweep: Array<[number, number]>) =>
 
 export function ParkedVerification({ connected, vehicleId }: { connected: boolean; vehicleId: number | null }) {
   const t = useT();
+  const toast = useToast();
   const p = t.lab.parkedVerification;
   const plan = useParkedPlan(vehicleId);
   const [running, setRunning] = useState(false);
@@ -71,7 +73,9 @@ export function ParkedVerification({ connected, vehicleId }: { connected: boolea
     try {
       setReport(await invoke<Report>("parked_verification"));
     } catch (cause) {
-      setError(String(cause instanceof Error ? cause.message : cause));
+      const message = String(cause instanceof Error ? cause.message : cause);
+      if (message.includes("ride_in_progress")) toast.show("warning", t.ride.ride_in_progress);
+      setError(message);
     } finally {
       setRunning(false);
     }

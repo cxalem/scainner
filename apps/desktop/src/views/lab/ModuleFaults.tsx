@@ -7,7 +7,7 @@ import { AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react";
 import { Button, Card, Mono, Note, Pill } from "@/components/ui";
 import { Swap } from "@/motion/components";
 import { ConfirmWrite } from "@/components/ConfirmWrite";
-import type { ClearOutcome } from "@scainner/core";
+import type { ClearOutcome, ModuleDtcResult } from "@scainner/core";
 import { useT } from "@/i18n";
 
 export function ModuleFaults({ module, label, connected }: { module: string; label: string; connected: boolean }) {
@@ -16,7 +16,8 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
   const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [faults, setFaults] = useState<string[] | null>(null);
+  const [result, setResult] = useState<ModuleDtcResult | null>(null);
+  const faults = result?.dtcs ?? null;
   const [confirmClear, setConfirmClear] = useState(false);
   const [outcome, setOutcome] = useState<ClearOutcome | null>(null);
 
@@ -25,7 +26,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     setError(null);
     setOutcome(null);
     try {
-      setFaults(await runPromise(Effect.flatMap(DeviceService, (device) => device.udsModuleDtcs(module))));
+      setResult(await runPromise(Effect.flatMap(DeviceService, (device) => device.udsModuleDtcs(module))));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -41,7 +42,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     try {
       const result = await runPromise(Effect.flatMap(DeviceService, (device) => device.udsClear(module)));
       setOutcome(result);
-      setFaults(result.after);
+      setResult({ status: "ok", nrc: null, dtcs: result.after });
       qc.invalidateQueries({ queryKey: ["writes_log"] });
     } catch (e) {
       setError(String(e));
@@ -50,7 +51,7 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
     }
   };
 
-  const state = outcome ? "outcome" : faults ? "faults" : "idle";
+  const state = outcome ? "outcome" : result ? "faults" : "idle";
 
   return (
     <Card className="gap-[9px] px-4 py-3.5">
@@ -74,7 +75,12 @@ export function ModuleFaults({ module, label, connected }: { module: string; lab
           </Note>
         )}
         {state === "faults" && faults && (
-          faults.length === 0 ? (
+          result?.status !== "ok" ? (
+            <Note className="flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-warn" aria-hidden="true" />
+              {f.refused}{result?.nrc != null ? ` (NRC 0x${result.nrc.toString(16).toUpperCase().padStart(2, "0")})` : ` (${result?.status})`}
+            </Note>
+          ) : faults.length === 0 ? (
             <Note className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-ok" aria-hidden="true" />
               {f.noFaultsStored}

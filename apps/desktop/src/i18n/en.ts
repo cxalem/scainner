@@ -5,6 +5,7 @@ export const en: Dictionary = {
     record: "Record ride",
     recording: "Recording your ride",
     stop: "Stop",
+    ride_in_progress: "Stop the ride first",
     samples: (count) => `${count} samples`,
     saved: {
       none: (minutes, sensors) => `Ride recorded. ${minutes} min, ${sensors} sensors, no fault codes.`,

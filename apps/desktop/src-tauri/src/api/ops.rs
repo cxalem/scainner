@@ -305,7 +305,10 @@ pub async fn uds_clear(
     ask(state, |tx| Request::UdsClear { module, tx }).await
 }
 
-pub async fn uds_module_dtcs(state: &AppState, module: String) -> Result<Vec<String>, String> {
+pub async fn uds_module_dtcs(
+    state: &AppState,
+    module: String,
+) -> Result<crate::elm::uds::ModuleDtcResult, String> {
     ask(state, |tx| Request::UdsModuleDtcs { module, tx }).await
 }
 

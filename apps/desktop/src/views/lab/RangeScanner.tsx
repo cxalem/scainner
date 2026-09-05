@@ -8,6 +8,7 @@ import { List, Item, Reveal } from "@/motion/components";
 import { hex4 } from "@/shared/domain/gauges";
 import type { UdsHit } from "@scainner/core";
 import { useT } from "@/i18n";
+import { useToast } from "@/components/toast";
 
 const SCAN_CHUNK = 256;
 
@@ -25,6 +26,7 @@ export function RangeScanner({
   onProbeCandidate: (hit: UdsHit) => void;
 }) {
   const t = useT();
+  const toast = useToast();
   const r = t.lab.rangeScanner;
   const [scanFrom, setScanFrom] = useState("");
   const [scanTo, setScanTo] = useState("");
@@ -67,6 +69,7 @@ export function RangeScanner({
       setProgress(r.scanDone(all.length));
     } catch (e) {
       const message = String(e instanceof Error ? e.message : e);
+      if (message.includes("ride_in_progress")) toast.show("warning", t.ride.ride_in_progress);
       const engineStop = message.match(/engine_started:([0-9A-Fa-f]{4}):(\d+)/);
       if (engineStop) {
         setProgress(r.engineStarted(hex4(parseInt(engineStop[1], 16)), Number(engineStop[2])));

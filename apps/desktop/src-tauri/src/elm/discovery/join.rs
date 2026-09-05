@@ -83,12 +83,29 @@ pub fn join_vehicle(db: &Db, map: &UdsMap, vehicle_id: i64) -> JoinSummary {
                 )
             })
             .unwrap_or((None, None));
-        let service = match (req, resp) {
+        let mapped_service = match (req, resp) {
             (Some(req), Some(resp)) => {
                 crate::elm::uds_map::read_service_for_module(vin.as_deref(), req, resp)
             }
             _ => crate::elm::uds_map::ReadService::default(),
         };
+        let service = module
+            .route_json
+            .as_deref()
+            .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok())
+            .and_then(|route| {
+                route
+                    .get("read_service")
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string)
+            })
+            .and_then(|value| match value.as_str() {
+                "21" => Some(crate::elm::uds_map::ReadService::DataByLocalIdentifier),
+                "1A" => Some(crate::elm::uds_map::ReadService::EcuIdentification),
+                "22" => Some(crate::elm::uds_map::ReadService::DataByIdentifier),
+                _ => None,
+            })
+            .unwrap_or(mapped_service);
         let mut joined = JoinedModule {
             module_id: module.id,
             address: module.address.clone(),

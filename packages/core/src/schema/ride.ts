@@ -15,6 +15,7 @@ export class Ride extends Schema.Class<Ride>("Ride")({
   max_coolant: Schema.NullOr(Schema.Number),
   min_voltage: Schema.NullOr(Schema.Number),
   notes: Schema.NullOr(Schema.String),
+  constant_since_start: Schema.mutable(Schema.Array(Schema.String)),
 }) {}
 
 export const RideStatus = Schema.Struct({

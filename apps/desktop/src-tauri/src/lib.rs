@@ -267,7 +267,10 @@ async fn uds_clear(
 }
 
 #[tauri::command]
-async fn uds_module_dtcs(state: State<'_>, module: String) -> Result<Vec<String>, String> {
+async fn uds_module_dtcs(
+    state: State<'_>,
+    module: String,
+) -> Result<elm::uds::ModuleDtcResult, String> {
     ops::uds_module_dtcs(&state, module).await
 }
 

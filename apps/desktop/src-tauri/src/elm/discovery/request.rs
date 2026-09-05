@@ -20,6 +20,7 @@ pub struct ResearchRequest {
     pub conflicts: Vec<RequestConflict>,
     pub open_hypotheses: BTreeMap<String, usize>,
     pub questions: Vec<String>,
+    pub constant_since_start: Vec<crate::db::ConstantStandardPid>,
 }
 
 #[derive(Debug, Serialize)]
@@ -30,6 +31,8 @@ pub struct RequestModule {
     pub identity: RequestIdentity,
     pub identity_fit: Option<String>,
     pub family_match: Option<String>,
+    pub dialect: String,
+    pub nrc_ladder: Vec<Value>,
 }
 
 #[derive(Debug, Serialize)]
@@ -163,20 +166,34 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
 
     let modules: Vec<RequestModule> = module_rows
         .iter()
-        .map(|module| RequestModule {
-            address: module.address.clone(),
-            name: module.name.clone(),
-            route_state: module.route_state.clone(),
-            identity: RequestIdentity {
-                supplier: module.supplier.clone(),
-                family_id: module.family_id.clone(),
-                hardware_ref: module.hardware_version.clone(),
-                software_ref: module.software_version.clone(),
-                part_ref: module.spare_part_number.clone(),
-                system_name: module.system_name.clone(),
-            },
-            identity_fit: module.identity_fit.clone(),
-            family_match: module.family_match.clone(),
+        .map(|module| {
+            let route = serde_json::from_str::<Value>(module.route_json.as_deref().unwrap_or("{}"))
+                .unwrap_or(Value::Null);
+            RequestModule {
+                address: module.address.clone(),
+                name: module.name.clone(),
+                route_state: module.route_state.clone(),
+                identity: RequestIdentity {
+                    supplier: module.supplier.clone(),
+                    family_id: module.family_id.clone(),
+                    hardware_ref: module.hardware_version.clone(),
+                    software_ref: module.software_version.clone(),
+                    part_ref: module.spare_part_number.clone(),
+                    system_name: module.system_name.clone(),
+                },
+                identity_fit: module.identity_fit.clone(),
+                family_match: module.family_match.clone(),
+                dialect: route
+                    .get("dialect")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown")
+                    .into(),
+                nrc_ladder: route
+                    .get("nrc_ladder")
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default(),
+            }
         })
         .collect();
 
@@ -259,6 +276,19 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
     }
 
     let mut questions: Vec<String> = Vec::new();
+    for module in &modules {
+        if module.dialect == "kwp21"
+            && module.identity.hardware_ref.is_none()
+            && module.identity.software_ref.is_none()
+            && module.identity.part_ref.is_none()
+            && module.identity.system_name.is_none()
+        {
+            questions.push(format!(
+                "module {} speaks 0x21; which local identifiers does it expose and how is it identified?",
+                module.address
+            ));
+        }
+    }
     let mut silent_counts: BTreeMap<String, usize> = BTreeMap::new();
     for outcome in &db.route_outcomes(vehicle_id) {
         if outcome.route_state == "silent" {
@@ -271,6 +301,9 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
     for outcome in &route_outcomes {
         match outcome.state.as_str() {
             "silent" => {}
+            "refused" if modules.iter().any(|module| {
+                module.address == outcome.address && module.dialect == "kwp21"
+            }) => {}
             "refused" => questions.push(match outcome.nrc {
                 Some(nrc) => format!(
                     "route {} refused with NRC 0x{nrc:02X} on {} connection(s): which read service and session does it want?",
@@ -337,6 +370,7 @@ pub fn research_request(db: &Db, vehicle_id: i64) -> Option<ResearchRequest> {
         conflicts,
         open_hypotheses,
         questions,
+        constant_since_start: db.constant_standard_pids(vehicle_id),
     })
 }
 
@@ -361,6 +395,10 @@ mod tests {
         );
         let module_id = db.upsert_discovered_module(vehicle_id, "6A8/688", Some("engine"));
         db.set_module_route_state(module_id, "reached");
+        db.set_module_route(
+            module_id,
+            r#"{"dialect":"kwp21","nrc_ladder":[{"request":"2100","nrc":18,"status":"refused"}]}"#,
+        );
         db.upsert_discovered_did(module_id, 0xD410, "00 12", 2, None);
         db.upsert_discovered_did(module_id, 0xF190, "56 46 37", 3, Some("VIN"));
         db.upsert_hypothesis(&HypothesisUpsert {
@@ -386,6 +424,17 @@ mod tests {
             0.7,
             None,
         );
+        let connection_id = db.start_connection("ELM327", "test");
+        db.link_connection_vehicle(connection_id, vehicle_id);
+        for index in 0..200 {
+            db.insert_reading(connection_id, Some(vehicle_id), "ltft", 0.0);
+            db.insert_reading(
+                connection_id,
+                Some(vehicle_id),
+                "rpm",
+                if index < 100 { 650.0 } else { 1800.0 },
+            );
+        }
         let request = research_request(&db, vehicle_id).unwrap();
 
         assert_eq!(request.schema_version, 1);
@@ -422,6 +471,12 @@ mod tests {
         assert_eq!(request.unlabeled_dids[0].correlations[0].reference, "speed");
 
         assert_eq!(request.open_hypotheses.get("unknown"), Some(&1));
+        assert_eq!(request.constant_since_start[0].key, "ltft");
+        assert_eq!(request.constant_since_start[0].samples, 200);
+        assert_eq!(request.modules[0].dialect, "kwp21");
+        assert_eq!(request.modules[0].nrc_ladder[0]["request"], "2100");
+        assert!(request.questions.iter().any(|question| question
+            == "module 6A8/688 speaks 0x21; which local identifiers does it expose and how is it identified?"));
         assert!(request
             .questions
             .iter()

@@ -146,16 +146,23 @@ pub enum IdentityFit {
     Provisional,
     Stable,
     Conflicted,
+    Unavailable,
 }
 
 impl IdentityFit {
-    pub const ALL: [IdentityFit; 3] = [Self::Provisional, Self::Stable, Self::Conflicted];
+    pub const ALL: [IdentityFit; 4] = [
+        Self::Provisional,
+        Self::Stable,
+        Self::Conflicted,
+        Self::Unavailable,
+    ];
 
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Provisional => "provisional",
             Self::Stable => "stable",
             Self::Conflicted => "conflicted",
+            Self::Unavailable => "unavailable",
         }
     }
 
@@ -164,7 +171,7 @@ impl IdentityFit {
     }
 
     pub fn joinable(self) -> bool {
-        !matches!(self, Self::Conflicted)
+        !matches!(self, Self::Conflicted | Self::Unavailable)
     }
 }
 

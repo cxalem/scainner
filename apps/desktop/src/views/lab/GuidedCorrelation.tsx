@@ -4,6 +4,7 @@ import { Button, ExpanderButton, Kicker, Mono, Note, Pill, Select, Table, Td, Th
 import { Reveal, Swap } from "@/motion/components";
 import { invoke } from "@/lib/tauri";
 import { useT } from "@/i18n";
+import { useToast } from "@/components/toast";
 import { useGuidedSteps, type GuidedStep } from "@/views/lab/plan";
 import { RunRow, RunSection } from "@/views/lab/RunRow";
 
@@ -39,6 +40,7 @@ function tripletOf(script: GuidedStep[], index: number): { before: GuidedStep | 
 
 export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean; vehicleId: number | null }) {
   const t = useT();
+  const toast = useToast();
   const g = t.lab.guidedCorrelation;
   const tree = useGuidedSteps(vehicleId);
   const [started, setStarted] = useState(false);
@@ -114,7 +116,9 @@ export function GuidedCorrelation({ connected, vehicleId }: { connected: boolean
       setPendingNext(true);
       setBytesOpen(false);
     } catch (cause) {
-      setError(String(cause instanceof Error ? cause.message : cause));
+      const message = String(cause instanceof Error ? cause.message : cause);
+      if (message.includes("ride_in_progress")) toast.show("warning", t.ride.ride_in_progress);
+      setError(message);
     } finally {
       setBusy(false);
     }

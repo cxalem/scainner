@@ -272,6 +272,7 @@ pub fn coverage(db: &Db, map: &UdsMap, vehicle_id: i64) -> Option<CoverageReport
                     m.address
                 ));
             }
+            Some(IdentityFit::Unavailable) => {}
             None if fingerprinted => {
                 identified.provisional += 1;
                 remaining.push(format!(

@@ -178,7 +178,7 @@ pub enum Request {
     },
     UdsModuleDtcs {
         module: String,
-        tx: Sender<Result<Vec<String>, String>>,
+        tx: Sender<Result<uds::ModuleDtcResult, String>>,
     },
     NameVehicle {
         name: String,
@@ -190,6 +190,35 @@ pub enum Request {
         tx: Sender<Result<crate::db::Ride, String>>,
     },
     Stop,
+}
+
+fn reject_adapter_owning_request_during_ride(req: Request, active: bool) -> Option<Request> {
+    if !active {
+        return Some(req);
+    }
+    match req {
+        Request::UdsScan { tx, .. } => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::Discover { tx, .. } => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::ParkedVerification(tx) => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::RunAutoDiscovery(tx) => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        Request::CorrelationCapture { tx, .. } => {
+            let _ = tx.send(Err("ride_in_progress".into()));
+            None
+        }
+        request => Some(request),
+    }
 }
 
 pub struct Supervisor {
@@ -250,6 +279,13 @@ fn now_ms() -> i64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as i64
+}
+
+fn should_poll_standard_pid(supported: &[u8], pid: &str) -> bool {
+    supported.is_empty()
+        || u8::from_str_radix(pid.trim_start_matches("01"), 16)
+            .map(|number| supported.contains(&number))
+            .unwrap_or(false)
 }
 
 fn run_loop(
@@ -407,6 +443,9 @@ fn run_loop(
         macro_rules! service_requests {
             () => {
                 while let Ok(req) = rx.try_recv() {
+                    let Some(req) = reject_adapter_owning_request_during_ride(req, ride.is_some()) else {
+                        continue;
+                    };
                     match req {
                         Request::Stop => {
                             if dtc_schedule.due_at_session_end(tick) {
@@ -533,11 +572,8 @@ fn run_loop(
             let mut values: HashMap<String, f64> = HashMap::new();
             let mut reference_values: HashMap<String, (f64, i64)> = HashMap::new();
             for pid in parser::PIDS {
-                if !supported_pids.is_empty() {
-                    let n = u8::from_str_radix(&pid.pid[2..], 16).unwrap_or(0);
-                    if !supported_pids.contains(&n) {
-                        continue;
-                    }
+                if !should_poll_standard_pid(&supported_pids, pid.pid) {
+                    continue;
                 }
                 service_requests!();
                 match drv.cmd(pid.pid, Duration::from_secs(3)) {
@@ -1308,6 +1344,35 @@ mod tests {
 
     fn test_db() -> Db {
         Db::open(Path::new(":memory:")).expect("in-memory db")
+    }
+
+    #[test]
+    fn a_ride_rejects_adapter_owning_requests_but_allows_single_reads() {
+        let (scan_tx, scan_rx) = mpsc::channel();
+        let blocked = Request::UdsScan {
+            module: "engine".into(),
+            from: 0,
+            to: 1,
+            tx: scan_tx,
+        };
+        assert!(reject_adapter_owning_request_during_ride(blocked, true).is_none());
+        assert!(matches!(scan_rx.recv().unwrap(), Err(error) if error == "ride_in_progress"));
+
+        let (read_tx, _read_rx) = mpsc::channel();
+        let allowed = Request::UdsRead {
+            module: "engine".into(),
+            did: 0,
+            tx: read_tx,
+        };
+        assert!(reject_adapter_owning_request_during_ride(allowed, true).is_some());
+    }
+
+    #[test]
+    fn fuel_trim_pids_follow_the_reported_support_bitmap() {
+        let supported = [0x04, 0x05, 0x0C];
+        assert!(!should_poll_standard_pid(&supported, "0106"));
+        assert!(!should_poll_standard_pid(&supported, "0107"));
+        assert!(should_poll_standard_pid(&supported, "010C"));
     }
 
     #[test]
