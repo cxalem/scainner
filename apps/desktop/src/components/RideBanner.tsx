@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Grow } from "@/motion/components";
 import { useT } from "@/i18n";
 import { rideSummaryCopyKey } from "@/lib/ride-copy";
-
-export const AI_REPORT_PRICE = "€—";
+import { ReportAction } from "@/components/ReportAction";
 
 function elapsedSeconds(startedAt: string, endedAt?: string | null): number {
   const start = new Date(startedAt).getTime();
@@ -39,8 +38,8 @@ export function RideBanner({ ride, completed, stopping, onStop, onDone }: {
   }, [ride?.id, ride?.started_at]);
 
   const transition = { duration: reduced ? 0 : 0.22 };
+  const minutes = completed ? Math.round(elapsedSeconds(completed.started_at, completed.ended_at) / 60) : 0;
   const firstLine = completed ? (() => {
-    const minutes = Math.round(elapsedSeconds(completed.started_at, completed.ended_at) / 60);
     const key = rideSummaryCopyKey(completed.dtc_codes_appeared);
     return key === "many"
       ? t.ride.saved.many(minutes, completed.sensor_count, completed.dtc_codes_appeared)
@@ -79,7 +78,7 @@ export function RideBanner({ ride, completed, stopping, onStop, onDone }: {
                   <AlertTitle>{firstLine}</AlertTitle>
                   <AlertDescription className="text-[12px]">{t.ride.location}</AlertDescription>
                 </div>
-                <Button className="min-h-10" disabled>{t.ride.report(AI_REPORT_PRICE)}</Button>
+                {completed ? <ReportAction input={{ kind: "ride", ride_id: completed.cloud_id, minutes, sensor_count: completed.sensor_count, sample_count: completed.sample_count, dtc_codes_appeared: completed.dtc_codes_appeared }} /> : null}
                 <Button className="min-h-10" variant="outline" onClick={onDone}>{t.ride.done}</Button>
               </>
             )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { requestSync } from "@/lib/sync";
+import { MOCK_MODE } from "@/lib/tauri";
 
 export function useEmailOtp() {
   const [email, setEmail] = useState("");
@@ -8,9 +9,10 @@ export function useEmailOtp() {
   const [step, setStep] = useState<"email" | "code">("email");
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(MOCK_MODE ? "demo@sonda.test" : null);
 
   useEffect(() => {
+    if (MOCK_MODE) return;
     void supabase.auth.getSession().then(({ data }) => setUserEmail(data.session?.user.email ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUserEmail(session?.user.email ?? null);

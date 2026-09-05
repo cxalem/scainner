@@ -27,6 +27,7 @@ import { brandFromVin } from "@/lib/brand";
 import { AccountSyncCard } from "@/views/vehicle/AccountSyncCard";
 import { VehicleEvidenceMap } from "@/views/vehicle/VehicleEvidenceMap";
 import { useT } from "@/i18n";
+import { ReportHistory } from "@/views/reports/ReportHistory";
 
 const VehicleScene = lazy(() => import("@/components/VehicleScene").then((m) => ({ default: m.VehicleScene })));
 
@@ -258,6 +259,7 @@ export function Vehicle({ connected, vehicleId = null }: { connected: boolean; v
           <AccountSyncCard />
         </div>
       </Block>
+      <Block><ReportHistory /></Block>
     </>
   );
 }

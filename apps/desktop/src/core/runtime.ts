@@ -1,8 +1,8 @@
 import { Layer, ManagedRuntime } from "effect";
-import { AiServiceLive } from "@scainner/core";
 import { DeviceServiceLive } from "@/core/services/device-service-live";
+import { BillingServiceLive } from "@/core/services/billing-service-live";
 
-const AppLayer = Layer.mergeAll(DeviceServiceLive, AiServiceLive);
+const AppLayer = Layer.mergeAll(DeviceServiceLive, BillingServiceLive);
 
 export const runtime = ManagedRuntime.make(AppLayer);
 

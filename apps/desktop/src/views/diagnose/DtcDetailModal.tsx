@@ -1,17 +1,14 @@
-import { useState } from "react";
-import { Sparkles } from "lucide-react";
-import { Button, Dialog, Kicker, Mono, Note, Pill, useCyclingLabel } from "@/components/ui";
+import { Dialog, Kicker, Mono, Note, Pill } from "@/components/ui";
 import type { DtcResult, DtcScanRow } from "@scainner/core";
-import { AI_PHASES, generateCodeReport, getApiKey, getCodeReports, type SavedReport } from "@/lib/ai";
 import { decodeDtc, dtcInfo, localizedOrigin, localizedSubsystem, localizedSystem } from "@/lib/dtc";
 import { FreezeFrame } from "@/views/diagnose/FreezeFrame";
 import { useLocale, useT } from "@/i18n";
+import { ReportAction } from "@/components/ReportAction";
 
 export function DtcDetailModal({
   code,
   history,
   scan,
-  vehicleId,
   onClose,
 }: {
   code: string;
@@ -24,12 +21,6 @@ export function DtcDetailModal({
   const { locale } = useLocale();
   const info = dtcInfo(code, locale);
   const structure = decodeDtc(code);
-  const [report, setReport] = useState<SavedReport | null>(() => getCodeReports()[`${vehicleId ?? "unidentified"}:${code}`] ?? null);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const hasKey = !!getApiKey();
-  const validReport = report && report.lang === locale && report.vehicleId === vehicleId ? report : null;
-  const generatingLabel = useCyclingLabel(AI_PHASES, generating, 3500);
 
   const occurrences = history
     .filter((row) => row.stored.includes(code) || row.pending.includes(code) || row.permanent.includes(code))
@@ -44,23 +35,6 @@ export function DtcDetailModal({
       ? (scan.freeze as Record<string, unknown>)
       : (history.find((row) => row.freeze && String((row.freeze as Record<string, unknown>).trigger_dtc) === code)
           ?.freeze as Record<string, unknown> | undefined) ?? null;
-
-  const doGenerate = async () => {
-    setGenerating(true);
-    setError(null);
-    try {
-      const summary =
-        occurrences.map((occ) => `- ${occ.ts} UTC — seen as ${occ.role}${occ.voltage != null ? ` (battery ${occ.voltage.toFixed(1)} V)` : ""}`).join("\n") +
-        (freeze ? `\nFreeze frame at the moment it tripped: ${JSON.stringify(freeze)}` : "");
-      setReport(
-        await generateCodeReport(vehicleId, code, summary || "(no recorded occurrences — code seen in a live scan only)", locale),
-      );
-    } catch (e) {
-      setError(String(e instanceof Error ? e.message : e));
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   return (
     <Dialog
@@ -125,19 +99,7 @@ export function DtcDetailModal({
         )}
 
         <div className="flex flex-col gap-2 border-t border-divider pt-3">
-          <div>
-            <Button variant="secondary" size="sm" icon={Sparkles} busy={generating} onClick={doGenerate} disabled={!hasKey}>
-              {generating ? generatingLabel : validReport ? t.diagnose.detailModal.regenerateAiDeepDive : t.diagnose.detailModal.aiDeepDive}
-            </Button>
-          </div>
-          {!hasKey && <Note className="text-[12px]">{t.diagnose.detailModal.setApiKeyHint}</Note>}
-          {error && <p className="text-[12px] text-stop">{error}</p>}
-          {validReport && (
-            <div className="flex flex-col gap-2 rounded-sm bg-bg p-3">
-              <Mono className="text-[11.5px] text-neutral-500">{t.diagnose.detailModal.generated(validReport.ts)}</Mono>
-              <div className="whitespace-pre-wrap leading-[1.6] text-neutral-200">{validReport.md}</div>
-            </div>
-          )}
+          <ReportAction input={{ kind: "code", dtc_code: code }} />
         </div>
       </div>
     </Dialog>

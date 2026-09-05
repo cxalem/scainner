@@ -279,7 +279,7 @@ export function Overview({
   return withScanBanner((
     <>
       {hero(
-        <Card className="h-[190px] justify-between gap-3 px-[18px] py-4">
+        <Card className="min-h-[190px] justify-between gap-3 px-[18px] py-4">
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
               <Pill variant={chip.variant} className="text-[11px]">{chip.text}</Pill>
@@ -298,7 +298,7 @@ export function Overview({
             )}
           </div>
           {onNavigate && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {canStartRide ? <RideButton size="sm" className="px-2.5 text-[12px]" onClick={onStartRide}>{t.ride.record}</RideButton> : null}
               <Button variant="primary" size="sm" onClick={() => onNavigate("diagnose")}>
                 {t.overview.verdict.openFaults}

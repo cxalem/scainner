@@ -10,8 +10,34 @@ export type Dictionary = {
       many: (minutes: number, sensors: number, codes: number) => string;
     };
     location: string;
-    report: (price: string) => string;
     done: string;
+  };
+  reportOffer: {
+    getReport: string;
+    rideTitle: string;
+    codeTitle: (code: string) => string;
+    rideDescription: string;
+    codeDescription: string;
+    structure: string;
+    privacy: string;
+    cost: {
+      price: (price: string) => string;
+      credit: (balance: number) => string;
+      plan: (left: number, total: number) => string;
+    };
+    primary: {
+      price: (price: string) => string;
+      covered: string;
+      signedOut: string;
+    };
+    notNow: string;
+    waiting: string;
+    signInToast: string;
+    writing: readonly string[];
+    open: string;
+    complete: string;
+    failed: string;
+    bought: string;
   };
   common: {
     cancel: string;
@@ -684,6 +710,9 @@ export type Dictionary = {
       syncTitle: string;
       syncedNote: string;
       contributeKnowledge: string;
+      reportCredits: string;
+      subscriptionState: (used: number, allowance: number) => string;
+      buyReports: string;
     };
   };
   discoveryFlow: {

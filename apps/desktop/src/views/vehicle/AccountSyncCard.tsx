@@ -1,11 +1,13 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, Sparkles } from "lucide-react";
 import { Button, Card, CardHead, Dot, Field, Input, Note } from "@/components/ui";
 import { Swap } from "@/motion/components";
 import { useEmailOtp } from "@/features/account/useEmailOtp";
 import { getSyncStatus, requestSync, subscribeSyncStatus } from "@/lib/sync";
 import { invoke } from "@/lib/tauri";
 import { useT } from "@/i18n";
+import { usePricing } from "@/features/reports/queries";
+import { BillingDialog } from "@/components/BillingDialog";
 
 export function AccountSyncCard() {
   const t = useT();
@@ -13,6 +15,8 @@ export function AccountSyncCard() {
   const { email, setEmail, code, setCode, step, setStep, busy, authError, userEmail, sendCode, verify, signOut } = useEmailOtp();
   const a = t.vehicle.account;
   const [contributeKnowledge, setContributeKnowledge] = useState(true);
+  const [billingOpen, setBillingOpen] = useState(false);
+  const pricing = usePricing();
 
   useEffect(() => {
     void invoke<string | null>("app_setting_get", { key: "contribute_knowledge" }).then((value) => {
@@ -104,6 +108,10 @@ export function AccountSyncCard() {
                   : a.neverSynced}{" "}
               {a.syncedNote}
             </Note>
+            <div className="rounded-md bg-accent-900 p-3 text-[12.5px]">
+              <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent-400" aria-hidden="true" /><span className="font-medium">{pricing.data?.account?.balance ?? 0} {t.vehicle.account.reportCredits}</span></div>
+              {pricing.data?.account?.subscription && <p className="mt-1 text-neutral-500">{t.vehicle.account.subscriptionState(pricing.data.account.subscription.allowance_used, pricing.data.account.subscription.monthly_allowance)}</p>}
+            </div>
             {sync.phase === "error" && sync.lastError && (
               <Note className="text-[12px] text-stop">
                 {a.syncErrorLabel} {sync.lastError}
@@ -116,11 +124,13 @@ export function AccountSyncCard() {
               <Button size="sm" variant="ghost" onClick={signOut}>
                 {a.signOut}
               </Button>
+              <Button size="sm" variant="secondary" onClick={() => setBillingOpen(true)}>{a.buyReports}</Button>
             </div>
           </>
         )}
       </Swap>
       {authError && <Note className="text-[12px] text-stop">{authError}</Note>}
+      <BillingDialog open={billingOpen} onOpenChange={setBillingOpen} />
     </Card>
   );
 }
