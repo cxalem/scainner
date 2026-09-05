@@ -178,6 +178,32 @@ pub fn modules_for_vin(vin: Option<&str>, custom: &[UdsModule]) -> Vec<UdsModule
     out
 }
 
+fn apply_persisted_dialect(db: &Db, vehicle_id: Option<i64>, module: &mut UdsModule) {
+    let Some(vehicle_id) = vehicle_id else {
+        return;
+    };
+    let address = format!(
+        "{}/{}",
+        module.req.to_ascii_uppercase(),
+        module.resp.to_ascii_uppercase()
+    );
+    let service = db
+        .discovered_summary(vehicle_id)
+        .into_iter()
+        .find(|row| row.address.to_ascii_uppercase() == address)
+        .and_then(|row| row.route_json)
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+        .and_then(|route| {
+            route
+                .get("read_service")
+                .and_then(|value| value.as_str())
+                .map(str::to_string)
+        });
+    if service.as_deref() == Some("21") {
+        module.read_service = ReadService::DataByLocalIdentifier;
+    }
+}
+
 pub fn resolve(vin: Option<&str>, key: &str, custom: &[UdsModule]) -> Option<UdsModule> {
     profile_modules(vin)
         .into_iter()
@@ -978,7 +1004,8 @@ pub fn clear_module(
     ctx: super::supervisor::ConnCtx,
 ) -> Result<ClearOutcome, String> {
     let custom = custom_modules(db, vin);
-    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     let extended_session_open = operation.enter_extended_session();
@@ -1107,7 +1134,8 @@ pub fn module_dtcs(
     module: &str,
 ) -> Result<Vec<String>, String> {
     let custom = custom_modules(db, vin);
-    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     read_dtcs(operation.driver()).map_err(|e| e.to_string())
@@ -1121,7 +1149,8 @@ pub fn read_many(
     dids: &[u16],
 ) -> Result<Vec<UdsHit>, String> {
     let custom = custom_modules(db, vin);
-    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     let mut hits = Vec::with_capacity(dids.len());
@@ -1148,7 +1177,8 @@ pub fn read_one(
     did: u16,
 ) -> Result<Option<UdsHit>, String> {
     let custom = custom_modules(db, vin);
-    let m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
     let mut operation = ScannerOperation::new(drv);
     setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
     read_did(operation.driver(), m.service_for(vin, did), did)
@@ -1275,9 +1305,10 @@ pub fn poll_probes(
         .and_then(|v| v.vin);
     let custom = custom_modules(db, vin.as_deref());
     for (mkey, group) in by_module {
-        let Some(m) = resolve(vin.as_deref(), &mkey, &custom) else {
+        let Some(mut m) = resolve(vin.as_deref(), &mkey, &custom) else {
             continue;
         };
+        apply_persisted_dialect(db, ctx.vehicle_id, &mut m);
         let mut operation = ScannerOperation::new(drv);
         if setup_addressing(operation.driver(), &m).is_err() {
             continue;

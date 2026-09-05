@@ -231,6 +231,8 @@ profile (PSA `F080`/`F0FE`; VAG `F19E`/`F1A2`/`F1A3`; Hyundai/Kia `F1A0`
 family; Renault `F18A`; …) decoded by the brand's parser into the fingerprint
 tuple. Serial and VIN never enter the match key.
 
+If every `22` identity request returns NRC `11`, S2 probes `21 00` once and, when that dialect exists, reads a bounded ISO 14230-3 `1A` identity ladder in the same default-session budget.
+
 Identity confidence has three levels, so a first connection can already
 reuse knowledge without pretending the fingerprint is settled:
 

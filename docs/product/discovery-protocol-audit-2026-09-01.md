@@ -61,6 +61,10 @@ none (`plan.rs:369-374`).
 
 ## 3. Findings, ranked
 
+| Follow-up | Status | Evidence |
+|---|---|---|
+| S2 legacy dialect ladder | implemented | A module rejecting every `22` identity DID with NRC `11` receives one `21 00` support probe, followed only when supported by bounded `1A` identity reads; dialect and NRC evidence are persisted per route. |
+
 ### F1. The sweep opens an extended session (safety)
 
 `discover_inner` (`uds.rs:2116-2119`) and `fast_refresh` (`uds.rs:2337-2340`)

@@ -1266,6 +1266,16 @@ impl Db {
         .ok()
     }
 
+    pub fn vehicle_id_for_vin(&self, vin: Option<&str>) -> Option<i64> {
+        self.0
+            .lock()
+            .unwrap()
+            .query_row("SELECT id FROM vehicles WHERE vin=?1", [vin?], |row| {
+                row.get(0)
+            })
+            .ok()
+    }
+
     pub fn list_vehicles(&self) -> Vec<VehicleListRow> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn
@@ -2270,6 +2280,16 @@ impl Db {
         conn.execute(
             "UPDATE discovered_modules SET route_json = ?1 WHERE id = ?2",
             params![route_json, module_id],
+        )
+        .map(|n| n > 0)
+        .unwrap_or(false)
+    }
+
+    pub fn set_module_identity_fit(&self, module_id: i64, identity_fit: &str) -> bool {
+        let conn = self.0.lock().unwrap();
+        conn.execute(
+            "UPDATE discovered_modules SET identity_fit = ?1 WHERE id = ?2",
+            params![identity_fit, module_id],
         )
         .map(|n| n > 0)
         .unwrap_or(false)

@@ -8,8 +8,9 @@ use crate::elm::driver::ElmDriver;
 use crate::elm::operation::ScannerOperation;
 use crate::elm::outcome::{DiagnosticOutcome, DiagnosticStatus};
 use crate::elm::uds::{self, format_can_address, AddressingState};
-use crate::elm::uds_map::{self, AddressCandidate, Route};
-use serde::Serialize;
+use crate::elm::uds_map::{self, AddressCandidate, ReadService, Route};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
@@ -141,6 +142,130 @@ struct Reached {
     route: Route,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum ModuleDialect {
+    Uds22,
+    Kwp21,
+    Unknown,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct DialectNrc {
+    request: String,
+    nrc: Option<u8>,
+    status: String,
+}
+
+fn store_dialect(
+    db: &Db,
+    module_id: i64,
+    route: &Route,
+    dialect: ModuleDialect,
+    ladder: &[DialectNrc],
+) {
+    let mut value = serde_json::to_value(route).unwrap_or_else(|_| json!({}));
+    if let Value::Object(object) = &mut value {
+        object.insert("dialect".into(), serde_json::to_value(dialect).unwrap());
+        object.insert("nrc_ladder".into(), serde_json::to_value(ladder).unwrap());
+        if matches!(object.get("dialect").and_then(Value::as_str), Some("kwp21")) {
+            object.insert("read_service".into(), Value::String("21".into()));
+        }
+    }
+    if let Ok(raw) = serde_json::to_string(&value) {
+        db.set_module_route(module_id, &raw);
+    }
+}
+
+fn kwp_fingerprint(
+    req: u32,
+    resp: u32,
+    observations: &[IdentityObservation],
+) -> Option<uds::EcuFingerprint> {
+    let mut fingerprint = uds::EcuFingerprint {
+        request_address: format_can_address(req),
+        response_address: format_can_address(resp),
+        fields_total: 5,
+        ..Default::default()
+    };
+    for observation in observations.iter().filter(|o| o.answered()) {
+        let decoded = identity::decode_ascii(&observation.payload);
+        let stored = match observation.did {
+            0x90 => decoded
+                .as_deref()
+                .map(|value| value.chars().take(3).collect()),
+            _ => decoded.clone(),
+        };
+        fingerprint.evidence.push(uds::EcuIdentityEvidence {
+            did: observation.did,
+            label: if observation.did == 0x90 {
+                "vin_wmi (excluded from the match key)".into()
+            } else {
+                "ecu_identification (iso_ascii)".into()
+            },
+            outcome: observation.outcome.clone(),
+            raw_value: None,
+            decoded_value: stored,
+        });
+        match observation.did {
+            0x87 if fingerprint.spare_part_number.is_none() => {
+                fingerprint.spare_part_number = decoded
+            }
+            0x91 if fingerprint.hardware_version.is_none() => {
+                fingerprint.hardware_version = decoded
+            }
+            0x92 if fingerprint.software_version.is_none() => {
+                fingerprint.software_version = decoded
+            }
+            0x94 if fingerprint.supplier.is_none() => fingerprint.supplier = decoded,
+            0x97 if fingerprint.system_name.is_none() => fingerprint.system_name = decoded,
+            _ => {}
+        }
+    }
+    finalize_fingerprint(&mut fingerprint).then_some(fingerprint)
+}
+
+fn finalize_fingerprint(fingerprint: &mut uds::EcuFingerprint) -> bool {
+    let comparable = [
+        ("part", fingerprint.spare_part_number.as_deref()),
+        ("hw", fingerprint.hardware_version.as_deref()),
+        ("sw", fingerprint.software_version.as_deref()),
+        ("sys", fingerprint.system_name.as_deref()),
+    ];
+    fingerprint.fields_answered = comparable.iter().filter(|(_, v)| v.is_some()).count() as u8;
+    if fingerprint.fields_answered == 0 {
+        return false;
+    }
+    fingerprint.match_key = Some(
+        comparable
+            .into_iter()
+            .filter_map(|(key, value)| value.map(|value| format!("{key}={value}")))
+            .collect::<Vec<_>>()
+            .join("|"),
+    );
+    true
+}
+
+fn add_engine_mode09_identity(drv: &mut ElmDriver, fingerprint: &mut uds::EcuFingerprint) {
+    for (command, prefix, field) in [("0904", "49 04", "software"), ("090A", "49 0A", "system")] {
+        let Ok(payload) = crate::elm::obd::query(drv, command, prefix, 2) else {
+            continue;
+        };
+        let start = payload
+            .iter()
+            .position(|byte| (0x20..0x7F).contains(byte))
+            .unwrap_or(payload.len());
+        let decoded = identity::decode_ascii(&payload[start..]);
+        match field {
+            "software" if fingerprint.software_version.is_none() => {
+                fingerprint.software_version = decoded
+            }
+            "system" if fingerprint.system_name.is_none() => fingerprint.system_name = decoded,
+            _ => {}
+        }
+    }
+}
+
 pub type Progress<'a> = &'a dyn Fn(&str, u32, u32, &str);
 
 #[allow(clippy::too_many_arguments)]
@@ -250,8 +375,13 @@ pub fn run(
     summary.identity.modules = reached.len();
     let mut first_pass: Vec<Option<Vec<IdentityObservation>>> = vec![None; reached.len()];
     let mut second_pass: Vec<Option<Vec<IdentityObservation>>> = vec![None; reached.len()];
+    let mut dialects: Vec<Option<ModuleDialect>> = vec![None; reached.len()];
+    let mut fallback_fingerprints: Vec<Option<uds::EcuFingerprint>> = vec![None; reached.len()];
     'passes: for pass in 0..2 {
         for (i, module) in reached.iter().enumerate() {
+            if pass == 1 && !matches!(dialects[i], Some(ModuleDialect::Uds22)) {
+                continue;
+            }
             if cancel.load(Ordering::Relaxed) {
                 summary.cancelled = true;
                 summary.stopped = Some("cancelled during identity reads".into());
@@ -274,7 +404,7 @@ pub fn run(
             if uds::point_at(operation.driver(), &module.route, &mut addressing).is_err() {
                 continue;
             }
-            let service = uds_map::read_service_for_module(vin, module.req, module.resp);
+            let service = ReadService::DataByIdentifier;
             let mut observations = Vec::with_capacity(dids.len());
             for did in &dids {
                 let (outcome, payload) = match uds::observe_did_evidence(
@@ -295,6 +425,109 @@ pub fn run(
                     payload,
                 });
             }
+            if pass == 0
+                && service == ReadService::DataByIdentifier
+                && !observations.is_empty()
+                && observations
+                    .iter()
+                    .all(|observation| observation.outcome.nrc == Some(0x11))
+            {
+                let mut ladder = Vec::new();
+                let probe = uds::observe_did_evidence(
+                    operation.driver(),
+                    ReadService::DataByLocalIdentifier,
+                    0,
+                    ident_timeout,
+                )
+                .map(|evidence| evidence.outcome)
+                .unwrap_or_else(|error| DiagnosticOutcome::from_elm_error("21", &error));
+                ladder.push(DialectNrc {
+                    request: "2100".into(),
+                    nrc: probe.nrc,
+                    status: format!("{:?}", probe.status).to_ascii_lowercase(),
+                });
+                let exists = probe.status == DiagnosticStatus::Answered
+                    || matches!(probe.nrc, Some(0x10 | 0x12 | 0x31));
+                if exists {
+                    observations.clear();
+                    let mut positives = 0;
+                    for local_id in [0x90, 0x91, 0x92, 0x94, 0x97, 0x87] {
+                        if positives == 3 || started.elapsed() > s1s2 || started.elapsed() > global
+                        {
+                            break;
+                        }
+                        let evidence = uds::observe_did_evidence(
+                            operation.driver(),
+                            ReadService::EcuIdentification,
+                            local_id,
+                            ident_timeout,
+                        )
+                        .unwrap_or_else(|error| uds::DidEvidence {
+                            outcome: DiagnosticOutcome::from_elm_error("1A", &error),
+                            data: None,
+                            raw_response: None,
+                        });
+                        if evidence.outcome.status == DiagnosticStatus::Answered {
+                            positives += 1;
+                        }
+                        ladder.push(DialectNrc {
+                            request: format!("1A{local_id:02X}"),
+                            nrc: evidence.outcome.nrc,
+                            status: format!("{:?}", evidence.outcome.status).to_ascii_lowercase(),
+                        });
+                        observations.push(IdentityObservation {
+                            did: local_id,
+                            outcome: evidence.outcome,
+                            payload: evidence.data.unwrap_or_default(),
+                        });
+                    }
+                    dialects[i] = Some(ModuleDialect::Kwp21);
+                    store_dialect(
+                        db,
+                        module.module_id,
+                        &module.route,
+                        ModuleDialect::Kwp21,
+                        &ladder,
+                    );
+                    let mut fingerprint = kwp_fingerprint(module.req, module.resp, &observations)
+                        .unwrap_or_else(|| uds::EcuFingerprint {
+                            request_address: format_can_address(module.req),
+                            response_address: format_can_address(module.resp),
+                            fields_total: 5,
+                            ..Default::default()
+                        });
+                    if module.req == 0x7E0 {
+                        add_engine_mode09_identity(operation.driver(), &mut fingerprint);
+                        finalize_fingerprint(&mut fingerprint);
+                    }
+                    if fingerprint.fields_answered > 0 {
+                        db.update_ecu_fingerprint(module.module_id, &fingerprint);
+                        fallback_fingerprints[i] = Some(fingerprint);
+                    } else {
+                        db.set_module_identity_fit(module.module_id, "unavailable");
+                    }
+                } else {
+                    dialects[i] = Some(ModuleDialect::Unknown);
+                    store_dialect(
+                        db,
+                        module.module_id,
+                        &module.route,
+                        ModuleDialect::Unknown,
+                        &ladder,
+                    );
+                    db.set_module_identity_fit(module.module_id, "unavailable");
+                    observations.clear();
+                }
+            } else if pass == 0 {
+                dialects[i] = Some(ModuleDialect::Uds22);
+                store_dialect(
+                    db,
+                    module.module_id,
+                    &module.route,
+                    ModuleDialect::Uds22,
+                    &[],
+                );
+            }
             if pass == 0 {
                 first_pass[i] = Some(observations);
             } else {
@@ -310,7 +543,11 @@ pub fn run(
             format_can_address(module.req),
             format_can_address(module.resp),
         );
-        let Some(fingerprint) = identity::fingerprint(vin, (&route.0, &route.1), first) else {
+        let fingerprint = match dialects[i] {
+            Some(ModuleDialect::Kwp21) => fallback_fingerprints[i].clone(),
+            _ => identity::fingerprint(vin, (&route.0, &route.1), first),
+        };
+        let Some(fingerprint) = fingerprint else {
             continue;
         };
         summary.identity.fingerprinted += 1;
@@ -375,6 +612,9 @@ mod tests {
         resp: u32,
         presence: &'static str,
         identity: Vec<(u16, &'static str)>,
+        identity_nrc: u8,
+        local_probe: Option<&'static str>,
+        kwp_identity: Vec<(u8, &'static str)>,
     }
 
     fn fixture(vin: &str, answering: &[Answering]) -> String {
@@ -407,12 +647,15 @@ mod tests {
             }
         }
         let dids = pack_ext::identity_dids(&uds_map::identity_block_for_vin(Some(vin)));
-        for _pass in 0..2 {
-            for (c, a, route) in &reached {
+        for pass in 0..2 {
+            for (_c, a, route) in &reached {
+                if pass == 1 && a.identity.is_empty() && a.identity_nrc == 0x11 {
+                    continue;
+                }
                 for command in uds::point_at_commands(route, &mut state).unwrap() {
                     steps.push(json!({"command": command, "response": "OK\r>"}));
                 }
-                let service = uds_map::read_service_for_module(Some(vin), c.req, c.resp);
+                let service = ReadService::DataByIdentifier;
                 for did in &dids {
                     let Some((request, _)) = uds::request_for(service, *did) else {
                         continue;
@@ -422,7 +665,30 @@ mod tests {
                             "command": request,
                             "response": format!("62 {:02X} {:02X} {hex}\r>", did >> 8, did & 0xFF)
                         })),
-                        None => steps.push(json!({"command": request, "response": "7F 22 31\r>"})),
+                        None => steps.push(json!({"command": request, "response": format!("7F 22 {:02X}\r>", a.identity_nrc)})),
+                    }
+                }
+                if pass == 0 && a.identity.is_empty() && a.identity_nrc == 0x11 {
+                    steps.push(json!({
+                        "command": "2100",
+                        "response": a.local_probe.unwrap_or("7F 21 11\r>")
+                    }));
+                    if a.local_probe
+                        .is_some_and(|response| !response.contains("7F 21 11"))
+                    {
+                        let mut positives = 0;
+                        for local_id in [0x90, 0x91, 0x92, 0x94, 0x97, 0x87] {
+                            if positives == 3 {
+                                break;
+                            }
+                            match a.kwp_identity.iter().find(|(id, _)| *id == local_id) {
+                                Some((_, hex)) => {
+                                    positives += 1;
+                                    steps.push(json!({"command": format!("1A{local_id:02X}"), "response": format!("5A {local_id:02X} {hex}\r>")}));
+                                }
+                                None => steps.push(json!({"command": format!("1A{local_id:02X}"), "response": "7F 1A 31\r>"})),
+                            }
+                        }
                     }
                 }
             }
@@ -466,12 +732,18 @@ mod tests {
                     ),
                     (0xF18C, "32 38 35"),
                 ],
+                identity_nrc: 0x31,
+                local_probe: None,
+                kwp_identity: Vec::new(),
             },
             Answering {
                 req: 0x6B5,
                 resp: 0x695,
                 presence: "7F 22 31\r>",
                 identity: vec![(0xF080, "98 44 55 17 80 00 0D FF FF FF FF FF")],
+                identity_nrc: 0x31,
+                local_probe: None,
+                kwp_identity: Vec::new(),
             },
         ];
         let raw = fixture(&vin, &answering);
@@ -574,12 +846,18 @@ mod tests {
                     (0xF191, "48 30 31"),
                     (0xF195, "30 32 31 30"),
                 ],
+                identity_nrc: 0x31,
+                local_probe: None,
+                kwp_identity: Vec::new(),
             },
             Answering {
                 req: uds_map::can_address(&local_id.req).unwrap(),
                 resp: uds_map::can_address(&local_id.resp).unwrap(),
                 presence: "7F 22 11\r>",
                 identity: Vec::new(),
+                identity_nrc: 0x31,
+                local_probe: None,
+                kwp_identity: Vec::new(),
             },
         ];
         let raw = fixture(&vin, &answering);
@@ -681,5 +959,103 @@ mod tests {
             notice.discovery_continues,
             !uds_map::addresses_to_probe(Some(&vin)).is_empty()
         );
+    }
+
+    #[test]
+    fn service_21_fallback_records_hardware_without_an_identity_conflict() {
+        let _guard = operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        operation::set_link_state(None);
+        let vin = verified_vin();
+        let candidate = uds_map::addresses_to_probe(Some(&vin))
+            .into_iter()
+            .find(|candidate| candidate.profile_candidate)
+            .unwrap();
+        let raw = fixture(
+            &vin,
+            &[Answering {
+                req: candidate.req,
+                resp: candidate.resp,
+                presence: "62 F1 86 01\r>",
+                identity: Vec::new(),
+                identity_nrc: 0x11,
+                local_probe: Some("7F 21 12\r>"),
+                kwp_identity: vec![(0x91, "48 57 2D 31")],
+            }],
+        );
+        let mut driver = ElmDriver::from_replay_json(&raw).unwrap();
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
+        let connection = db.start_connection("ELM327", "test");
+
+        run(
+            &mut driver,
+            &db,
+            vehicle_id,
+            Some(&vin),
+            connection,
+            &AtomicBool::new(false),
+            &config(),
+            &|_, _, _, _| {},
+        );
+
+        driver.assert_replay_complete();
+        let module = db.discovered_summary(vehicle_id).remove(0);
+        assert_eq!(module.hardware_version.as_deref(), Some("HW-1"));
+        assert_ne!(module.identity_fit.as_deref(), Some("conflicted"));
+        assert!(module.route_json.unwrap().contains("\"dialect\":\"kwp21\""));
+        for forbidden in ["1003", "2E", "2F", "31", "27"] {
+            assert!(!raw.contains(&format!("\"command\":\"{forbidden}")));
+        }
+    }
+
+    #[test]
+    fn unsupported_service_21_stops_the_identity_ladder() {
+        let _guard = operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        operation::set_link_state(None);
+        let vin = verified_vin();
+        let candidate = uds_map::addresses_to_probe(Some(&vin))
+            .into_iter()
+            .find(|candidate| candidate.profile_candidate)
+            .unwrap();
+        let raw = fixture(
+            &vin,
+            &[Answering {
+                req: candidate.req,
+                resp: candidate.resp,
+                presence: "62 F1 86 01\r>",
+                identity: Vec::new(),
+                identity_nrc: 0x11,
+                local_probe: None,
+                kwp_identity: Vec::new(),
+            }],
+        );
+        let mut driver = ElmDriver::from_replay_json(&raw).unwrap();
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
+        let connection = db.start_connection("ELM327", "test");
+
+        run(
+            &mut driver,
+            &db,
+            vehicle_id,
+            Some(&vin),
+            connection,
+            &AtomicBool::new(false),
+            &config(),
+            &|_, _, _, _| {},
+        );
+
+        driver.assert_replay_complete();
+        let module = db.discovered_summary(vehicle_id).remove(0);
+        assert_eq!(module.identity_fit.as_deref(), Some("unavailable"));
+        assert!(module
+            .route_json
+            .unwrap()
+            .contains("\"dialect\":\"unknown\""));
+        assert!(!raw.contains("\"command\":\"1A"));
     }
 }
