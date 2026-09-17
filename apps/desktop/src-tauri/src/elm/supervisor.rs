@@ -88,6 +88,31 @@ pub fn dtc_scan_interval_ticks(setting: Option<&str>) -> u64 {
         .unwrap_or(DTC_SCAN_INTERVAL_DEFAULT)
 }
 
+const LEARNING_ROUND_INTERVAL: Duration = Duration::from_secs(2);
+
+struct LearningSchedule {
+    interval: Duration,
+    last_round: Option<Instant>,
+}
+
+impl LearningSchedule {
+    fn new(interval: Duration) -> Self {
+        Self {
+            interval,
+            last_round: None,
+        }
+    }
+
+    fn due(&self, now: Instant) -> bool {
+        self.last_round
+            .is_none_or(|last| now.duration_since(last) >= self.interval)
+    }
+
+    fn record(&mut self, now: Instant) {
+        self.last_round = Some(now);
+    }
+}
+
 struct DtcScanSchedule {
     interval: u64,
     last_scan_tick: Option<u64>,
@@ -433,6 +458,7 @@ fn run_loop(
         let mut tick: u64 = 0;
         let mut probe_interval: u64 = 0;
         let mut dtc_schedule = DtcScanSchedule::new(DTC_SCAN_INTERVAL_DEFAULT);
+        let mut learning_schedule = LearningSchedule::new(LEARNING_ROUND_INTERVAL);
         let mut alerts_fired: std::collections::HashSet<&'static str> = Default::default();
         let mut low_voltage_streak = 0u32;
         let mut ride = db.active_ride();
@@ -674,8 +700,7 @@ fn run_loop(
                 );
                 if resolved != probe_interval {
                     log::info!(
-                        "probe polling every {resolved} ticks (~{:.1} s), learning state {}",
-                        resolved as f64 * 0.25,
+                        "probe polling every {resolved} loop ticks, learning state {}",
                         if learning_on { "on" } else { "off" }
                     );
                     probe_interval = resolved;
@@ -683,67 +708,75 @@ fn run_loop(
                 let resolved_scan =
                     dtc_scan_interval_ticks(db.setting_get(DTC_SCAN_INTERVAL_SETTING).as_deref());
                 if resolved_scan != dtc_schedule.interval {
-                    log::info!(
-                        "fault-code scan every {resolved_scan} ticks (~{:.0} s)",
-                        resolved_scan as f64 * 0.25
-                    );
+                    log::info!("fault-code scan every {resolved_scan} loop ticks");
                     dtc_schedule.interval = resolved_scan;
                 }
             }
-            if tick > 0 && tick % probe_interval == 0 {
+            if tick > 0 && probe_interval > 0 && tick % probe_interval == 0 {
                 let uds_values = uds::poll_probes(&mut drv, &db, ctx);
                 for (k, v) in uds_values {
                     values.insert(k, v);
                 }
-                if ride.is_some() {
-                    if let Some(run) = learning.as_mut() {
-                        let now = Instant::now();
-                        if let Some((module, cohort)) = run.current(now) {
-                            let dids: Vec<u16> = cohort.iter().map(|(_, did)| *did).collect();
-                            let started = Instant::now();
-                            let vin = current_vin(&db, ctx);
-                            let result =
-                                uds::read_many(&mut drv, &db, vin.as_deref(), &module, &dids);
-                            let elapsed = started.elapsed();
-                            let hits = result
-                                .as_ref()
-                                .map(|hits| {
-                                    hits.iter()
-                                        .map(|hit| (hit.did, hit.hex.clone()))
-                                        .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_default();
-                            let refs = discovery::learn::reference_readings(&reference_values);
-                            let refs_json = serde_json::to_string(&refs).ok();
-                            for (hypothesis_id, did) in &cohort {
-                                if let Some((_, payload)) =
-                                    hits.iter().find(|(hit_did, _)| hit_did == did)
-                                {
-                                    db.insert_hypothesis_sample(
-                                        *hypothesis_id,
-                                        now_ms(),
-                                        payload,
-                                        refs_json.as_deref(),
+            }
+            if ride.is_some() && learning_schedule.due(Instant::now()) {
+                if let Some(run) = learning.as_mut() {
+                    let now = Instant::now();
+                    learning_schedule.record(now);
+                    if let Some((module, cohort)) = run.current(now) {
+                        let dids: Vec<u16> = cohort.iter().map(|(_, did)| *did).collect();
+                        let started = Instant::now();
+                        let vin = current_vin(&db, ctx);
+                        let result =
+                            uds::read_many_at(&mut drv, &db, vin.as_deref(), &module, &dids);
+                        let elapsed = started.elapsed();
+                        match result {
+                            Err(error) => {
+                                let outcome = run.record_error(&module, elapsed);
+                                if outcome.first {
+                                    log::warn!("learning read failed on module {module}: {error}");
+                                }
+                                if outcome.dropped {
+                                    log::warn!(
+                                        "learning dropped module {module} for this ride after {} failed rounds",
+                                        discovery::learn::MAX_MODULE_ERRORS
                                     );
                                 }
                             }
-                            run.record(&module, elapsed, &hits);
-                            let suspended = run.suspended(Instant::now()) || run.slow(elapsed);
-                            if run.take_suspend_log(suspended) {
-                                log::warn!(
-                                    "learning suspended: {:.1}% occupancy, last read {:.2}s",
-                                    elapsed.as_secs_f64() * 100.0 / 60.0,
-                                    elapsed.as_secs_f64()
-                                );
+                            Ok(hits) => {
+                                let hits: Vec<(u16, String)> =
+                                    hits.iter().map(|hit| (hit.did, hit.hex.clone())).collect();
+                                let refs = discovery::learn::reference_readings(&reference_values);
+                                let refs_json = serde_json::to_string(&refs).ok();
+                                for (hypothesis_id, did) in &cohort {
+                                    if let Some((_, payload)) =
+                                        hits.iter().find(|(hit_did, _)| hit_did == did)
+                                    {
+                                        db.insert_hypothesis_sample(
+                                            *hypothesis_id,
+                                            now_ms(),
+                                            payload,
+                                            refs_json.as_deref(),
+                                        );
+                                    }
+                                }
+                                run.record(&module, elapsed, &hits);
                             }
                         }
-                        let snapshot = {
-                            let mut guard = status.lock().unwrap();
-                            guard.learning = Some(run.status());
-                            guard.clone()
-                        };
-                        let _ = app.emit("conn-status", &snapshot);
+                        let suspended = run.suspended(Instant::now()) || run.slow(elapsed);
+                        if run.take_suspend_log(suspended) {
+                            log::warn!(
+                                "learning suspended: {:.1}% occupancy, last read {:.2}s",
+                                elapsed.as_secs_f64() * 100.0 / 60.0,
+                                elapsed.as_secs_f64()
+                            );
+                        }
                     }
+                    let snapshot = {
+                        let mut guard = status.lock().unwrap();
+                        guard.learning = Some(run.status());
+                        guard.clone()
+                    };
+                    let _ = app.emit("conn-status", &snapshot);
                 }
             }
             if tick % 20 == 0 {
@@ -1470,6 +1503,19 @@ mod tests {
             ),
             40
         );
+    }
+
+    #[test]
+    fn learning_rounds_are_paced_by_the_clock_not_by_loop_ticks() {
+        let mut schedule = LearningSchedule::new(LEARNING_ROUND_INTERVAL);
+        let start = Instant::now();
+        assert!(schedule.due(start));
+        schedule.record(start);
+        assert!(!schedule.due(start + Duration::from_millis(1999)));
+        assert!(schedule.due(start + LEARNING_ROUND_INTERVAL));
+        schedule.record(start + LEARNING_ROUND_INTERVAL);
+        assert!(!schedule.due(start + LEARNING_ROUND_INTERVAL));
+        assert!(schedule.due(start + LEARNING_ROUND_INTERVAL * 2));
     }
 
     #[test]
