@@ -88,7 +88,46 @@ fn rust_string(value: &str) -> String {
     format!("\"{escaped}\"")
 }
 
+fn embed_windows_manifest() {
+    const MANIFEST: &str = r#"<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+        type="win32"
+        name="Microsoft.Windows.Common-Controls"
+        version="6.0.0.0"
+        processorArchitecture="*"
+        publicKeyToken="6595b64144ccf1df"
+        language="*"
+      />
+    </dependentAssembly>
+  </dependency>
+</assembly>
+"#;
+
+    let manifest =
+        PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("windows-app-manifest.xml");
+    write_if_changed(&manifest, MANIFEST);
+
+    // Link the shared manifest into app and test artifacts to avoid STATUS_ENTRYPOINT_NOT_FOUND.
+    println!("cargo::rustc-link-arg=/MANIFEST:EMBED");
+    println!(
+        "cargo::rustc-link-arg=/MANIFESTINPUT:{}",
+        manifest.display()
+    );
+    println!("cargo::rustc-link-arg=/WX");
+}
+
 fn main() {
     emit_research_packs();
-    tauri_build::build()
+    let is_windows_msvc = std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows")
+        && std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc");
+    if is_windows_msvc {
+        let attributes = tauri_build::Attributes::new()
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
+        tauri_build::try_build(attributes).expect("failed to run Tauri build script");
+        embed_windows_manifest();
+    } else {
+        tauri_build::build();
+    }
 }
