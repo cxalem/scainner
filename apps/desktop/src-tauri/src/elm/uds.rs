@@ -211,6 +211,29 @@ pub fn resolve(vin: Option<&str>, key: &str, custom: &[UdsModule]) -> Option<Uds
         .or_else(|| custom.iter().find(|m| m.key == key).cloned())
 }
 
+pub fn resolve_address(db: &Db, vin: Option<&str>, address: &str) -> Option<UdsModule> {
+    let (req, resp) = parse_module_address(address)?;
+    let req_hex = format_can_address(req);
+    let resp_hex = format_can_address(resp);
+    let known = profile_modules(vin)
+        .into_iter()
+        .chain(custom_modules(db, vin))
+        .find(|m| m.req == req_hex && m.resp == resp_hex);
+    Some(known.unwrap_or_else(|| {
+        UdsModule::custom(
+            vin,
+            &format!(
+                "auto_{}_{}",
+                req_hex.to_lowercase(),
+                resp_hex.to_lowercase()
+            ),
+            &format!("Discovered module {req_hex}"),
+            &req_hex,
+            &resp_hex,
+        )
+    }))
+}
+
 fn address_pair(m: &UdsModule) -> Result<(u32, u32, bool), ElmError> {
     address_pair_of(&m.req, &m.resp)
 }
@@ -1224,18 +1247,14 @@ pub fn module_dtcs(
     Ok(module_dtc_result(operation.driver()))
 }
 
-pub fn read_many(
+fn read_dids(
     drv: &mut ElmDriver,
-    db: &Db,
     vin: Option<&str>,
-    module: &str,
+    m: &UdsModule,
     dids: &[u16],
 ) -> Result<Vec<UdsHit>, String> {
-    let custom = custom_modules(db, vin);
-    let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
-    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
     let mut operation = ScannerOperation::new(drv);
-    setup_addressing(operation.driver(), &m).map_err(|e| e.to_string())?;
+    setup_addressing(operation.driver(), m).map_err(|e| e.to_string())?;
     let mut hits = Vec::with_capacity(dids.len());
     for did in dids.iter().take(64) {
         if let Some(data) = read_did_timeout(
@@ -1250,6 +1269,31 @@ pub fn read_many(
         }
     }
     Ok(hits)
+}
+
+pub fn read_many(
+    drv: &mut ElmDriver,
+    db: &Db,
+    vin: Option<&str>,
+    module: &str,
+    dids: &[u16],
+) -> Result<Vec<UdsHit>, String> {
+    let custom = custom_modules(db, vin);
+    let mut m = resolve(vin, module, &custom).ok_or("unknown module")?;
+    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
+    read_dids(drv, vin, &m, dids)
+}
+
+pub fn read_many_at(
+    drv: &mut ElmDriver,
+    db: &Db,
+    vin: Option<&str>,
+    address: &str,
+    dids: &[u16],
+) -> Result<Vec<UdsHit>, String> {
+    let mut m = resolve_address(db, vin, address).ok_or("unusable module address")?;
+    apply_persisted_dialect(db, db.vehicle_id_for_vin(vin), &mut m);
+    read_dids(drv, vin, &m, dids)
 }
 
 pub fn read_one(
@@ -1724,16 +1768,35 @@ pub fn discover(
     app: &tauri::AppHandle,
     full: bool,
 ) -> Result<DiscoveryReport, String> {
-    let mut operation = ScannerOperation::new(drv);
-    discover_inner(
-        operation.driver(),
-        db,
-        vehicle_id,
-        vin,
-        cancel_scan,
-        app,
-        full,
-    )
+    let report = {
+        let mut operation = ScannerOperation::new(drv);
+        discover_inner(
+            operation.driver(),
+            db,
+            vehicle_id,
+            vin,
+            cancel_scan,
+            app,
+            full,
+        )
+    };
+    if report.is_ok() {
+        join_after_sweep(db, vehicle_id);
+    }
+    report
+}
+
+fn join_after_sweep(db: &Db, vehicle_id: i64) {
+    let joined = super::discovery::join::join_vehicle(db, uds_map::map(), vehicle_id);
+    log::info!(
+        "sweep join: {} modules, {} inherited ({} new), {} unknown ({} new), {} filtered",
+        joined.modules.len(),
+        joined.inherited_created + joined.inherited_refreshed,
+        joined.inherited_created,
+        joined.unknown_created + joined.unknown_refreshed,
+        joined.unknown_created,
+        joined.filtered
+    );
 }
 
 fn discover_inner(
@@ -2469,6 +2532,124 @@ mod tests {
         assert!(profile_modules(None).is_empty());
         assert!(profile_modules(Some("ZZZ00000000000000")).is_empty());
         assert!(resolve(None, &first.key, &[]).is_none());
+    }
+
+    fn learning_read_replay(m: &UdsModule, vin: Option<&str>, reads: &[(u16, &str)]) -> ElmDriver {
+        let mut steps: Vec<serde_json::Value> = addressing_commands(m)
+            .expect("valid addresses")
+            .into_iter()
+            .map(|command| serde_json::json!({"command": command, "response": "OK\r>"}))
+            .collect();
+        for (did, payload) in reads {
+            let (request, positive) =
+                request_for(m.service_for(vin, *did), *did).expect("identifier fits the service");
+            let response = positive
+                .iter()
+                .map(|b| format!("{b:02X}"))
+                .collect::<Vec<_>>()
+                .join(" ");
+            steps.push(serde_json::json!({
+                "command": request,
+                "response": format!("{response} {payload}\r>"),
+            }));
+        }
+        for command in ["ATCEA", "ATSP0", "ATSH 7DF", "ATAR", "ATFCSM 0"] {
+            steps.push(serde_json::json!({"command": command, "response": "OK\r>"}));
+        }
+        ElmDriver::from_replay_json(
+            &serde_json::json!({
+                "schema_version": 1,
+                "name": "learning read by address",
+                "contains_vehicle_identifiers": false,
+                "steps": steps,
+            })
+            .to_string(),
+        )
+        .unwrap()
+    }
+
+    fn address_outside_the_profile(vin: &str) -> (String, String) {
+        let profile = profile_modules(Some(vin));
+        let req = (0x700u16..=0x7FF)
+            .find(|req| {
+                let hex = format_can_address(u32::from(*req));
+                !profile.iter().any(|m| m.req == hex)
+            })
+            .expect("a free 11-bit request address");
+        (
+            format_can_address(u32::from(req)),
+            format_can_address(u32::from(uds_map::response_addr(None, req))),
+        )
+    }
+
+    #[test]
+    fn a_learning_read_resolves_a_profile_module_by_its_address_pair() {
+        let _guard = crate::elm::operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        crate::elm::operation::set_link_state(None);
+        let vin = verified_brand_vin();
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        db.ensure_vehicle(&vin);
+        let module = profile_modules(Some(&vin))
+            .into_iter()
+            .find(|m| m.read_service == ReadService::DataByIdentifier)
+            .expect("a profile module read over service 22");
+        let address = format!("{}/{}", module.req, module.resp);
+        assert!(
+            resolve(Some(&vin), &address, &custom_modules(&db, Some(&vin))).is_none(),
+            "an address pair is not a module key, so key lookup cannot serve learning"
+        );
+        let mut driver = learning_read_replay(&module, Some(&vin), &[(0xD100, "07")]);
+        let hits = read_many_at(&mut driver, &db, Some(&vin), &address, &[0xD100])
+            .expect("the address pair resolves");
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].hex, "07");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn a_learning_read_resolves_a_module_the_profile_does_not_list() {
+        let _guard = crate::elm::operation::tests::LINK_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        crate::elm::operation::set_link_state(None);
+        let vin = verified_brand_vin();
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
+        let (req, resp) = address_outside_the_profile(&vin);
+        let address = format!("{req}/{resp}");
+        db.upsert_discovered_module(vehicle_id, &address, None);
+        assert!(
+            resolve(Some(&vin), &address, &custom_modules(&db, Some(&vin))).is_none(),
+            "a swept module has no profile or custom key to look up"
+        );
+        let module = resolve_address(&db, Some(&vin), &address).expect("address pair resolves");
+        assert_eq!(module.req, req);
+        let mut driver = learning_read_replay(&module, Some(&vin), &[(0xD200, "1A 2B")]);
+        let hits = read_many_at(&mut driver, &db, Some(&vin), &address, &[0xD200])
+            .expect("the address pair resolves");
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].hex, "1A 2B");
+        driver.assert_replay_complete();
+    }
+
+    #[test]
+    fn a_swept_identifier_becomes_a_learning_candidate_once_the_join_runs() {
+        let vin = verified_brand_vin();
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let (vehicle_id, _) = db.ensure_vehicle(&vin);
+        let (req, resp) = address_outside_the_profile(&vin);
+        let module_id = db.upsert_discovered_module(vehicle_id, &format!("{req}/{resp}"), None);
+        db.upsert_discovered_did(module_id, 0xD200, "01 02", 2, None);
+        assert!(
+            crate::elm::discovery::learn::candidates(&db, vehicle_id).is_empty(),
+            "a sweep alone leaves nothing for a ride to sample"
+        );
+        join_after_sweep(&db, vehicle_id);
+        let candidates = crate::elm::discovery::learn::candidates(&db, vehicle_id);
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].hypothesis.did, 0xD200);
     }
 
     #[test]

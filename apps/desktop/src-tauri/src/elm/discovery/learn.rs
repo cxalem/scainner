@@ -12,6 +12,7 @@ const MAX_COHORT: usize = 8;
 const MAX_SAMPLES: i64 = 40;
 const CONSTANT_SAMPLES: i64 = 12;
 const MAX_REFUSALS: u8 = 6;
+pub const MAX_MODULE_ERRORS: u8 = 3;
 const OCCUPANCY_WINDOW: Duration = Duration::from_secs(60);
 const OCCUPANCY_LIMIT: f64 = 0.20;
 const SLOW_READ: Duration = Duration::from_secs(4);
@@ -39,6 +40,12 @@ pub struct LearningStatus {
     pub suspended: bool,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct ModuleError {
+    pub first: bool,
+    pub dropped: bool,
+}
+
 #[derive(Debug)]
 pub struct LearningRun {
     candidates: VecDeque<Candidate>,
@@ -50,6 +57,7 @@ pub struct LearningRun {
     sampled_ids: HashSet<i64>,
     suspended_logged: bool,
     slow_until: Option<Instant>,
+    errors: HashMap<String, u8>,
 }
 
 fn opaque(shape: Option<&str>) -> bool {
@@ -108,13 +116,23 @@ pub fn candidates(db: &Db, vehicle_id: i64) -> Vec<Candidate> {
         })
         .map(|row| row.hypothesis.id)
         .collect();
+    let inherited = |row: &Candidate| {
+        row.hypothesis.decode_json.is_some() && row.hypothesis.vehicle_fit == "untested"
+    };
+    let modules_with_inherited: HashSet<String> = rows
+        .iter()
+        .filter(|row| inherited(row))
+        .map(|row| row.hypothesis.module_address.clone())
+        .collect();
     rows.sort_by_key(|row| {
-        let inherited =
-            row.hypothesis.decode_json.is_some() && row.hypothesis.vehicle_fit == "untested";
+        let module = &row.hypothesis.module_address;
         let small = matches!(row.byte_length, Some(1..=4));
         let array = array_ids.contains(&row.hypothesis.id);
         (
-            if inherited {
+            u8::from(!modules_with_inherited.contains(module)),
+            u8::from(!is_powertrain(module)),
+            module.clone(),
+            if inherited(row) {
                 0
             } else if small {
                 1
@@ -123,11 +141,21 @@ pub fn candidates(db: &Db, vehicle_id: i64) -> Vec<Candidate> {
             } else {
                 3
             },
-            row.hypothesis.module_address.clone(),
             row.hypothesis.did,
         )
     });
     rows
+}
+
+fn is_powertrain(module_address: &str) -> bool {
+    let Some(req) = module_address
+        .split_once('/')
+        .and_then(|(req, _)| uds_map::can_address(req))
+    else {
+        return false;
+    };
+    (0x7E0..=0x7EF).contains(&req)
+        || (req & 0xFFFF_00FF == 0x18DA_00F1 && (req >> 8) & 0xFF <= 0x0F)
 }
 
 impl LearningRun {
@@ -142,6 +170,7 @@ impl LearningRun {
             sampled_ids: HashSet::new(),
             suspended_logged: false,
             slow_until: None,
+            errors: HashMap::new(),
         };
         run.fill();
         run
@@ -211,12 +240,43 @@ impl LearningRun {
         Some((module, dids))
     }
 
-    pub fn record(&mut self, module: &str, elapsed: Duration, hits: &[(u16, String)]) {
+    fn charge(&mut self, elapsed: Duration) {
         let now = Instant::now();
         self.occupancy.push_back((now, elapsed));
         if elapsed > SLOW_READ {
             self.slow_until = Some(now + OCCUPANCY_WINDOW);
         }
+    }
+
+    pub fn record_error(&mut self, module: &str, elapsed: Duration) -> ModuleError {
+        self.charge(elapsed);
+        let count = self
+            .errors
+            .entry(module.to_string())
+            .and_modify(|count| *count = count.saturating_add(1))
+            .or_insert(1);
+        let outcome = ModuleError {
+            first: *count == 1,
+            dropped: *count >= MAX_MODULE_ERRORS,
+        };
+        if outcome.dropped {
+            self.drop_module(module);
+        }
+        outcome
+    }
+
+    fn drop_module(&mut self, module: &str) {
+        self.members
+            .retain(|member| member.hypothesis.module_address != module);
+        self.modules.retain(|candidate| candidate != module);
+        self.candidates
+            .retain(|candidate| candidate.hypothesis.module_address != module);
+        self.fill();
+    }
+
+    pub fn record(&mut self, module: &str, elapsed: Duration, hits: &[(u16, String)]) {
+        self.charge(elapsed);
+        self.errors.remove(module);
         let found: HashMap<u16, &String> =
             hits.iter().map(|(did, payload)| (*did, payload)).collect();
         for member in self
@@ -449,6 +509,119 @@ mod tests {
         assert_eq!(selected, ids[..4]);
         assert!(!selected.contains(&ids[4]));
         assert!(!selected.contains(&ids[5]));
+    }
+
+    fn seed_module(
+        db: &Db,
+        vehicle_id: i64,
+        address: &str,
+        dids: &[u16],
+        decode_json: Option<String>,
+    ) {
+        let module_id = db.upsert_discovered_module(vehicle_id, address, None);
+        for did in dids {
+            seed_candidate(db, vehicle_id, module_id, *did, 2, decode_json.clone());
+        }
+    }
+
+    fn order(db: &Db, vehicle_id: i64) -> Vec<(String, u16)> {
+        candidates(db, vehicle_id)
+            .into_iter()
+            .map(|c| (c.hypothesis.module_address, c.hypothesis.did))
+            .collect()
+    }
+
+    #[test]
+    fn powertrain_modules_lead_and_candidates_stay_contiguous_per_module() {
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let vehicle_id = db.create_vehicle_named("ordering");
+        seed_module(&db, vehicle_id, "730/738", &[0xD300, 0xD301, 0xD302], None);
+        seed_module(&db, vehicle_id, "7E0/7E8", &[0xD400, 0xD401], None);
+        assert_eq!(
+            order(&db, vehicle_id),
+            vec![
+                ("7E0/7E8".into(), 0xD400),
+                ("7E0/7E8".into(), 0xD401),
+                ("730/738".into(), 0xD300),
+                ("730/738".into(), 0xD301),
+                ("730/738".into(), 0xD302),
+            ]
+        );
+    }
+
+    #[test]
+    fn an_inherited_decode_outranks_the_powertrain_range() {
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let vehicle_id = db.create_vehicle_named("ordering");
+        let decode = serde_json::json!({"label":"candidate", "offset":0, "len":1, "scale":1.0, "bias":0.0, "signed":false, "unit":"km/h"}).to_string();
+        seed_module(&db, vehicle_id, "730/738", &[0xD300], Some(decode));
+        seed_module(&db, vehicle_id, "7E0/7E8", &[0xD400], None);
+        assert_eq!(
+            order(&db, vehicle_id),
+            vec![("730/738".into(), 0xD300), ("7E0/7E8".into(), 0xD400)]
+        );
+    }
+
+    #[test]
+    fn a_cohort_is_filled_from_one_module_before_the_next() {
+        let db = Db::open(std::path::Path::new(":memory:")).unwrap();
+        let vehicle_id = db.create_vehicle_named("cohort");
+        let wide: Vec<u16> = (0..10).map(|i| 0xD400 + i).collect();
+        seed_module(&db, vehicle_id, "7E0/7E8", &wide, None);
+        seed_module(&db, vehicle_id, "730/738", &[0xD300, 0xD301], None);
+        let run = LearningRun::new(&db, vehicle_id);
+        assert_eq!(run.members.len(), MAX_COHORT);
+        assert!(run
+            .members
+            .iter()
+            .all(|member| member.hypothesis.module_address == "7E0/7E8"));
+    }
+
+    #[test]
+    fn a_failing_module_is_dropped_without_charging_its_identifiers_a_refusal() {
+        let (_db, mut run, _) = seeded_run();
+        assert_eq!(
+            run.record_error("700/708", Duration::ZERO),
+            ModuleError {
+                first: true,
+                dropped: false
+            }
+        );
+        assert_eq!(
+            run.record_error("700/708", Duration::ZERO),
+            ModuleError {
+                first: false,
+                dropped: false
+            }
+        );
+        assert_eq!(
+            run.record_error("700/708", Duration::ZERO),
+            ModuleError {
+                first: false,
+                dropped: true
+            }
+        );
+        assert!(!run
+            .members
+            .iter()
+            .any(|member| member.hypothesis.module_address == "700/708"));
+        assert!(run.members.iter().all(|member| member.refusals == 0));
+        assert!(!run.modules.contains(&"700/708".to_string()));
+    }
+
+    #[test]
+    fn a_module_that_answers_again_starts_its_error_count_over() {
+        let (_db, mut run, _) = seeded_run();
+        run.record_error("700/708", Duration::ZERO);
+        run.record_error("700/708", Duration::ZERO);
+        run.record("700/708", Duration::ZERO, &[(0xD100, "01".into())]);
+        assert_eq!(
+            run.record_error("700/708", Duration::ZERO),
+            ModuleError {
+                first: true,
+                dropped: false
+            }
+        );
     }
 
     #[test]
